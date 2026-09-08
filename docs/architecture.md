@@ -41,8 +41,8 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     tendencies, causal summaries. Pure functions over the stream.
     │
     ├── FMNarrative       The whimsy layer. → FMCore, FMAnalysis
-    │                     News generation, highlight selection, rivalry state,
-    │                     storylines, awards, Hall of Fame. Turns data into voice.
+    │                     Writers, news rendering, storylines, ceremonies.
+    │                     Turns Findings into voice. A pure leaf: nothing depends on it.
     │
     ├── FMPersistence     SwiftData models + mapping. → FMCore
     │                     The ONLY module that knows SwiftData exists.
@@ -57,6 +57,13 @@ Dependencies point one way. `FMCore` and `FMRandom` depend on nothing.
 interrogation layer is product, not a reporting afterthought, and keeping narrative
 downstream of analysis means the news is generated *from* measured facts rather than
 invented alongside them.
+
+The split is load-bearing in one specific place. Media coverage feeds owner patience and
+so the coaching carousel — but the signal the owner reads is `MediaPressure`, a *metric
+computed in `FMAnalysis`*, never something `FMNarrative` produces. Otherwise
+`FMSimulation` would depend on prose generation to decide whether you get fired.
+`FMNarrative` renders and nothing depends on it. See
+[news-and-narrative.md](news-and-narrative.md#media-pressure-feeds-owner-expectations-carefully).
 
 ## Win probability is shared infrastructure
 

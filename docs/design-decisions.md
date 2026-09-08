@@ -94,6 +94,20 @@ See [gameplan.md](gameplan.md).
 | 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
 | 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
 
+## News and narrative
+
+See [news-and-narrative.md](news-and-narrative.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 56 | **Two stages: detection in `FMAnalysis`, rendering in `FMNarrative`** | Selection is the hard problem and is objectively testable; the same Finding rendered by two writers is the variety engine |
+| 57 | **Named recurring writers with memory** | Callbacks and running feuds are the strongest anti-fatigue mechanism; no template produces contextual copy |
+| 58 | **Pundit credibility is computed and visible** | Predictions are graded against the event stream — the third use of "state a claim, measure it, show the result", after gameplan hypotheses and scouting grades |
+| 59 | **Odd things are true world events, reported straight** | Generated and event-sourced so they persist and compound; they reach narrative and perception, never play resolution |
+| 60 | **Harshness tracks expectation, not record** | A rebuild going to plan isn't punished; criticism is always specific and evidence-backed |
+| 61 | **`MediaPressure` is an `FMAnalysis` metric, not an `FMNarrative` artifact** | `FMNarrative` stays a pure leaf. The owner system reads a measurement, so `FMSimulation` never depends on prose generation |
+| 62 | **Media feeds owner patience only** | Lagging and aggregated, never per-article, and one input among record, expectation delta, finances and tenure |
+
 ## Presentation and editing
 
 | # | Decision | Implication |

@@ -27,6 +27,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [Match engine](docs/match-engine.md) | Spatial simulation, the event stream, performance budget, calibration |
 | [Play calling](docs/play-calling.md) | Coordinators, gameplan constraints, opponent models, benchmarking |
 | [Gameplan](docs/gameplan.md) | The weekly decision surface, rule sets, directives, hypothesis grading |
+| [News and narrative](docs/news-and-narrative.md) | Story detection, writers, whimsy, media pressure |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
 | [ADRs](docs/adr/) | Architecture decision records |
 
