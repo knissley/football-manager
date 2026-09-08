@@ -94,6 +94,22 @@ See [gameplan.md](gameplan.md).
 | 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
 | 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
 
+## The weekly loop
+
+See [weekly-loop.md](weekly-loop.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 90 | **The week is a deadline-driven queue, not a calendar** | Things surface when they need you; no forced stops during a season you're simming through |
+| 91 | **Every decision has a default** | Ignoring the queue is a legitimate way to play. This is what makes a four-minute rebuild season and a ninety-minute title game the same loop |
+| 92 | **A delegate must act on its own, not merely exist** | Strengthened from the delegation pattern — otherwise the queue can't drain and the five-minute path is a fiction |
+| 93 | **The dashboard's first module is the queue** | Familiar my-team landing and the fast path in one screen; state sits below what needs you |
+| 94 | **The post-game headline carries a reason, not just a result** | Puts interrogation in the default path rather than an analytics tab, while keeping box score and highlights one tap away |
+| 95 | **Portrait play feed with the field pinned above** | One-handed, resumable, and dropping in and out of control is frictionless |
+| 96 | **One tap in, one tap out of play calling** | Taking a snap must never feel like entering a mode, or toggle-at-will becomes a decision players avoid |
+| 97 | **The decision log persists incrementally during a game** | The app can be backgrounded on any snap; writing at the whistle is a corrupted-replay bug waiting to happen |
+| 98 | **The offseason reuses the same queue** | Draft day is a queue item that opens a full-screen event, with auto-draft as its default |
+
 ## Traits
 
 See [traits.md](traits.md).
