@@ -46,3 +46,6 @@ that matter most, and how to run things.
 - Xcode 16+ / iOS 18+ (SwiftData, Swift 6 concurrency)
 - macOS for building the app target; the domain and simulation packages build
   and test on any Swift 6 toolchain
+
+On Linux (CI, or a Claude Code web container) install a toolchain with
+`./scripts/install-swift.sh`. It needs network access to `download.swift.org`.

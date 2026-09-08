@@ -139,10 +139,23 @@ swift run   --package-path Tools/simharness -- --seasons 1000 --out calibration.
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
-**Note on this environment:** Claude Code web sessions run on Linux with no Xcode.
-The `FM*` packages are designed to build and test on any Swift 6 toolchain, so package
-work is verifiable here; anything touching the app target, SwiftData, or SwiftUI can
-only be checked on a Mac. Say so plainly rather than claiming untested code works.
+**Note on this environment:** Claude Code web sessions run on Linux with no Xcode. The
+`FM*` packages are framework-free by design and build on any Swift 6 toolchain, so
+package work *can* be verified here — but only once a toolchain is installed. Containers
+start without one.
+
+Run `./scripts/install-swift.sh` to install it. This needs the environment's network
+policy to allow `download.swift.org`; without that the script fails with a proxy 403 and
+**no Swift can be compiled or tested in the session at all**.
+
+Check before claiming anything is verified:
+
+```
+command -v swift || ./scripts/install-swift.sh
+```
+
+Anything touching the app target, SwiftData, or SwiftUI can only be checked on a Mac
+regardless. Never describe untested code as working — say plainly that it is unverified.
 
 ## Skills
 
