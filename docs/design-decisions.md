@@ -94,6 +94,22 @@ See [gameplan.md](gameplan.md).
 | 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
 | 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
 
+## Draft and scouting
+
+See [draft-and-scouting.md](draft-and-scouting.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 63 | **Scouts are named characters with tracked accuracy** | Same machinery as writers; hiring and firing them is meaningful, and their record is computed from `EvaluationEvent` history |
+| 64 | **Scout bias is systematic, not random** | A scout who overrates speed does so consistently, so learning to correct for your own staff is a multi-season meta-game that costs nothing to implement |
+| 65 | **Investment narrows variance; it never re-rolls** | Estimates seeded per `(scout, player, depth)`. Deeper draws from a tighter distribution; repeating a depth returns the same answer forever, so the fog can't be farmed away |
+| 66 | **Two budgets: staff coverage plus focused spend** | Coverage is the org infrastructure you inherit and leave behind; focused spend is triage across the class |
+| 67 | **Grade, ranges and prose, layered** | Round grade with confidence band on the card, attribute ranges on detail, attributed scout prose underneath |
+| 68 | **Combine measurables sit outside the fog** | A 40 time is known precisely by everyone; the counterweight that keeps a class navigable |
+| 69 | **A public consensus board exists alongside yours** | The gap between them is where draft value lives, and every pick is really a bet on that gap |
+| 70 | **Draft day is live, with a clock and trade offers** | The slide, the run, and the offer are the moments; AI trade prices come from their own boards, so it's negotiation not a lookup |
+| 71 | **Auto-draft from your board is built first** | A four-minute rebuild season is a stated requirement, so the fast path is built before the live event, not after |
+
 ## News and narrative
 
 See [news-and-narrative.md](news-and-narrative.md).
