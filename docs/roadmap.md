@@ -19,9 +19,10 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - ✅ `SplittableRandom` with known-answer tests (`Packages/FMRandom`).
 - ✅ **The `PlayRecord` event stream shape** — the most important design work in the
   project (`Packages/FMCore`, specified in [play-record.md](play-record.md)).
-- World generation: ✅ names, colleges and players with hidden ceilings and
-  development traits (`Packages/FMGeneration`); franchises, rosters, draft classes
-  and seeded rivalry history still to come.
+- World generation: ✅ names, colleges, players with hidden ceilings and development
+  traits, and 53-man rosters with a league talent spread (`Packages/FMGeneration`);
+  franchises, draft classes and seeded rivalry history still to come.
+- ✅ `Tools/worldgen` — inspect any of it from a terminal, no app required.
 - A crude outcome engine that emits real event shapes and plausible scorelines.
 - `Tools/simharness` running headless.
 - Configurable league shape, with a 4-team league for fast tests.

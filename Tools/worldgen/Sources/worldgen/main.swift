@@ -1,0 +1,217 @@
+// Inspect generated content without an app, an Xcode, or a Mac.
+//
+//   swift run --package-path Tools/worldgen -- --help
+//   swift run --package-path Tools/worldgen -- --seed 42 --show roster --team 3
+//   swift run --package-path Tools/worldgen -- --show league --teams 32
+//
+// Regenerating with the same seed always prints the same world, so anything
+// surprising here can be reproduced exactly.
+
+import FMCore
+import FMGeneration
+import FMRandom
+
+// A developer tool, so libc is fair game — the no-frameworks rule applies to the
+// FM* modules, which is what Tools/playsize guards.
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Darwin)
+import Darwin
+#endif
+
+// MARK: - Arguments
+
+var seed: UInt64 = 2030
+var teamCount = 32
+var teamIndex = 0
+var mode = "roster"
+var season = 2030
+
+var arguments = CommandLine.arguments.dropFirst().makeIterator()
+while let argument = arguments.next() {
+    switch argument {
+    case "--seed": seed = UInt64(arguments.next() ?? "") ?? seed
+    case "--teams": teamCount = Int(arguments.next() ?? "") ?? teamCount
+    case "--team": teamIndex = Int(arguments.next() ?? "") ?? teamIndex
+    case "--show": mode = arguments.next() ?? mode
+    case "--season": season = Int(arguments.next() ?? "") ?? season
+    case "--help", "-h":
+        print(
+            """
+            worldgen — inspect generated content
+
+              --seed <n>      world seed (default 2030)
+              --teams <n>     teams in the league (default 32)
+              --team <n>      which team to show (default 0)
+              --season <n>    season number (default 2030)
+              --show <mode>   roster | starters | league | colleges
+
+            Same seed, same world, every time.
+            """)
+        exit(0)
+    default:
+        print("unknown argument: \(argument) — try --help")
+        exit(1)
+    }
+}
+
+// MARK: - Formatting
+
+func pad(_ value: String, _ width: Int) -> String {
+    var out = value
+    while out.count < width { out += " " }
+    return out
+}
+
+func padLeft(_ value: String, _ width: Int) -> String {
+    var out = value
+    while out.count < width { out = " " + out }
+    return out
+}
+
+func abbreviate(_ position: Position) -> String {
+    switch position {
+    case .quarterback: return "QB"
+    case .runningBack: return "RB"
+    case .fullback: return "FB"
+    case .wideReceiver: return "WR"
+    case .tightEnd: return "TE"
+    case .leftTackle: return "LT"
+    case .leftGuard: return "LG"
+    case .center: return "C"
+    case .rightGuard: return "RG"
+    case .rightTackle: return "RT"
+    case .edge: return "EDGE"
+    case .defensiveTackle: return "DT"
+    case .linebacker: return "LB"
+    case .cornerback: return "CB"
+    case .safety: return "S"
+    case .kicker: return "K"
+    case .punter: return "P"
+    case .longSnapper: return "LS"
+    }
+}
+
+func fortyString(_ hundredths: UInt16) -> String {
+    let whole = hundredths / 100
+    let fraction = hundredths % 100
+    return "\(whole).\(fraction < 10 ? "0" : "")\(fraction)"
+}
+
+func trait(_ value: DevelopmentTrait) -> String {
+    switch value {
+    case .slow: return "slow"
+    case .normal: return "normal"
+    case .quick: return "quick"
+    case .star: return "STAR"
+    }
+}
+
+func mean(_ values: [Int]) -> Double {
+    guard !values.isEmpty else { return 0 }
+    return Double(values.reduce(0, +)) / Double(values.count)
+}
+
+func oneDecimal(_ value: Double) -> String {
+    let scaled = Rounding.toNearest(value * 10)
+    return "\(scaled / 10).\(abs(scaled % 10))"
+}
+
+// MARK: - Build the world
+
+var random = SplittableRandom(seed: seed)
+var ids = IdentifierSequence<PlayerSubject>()
+let colleges = NameGenerator.collegePool(count: 120, using: &random)
+
+var rosters: [[Player]] = []
+for index in 0..<teamCount {
+    let offset =
+        teamCount == 1 ? 0 : -8.0 + 16.0 * Double(index) / Double(teamCount - 1)
+    rosters.append(
+        RosterGenerator.roster(
+            strength: .init(offset: offset), season: season,
+            colleges: colleges, ids: &ids, using: &random))
+}
+
+// `season` is passed rather than captured: top-level variables in main.swift are
+// main-actor isolated under Swift 6, and these helpers are not.
+func printPlayers(_ players: [Player], title: String, season: Int) {
+    print(title)
+    print(
+        pad("NAME", 24) + pad("POS", 6) + padLeft("AGE", 4) + "  "
+            + pad("HT/WT", 10) + pad("40", 6) + padLeft("OVR", 4)
+            + padLeft("CEIL", 6) + "  " + pad("DEV", 8) + "COLLEGE")
+    for player in players {
+        print(
+            pad(player.name.full, 24)
+                + pad(abbreviate(player.position), 6)
+                + padLeft("\(player.age(in: season))", 4) + "  "
+                + pad("\(player.physical.heightDescription)/\(player.physical.weightPounds)", 10)
+                + pad(fortyString(player.physical.fortyYardDash), 6)
+                + padLeft("\(player.overall)", 4)
+                + padLeft("\(player.hidden.ceiling)", 6) + "  "
+                + pad(trait(player.hidden.developmentTrait), 8)
+                + player.college.name)
+    }
+}
+
+// MARK: - Output
+
+switch mode {
+case "roster":
+    guard teamIndex >= 0 && teamIndex < rosters.count else {
+        print("no team \(teamIndex); the league has \(rosters.count)")
+        exit(1)
+    }
+    let roster = rosters[teamIndex]
+    printPlayers(
+        roster, title: "Team \(teamIndex) — 53-man roster (seed \(seed))", season: season)
+    print("")
+    print("  mean overall \(oneDecimal(mean(roster.map { Int($0.overall) })))")
+
+case "starters":
+    guard teamIndex >= 0 && teamIndex < rosters.count else {
+        print("no team \(teamIndex)")
+        exit(1)
+    }
+    let starters = RosterGenerator.projectedStarters(from: rosters[teamIndex])
+    printPlayers(
+        starters, title: "Team \(teamIndex) — projected starters (seed \(seed))", season: season)
+
+case "league":
+    print("League of \(teamCount), seed \(seed)")
+    print("")
+    print(
+        pad("TEAM", 6) + padLeft("MEAN", 6) + padLeft("STARTERS", 10)
+            + padLeft("90+", 6) + padLeft("STARS", 7))
+    for (index, roster) in rosters.enumerated() {
+        let starters = RosterGenerator.projectedStarters(from: roster)
+        let elite = roster.filter { $0.overall >= 90 }.count
+        let stars = roster.filter { $0.hidden.developmentTrait == .star }.count
+        print(
+            pad("\(index)", 6)
+                + padLeft(oneDecimal(mean(roster.map { Int($0.overall) })), 6)
+                + padLeft(oneDecimal(mean(starters.map { Int($0.overall) })), 10)
+                + padLeft("\(elite)", 6)
+                + padLeft("\(stars)", 7))
+    }
+    let all = rosters.flatMap { $0 }
+    print("")
+    print("  \(all.count) players")
+    print("  mean overall     \(oneDecimal(mean(all.map { Int($0.overall) })))")
+    print("  rated 90+        \(all.filter { $0.overall >= 90 }.count)")
+    print("  rated 85+        \(all.filter { $0.overall >= 85 }.count)")
+    print("  under 60         \(all.filter { $0.overall < 60 }.count)")
+    print("  mean age         \(oneDecimal(mean(all.map { $0.age(in: season) })))")
+    print("  star developers  \(all.filter { $0.hidden.developmentTrait == .star }.count)")
+
+case "colleges":
+    print("College pool, seed \(seed)")
+    for college in colleges.prefix(40) {
+        print("  " + pad(college.name, 36) + "\(college.profile)")
+    }
+
+default:
+    print("unknown mode: \(mode) — try --help")
+    exit(1)
+}

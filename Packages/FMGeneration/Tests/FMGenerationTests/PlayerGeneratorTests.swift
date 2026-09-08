@@ -311,9 +311,9 @@ struct AthleticPlausibilityTests {
             (.linebacker, 4.50...4.95),
             (.tightEnd, 4.55...5.00),
             (.quarterback, 4.55...5.05),
-            (.defensiveTackle, 4.90...5.40),
-            (.leftTackle, 4.95...5.45),
-            (.center, 4.95...5.45),
+            (.defensiveTackle, 4.95...5.30),
+            (.leftTackle, 5.05...5.40),
+            (.center, 5.10...5.45),
         ]
         for (position, band) in bands {
             let mean = meanForty(position, ceiling: 78, seed: UInt64(position.rawValue) + 100)

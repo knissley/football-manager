@@ -92,7 +92,7 @@ public enum PlayerGenerator {
                 // passer should not arrive with a receiver's forty time. And a
                 // tackle's does not track it at all.
                 let share = min(1.0, (weighted[key] ?? 0) / 0.15)
-                value = centre * (1 - share) + target * share + random.nextGaussian() * 7.5
+                value = centre * (1 - share) + target * share + random.nextGaussian() * 6.0
             } else if weighted[key] != nil {
                 value = target + random.nextGaussian() * 8.0
             } else {

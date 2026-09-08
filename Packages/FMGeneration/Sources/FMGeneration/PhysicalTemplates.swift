@@ -46,13 +46,13 @@ enum PhysicalTemplates {
         case .fullback:
             return Athleticism(speed: 58, acceleration: 62, agility: 56, strength: 78)
         case .defensiveTackle:
-            return Athleticism(speed: 48, acceleration: 56, agility: 48, strength: 88)
+            return Athleticism(speed: 42, acceleration: 52, agility: 46, strength: 88)
         case .leftTackle, .rightTackle:
-            return Athleticism(speed: 45, acceleration: 52, agility: 52, strength: 85)
+            return Athleticism(speed: 38, acceleration: 48, agility: 50, strength: 85)
         case .leftGuard, .rightGuard, .center:
-            return Athleticism(speed: 42, acceleration: 50, agility: 45, strength: 88)
+            return Athleticism(speed: 34, acceleration: 46, agility: 43, strength: 88)
         case .kicker, .punter, .longSnapper:
-            return Athleticism(speed: 40, acceleration: 44, agility: 44, strength: 45)
+            return Athleticism(speed: 38, acceleration: 42, agility: 44, strength: 45)
         }
     }
 

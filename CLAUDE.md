@@ -137,7 +137,8 @@ swift test  -c release --package-path Packages/FMRandom   # integer maths must a
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
 swift run   --package-path Tools/playsize                 # play record footprint; also
-                                                          # proves FMCore links standalone
+                                                          # proves FM* modules link standalone
+cd Tools/worldgen && swift run worldgen --help            # inspect generated content
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 
