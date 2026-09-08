@@ -29,7 +29,8 @@ hooks, not cosmetic modifiers.
 ## The event stream is the contract
 
 The engine's public output is an ordered stream of typed events
-([ADR-0007](adr/0007-event-stream-contract.md)). Everything downstream — box scores,
+([ADR-0007](adr/0007-event-stream-contract.md)), specified in
+[play-record.md](play-record.md). Everything downstream — box scores,
 grades, news, highlights, tendencies, the causal breakdown — is a **query over that
 stream**, never a parallel accumulation.
 

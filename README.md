@@ -25,6 +25,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [Architecture](docs/architecture.md) | Module map, layering rules, why the sim is pure Swift |
 | [Domain model](docs/domain-model.md) | Entities, ratings, contracts, the season calendar |
 | [Match engine](docs/match-engine.md) | Spatial simulation, the event stream, performance budget, calibration |
+| [PlayRecord](docs/play-record.md) | The event stream shape — the contract everything downstream reads |
 | [Play calling](docs/play-calling.md) | Coordinators, gameplan constraints, opponent models, benchmarking |
 | [Gameplan](docs/gameplan.md) | The weekly decision surface, rule sets, directives, hypothesis grading |
 | [News and narrative](docs/news-and-narrative.md) | Story detection, writers, whimsy, media pressure |
