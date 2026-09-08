@@ -1,122 +1,127 @@
 # Roadmap
 
-Milestones are ordered by dependency, not by calendar. Each has an exit criterion
-that can be checked rather than argued about. The guiding principle: **get a playable
-end-to-end skeleton early, then deepen.**
+Ordered by dependency and by risk, not by calendar. The shape follows one idea: **fix
+the event stream contract early, then deepen the engine behind it.** Everything above
+the engine — analysis, news, UI — is written once against a contract that doesn't move.
 
-## M0 — Repo and design foundation ✅
+## M0 — Design foundation ✅
 
-Docs, CLAUDE.md, project skills, ADR practice, .gitignore.
+Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded in
+[design-decisions.md](design-decisions.md).
 
-*Exit:* a new contributor (human or Claude) can read the docs and know where code goes.
+*Exit:* a contributor can read the docs and know what the game is and where code goes.
 
-## M1 — Core domain and world generation
+## M1 — The stream and a living world
 
-`FMCore`, `FMRandom`, `FMGeneration`. No UI, no persistence.
+`FMCore`, `FMRandom`, `FMGeneration`, and a deliberately crude `FMSimulation`.
 
-- Typed IDs, `Player`, `Team`, `League`, `Contract`, `Ratings`, `DepthChart`.
+- Typed IDs, domain value types, traits, ratings.
 - `SplittableRandom` with known-answer tests.
-- Cap math with a thorough unit test suite (proration, dead money, post-June-1).
-- Generator: names, 32 franchises, plausible rosters, a draft class.
-- Invariant checkers from [domain-model.md](domain-model.md#invariants-worth-enforcing-in-code).
+- **The `PlayRecord` event stream shape** — the most important design work in the project.
+- World generation: names, franchises, rosters, draft classes, seeded rivalry history.
+- A crude outcome engine that emits real event shapes and plausible scorelines.
+- `Tools/simharness` running headless.
+- Configurable league shape, with a 4-team league for fast tests.
 
-*Exit:* `generateWorld(seed: 42)` twice produces byte-identical worlds, rosters have a
-believable talent distribution, and the cap test suite passes.
+*Exit:* `generateWorld(seed:)` is reproducible byte-for-byte, a season sims headless,
+and the event stream carries everything M2 needs without changes.
 
-## M2 — Match engine v1
+## M2 — Analysis and narrative
 
-`FMSimulation`, plus the `Tools/simharness` CLI.
+`FMAnalysis` and `FMNarrative`. This is where the hook becomes real, and it validates
+the contract before the expensive engine work starts.
 
-- Game loop, clock, downs, scoring, possession changes.
-- Run and pass resolution from matchups; special teams.
-- Play-by-play log and box score, reconciled.
-- Harness sims 10,000 games and emits the calibration JSON.
+- **Win probability** — the keystone ([ADR-0008](adr/0008-win-probability-keystone.md)).
+- Leverage, player grades, situational splits, team tendencies.
+- Causal summaries: why a drive stalled, why a unit is underperforming.
+- League news, highlight selection, rivalry intensity that grows from results.
 
-*Exit:* league-wide stats land inside the [calibration table](match-engine.md#calibration),
-a golden-seed game's box score is checked in, and 16 games sim in under 2s on device.
+*Exit:* over a simulated season, the highlight reel surfaces genuinely notable plays,
+the news reads like a league is happening, and "why is my run defense bad" has an
+answer derived entirely from the stream.
 
-## M3 — Season engine
+## M3 — Season and career
 
-- Schedule generation with correct byes and division home-and-away.
-- Week advance, standings with tiebreakers, playoff seeding and bracket.
-- Injuries across a season; fatigue and rest.
-- Offseason skeleton: retirements, progression at camp.
+- Schedule generation, standings with correct tiebreakers, playoff seeding and bracket.
+- Injuries, fatigue, rest across a season.
+- Offseason skeleton: retirements, camp progression.
+- Coaching carousel: reputation, firing, AI hiring, applying elsewhere.
 
-*Exit:* a full season sims to a champion; 100 simulated seasons produce a believable
-spread of win totals and no invariant violations.
+*Exit:* a ten-season career runs headless with no invariant violations, and win-total
+spread lands in the calibration range.
 
-## M4 — The app, first playable
+## M4 — First playable
 
-App target, `FMUI`, `FMPersistence`. This is the first build that's a *game*.
+App target, `FMUI`, `FMPersistence`. The first build that is a game.
 
-- Team hub, roster list, player detail, depth chart editor, schedule, standings.
-- Watch-a-game view: drive-by-drive with a play log.
-- Week advance from the UI.
-- SwiftData save/load of a career, with round-trip tests.
+- Team hub, roster, player detail, depth chart, schedule, standings, news feed.
+- Watch a game as an event feed with the analysis layer attached.
+- Week advance; SwiftData save/load with round-trip tests.
 
-*Exit:* install on a phone, start a career, play a full season, background and resume
-the app without losing progress.
+*Exit:* install on a phone, start a career, play a season, background and resume without
+loss.
 
-## M5 — Roster management
+## M5 — The spatial engine
 
-The meta layer that makes the career interesting.
+The big technical risk, taken once the contract and everything above it are proven.
 
-- Contracts UI: extensions, restructures, cuts with dead-money preview.
-- Free agency with AI bidding over multiple days.
-- The draft: scouting with fog, a draft board, AI teams that pick sensibly.
-- Practice squad, waivers, trades with cap and pick validation.
-- Player progression and regression driven by development traits and playing time.
+- Tick loop, field geometry, 22 entities, assignment execution.
+- Dropback passing with real pressure, separation, and reads — same events out.
+- Run game, special teams, penalties.
+- 2D field view rendering engine state directly.
+- Replay from `(state, seed, sliders, decisionLog)`, with scrubbing.
+- **Performance budget enforced by benchmark**: a season in ~60s.
 
-*Exit:* three consecutive AI-only offseasons produce rosters that stay cap-legal, and
-teams that draft well get better.
+*Exit:* the spatial engine passes the same golden and statistical tests as the crude
+one, hits the budget, and a replayed game is identical to its original.
 
-## M6 — Coaching and tactics
+## M6 — Plays as data
 
-- Scheme selection and scheme-fit effects on player performance.
-- Weekly gameplan: tempo, aggression, blitz rate, coverage mix, matchup targeting.
-- Coaching staff hiring, coordinators, their effect on progression and play calling.
-- In-game adjustments at halftime.
+- The play format: formations, assignments, routes, blocking rules, coverages.
+- Validation — eleven players, legal formation, executable assignments.
+- The premade concept library, authored in the format.
+- The play designer.
 
-*Exit:* two identical rosters with different schemes and gameplans produce measurably
-different results over 1,000 games, in the direction you'd expect.
+*Exit:* a play drawn in the designer runs in a game, and its results are indistinguishable
+in kind from an authored concept.
 
-## M7 — Career texture
+## M7 — The GM half
 
-The things that make a decade of seasons feel like a story.
+- Contracts: extensions, restructures, cuts with dead-money preview.
+- Salary cap enforcement everywhere.
+- Free agency with AI bidding; real negotiation with agent reservation values.
+- Draft: scouting with genuine fog, a draft board, AI teams that pick sensibly.
+- Trades with a valuation model that can refuse, and can beat you.
 
-- News feed and inbox; press conferences or owner expectations.
-- Awards, records, league leaders, Hall of Fame.
-- Franchise history: past seasons, retired numbers, rivalries.
-- Player narratives — holdouts, breakouts, decline.
+*Exit:* three AI-only offseasons produce cap-legal rosters, teams that draft well get
+better, and a human tester cannot reliably fleece the trade AI.
 
-*Exit:* a 10-season career review screen reads like a history worth screenshotting.
+## M8 — Texture
 
-## M8 — Polish
+- Traits with real engine hooks, good and bad, with personality.
+- Development: role, playing time, mentorship as nudges.
+- Awards, records, league leaders, Hall of Fame ceremonies.
+- Draft storylines, random league events, franchise history.
+- Sliders UI.
 
-- Onboarding and new-career flow.
-- Full VoiceOver and Dynamic Type support; the roster table is the hard part.
-- Haptics on key game moments.
-- Performance pass: launch time, week-advance time, memory over a long career.
-- Save file size audit over a 10-season career.
+*Exit:* a ten-season career review reads like a history worth screenshotting.
 
-*Exit:* accessibility audit clean, no frame drops on the roster and game screens, a
-10-season save loads in under 2 seconds.
+## M9 — Polish and beta
 
-## M9 — Beta
+Onboarding, VoiceOver and Dynamic Type, haptics, performance pass, save-size audit,
+TestFlight.
 
-- TestFlight, crash reporting, opt-in analytics on where careers stall.
-- Balance pass driven by real player data.
-- App Store listing, screenshots, privacy nutrition label.
+## Why this order
 
-*Exit:* 50 testers, 10 completed seasons each, no P0 bugs open for a week.
+- **The contract comes before the engine** so nothing above it gets rewritten.
+- **Analysis before the spatial engine** proves the hook is achievable and makes the
+  crude engine's output immediately interesting.
+- **A playable app at M4**, before the hardest work, so there's something to react to.
+- **The spatial engine at M5** is the biggest risk; by then it's the only unknown left
+  and it slots in behind a proven contract.
+- **The GM half after the engine** because the engine is the hook and the thing that
+  makes roster decisions legible.
 
-## Explicitly deferred
+## Deferred
 
-Not in 1.0, not being designed around, but the architecture shouldn't make them
-impossible:
-
-- Online leagues and multiplayer
-- iPad-optimized layouts and Mac Catalyst
-- A play designer or Xs-and-Os editor
-- Custom league import / roster sharing
-- 2D or 3D animated play visualization
+Online leagues, iPad and Mac layouts, custom league import, 3D visualization.

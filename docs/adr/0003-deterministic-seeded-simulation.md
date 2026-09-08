@@ -20,6 +20,16 @@ The simulation and world generation are **fully deterministic functions of their
 inputs and an explicit seed**. Same world, same gameplans, same seed ⇒ identical
 result, on every device and every OS version, forever.
 
+A game is reproducible from the tuple `(initialState, seed, sliderConfig, decisionLog)`.
+The decision log is required because play calling can be toggled at will: a game where
+the player took over some snaps is not a pure function of its seed alone. Every player
+decision is recorded in order.
+
+**That tuple is also the storage format.** Games we don't retain in full — fifteen of
+sixteen every week — keep a box score and their replay tuple, and re-simulate
+identically on demand. Determinism is therefore a player-facing feature, not only a
+testing tool.
+
 Concretely:
 
 - All randomness comes from `FMRandom`'s `SplittableRandom`, seeded explicitly.
@@ -40,6 +50,14 @@ Concretely:
 
 - Bug reports become reproducible from a seed and a play index. This is the single
   biggest debugging win available to us.
+- Storage stays bounded across a decade-long career without discarding the ability to
+  watch any game that ever happened. Replay-from-tuple is what makes full-fidelity
+  league simulation affordable to keep.
+- **The bar is now higher than it was.** When determinism was only a testing
+  convenience, a rare divergence was an annoyance. Now it corrupts saved history: a
+  game replays differently than it was reported. Slider config and decision logs must
+  be captured faithfully, and float discipline in the spatial engine
+  ([ADR-0006](0006-spatial-simulation.md)) is load-bearing rather than tidy.
 - Balance work becomes measurable: change a constant, re-run 10,000 seasons, diff the
   distributions.
 - Golden tests catch unintended behavior drift, which is otherwise nearly invisible in
@@ -47,9 +65,10 @@ Concretely:
 - Every contributor must internalize the banned list. `.shuffled()` is a natural thing
   to reach for and will silently break the guarantee — hence the lint rather than a
   convention.
-- Floating-point determinism across architectures needs care. We avoid transcendental
-  functions in hot resolution paths where a cheaper formulation exists, and the golden
-  tests run on both arm64 and x86_64 in CI to catch divergence.
+- Floating-point determinism across architectures needs real care, and more of it now
+  that the engine is spatial and errors compound over thousands of ticks. We avoid transcendental
+  functions in hot paths where a cheaper formulation exists, and golden tests run on
+  both arm64 and x86_64 in CI to catch divergence.
 - Refactors that change iteration order or split order break golden tests even when
   behavior is "the same." That noise is the cost of the guarantee.
 

@@ -1,11 +1,15 @@
 # Football Manager (working title)
 
-An offline-first American football management sim for iOS. You run a franchise:
-draft and develop players, manage the salary cap, set your scheme and gameplan,
-and watch games play out drive by drive over a multi-season career.
+An offline-first American football management sim for iOS. You're the GM and the head
+coach: draft and develop players, manage the cap, set the scheme, and call the shots —
+or sim a rebuilding season in about a minute.
 
-Everything — leagues, teams, players — is fictional and procedurally generated
-from a seed. No real names, no licensing entanglements, infinite worlds.
+The hook is **a simulation you can interrogate**. A spatial match engine puts twenty-two
+players on a field and lets outcomes emerge from geometry, so when a drive stalls the
+game can show you which matchup lost rather than narrating a dice roll.
+
+Everything — leagues, teams, players — is fictional and generated from a seed. No real
+names, no licensing entanglements, infinite worlds.
 
 ## Status
 
@@ -16,10 +20,11 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 
 | Doc | What's in it |
 | --- | --- |
-| [Vision](docs/vision.md) | What the game is, who it's for, the design pillars, what it deliberately isn't |
+| [Vision](docs/vision.md) | What the game is, the hook, the design pillars, what it isn't |
+| [Design decisions](docs/design-decisions.md) | Every settled decision, and what's still open |
 | [Architecture](docs/architecture.md) | Module map, layering rules, why the sim is pure Swift |
 | [Domain model](docs/domain-model.md) | Entities, ratings, contracts, the season calendar |
-| [Match engine](docs/match-engine.md) | Play-by-play simulation design, resolution model, calibration |
+| [Match engine](docs/match-engine.md) | Spatial simulation, the event stream, performance budget, calibration |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
 | [ADRs](docs/adr/) | Architecture decision records |
 

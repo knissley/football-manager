@@ -9,7 +9,7 @@ A career is a large, highly relational, long-lived dataset: thousands of players
 their contracts, a decade of statistics, and a season's play-by-play. It needs to
 persist across app launches, load fast, and survive schema changes as the game grows.
 
-The product is single-player ([vision](../vision.md#what-this-deliberately-is-not)),
+The product is single-player ([vision](../vision.md#what-this-is-not)),
 which means nothing about the core experience requires a network. Building a backend
 anyway would add accounts, sync conflict resolution, server cost, an API surface,
 and a privacy policy — before the game is fun.

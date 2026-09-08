@@ -4,8 +4,8 @@ Types described here live in `FMCore` unless noted. All are value types, `Sendab
 and free of persistence and UI concerns.
 
 Identifiers are typed wrappers over a stable `UInt64` (`PlayerID`, `TeamID`, …)
-allocated by a counter in the world, **not** `UUID` — UUIDs are non-deterministic
-and banned in the sim (see [architecture](architecture.md#why-fmrandom-is-its-own-module)).
+allocated by a counter in the world, **not** `UUID` — UUIDs are non-deterministic and
+banned in the sim ([ADR-0003](adr/0003-deterministic-seeded-simulation.md)).
 
 ## World and league structure
 
@@ -71,6 +71,20 @@ player struct.
 (slow / normal / quick / star), `workEthic`, `durabilityProfile`, `personality`.
 These drive progression and are never shown directly; the UI shows scout estimates
 with error bars that narrow with scouting investment and playing time.
+
+**Traits** — the game's personality layer, and mechanically real. A trait is a named
+hook into play resolution, not a stat modifier: *swim master* selects a different
+pass-rush move with different timing, *sticky hands* widens an actual catch radius,
+*choker* and *clutch* shift performance in high-leverage situations (leverage is
+measured by [win probability](architecture.md#win-probability-is-shared-infrastructure),
+so "high-leverage" is a computed fact, not a guess). Bad traits are as important as
+good ones — *butter fingers* is a real fumble-rate hook and a real personality.
+
+Clutch is genuinely mechanical in this world: a hidden attribute that measurably
+changes high-leverage performance, not a media narrative.
+
+Traits are why the spatial engine pays for itself in flavor. They are only possible as
+engine hooks because the engine simulates the moment the trait describes.
 
 **State** — `injury` (type, severity, weeks remaining, lingering effect), `fatigue`,
 `morale`, `snapCount`, `formGrade` (recent performance, decays), `contractID`,
@@ -153,13 +167,64 @@ Preseason ─→ RegularSeason (18 weeks, 1 bye per team)
 
 Three levels, because they have different retention rules:
 
-- **`PlayByPlay`** — every play's full context and outcome. Current season only.
+- **`PlayRecord` stream** — every play's situation, calls, engine decision points, and
+  outcome. Retained in full for your games in the current season.
+- **Replay tuple** — `(initialState, seed, sliderConfig, decisionLog)` for every other
+  game. Re-simulates identically on demand, so any game in league history can be
+  watched without having been stored.
 - **`BoxScore`** — per-game, per-player aggregates. Retained for the career.
-- **`SeasonStats` / `CareerStats`** — rolled up. Retained forever, drives records,
-  awards, and Hall of Fame.
+- **`SeasonStats` / `CareerStats`** — rolled up. Retained forever; records, awards, and
+  the Hall of Fame depend on them.
 
-Aggregates are derived from play-by-play at game end, never accumulated in parallel
-with it — one source of truth means the box score can't drift from the play log.
+Aggregates are derived from the event stream, never accumulated in parallel with it
+([ADR-0007](adr/0007-event-stream-contract.md)) — one source of truth means the box
+score can't drift from the play log.
+
+## Plays
+
+A `Play` is data the engine executes and the designer edits: a formation, personnel,
+and a per-player `Assignment` — a route with landmarks and timing, a blocking rule, or
+a coverage responsibility.
+
+Because plays are data, they need validation before reaching the engine: eleven
+players, a legal formation, and every assignment executable. The premade concept
+library is authored in the same format the designer writes, so there is no distinction
+between a shipped play and one you drew.
+
+## Rivalries
+
+`Rivalry` holds a pair of teams and an intensity that changes over time. The world
+generator seeds plausible history at creation — geography, shared division, an invented
+grudge — so rivalries exist in season one. After that they grow from what actually
+happens: close games, playoff eliminations, upsets, streaks.
+
+Intensity feeds the news voice, pre-game buildup, and drama detection. Nobody else's
+league has your grudges.
+
+## Career and the carousel
+
+The player is a `CareerProfile`, not a team. It holds employment history, a record, and
+a `reputation` that AI owners read when hiring.
+
+- Owners have expectations; falling short repeatedly gets you fired.
+- Open jobs appear each offseason; you apply and compete with AI candidates.
+- A rebuild is a gamble with your own job, which is the point.
+
+This means the save's root is a career, and the league outlives your tenure at any one
+team.
+
+## Development
+
+Player development is player-driven and you nudge it
+([decision 21](design-decisions.md#development-and-progression)). Traits, personality,
+and `developmentTrait` do the work; your levers are indirect:
+
+- **Role** — starter, rotational, situational
+- **Playing time** — snaps are the main driver of growth for young players
+- **Mentorship** — pairing a young player with a veteran of the same position
+
+Progression resolves at training camp. How much authorship this actually delivers is
+[an open question](design-decisions.md#open-questions).
 
 ## Invariants worth enforcing in code
 

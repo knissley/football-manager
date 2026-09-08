@@ -24,6 +24,12 @@ Or ask Claude: `/adr <the decision>`.
 ADRs are immutable once accepted. To change a decision, write a new ADR that supersedes
 the old one and update the old one's status line to point at it.
 
+**One exception, already spent:** ADRs 0002–0005 were drafted on 2026-09-08 as a
+strawman, before the game's design existed. They were revised once later the same day
+to reflect the decisions actually made in scoping (see
+[design-decisions.md](../design-decisions.md)). From that point they are immutable like
+any other.
+
 ## Index
 
 | # | Title | Status |
@@ -33,3 +39,6 @@ the old one and update the old one's status line to point at it.
 | [0003](0003-deterministic-seeded-simulation.md) | Deterministic seeded simulation | Accepted |
 | [0004](0004-pure-swift-domain-core.md) | Pure Swift domain core, isolated from frameworks | Accepted |
 | [0005](0005-generated-fictional-content.md) | Generated fictional players and teams | Accepted |
+| [0006](0006-spatial-simulation.md) | Spatial simulation over an abstract outcome model | Accepted |
+| [0007](0007-event-stream-contract.md) | The play event stream is the engine's public contract | Accepted |
+| [0008](0008-win-probability-keystone.md) | Win probability as shared infrastructure | Accepted |

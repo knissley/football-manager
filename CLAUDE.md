@@ -1,11 +1,16 @@
 # Football Manager — working agreement
 
 An offline-first American football management sim for iOS. SwiftUI + SwiftData,
-single-player career, fully generated fictional content.
+single-player GM-and-head-coach career, spatial match engine, fully generated fictional
+content.
+
+The hook is **a simulation you can interrogate**: the engine explains what actually
+happened rather than narrating a dice roll.
 
 **Read first:** [`docs/vision.md`](docs/vision.md) for what we're building,
-[`docs/architecture.md`](docs/architecture.md) for where code goes. Decisions with a
-rationale live in [`docs/adr/`](docs/adr/).
+[`docs/design-decisions.md`](docs/design-decisions.md) for what's settled and what's
+still open, [`docs/architecture.md`](docs/architecture.md) for where code goes.
+Rationale lives in [`docs/adr/`](docs/adr/).
 
 ## Project status
 
@@ -13,32 +18,50 @@ Pre-alpha, milestone M0. **No Swift code exists yet** — the repo is docs and t
 config. Don't assume a file exists because a doc describes it; check first. The docs
 describe the intended design, not the current state.
 
+Next up is M1: the `PlayRecord` event stream shape, `FMCore`, `FMRandom`, world
+generation, and a deliberately crude engine behind the real event contract. See the
+[roadmap](docs/roadmap.md).
+
 ## The rules that matter
 
 These are the ones where a mistake is expensive to unwind. Everything else is taste.
 
-**1. The simulation is pure.** `FMCore`, `FMRandom`, `FMSimulation`, and
-`FMGeneration` never import SwiftData, SwiftUI, UIKit, or anything platform-specific.
+**1. The simulation is pure.** `FMCore`, `FMRandom`, `FMSimulation`, `FMGeneration`,
+`FMAnalysis`, and `FMNarrative` never import SwiftData, SwiftUI, UIKit, or anything
+platform-specific.
 No I/O, no logging, no clock reads. If the sim needs to report something, it returns
 it. ([ADR-0004](docs/adr/0004-pure-swift-domain-core.md))
 
-**2. Randomness comes from one place.** Every random draw in the sim comes from
-`FMRandom`, seeded explicitly. Never use `Int.random`, `Double.random`,
+**2. Randomness comes from one place, and replay depends on it.** Every random draw
+comes from `FMRandom`, seeded explicitly. A game is reproducible from
+`(initialState, seed, sliderConfig, decisionLog)` — and that tuple is how most games
+are *stored*, so a determinism bug corrupts saved history, it doesn't just fail a test. Never use `Int.random`, `Double.random`,
 `SystemRandomNumberGenerator`, `.shuffled()`, `.randomElement()`, `UUID()`, or
 `Date()` inside `FMSimulation` or `FMGeneration`. Never let iteration order over an
 unordered collection reach the output — sort by a stable ID first.
 ([ADR-0003](docs/adr/0003-deterministic-seeded-simulation.md))
 
-**3. Game rules live in the sim, never in a view.** If a SwiftUI view contains an `if`
+**3. Everything downstream reads the event stream.** The engine emits typed
+`PlayRecord`s. Box scores, grades, news, highlights and tendencies are *queries* over
+that stream — never accumulated in parallel with the simulation. This is what lets the
+engine be replaced without touching anything above it.
+([ADR-0007](docs/adr/0007-event-stream-contract.md))
+
+**4. The tick loop never allocates.** The engine has a hard budget — a season in ~60s,
+about 1.1µs per entity-tick. Flat arrays of `struct`, no dictionaries, no per-tick
+object churn, no string building during simulation. This is architectural; retrofitting
+it is a rewrite. ([ADR-0006](docs/adr/0006-spatial-simulation.md))
+
+**5. Game rules live in the sim, never in a view.** If a SwiftUI view contains an `if`
 that decides something about football, it's in the wrong layer.
 
-**4. Only `FMPersistence` knows SwiftData exists.**
+**6. Only `FMPersistence` knows SwiftData exists.**
 
-**5. Never ship real names or marks.** No real players, teams, leagues, logos, or
+**7. Never ship real names or marks.** No real players, teams, leagues, logos, or
 likenesses — not in code, not in test fixtures, not in placeholder data. Generated
 fiction only. ([ADR-0005](docs/adr/0005-generated-fictional-content.md))
 
-**6. Never regenerate a golden test file to make a red test pass.** If the engine
+**8. Never regenerate a golden test file to make a red test pass.** If the engine
 changed on purpose, regenerate it in the same commit and describe the behavior change
 in the commit message. If you didn't mean to change behavior, you found a bug.
 
@@ -91,6 +114,10 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
 - **Balance the engine with the harness, not by playing.** Tuning constants is done
   against `Tools/simharness` output and the
   [calibration table](docs/match-engine.md#calibration).
+- **The whimsy goes in the world, not the engine.** Trait names, news voice, and draft
+  storylines are playful. The physics never winks and no outcome is authored.
+- **Check `design-decisions.md` before assuming.** Twenty decisions are settled; six
+  questions are explicitly open. If your work depends on an open one, ask.
 - **Ask when a decision is load-bearing.** Small judgment calls: just make them.
   Anything that would earn an ADR: ask first.
 
