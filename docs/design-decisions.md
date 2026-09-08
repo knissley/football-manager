@@ -57,6 +57,12 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 
 | # | Decision | Implication |
 | --- | --- | --- |
+| 99 | **Performance reveals development rather than causing it** | A breakout is evidence about a hidden ceiling that was always there. High ceiling: real. Low ceiling: a one-season wonder. You cannot tell at the time ([development.md](development.md)) |
+| 100 | **Nobody exceeds their ceiling, ever** | Generated once from a realistic distribution and never moved. A league of 99s would need a league of 99-ceiling players, which generation does not produce |
+| 101 | **Talent is conserved at league level** | Aging decline offsets youth growth, so breakouts redistribute points rather than adding them. Makes balance a testable invariant rather than a tuning exercise |
+| 102 | **Experience is weighted by leverage** | A great game in a blowout is worth less than one in a playoff elimination, and performance above expectation counts rather than raw production |
+| 103 | **Awards are thresholds, not payouts** | The performance that won the award already counted; paying twice inflates. An award gates whether a leap can happen, never whether the ceiling moves |
+| 104 | **A leap is the tail of one distribution, not a branch** | No breakout mechanic. Rare because ceilings are rare, not because a die came up sixes — and growth lands on attributes the position uses, never rolled |
 | 21 | **Player development is player-driven; you nudge** | Traits and personality drive growth; you influence via role, playing time, mentorship |
 | 22 | **Coach has both a skill tree and a spendable currency** | Two economies: personal abilities, and capital spent on players |
 | 23 | **Coach skills affect information and staff, never the field** | Scouting, intel, development, negotiation. The physics stay untouched — the engine never winks |
