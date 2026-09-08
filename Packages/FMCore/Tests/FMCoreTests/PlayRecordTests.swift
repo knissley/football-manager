@@ -225,9 +225,11 @@ struct PlayOutcomeTests {
         #expect(PlayEnding.fumbleRecovered.isTurnover == false)
         #expect(PlayEnding.tackled.isTurnover == false)
 
-        #expect(PlayEnding.incomplete.stopsClock)
-        #expect(PlayEnding.outOfBounds.stopsClock)
-        #expect(PlayEnding.tackled.stopsClock == false)
+        // What the clock does is a rules question, not a property of the ending: see
+        // `Rules.clockBehavior(after:quarter:clockRemaining:)`. Out of bounds is the
+        // case that proves it — it stops the clock until the snap only late in a half.
+        #expect(PlayEnding.incomplete.isTurnover == false)
+        #expect(PlayEnding.intercepted.isTurnover)
     }
 
     @Test("Pre-snap fouls and automatic first downs are classified")

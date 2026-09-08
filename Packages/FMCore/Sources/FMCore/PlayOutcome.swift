@@ -91,15 +91,6 @@ public enum PlayEnding: UInt8, CaseIterable, Sendable, Hashable, Codable {
         self == .intercepted || self == .fumbleLost
     }
 
-    public var stopsClock: Bool {
-        switch self {
-        case .incomplete, .touchdown, .outOfBounds, .safety, .touchback,
-            .fieldGoalGood, .fieldGoalMissed, .intercepted, .fumbleLost:
-            return true
-        default:
-            return false
-        }
-    }
 }
 
 public enum PlayRole: UInt8, CaseIterable, Sendable, Hashable, Codable {
