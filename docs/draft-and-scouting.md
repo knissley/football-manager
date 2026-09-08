@@ -15,6 +15,69 @@ Three properties hold it together:
 2. **Investment narrows uncertainty; it never removes it.**
 3. **Your scouts are wrong in *patterns*, not at random** — and the patterns are learnable.
 
+## Where a class comes from
+
+Prospects exist **three years before their draft**, which is what makes multi-year
+scouting possible: this year's seniors were watchable as sophomores. A prospect is a
+`Player` — the same identifier he carries into the Hall of Fame — with a `Prospect`
+record holding the college half. There is no separate prospect type, for the same
+reason there is no separate franchise type ([decision 156](design-decisions.md)).
+
+**A cohort is not a draft class.** A cohort is a year group; a class is who is actually
+available. A junior who declares leaves next year's cohort and joins this year's draft,
+which is what coming out early means. Conflating the two leaves the current draft
+missing its best young players.
+
+### Classes are not interchangeable
+
+Some years are loaded, some are barren, and a year can be deep at quarterback and empty
+at edge. That is what makes *this is the year to trade up* a real thought, and a
+quarterback run a real event.
+
+The variation is **mean-reverting**: a loaded class makes the next few likelier to be
+thin, so league talent oscillates visibly and returns to its mean over a decade rather
+than drifting somewhere records stop being comparable. Reversion is spread over a window
+rather than landing on the following year, because a tidy annual alternation is not
+something anybody would believe.
+
+Class *shape* — which positions a year is rich at — is zero-sum, so only overall strength
+moves the total. Keeping those separable is what lets
+[the conservation law](development.md) be asserted on one number.
+
+### Production is evidence, not a restatement
+
+A prospect's college numbers carry **independent error**. Three things pull them away
+from the truth: the team around him, how much he played, and whether the system flatters
+him. So a good player on a bad team looks ordinary and a limited one in the right system
+looks better than he is.
+
+Context does not overturn a twenty-point ability gap, and should not. What it overturns
+is a close call — which is exactly where scouting happens. Without independent error,
+production is ability wearing a hat, and the scout who "distrusts small-school
+production" has nothing to be wrong about.
+
+### Red flags
+
+Concerns are hidden truth carrying two independent numbers: **severity**, how much it
+actually matters, and **visibility**, how readily anybody finds it.
+
+The independence is the design. Correlating them would mean a serious problem is always
+an obvious one, and the player who slides for no visible reason would stop existing. The
+interesting tail is the real concern nobody has surfaced — knowable years later through
+the retrospective.
+
+Character concerns are **football-professional only**: work ethic, coachability, film
+study, maturity, scheme buy-in. Everything is about the job. The game invents people, and
+inventing conduct allegations about them would buy a more realistic draft broadcast at a
+price the rest of the design is not willing to pay ([decision 160](design-decisions.md)).
+Medical is the other half, and it is the one that produces the classic late slide.
+
+### Declaring
+
+A projected high pick comes out; a fringe junior goes back for another year and arrives
+next season as a different prospect — another year of tape, and a stock that has moved
+either way. Seniors never had the choice.
+
 ## Scouts are biased observers
 
 Named characters, like the writers ([news-and-narrative.md](news-and-narrative.md)), and
@@ -43,13 +106,26 @@ against what happened, and you can see the pattern.**
 
 ## Investment narrows, but can't be farmed
 
-Estimates are seeded per `(scout, player, depth)` and fixed
+Estimates are seeded per `(scout, player, depth, collegeSeason)` and fixed
 ([decision 37](design-decisions.md)). Going deeper doesn't re-roll the noise — it draws
 from a distribution with *smaller variance* at the next depth.
 
 So more scouting genuinely tightens the picture, and re-running the same depth on the
-same player returns the same answer forever. Without this rule, players grind
-re-evaluations and average the error away to find truth, and the entire fog collapses.
+same player **within a season** returns the same answer. Without that rule, players
+grind re-evaluations and average the error away to find truth, and the entire fog
+collapses.
+
+The season is in the key because prospects develop. A grade from his sophomore year has
+to be allowed to be wrong about the player he has since become, or a riser could never
+be seen and a scout would be stuck forever with his first impression. Across seasons
+there is genuinely new tape, so a new draw is honest rather than exploitable
+([decision 157](design-decisions.md)).
+
+This does mean watching a player for three years tightens your read on **current
+ability** — which is right, and is not a hole. The thing the draft actually gambles on
+is hidden on a different axis entirely: [decision 34](design-decisions.md) keeps the
+ceiling and the development trait fogged no matter how long you watch. What you can
+learn is who he is. What you cannot learn is who he will become.
 
 ## Two budgets
 
@@ -132,7 +208,13 @@ and reported straight):
 
 ## Build order
 
-1. `EvaluationEvent` and the seeded `(scout, player, depth)` estimate model.
+0. ✅ Class generation: the three-year pipeline, hidden ceilings, production with
+   independent error, red flags, declarations, and mean-reverting class strength
+   (`Packages/FMGeneration/DraftClassGenerator.swift`). Year-over-year rating movement
+   rides on the development stream rather than a second progression mechanism built here
+   ([decision 125](design-decisions.md)) — the pipeline is shaped for it and it is not
+   wired up yet.
+1. `EvaluationEvent` and the seeded `(scout, player, depth, collegeSeason)` estimate model.
 2. Scouts: specialty, systematic bias, prose voice.
 3. The three presentation layers and the consensus board.
 4. Staff coverage and focused spend.

@@ -19,6 +19,8 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show starters --team 7` | Projected starting lineup |
 | `swift run worldgen --show league --teams 32` | Talent summary for every team |
 | `swift run worldgen --show teams --teams 32` | Cities, colours, stadiums, divisions |
+| `swift run worldgen --show class` | This year's draft class, top prospects and shape |
+| `swift run worldgen --show pipeline` | All three visible classes at a glance |
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
@@ -40,6 +42,11 @@ swift run worldgen --seed 99 --show roster --team 3
 # Watch for: repeated city stems, colliding abbreviations, a "South" division
 # full of cold-weather cities, every stadium a temperate dome.
 swift run worldgen --seed 42 --show teams
+
+# Is the class a distribution or a ranking? Watch for: the same positions at the
+# top every year, a flat ceiling histogram, production that never disagrees with
+# ability, nobody declaring early.
+swift run worldgen --seed 7 --season 2030 --show class
 ```
 
 Reading this output has now caught four classes of bug that the tests did not:

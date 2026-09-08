@@ -45,7 +45,7 @@ while let argument = arguments.next() {
               --team <n>      which team to show (default 0)
               --season <n>    season number (default 2030)
               --show <mode>   roster | starters | league | teams | standings
-                              | colleges
+                              | class | pipeline | colleges
 
             Same seed, same world, every time.
             """)
@@ -315,6 +315,69 @@ case "teams", "standings":
         print(
             "  loudest          \(stadiums.max { $0.noise < $1.noise }.map { "\($0.name) (\($0.noise))" } ?? "-")"
         )
+    }
+
+case "class", "pipeline":
+    var draftRandom = SplittableRandom(seed: seed)
+    var identifiers = IdentifierSequence<PlayerSubject>()
+    let classes = DraftClassGenerator.pipeline(
+        firstDraftSeason: season, teams: teamCount, shape: .standard, colleges: colleges,
+        identifiers: &identifiers, using: &draftRandom)
+
+    for generated in classes {
+        let draftClass = generated.draftClass
+        let headline = draftClass.strength.headline.map { " · deep at \($0)" } ?? ""
+        print(
+            "\(draftClass.season) class — \(draftClass.strength.descriptor)"
+                + " (\(oneDecimal(draftClass.strength.overall)))" + headline)
+        print(
+            "  \(draftClass.prospects.count) eligible · \(draftClass.entering.count) entering"
+                + " · \(draftClass.earlyEntrants.count) early")
+
+        if mode == "class" && draftClass.season == season {
+            // Top of the class by ceiling. Nobody in the game sees this — it is the
+            // truth a scout is trying to estimate, and the reason to look at it here is
+            // to check the class is a distribution and not a ranking.
+            let top = generated.players.sorted { $0.hidden.ceiling > $1.hidden.ceiling }.prefix(14)
+            print("")
+            print(
+                "  " + pad("prospect", 24) + pad("pos", 16) + pad("ovr", 5) + pad("ceil", 6)
+                    + pad("yr", 10) + pad("dev", 9) + pad("prod", 6) + "flags")
+            for player in top {
+                guard
+                    let prospect = draftClass.prospects.first(where: { $0.player == player.id })
+                else { continue }
+                let flags =
+                    prospect.flags.isEmpty
+                    ? "-"
+                    : prospect.flags.map {
+                        "\($0.kind)(\($0.severity)/\($0.visibility))"
+                            + ($0.isBuried ? "!" : "")
+                    }.joined(separator: " ")
+                print(
+                    "  " + pad(player.name.full, 24)
+                        + pad("\(player.position)", 16)
+                        + pad("\(player.overall)", 5)
+                        + pad("\(player.hidden.ceiling)", 6)
+                        + pad("\(prospect.collegeYear)", 10)
+                        + pad(trait(player.hidden.developmentTrait), 9)
+                        + pad("\(prospect.latestProduction?.productionScore ?? 0)", 6)
+                        + flags)
+            }
+
+            let ceilings = generated.players.map { Int($0.hidden.ceiling) }
+            print("")
+            print("  ceiling distribution")
+            for bound in stride(from: 90, through: 50, by: -10) {
+                let count = ceilings.filter { $0 >= bound && $0 < bound + 10 }.count
+                print(
+                    "    \(bound)-\(bound + 9)  " + String(repeating: "#", count: count / 3)
+                        + " \(count)")
+            }
+            let buried = draftClass.prospects.filter { $0.flags.contains(where: \.isBuried) }
+            print("  buried concerns  \(buried.count) of \(draftClass.prospects.count)")
+        }
+        print("")
     }
 
 case "colleges":

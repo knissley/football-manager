@@ -161,7 +161,7 @@ See [draft-and-scouting.md](draft-and-scouting.md).
 | --- | --- | --- |
 | 63 | **Scouts are named characters with tracked accuracy** | Same machinery as writers; hiring and firing them is meaningful, and their record is computed from `EvaluationEvent` history |
 | 64 | **Scout bias is systematic, not random** | A scout who overrates speed does so consistently, so learning to correct for your own staff is a multi-season meta-game that costs nothing to implement |
-| 65 | **Investment narrows variance; it never re-rolls** | Estimates seeded per `(scout, player, depth)`. Deeper draws from a tighter distribution; repeating a depth returns the same answer forever, so the fog can't be farmed away |
+| 65 | **Investment narrows variance; it never re-rolls** | Estimates seeded per `(scout, player, depth, collegeSeason)`. Deeper draws from a tighter distribution; repeating a depth *within a season* returns the same answer, so the fog can't be farmed away. Refined by decision 157 once prospects could develop |
 | 66 | **Two budgets: staff coverage plus focused spend** | Coverage is the org infrastructure you inherit and leave behind; focused spend is triage across the class |
 | 67 | **Grade, ranges and prose, layered** | Round grade with confidence band on the card, attribute ranges on detail, attributed scout prose underneath |
 | 68 | **Combine measurables sit outside the fog** | A 40 time is known precisely by everyone; the counterweight that keeps a class navigable |
@@ -288,6 +288,21 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 153 | **Divisions are regional, and named for the region they hold** | A "South" division full of cold-weather cities reads as generated on sight. City demand is computed per region from the shape before anything is generated, because an even spread and then dealing leaves regions short |
 | 154 | **A name ledger is threaded through generation** | Nicknames, stadium names, abbreviations and city stems are all finite pools whose collisions are invisible per team and obvious in a standings table. Four teams named Saltflat-something passes a uniqueness test on the full name |
 | 155 | **The generator validates the league it built** | Demand arithmetic should make a malformed league unreachable. It is checked anyway, so a future change surfaces here rather than as a broken schedule several systems downstream |
+
+## Draft classes
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 156 | **Prospects exist three years before their draft, and a prospect is a `Player`** | He keeps the identifier he will carry into the Hall of Fame, so "we have had eyes on him since he was a sophomore" is a query rather than a fiction. No separate prospect type — the same one-entity rule as teams and plays |
+| 157 | **Estimates re-seed per college season** | Refines [decision 65](#draft-and-scouting). Within a season, repeating a depth returns the same answer and nothing can be farmed. Across seasons there is genuinely new tape, so a riser can be seen. [Decision 34](#player-development) keeps the real secret: watching converges on current ability, never on ceiling or development trait |
+| 158 | **College production carries independent error** | A good player on a bad team looks ordinary; a limited one in the right system looks better than he is. Without independent error, production is ability wearing a hat and there is nothing for a scout to be wrong about. Context does not overturn a twenty-point ability gap — it overturns a close call, which is where scouting happens |
+| 159 | **Classes vary strongly, and the variation is mean-reverting** | Some years are loaded, some barren, so "this is the year to trade up" is a real thought. A loaded class makes the next few likelier to be thin, which is what keeps [the conservation law](development.md) intact over fifty seasons. Reversion is spread over a window — reverting on the previous year alone produces an annual alternation nobody would believe |
+| 160 | **Character concerns are football-professional only** | Work ethic, coachability, film study, maturity, scheme buy-in. The game invents people; inventing conduct allegations about them buys a more realistic draft broadcast at a price the rest of the design will not pay. Medical is the other half, and it is the one that produces the classic late slide |
+| 161 | **A flag's severity and its visibility are independent** | Correlating them would mean a serious problem is always an obvious one, and the slide nobody can explain at the time would stop happening. The interesting tail is the real concern nobody has surfaced |
+| 162 | **Underclassmen declare or return** | A projected high pick comes out; a fringe junior goes back and arrives next season as a different prospect with another year of tape. Seniors never had the choice |
+| 163 | **A cohort is not a draft class** | A cohort is a year group; a class is who is actually available. Conflating them reported early entrants against the year they would have graduated, leaving the current draft missing its best young players |
+| 164 | **Class shape is zero-sum; only overall strength moves the total** | A year can be deep at quarterback and empty at edge while carrying normal total talent. Keeping the two separable is what lets conservation be asserted on one number |
+| 165 | **Position is weighted per group and decoupled from talent rank** | Weighting per position inflated whichever groups have more enum cases — five offensive line positions against one quarterback. And assigning positions down the ceiling curve made every class's best players the same positions in the same order, which is not a draft |
 
 ## Open questions
 
