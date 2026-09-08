@@ -32,7 +32,13 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
   second validator for a legal shape filled in wrongly.
 - ✅ Team identity event-sourced, so a replay shows the name and the building of the
   time rather than the ones a rebrand has since given the team.
-- A crude outcome engine that emits real event shapes and plausible scorelines.
+- The `GameSimulator` game-state machine — clock, downs, possession, scoring, penalties,
+  overtime — written once and shared with M5's spatial resolver
+  ([ADR-0012](adr/0012-play-resolver-seam.md)).
+- `DepthChart` with real rotation by position group, so every snap credits a real player
+  and backups accumulate genuine statistics.
+- A crude matchup-lite `PlayResolver` emitting real participants and decision points.
+- Injury availability — a player can go down and miss weeks. Severity stays in M3.
 - `Tools/simharness` running headless.
 - ✅ Configurable, validated league shape with 8- and 12-team test presets.
 - ✅ `SituationClass` — the shared situational vocabulary both callers, the gameplan

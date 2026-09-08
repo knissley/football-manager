@@ -96,6 +96,45 @@ model. That headroom exists **only if the hot loop never allocates**:
 Build this in from the first line. Retrofitting it is a rewrite, not an optimization
 pass.
 
+## The resolver seam
+
+The engine splits in two ([ADR-0012](adr/0012-play-resolver-seam.md)):
+
+```
+GameSimulator     the sport's rules — clock, downs, possession, scoring,
+                  penalties, timeouts, overtime. Written once, never rewritten.
+   ↓ asks, per snap
+PlayResolver      what happened on this snap.
+   ├── CrudeResolver     M1. Named matchups, no geometry. Deleted at M5.
+   └── SpatialResolver   M5. Twenty-two entities on a tick clock.
+```
+
+Most of what an engine does is not physics. A wrong ten-second runoff is wrong in both
+resolvers, and it is wrong exactly where players are paying the most attention. Writing
+those rules once means M5 replaces one component into a harness that already sims a
+season, rather than rewriting the clock and its tests along with everything else.
+
+### The crude resolver
+
+Matchup-lite: no positions and no tick loop, but **real named matchups** — this rusher
+beat this tackle at this time, this corner was covering this receiver. It emits genuine
+`Participation` and `DecisionPoint` data, because a resolver that returned empty
+`decisions` would leave the interrogation layer unbuildable until M5, which is the exact
+risk [ADR-0007](adr/0007-event-stream-contract.md) exists to remove.
+
+Its decision points must be **consistent with its own outcome**. If it reports pressure
+at 2.1 seconds and a sack, the sack is by that rusher. A fabricated causal chain that
+merely looks plausible would let the analysis layer appear to work while reading noise —
+the real risk of building M2 against scaffolding.
+
+What it does *not* do: geometry, trajectories, or anything requiring a position. It hits
+the parametric calibration rows because they are inputs at this fidelity, and it takes
+the spread of team win totals seriously because that one is emergent.
+
+It is scaffolding, and it is deleted at M5 rather than kept as a fast-sim path. Career
+fast-forward runs at the spatial engine's speed; unwatched games are already stored as
+replay tuples and reproduce exactly.
+
 ## Play resolution
 
 ### Plays are data

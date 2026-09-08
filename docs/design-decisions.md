@@ -315,6 +315,18 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 170 | **A new world tops out at heated** | The seeded past gives texture; the first genuine blood feud should be one the player caused. `bitter` is reachable through lived history, and tested to be, so the band is not dead |
 | 171 | **League-wide facts are enforced across the whole set, not per pair** | History invented per pair had three rivalries independently playing in the same championship game. One title game per season, league-wide; the extras become playoff eliminations, which can legitimately happen several times a year |
 
+## The crude engine
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 172 | **The play resolver is a seam; the sport's rules are not** | Clock, downs, possession, scoring, penalties and overtime are written once and survive M5. What gets deleted is one resolver ([ADR-0012](adr/0012-play-resolver-seam.md)) |
+| 173 | **The crude resolver is matchup-lite, not outcome tables** | Real named matchups without geometry, so `Participation` and `DecisionPoint` carry real data. Empty decision arrays would leave the interrogation layer unbuildable until M5 — the exact risk ADR-0007 exists to remove |
+| 174 | **Its decision points must agree with its own outcome** | A fabricated causal chain that looks plausible lets the analysis layer appear to work while reading noise. If it reports pressure at 2.1s and a sack, the sack is by that rusher |
+| 175 | **Scaffolding, deleted at M5 — not a permanent fast-sim** | Two resolvers would have to agree forever, and every calibration change would land twice. Unwatched games are already stored as replay tuples and reproduce exactly |
+| 176 | **Parametric calibration rows now; emergent ones at M5** | Completion percentage, sack rate and penalties are inputs at this fidelity, so there is no reason not to hit them. The spread of team win totals is emergent and is taken seriously — it is the number the league's credibility rests on |
+| 177 | **Every snap credits a real player, with real rotation** | Backs share carries, the defensive line rotates heavily, the offensive line barely at all. Snap counts look real and a backup breaking out is possible. `DepthChart` is FMCore machinery M4 and M5 need anyway, not resolver code |
+| 178 | **Injury availability in M1; severity in M3** | A player can go down and miss weeks, so M2's news gets the sport's biggest recurring story and "why is my run defense bad" can answer "your nose tackle has been out since week 4" |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.
