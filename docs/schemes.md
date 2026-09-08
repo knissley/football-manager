@@ -106,21 +106,51 @@ Available, expensive, and occasionally the right desperate call.
 
 ## Generation
 
-Generated teams have identities, and rosters are built to suit them: a power-run
-club gets maulers and a game manager, not a 99-rated passer.
+Identity shapes a generated roster in **two separate ways**, and conflating them
+would be wrong.
 
-But only *mostly*. **Occasionally a team's identity clashes with its talent** — a
-run-heavy club with a gifted young quarterback — because that mismatch is a
-story. It is a team that ought to change, an AI worth anything will, and it puts
-the trade market's logic into the world on day one. It is also the player's own
-situation, arriving from the other side.
+**Where the talent went.** A power-run club has invested in its line and its back
+and not in a quarterback. This moves the *ceiling* a position generates at, by a
+few points either way — enough that identity is legible on a roster, not so much
+that a run-heavy team cannot employ a competent passer at all.
+
+**What kind of player.** Within a position, a gap team's guards are maulers and a
+zone team's are athletes. This biases the *shape* of the ratings, and the overall
+is still corrected to its target afterwards — so fitting the scheme shows up as a
+bonus in that scheme rather than as free rating points.
+
+A twelve-team league at seed 2030, with the extremes highlighted:
+
+```
+TEAM OFFENSE     DEFENSE       MEAN   QB   RB    OL   WR   FIT
+4    vertical    4-3 under     63.2   73   74  68.9   72   0.2   off built for zone run
+6    spread      bend/break    64.5   91   63  69.3   76   0.8   off built for air raid
+10   power run   nickel match  68.2   88   94  79.2   78   1.2
+11   air raid    nickel match  70.0   94   79  73.8   88   1.0
+```
+
+Team 10 is a power-run club: a 94-rated back behind the best line in the league,
+with an adequate quarterback. Team 11 runs an air raid: a 94 passer and an 88
+receiver, and a back nobody would build around. Same league, same generator,
+recognisably different clubs.
+
+Teams 4 and 6 are the **deliberate mismatches**, at roughly twelve percent of the
+league. Team 6 is a spread offence whose roster was assembled for an air raid —
+mild, both pass-heavy. Team 4 is the interesting one: it runs vertical shots with
+a line built to zone block, which is why its scheme fit is the worst in the
+league at 0.2.
+
+That mismatch is a story rather than a generation flaw. It is a team that ought
+to change, a good AI will, and it puts the trade market's logic into the world on
+day one — as well as being the player's own situation, arriving from the other
+side.
 
 ## Build order
 
 1. ✅ Composable schemes with named families, in `FMCore`.
 2. ✅ Fit as weight deltas, with `effectiveOverall` and a fit delta to display.
 3. ✅ `SchemeExperience`: per-component familiarity, install and mid-season costs.
-4. Team identity in generation, and rosters built to match it.
+4. ✅ Team identity in generation, and rosters built to match it.
 5. Proficiency feeding the AI play-caller's decision quality.
 6. Scheme fit feeding play resolution.
 7. AI teams choosing a scheme that suits their talent.

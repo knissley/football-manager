@@ -71,7 +71,10 @@ public enum PlayerGenerator {
     /// are drawn independently, so a great player is not automatically great at
     /// everything.
     static func ratings(
-        position: Position, targetOverall: UInt8, using random: inout SplittableRandom
+        position: Position,
+        targetOverall: UInt8,
+        bias: [RatingKey: Double] = [:],
+        using random: inout SplittableRandom
     ) -> Ratings {
         let weighted = Dictionary(
             PositionWeights.weights(for: position), uniquingKeysWith: { first, _ in first })
@@ -99,7 +102,12 @@ public enum PlayerGenerator {
                 // Everything else: loosely related to quality, widely spread.
                 value = 52 + target * 0.28 + random.nextGaussian() * 10.0
             }
-            ratings[key] = UInt8(Rounding.toNearest(value, clampedTo: 20...99))
+            // A scheme bias moves what kind of player this is, not how good he
+            // is: the correction below still lands his overall on target, so
+            // fitting the scheme shows up as a bonus in that scheme rather than
+            // as free rating points.
+            ratings[key] = UInt8(
+                Rounding.toNearest(value + (bias[key] ?? 0), clampedTo: 20...99))
         }
 
         // Correct the weighted ratings so the aggregate lands on target.
@@ -150,6 +158,7 @@ public enum PlayerGenerator {
         season: Int,
         colleges: [College],
         draft: DraftInfo? = nil,
+        scheme: TeamScheme? = nil,
         using random: inout SplittableRandom
     ) -> Player {
         let ceiling = UInt8(
@@ -161,7 +170,10 @@ public enum PlayerGenerator {
         let overall = currentOverall(
             ceiling: ceiling, age: age, trait: trait, group: position.group, rookieGap: rookieGap)
 
-        var ratingSet = ratings(position: position, targetOverall: overall, using: &random)
+        let bias =
+            scheme.map { SchemeIdentity.ratingBias(for: position, in: $0) } ?? [:]
+        var ratingSet = ratings(
+            position: position, targetOverall: overall, bias: bias, using: &random)
 
         // The correction loop converges on the target, but `overall` is a
         // *rounded* weighted mean, so it can settle a point high. The ceiling is

@@ -92,9 +92,14 @@ public enum RosterGenerator {
     ///
     /// Identifiers come from the supplied sequence so a world numbers its players
     /// in a stable order and regenerates identically.
+    /// A full roster, built for a scheme.
+    ///
+    /// `builtFor` is the scheme the roster suits, which is usually — but
+    /// deliberately not always — the scheme the team actually plays.
     public static func roster(
         shape: RosterShape = .standard,
         strength: Strength = .leagueAverage,
+        builtFor scheme: TeamScheme? = nil,
         season: Int,
         colleges: [College],
         ids: inout IdentifierSequence<PlayerSubject>,
@@ -105,8 +110,14 @@ public enum RosterGenerator {
 
         for requirement in shape.requirements {
             for depth in 0..<requirement.total {
-                let ceiling = ceilingTarget(
+                var ceiling = ceilingTarget(
                     depth: depth, strength: strength, position: requirement.position)
+                if let scheme {
+                    // Where a club has put its money. A run-heavy team has not
+                    // invested in a quarterback.
+                    ceiling += SchemeIdentity.ceilingDelta(
+                        for: requirement.position, in: scheme)
+                }
                 let playerAge = age(
                     depth: depth, position: requirement.position, using: &random)
 
@@ -118,6 +129,7 @@ public enum RosterGenerator {
                         age: playerAge,
                         season: season,
                         colleges: colleges,
+                        scheme: scheme,
                         using: &random
                     )
                 )

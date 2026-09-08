@@ -63,6 +63,15 @@ func pad(_ value: String, _ width: Int) -> String {
     return out
 }
 
+extension String {
+    func trimmingWhitespace() -> String {
+        var result = self
+        while result.first == " " { result.removeFirst() }
+        while result.last == " " { result.removeLast() }
+        return result
+    }
+}
+
 func padLeft(_ value: String, _ width: Int) -> String {
     var out = value
     while out.count < width { out = " " + out }
@@ -124,13 +133,54 @@ var ids = IdentifierSequence<PlayerSubject>()
 let colleges = NameGenerator.collegePool(count: 120, using: &random)
 
 var rosters: [[Player]] = []
+var identities: [SchemeIdentity.Identity] = []
 for index in 0..<teamCount {
     let offset =
         teamCount == 1 ? 0 : -8.0 + 16.0 * Double(index) / Double(teamCount - 1)
+    let identity = SchemeIdentity.identity(using: &random)
+    identities.append(identity)
     rosters.append(
         RosterGenerator.roster(
-            strength: .init(offset: offset), season: season,
-            colleges: colleges, ids: &ids, using: &random))
+            strength: .init(offset: offset), builtFor: identity.builtFor,
+            season: season, colleges: colleges, ids: &ids, using: &random))
+}
+
+func describe(_ offense: OffensiveScheme) -> String {
+    switch (offense.blocking, offense.passing) {
+    case (.gap, .playAction): return "power run"
+    case (.zone, .playAction): return "zone run"
+    case (.mixed, .westCoast): return "west coast"
+    case (.zone, .quickGame): return "spread"
+    case (.zone, .airRaid): return "air raid"
+    case (.gap, .vertical): return "vertical"
+    default: return "custom"
+    }
+}
+
+/// Names whichever side of the ball the roster does not suit. Reporting only
+/// the offence made a defensive mismatch look like a contradiction: "plays air
+/// raid, built for air raid".
+func mismatchNote(_ identity: SchemeIdentity.Identity) -> String {
+    guard identity.isMismatched else { return "" }
+    var parts: [String] = []
+    if identity.played.offense != identity.builtFor.offense {
+        parts.append("off built for \(describe(identity.builtFor.offense))")
+    }
+    if identity.played.defense != identity.builtFor.defense {
+        parts.append("def built for \(describe(identity.builtFor.defense))")
+    }
+    return "   " + parts.joined(separator: ", ")
+}
+
+func describe(_ defense: DefensiveScheme) -> String {
+    switch (defense.front, defense.coverage, defense.pressure) {
+    case (.fourMan, .singleHigh, .balanced): return "4-3 under"
+    case (.threeMan, .singleHigh, .balanced): return "3-4 okie"
+    case (.fourMan, .quartersMatch, .balanced): return "nickel match"
+    case (.fourMan, .manPress, .blitzHeavy): return "press blitz"
+    case (.multiple, .twoHighSoft, .conservative): return "bend/break"
+    default: return "custom"
+    }
 }
 
 // `season` is passed rather than captured: top-level variables in main.swift are
@@ -182,18 +232,27 @@ case "league":
     print("League of \(teamCount), seed \(seed)")
     print("")
     print(
-        pad("TEAM", 6) + padLeft("MEAN", 6) + padLeft("STARTERS", 10)
-            + padLeft("90+", 6) + padLeft("STARS", 7))
+        pad("TEAM", 5) + pad("OFFENSE", 12) + pad("DEFENSE", 14)
+            + padLeft("MEAN", 6) + padLeft("QB", 5) + padLeft("RB", 5)
+            + padLeft("OL", 6) + padLeft("WR", 5) + padLeft("FIT", 6))
     for (index, roster) in rosters.enumerated() {
-        let starters = RosterGenerator.projectedStarters(from: roster)
-        let elite = roster.filter { $0.overall >= 90 }.count
-        let stars = roster.filter { $0.hidden.developmentTrait == .star }.count
+        let identity = identities[index]
+        func best(_ position: Position) -> String {
+            "\(roster.filter { $0.position == position }.map { Int($0.overall) }.max() ?? 0)"
+        }
+        let line = roster.filter(\.position.isOffensiveLine).map { Int($0.overall) }
+        let fit = mean(roster.map { $0.schemeFit(identity.played) })
         print(
-            pad("\(index)", 6)
+            pad("\(index)", 5)
+                + pad(describe(identity.played.offense), 12)
+                + pad(describe(identity.played.defense), 14)
                 + padLeft(oneDecimal(mean(roster.map { Int($0.overall) })), 6)
-                + padLeft(oneDecimal(mean(starters.map { Int($0.overall) })), 10)
-                + padLeft("\(elite)", 6)
-                + padLeft("\(stars)", 7))
+                + padLeft(best(.quarterback), 5)
+                + padLeft(best(.runningBack), 5)
+                + padLeft(oneDecimal(mean(line)), 6)
+                + padLeft(best(.wideReceiver), 5)
+                + padLeft(oneDecimal(fit), 6)
+                + mismatchNote(identity))
     }
     let all = rosters.flatMap { $0 }
     print("")
