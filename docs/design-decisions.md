@@ -80,6 +80,20 @@ See [play-calling.md](play-calling.md).
 | 44 | **The opponent model snapshot is part of `GameSetup`** | Otherwise replaying one game cascades into replaying the whole season before it |
 | 45 | **Benchmarked against an oracle, a baseline, and a human** | Target: a good coordinator within ~1 point per game of a skilled human, with a 3-4 point spread across the league |
 
+## Gameplan
+
+See [gameplan.md](gameplan.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 49 | **Two tiers: presets and dials over a canonical rule set** | Five-minute path and deep path both served; presets double as the teaching mechanism |
+| 50 | **The `GameplanRuleSet` is canonical; tier 1 generates rules** | The caller reads only rules, so a tier-2 rule builder is additive UI rather than a second interpretation path |
+| 51 | **Season identity plus weekly deltas** | A light week is a few tweaks, not a blank form; self-scouting has a stable baseline to measure drift against |
+| 52 | **Keys of the week are capped `Directive`s** | First-class type, so bulk per-matchup directives are additive. The real later cost is conflict resolution and report legibility, not schema |
+| 53 | **Hypotheses are graded independently of the result** | You can be right and lose. Separating "was your read correct" from "did you win" is what makes gameplanning a scientific loop |
+| 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
+| 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
+
 ## Presentation and editing
 
 | # | Decision | Implication |

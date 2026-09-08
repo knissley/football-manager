@@ -30,7 +30,8 @@ reason to go hire someone better in the offseason.
 
 ### Gameplan is constraints, not commands
 
-You never hand him a script. You set the room he operates in:
+Designed in full in [gameplan.md](gameplan.md). You never hand him a script. You set the
+room he operates in:
 
 - Run/pass lean as a **range**, not a number, varying by down and field position
 - Fourth-down aggression, as a shift in the win-probability threshold
