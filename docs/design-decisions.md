@@ -51,6 +51,12 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 23 | **Coach skills affect information and staff, never the field** | Scouting, intel, development, negotiation. The physics stay untouched — the engine never winks |
 | 24 | **Carousel: personal skills carry, org perks don't** | Organizations need visible infrastructure (scouting dept, facilities, medical) as a new domain concept |
 | 25 | **Development is an append-only event log** | `DevelopmentEvent` with a `source`; the deferred currency is one more case. Makes nudges legible and development interrogable *(proposed — confirm)* |
+| 33 | **Busts are emergent, not modelled** | No failure-cause taxonomy. Noisy draft scouting + a hidden development trait + scarce snaps already produce them |
+| 34 | **What's hidden is growth, not current ability** | True attributes surface quickly once a player is in your building; the development trait and ceiling stay hidden. The gamble is "will he grow", and the cost of finding out is snaps you could have given a veteran |
+| 35 | **Staff and org quality speed up your read** | Better organizations converge on a player's development trait faster. This is the sink for org perks and information-only coach skills — no diagnosis event, no currency spend |
+| 36 | **Every team holds its own estimates** | AI teams evaluate from their own noisy reads, never a global truth value. Information asymmetry is what makes trades feel like negotiation rather than an exploitable function |
+| 37 | **Estimates are seeded per (observer, player) and fixed** | Re-evaluating must not average the noise away and converge on truth for free |
+| 38 | **Ceiling recovery is situational only** | A player buried behind a veteran with a good development trait can still get there; one whose attributes were simply low never will. Falls out of the model with nothing added |
 
 ## Presentation and editing
 
@@ -67,15 +73,10 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 
 Not yet decided. Each needs an answer before the system it touches is built.
 
-- **Bust recoverability.** *Under discussion.* Proposal: a failing player carries a
-  hidden `failureCause` — unknowable at the draft, diagnosable afterwards through
-  organization and coach-skill investment. Situational causes (scheme, role, coaching,
-  confidence) are fixable; "the tools were never there" is not, and the diagnosis tells
-  you which so you can stop spending. Recoverability decays with age, and the cause is
-  seeded per player and fixed so re-diagnosing can't converge on truth for free.
-  Open sub-questions: does a recovered player ever reach his original ceiling, does
-  diagnosis cost currency or accrue from staff quality over time, and is there any
-  pre-draft bust-risk signal at all.
+- **What the development currency actually buys.** Deferred, but its sink is now
+  narrower: diagnosis accrues from staff quality rather than being purchased, so the
+  currency needs a different job. Trait acquisition and attribute honing remain the
+  obvious candidates.
 - **Trade AI.** "Feels legit, not getting one over on the game" requires AI teams that
   can refuse, and that can beat you in ways you'd notice. Approach undecided.
 - **How much scouting fog is shown.** Error bars that narrow with investment, or
