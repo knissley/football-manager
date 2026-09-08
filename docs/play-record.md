@@ -64,9 +64,16 @@ Situation
   personnel     (off: PersonnelGroup, def: DefensivePackage)
   weather       WeatherState
 
+`SituationClass(situation)` derives the shared situational buckets — down-and-distance,
+field, score and time — used by both callers, gameplan rules, tendency tables and
+analysis. It is derived, never stored: a bucket boundary can change without rewriting
+history.
+
+
 Calls
   offensivePlay PlayID            into the play catalogue
-  defensiveCall DefensiveCallID
+  defensiveCall DefensiveCallID   into the defensive catalogue, entries shaped
+                                  as FMCore.DefensiveCall
   offensiveCaller  .coordinator(StaffID) | .player
   defensiveCaller  .coordinator(StaffID) | .player
   tempo, formation, motion

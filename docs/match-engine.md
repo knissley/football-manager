@@ -145,10 +145,9 @@ worth keeping — they're memorable.
 - **Penalties** are drawn per matchup from player `discipline` and coaching, then
   applied with correct accept/decline logic — the engine evaluates both branches and
   takes the better one for the non-penalized team.
-- **AI play calling** is a situational policy over down, distance, field position,
-  score, time, and opponent tendencies, modulated by coach ratings and gameplan.
-  Fourth-down decisions run on expected points, with coach aggression shifting the
-  threshold.
+- **AI play calling**, on both sides of the ball, keys off `SituationClass` and the
+  opponent's tendencies, modulated by coach ratings and gameplan. Fourth-down decisions
+  run on expected points, with coach aggression shifting the threshold.
 
 Because play calling can be toggled at will, the AI caller is a **headline system** and
 has its own design doc: [play-calling.md](play-calling.md). In short — your offensive

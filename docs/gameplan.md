@@ -110,8 +110,34 @@ tighten the guardrails or go hire someone who follows the plan.
 
 ## Defensive gameplan
 
-Structurally identical, different vocabulary: front, coverage shell mix, blitz rate and
-pressure packages, and matchup assignments. Same rule set, same directives, same grading.
+Structurally identical, and built at the same time — not after. Same `GameplanRuleSet`,
+same `when situation → prefer/avoid` rule shape, same directives, same hypothesis
+grading, same plan-versus-execution drift readout. The difference is vocabulary, and
+what a rule is allowed to name.
+
+Where an offensive rule names a play family, a defensive rule names the components of
+`FMCore.DefensiveCall` ([play-calling.md](play-calling.md#a-defensive-call-is-data-not-a-label)):
+
+- **Coverage mix** as a range by situation — *quarters or better on early downs*
+- **Pressure rate**, and where the extra rusher comes from
+- **Front alignment and run fit** — *two-gap on short yardage*, *slant to the tight end*
+- **Package thresholds** — *nickel from 11 personnel*, *dime only on third and long*
+- **Disguise frequency**, which trades reaction time for a worse quarterback read
+- **Matchup assignments** — *travel our No. 1 corner with their No. 1 receiver*
+
+The `when` clause on both sides is a `SituationClass`
+([the shared vocabulary](play-calling.md#situational-football)), so *third and long* means
+one thing across the whole game. An offensive rule and a defensive rule that both fire on
+"late and trailing" are firing on the same snap by construction.
+
+### Rules name a trade, not a best call
+
+Because `CallVulnerability` has no `none` case, a defensive rule that says *never blitz*
+is not caution — it is a standing decision to concede the quick game less often and the
+run more. The grading layer reports that back as what it was: **you asked for two-high
+on third down; they ran for 4.6 a carry on it.** Same readout the offense gets, same
+evidence about your coordinator, same reason to tighten the guardrails or go hire
+someone else.
 
 ## Build order
 

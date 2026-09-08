@@ -1,5 +1,9 @@
 # AI play calling
 
+Both sides of the ball. Every heading below that says "coordinator" applies to the
+offensive and defensive coordinator alike unless it says otherwise; where the two
+genuinely differ, the [defensive section](#the-defensive-coordinator) says how.
+
 The highest-risk system in the project. Because play calling is toggleable at will, the
 AI calls most of the snaps in your own career and *every* snap in the other fifteen
 games each week. Its quality sets the ceiling on league statistics, quick-sim
@@ -68,6 +72,90 @@ down, one who abandons the run at the first sign of trouble, one who is brillian
 the red zone and helpless in a two-minute drill — all of it is observable, commentable,
 and something the news feed can needle him about.
 
+## Situational football
+
+Football is situational before it is anything else. Third and two is a different sport
+from third and eleven, and both change again when you are down four with ninety seconds
+left. Every system here reasons about that — both callers, gameplan rules, tendency
+tables, analysis, and the news — so **the classification lives in one place**:
+`FMCore.SituationClass`.
+
+```
+SituationClass
+  downAndDistance   firstDown · 2nd/3rd short-medium-long · 4th short-long · goalToGo
+  field             ownDeep → goalLine
+  score             trailing/leading by one, two or three scores, or tied
+  time              opening · middle · twoMinuteFirstHalf · thirdQuarter ·
+                    fourthQuarter · clockBurn · twoMinuteGame · overtime
+```
+
+Plus the reads that are composed from all four and used everywhere: `isMustPass`,
+`isClockBurn`, `isDesperation`, `isFourthDownTerritory`, `isHighLeverageForDefense`.
+
+Two properties matter more than the buckets themselves:
+
+**It decides nothing.** It is a description. A gameplan rule, an AI policy and a
+post-game report all key off it, which is what stops a tendency report from quietly
+contradicting a play-by-play because two systems drew the line at seven yards and eight.
+
+**There is one per snap, not one per sideline.** Like `Situation`, it reads from the
+offence's point of view — `isMustPass` means *the team with the ball* has to throw,
+whichever bench is asking. The defence reads the same value and draws the opposite
+conclusion. A two-minute drill is `isDesperation` to the offence and `isClockBurn` to
+the defence: one moment, one description, two jobs. Mirroring a copy with the
+differential flipped would be two vocabularies again, and is explicitly wrong.
+
+Situation buckets are also the index the caller uses to shortlist plays, so this is on
+the [cost](#cost) path as well as the correctness one.
+
+## The defensive coordinator
+
+Structurally identical to the offensive one — same profile shape, same gameplan
+mechanism, same opponent model, same benchmark — and **equally toggleable**. You can
+call the defense yourself, snap by snap, exactly as you can the offense, including
+taking the wheel only for a goal-line stand and handing it back.
+
+### A defensive call is data, not a label
+
+`FMCore.DefensiveCall` is composed, not chosen from a flat list of names, for the same
+reason schemes are: the engine reasons about components, and named calls are a
+convenience layer generated over the composition.
+
+```
+DefensiveCall
+  coverage         cover 0/1/2/3, two-man, quarters, match quarters, prevent, run blitz
+  rush             three-man · four-man · five/six-man blitz · zone blitz · simulated
+  frontAlignment   even · over · under · slanted · bear
+  package          base · nickel · dime · quarter · goal line · prevent
+  runFit           balanced · aggressive · two-gap · spill · sell out
+  disguised        hold the shell until the snap
+```
+
+A play designer that produces a call the engine already understands beats an engine
+that needs a new case per call.
+
+### Every call gives something up
+
+`CallVulnerability` has **no `none` case**, and that is the design. Cover 3 concedes the
+seams. A zone blitz concedes the hot throw. Man concedes crossers. Prevent concedes the
+run and everything underneath — *on purpose*, which is why the analysis layer needs to
+know: an eight-yard completion on second and fifteen is the defence winning, and a
+box score that calls it a good play for the offence is lying.
+
+This is what makes calling a defense a decision rather than a preference, and it is
+what gives the interrogation layer something true to say about why a play worked.
+
+### The two-minute drill from the other chair
+
+The scenario the shared vocabulary exists to serve: the opponent is driving to tie, and
+you are picking calls against a clock that is working for you. `isTwoMinuteSound` —
+enough deep help that the sideline throw is the only cheap one, and a rush that does not
+vacate the middle — is a property of the call, and a coordinator with a weak
+`situational` rating in that phase will reach for the wrong one under pressure.
+
+Watching that unfold, with the reasoning legible, is the same product as watching your
+own drive. Defense is not the half you skip.
+
 ## The opponent model
 
 Each coordinator carries his own belief about the other team, built from what he could
@@ -105,12 +193,16 @@ This creates the loop that makes gameplanning worth doing: establish a tendency,
 they've keyed on it, break it. That's football, it's measurable, and the interrogation
 layer can say plainly *they were sitting on your screen game and you called four more.*
 
-## What the defense knows pre-snap
+## What each side knows pre-snap
 
 The defense reads **formation, personnel, and motion** — everything physically
 observable — plus **its tendency model's prediction** for this situation from this look.
 
 It never sees the play. The defensive call is a bet, and it can be wrong.
+
+Symmetrically, the offence reads the defensive **shell, personnel and alignment** — and
+`disguised` is precisely the dial that degrades that read at a cost. The offence never
+sees the coverage rotation before the snap either.
 
 This is deliberate and non-negotiable: if the AI could see your call, every causal
 explanation the game offered would be a lie, and explanation is the entire product.
@@ -167,10 +259,15 @@ that is dominated by the tick loop, so it needs to be in the tens of microsecond
 
 ## Build order
 
-1. A baseline caller (fixed distributions by down and distance) — enough for M1's crude
-   engine to produce plausible games.
-2. Gameplan constraints and the coordinator profile.
-3. The opponent model from `PlayRecord` history, with recency weighting.
-4. In-game adaptation, rate-limited.
-5. The oracle and the benchmark harness.
-6. Tuning until the human gap lands.
+1. ✅ `SituationClass` — the shared situational vocabulary, before either caller exists.
+2. ✅ `DefensiveCall` — the call as composed data, matching what a playbook entry will be.
+3. A baseline caller on **both** sides (fixed distributions by situation bucket) — enough
+   for M1's crude engine to produce plausible games.
+4. Gameplan constraints and the coordinator profile, offense and defense together.
+5. The opponent model from `PlayRecord` history, with recency weighting.
+6. In-game adaptation, rate-limited.
+7. The oracle and the benchmark harness.
+8. Tuning until the human gap lands.
+
+Both sides advance together at every step. Building the offensive caller first and
+retrofitting defense produces a defense that exists to lose to it.

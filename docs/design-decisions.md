@@ -251,6 +251,19 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 31 | **Pixel art** | One style covers field sprites and portraits from a shared parts library; two resolutions (small sprites, chunkier portraits with real facial variety) |
 | 32 | **Appearance generated correlated with physicals** | A 340lb nose tackle and a 180lb slot receiver don't roll from the same distribution; the editor edits deviations from that baseline |
 
+## Situational football and defense
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 133 | **One situational vocabulary, in `FMCore.SituationClass`** | Down-and-distance, field, score and time buckets live in one type. A gameplan rule, an AI policy, a tendency table and a post-game report cannot disagree about what "third and long" means |
+| 134 | **The classification decides nothing** | It is a description other systems key off, not a policy. Anything that reads like a recommendation (`isFourthDownTerritory`) is explicitly a description of the situation, with the decision left to a win-probability call |
+| 135 | **One classification per snap, offence-relative** | Like `Situation`, it reads from the possessing team's point of view. The defence reads the *same* value and draws the opposite conclusion — a two-minute drill is `isDesperation` to one bench and `isClockBurn` to the other. Mirroring a flipped copy would be two vocabularies again |
+| 136 | **Defense is toggleable snap by snap, exactly as offense is** | Same profile shape, same gameplan mechanism, same opponent model, same benchmark. Watching the opponent run a two-minute drill at you is the same product as running one |
+| 137 | **A defensive call is composed data, not a named label** | `DefensiveCall` carries coverage, rush, front alignment, package, run fit and disguise. The engine reasons about components; named calls are a convenience layer over the composition, so a designed call needs no new engine case |
+| 138 | **`CallVulnerability` has no `none` case** | Every defensive call trades something away, structurally. A call that covered everything would make offensive decisions meaningless and leave the analysis layer nothing true to say about why a play worked |
+| 139 | **Conceding yards can be the defence winning** | Prevent and quarters give up the underneath throw on purpose. The analysis layer reads `concedesUnderneath` so a nine-yard completion on second and fifteen is not scored as an offensive success |
+| 140 | **Both callers advance together at every build step** | Building the offensive caller first and retrofitting defense produces a defense whose job is to lose to it |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

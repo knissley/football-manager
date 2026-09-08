@@ -26,6 +26,10 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - A crude outcome engine that emits real event shapes and plausible scorelines.
 - `Tools/simharness` running headless.
 - ✅ Configurable, validated league shape with 8- and 12-team test presets.
+- ✅ `SituationClass` — the shared situational vocabulary both callers, the gameplan
+  layer and analysis key off ([play-calling.md](play-calling.md#situational-football)).
+- ✅ `DefensiveCall` — the defensive call as composed data, so defense is first-class in
+  the model before either caller is written.
 
 *Exit:* `generateWorld(seed:)` is reproducible byte-for-byte, a season sims headless,
 and the event stream carries everything M2 needs without changes.
@@ -81,7 +85,9 @@ one, hits the budget, and a replayed game is identical to its original.
 
 ## M6 — Plays as data
 
-- The play format: formations, assignments, routes, blocking rules, coverages.
+- The play format: formations, assignments, routes, blocking rules, coverages. The
+  offensive playbook entry lands here; it should read like `DefensiveCall` already does,
+  and until then `PlayID` points at a playbook that does not exist.
 - Validation — eleven players, legal formation, executable assignments.
 - The premade concept library, authored in the format.
 - The play designer.
