@@ -1,14 +1,16 @@
 // Reports the in-memory footprint of a play record, and — by existing at all —
-// proves `FMCore` links without Foundation or libm.
+// proves the simulation modules link without Foundation or libm.
 //
-// The second job is the one that caught a real bug: `Double.rounded()` resolves
-// to libm's `round`, so `FMCore` failed to link into any client that did not
-// already pull in Foundation. Test targets link the testing library, which
-// hides that. A plain executable does not.
+// The second job is the one that caught a real bug, twice: `Double.rounded()`
+// resolves to libm's `round`, so a module using it fails to link into any client
+// that does not already pull in Foundation. Test targets link the testing
+// library, which hides it. A plain executable does not — so this depends on the
+// top of the module chain to guard all of it.
 //
 //   swift run --package-path Tools/playsize
 
 import FMCore
+import FMGeneration
 
 func report(_ label: String, _ value: Int, unit: String = "bytes") {
     var padded = label

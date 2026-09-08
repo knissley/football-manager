@@ -198,3 +198,71 @@ struct RatingsTests {
         #expect(Set([a, b]).count == 1)
     }
 }
+
+/// A weight on a rating the position does not carry would be dropped by
+/// `overall`, quietly renormalising and dragging every player at that position
+/// off target. Weights that do not sum to one do the same thing less obviously.
+@Suite("Position weights")
+struct PositionWeightsTests {
+
+    @Test("Every weight set sums to one")
+    func weightsSumToOne() {
+        for position in Position.allCases {
+            let total = PositionWeights.weights(for: position).reduce(0.0) { $0 + $1.1 }
+            #expect(abs(total - 1.0) < 0.0001, "\(position) weights sum to \(total)")
+        }
+    }
+
+    @Test("Weights only reference ratings the position carries")
+    func weightsReferenceCarriedRatings() {
+        for position in Position.allCases {
+            let carried = Set(RatingKey.keys(for: position))
+            for (key, _) in PositionWeights.weights(for: position) {
+                #expect(
+                    carried.contains(key), "\(position) weights \(key), which it does not carry")
+            }
+        }
+    }
+
+    @Test("No weight is duplicated or non-positive")
+    func weightsAreWellFormed() {
+        for position in Position.allCases {
+            let weights = PositionWeights.weights(for: position)
+            #expect(Set(weights.map(\.0)).count == weights.count, "\(position) duplicates a key")
+            #expect(weights.allSatisfy { $0.1 > 0 }, "\(position) has a non-positive weight")
+        }
+    }
+
+    @Test("A uniform rating produces that overall at every position")
+    func uniformRatingsRoundTrip() {
+        for position in Position.allCases {
+            var ratings = Ratings()
+            for key in RatingKey.keys(for: position) {
+                ratings[key] = 74
+            }
+            #expect(
+                PositionWeights.overall(ratings, at: position) == 74,
+                "\(position) scored \(PositionWeights.overall(ratings, at: position)) for a flat 74"
+            )
+        }
+    }
+
+    @Test("Overall is driven by the ratings the position values")
+    func overallFollowsWeights() {
+        var passer = Ratings()
+        for key in RatingKey.keys(for: .quarterback) { passer[key] = 60 }
+        passer[.throwAccuracyShort] = 95
+        passer[.throwAccuracyMedium] = 95
+        passer[.awareness] = 95
+
+        var athlete = Ratings()
+        for key in RatingKey.keys(for: .quarterback) { athlete[key] = 60 }
+        athlete[.speed] = 95
+        athlete[.stamina] = 95
+        athlete[.toughness] = 95
+
+        #expect(
+            PositionWeights.overall(passer, at: .quarterback)
+                > PositionWeights.overall(athlete, at: .quarterback))
+    }
+}

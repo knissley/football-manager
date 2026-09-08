@@ -124,4 +124,40 @@ public enum PositionGroup: UInt8, CaseIterable, Sendable, Hashable, Codable {
     public var positions: [Position] {
         Position.allCases.filter { $0.group == self }
     }
+
+    /// The age at which the group's players are typically at their best.
+    ///
+    /// Real curves differ sharply by position — a back is finished around the
+    /// age a quarterback is entering his prime — and flattening that would make
+    /// roster building far less interesting than it should be.
+    public var peakAge: Int {
+        switch self {
+        case .quarterback: return 30
+        case .backfield: return 26
+        case .receiver: return 27
+        case .tightEnd: return 27
+        case .offensiveLine: return 29
+        case .edge: return 27
+        case .defensiveInterior: return 28
+        case .linebacker: return 27
+        case .cornerback: return 26
+        case .safety: return 27
+        case .specialist: return 31
+        }
+    }
+
+    /// Overall points lost per season past the peak, before individual
+    /// durability and work ethic are applied.
+    public var declinePerSeason: Double {
+        switch self {
+        case .backfield: return 2.4
+        case .cornerback: return 2.0
+        case .receiver, .edge: return 1.6
+        case .linebacker, .safety, .tightEnd: return 1.5
+        case .defensiveInterior: return 1.3
+        case .offensiveLine: return 1.1
+        case .quarterback: return 1.0
+        case .specialist: return 0.7
+        }
+    }
 }
