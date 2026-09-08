@@ -86,8 +86,9 @@ one, hits the budget, and a replayed game is identical to its original.
 ## M6 — Plays as data
 
 - The play format: formations, assignments, routes, blocking rules, coverages. The
-  offensive playbook entry lands here; it should read like `DefensiveCall` already does,
-  and until then `PlayID` points at a playbook that does not exist.
+  offensive playbook entry — the `PlayDesign` — lands here; it should read like
+  `DefensiveCall` already does, and until then `OffensiveCall.design` points at a
+  playbook that does not exist.
 - Validation — eleven players, legal formation, executable assignments.
 - The premade concept library, authored in the format.
 - The play designer.

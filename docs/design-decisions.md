@@ -264,6 +264,17 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 139 | **Conceding yards can be the defence winning** | Prevent and quarters give up the underneath throw on purpose. The analysis layer reads `concedesUnderneath` so a nine-yard completion on second and fifteen is not scored as an offensive success |
 | 140 | **Both callers advance together at every build step** | Building the offensive caller first and retrofitting defense produces a defense whose job is to lose to it |
 
+## The play model
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 141 | **"Play" means the collision** | The word is reserved for what occurred on a down. `PlayID` is retired rather than renamed, so it cannot silently mean two things again ([ADR-0010](adr/0010-plays-designs-and-calls.md)) |
+| 142 | **Design, call and play are three levels with three lifetimes** | A `PlayDesign` lives across seasons in a playbook and is editable; a call exists for one snap; a play is permanent history. Different lifetimes is what makes them different types rather than one type viewed three ways |
+| 143 | **Both calls are stored by value in the record** | Editing a design in the play designer changes the playbook, never what happened. The same guarantee ADR-0009 makes for gear and appearance, one level down. Measured cost: two bytes *less* per play than the reference it replaced |
+| 144 | **A play's identity is derived, not allocated** | `PlayRef` is `(game, index)`, computed. No allocator, so a game replays independently with no counter state to carry, and a link to a play in an unretained game still resolves ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)) |
+| 145 | **Allocated identity for source-of-truth streams; derived for caches over a seed** | The general rule ADR-0011 extracts. The eight world streams keep monotonic sequence numbers; `PlayRecord` is the one stream that is discarded and rebuilt, and it cannot |
+| 146 | **There is no global play ordering** | A week's games are concurrent. Ordering is `index` within a game; across games it comes from the schedule |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

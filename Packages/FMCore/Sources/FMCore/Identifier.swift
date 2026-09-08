@@ -35,7 +35,7 @@ public enum LeagueSubject {}
 public enum ConferenceSubject {}
 public enum DivisionSubject {}
 public enum GameSubject {}
-public enum PlaySubject {}
+public enum PlayDesignSubject {}
 public enum ContractSubject {}
 public enum PersonnelSubject {}
 public enum TraitSubject {}
@@ -49,7 +49,11 @@ public typealias LeagueID = Identifier<LeagueSubject>
 public typealias ConferenceID = Identifier<ConferenceSubject>
 public typealias DivisionID = Identifier<DivisionSubject>
 public typealias GameID = Identifier<GameSubject>
-public typealias PlayID = Identifier<PlaySubject>
+/// An authored play in a playbook — formation, assignments, routes, blocking rules.
+/// The *design*, which lives across seasons and is editable in the play designer, as
+/// distinct from the call that selected it or the play that occurred
+/// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)).
+public typealias PlayDesignID = Identifier<PlayDesignSubject>
 public typealias ContractID = Identifier<ContractSubject>
 /// Everyone in the league who is not a player: coaches, scouts, agents, writers,
 /// officials and trainers. `PersonnelRole` distinguishes them, so one identifier

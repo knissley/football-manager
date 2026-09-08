@@ -167,8 +167,11 @@ Preseason ─→ RegularSeason (18 weeks, 1 bye per team)
 
 Three levels, because they have different retention rules:
 
-- **`PlayRecord` stream** — every play's situation, calls, engine decision points, and
-  outcome. Retained in full for your games in the current season.
+- **`PlayRecord` stream** — every play's situation, both calls, engine decision points,
+  and outcome. Retained in full for your games in the current season. A play is
+  addressed by `PlayRef`, derived from `(game, index)` rather than allocated, so a
+  reference survives the game being replayed instead of stored
+  ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)).
 - **Replay tuple** — `(initialState, seed, sliderConfig, decisionLog)` for every other
   game. Re-simulates identically on demand, so any game in league history can be
   watched without having been stored.

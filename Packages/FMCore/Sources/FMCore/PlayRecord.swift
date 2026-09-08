@@ -1,6 +1,3 @@
-public enum DefensiveCallSubject {}
-public typealias DefensiveCallID = Identifier<DefensiveCallSubject>
-
 /// A player's position within a single play, 0..<22.
 ///
 /// Decision points reference slots rather than `PlayerID`s. A slot is one byte

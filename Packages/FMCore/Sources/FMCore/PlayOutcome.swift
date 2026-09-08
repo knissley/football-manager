@@ -6,41 +6,32 @@ public enum PlayCaller: Sendable, Hashable, Codable {
     case automatic
 }
 
-public enum Tempo: UInt8, CaseIterable, Sendable, Hashable, Codable {
-    case hurryUp = 0
-    case fast = 1
-    case normal = 2
-    case slow = 3
-    case bleedClock = 4
-}
-
-/// What each side chose, and who chose it.
+/// The two calls that met on this snap, and who made each.
 ///
-/// Recording the caller is what lets the gameplan layer measure plan against
-/// execution, and what makes a replay of a game you called reproducible.
+/// Both are held **by value** rather than as references into a playbook
+/// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)). A design can be
+/// edited in the play designer years later; what was called on a given snap cannot
+/// change, and a replay has to show what actually happened.
+///
+/// Recording the caller is what lets the gameplan layer measure plan against execution,
+/// and what makes a replay of a game you called reproducible.
 public struct Calls: Sendable, Hashable, Codable {
 
-    public var offensivePlay: PlayID
-    public var defensiveCall: DefensiveCallID
+    public var offense: OffensiveCall
+    public var defense: DefensiveCall
     public var offensiveCaller: PlayCaller
     public var defensiveCaller: PlayCaller
-    public var tempo: Tempo
-    public var usedMotion: Bool
 
     public init(
-        offensivePlay: PlayID,
-        defensiveCall: DefensiveCallID,
+        offense: OffensiveCall,
+        defense: DefensiveCall,
         offensiveCaller: PlayCaller,
-        defensiveCaller: PlayCaller,
-        tempo: Tempo = .normal,
-        usedMotion: Bool = false
+        defensiveCaller: PlayCaller
     ) {
-        self.offensivePlay = offensivePlay
-        self.defensiveCall = defensiveCall
+        self.offense = offense
+        self.defense = defense
         self.offensiveCaller = offensiveCaller
         self.defensiveCaller = defensiveCaller
-        self.tempo = tempo
-        self.usedMotion = usedMotion
     }
 }
 
@@ -344,6 +335,34 @@ public struct Outcome: Sendable, Hashable, Codable {
     }
 }
 
+/// A reference to one play, from outside the stream.
+///
+/// A highlight, a news item or a bookmark holds one of these. It is `(game, index)` and
+/// nothing more, which is what makes it survive the retention tier: a play in a game
+/// that was never stored resolves by replaying that game and indexing into it
+/// ([ADR-0011](../../../../docs/adr/0011-derived-identity-for-regenerable-streams.md)).
+///
+/// Deliberately a struct rather than the two fields packed into a `UInt64`. Packing
+/// would be flatter and two bytes smaller, at the cost of baking a ceiling on games per
+/// career into the event contract — the worst place in the codebase to hide an
+/// assumption.
+public struct PlayRef: Sendable, Hashable, Codable, Comparable {
+
+    public let game: GameID
+    /// Order within the game. Plays are ordered within a game and not across games:
+    /// a week's games are concurrent, so there is no global play order to appeal to.
+    public let index: UInt16
+
+    public init(game: GameID, index: UInt16) {
+        self.game = game
+        self.index = index
+    }
+
+    public static func < (lhs: PlayRef, rhs: PlayRef) -> Bool {
+        (lhs.game.rawValue, lhs.index) < (rhs.game.rawValue, rhs.index)
+    }
+}
+
 /// One play, as the engine emits it.
 ///
 /// The engine's entire public output. Box scores, grades, tendencies,
@@ -355,7 +374,6 @@ public struct Outcome: Sendable, Hashable, Codable {
 /// improves history retroactively.
 public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
 
-    public var id: PlayID
     public var game: GameID
     /// Order within the game, starting at zero. Also the label used to split a
     /// per-play random stream, which is why it must be stable.
@@ -366,7 +384,6 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
     public var outcome: Outcome
 
     public init(
-        id: PlayID,
         game: GameID,
         index: UInt16,
         situation: Situation,
@@ -374,7 +391,6 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         decisions: [DecisionPoint] = [],
         outcome: Outcome
     ) {
-        self.id = id
         self.game = game
         self.index = index
         self.situation = situation
@@ -382,6 +398,14 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         self.decisions = decisions
         self.outcome = outcome
     }
+
+    /// How anything outside the stream refers to this play.
+    ///
+    /// Derived rather than stored, and there is no allocator
+    /// ([ADR-0011](../../../../docs/adr/0011-derived-identity-for-regenerable-streams.md)):
+    /// most games are never retained, and a play in one of them has to be addressable
+    /// after the game is regenerated from its seed.
+    public var id: PlayRef { PlayRef(game: game, index: index) }
 
     public func decisions(ofKind kind: DecisionKind) -> [DecisionPoint] {
         decisions.filter { $0.kind == kind }

@@ -12,9 +12,14 @@
 /// can produce a call the engine already understands, instead of the engine
 /// needing a new case.
 ///
-/// Deliberately parallel to what an offensive playbook entry will be. The
-/// offensive side is still only a `PlayID` pointing at a playbook that does not
-/// exist yet; when it lands it should read like this file.
+/// The counterpart to `OffensiveCall`. Both are held by value in a `PlayRecord`
+/// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)), so a design
+/// edited in the play designer never rewrites what was called three seasons ago.
+///
+/// One asymmetry is deliberate: an offensive call references a `PlayDesign`, and this
+/// does not, because no defensive design format exists yet. M6 adds one — assignments
+/// per defender rather than a shell name — and the two shapes converge. A field that
+/// would always be zero until then would be worse than its absence.
 public struct DefensiveCall: Sendable, Hashable, Codable {
 
     public var coverage: Coverage

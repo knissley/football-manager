@@ -37,7 +37,9 @@ stream**, never a parallel accumulation.
 ```
 PlayRecord
   situation      down, distance, ball position, clock, score, personnel
-  calls          offensive play, defensive call, who chose them (AI or player)
+  calls          the offensive and defensive calls, held by value, and who chose
+                 each (AI or player) — a design edited later cannot rewrite history
+                 ([ADR-0010](adr/0010-plays-designs-and-calls.md))
   decisions      the engine's own branch points, recorded as data
                  ("pressure at 2.1s", "progression read 2 of 3", "checkdown covered")
   outcome        yards, result, participants, penalty

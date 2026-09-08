@@ -309,12 +309,13 @@ struct PlayRecordTests {
         yards: Int16 = 8, endedIn: PlayEnding = .tackled, kind: PlayKind = .pass
     ) -> PlayRecord {
         PlayRecord(
-            id: PlayID(1), game: GameID(1), index: 12,
+            game: GameID(1), index: 12,
             situation: Situation(
                 quarter: 2, clockRemaining: 480, down: down,
                 distance: distance, ballOn: ballOn, possession: TeamID(1)),
             calls: Calls(
-                offensivePlay: PlayID(100), defensiveCall: DefensiveCallID(200),
+                offense: OffensiveCall(design: PlayDesignID(100)),
+                defense: .nickelTwoMan,
                 offensiveCaller: .coordinator(PersonnelID(9)),
                 defensiveCaller: .coordinator(PersonnelID(10))),
             outcome: Outcome(kind: kind, yards: yards, endedIn: endedIn))
@@ -339,6 +340,55 @@ struct PlayRecordTests {
     func goalToGo() {
         #expect(record(distance: 6, ballOn: 6, yards: 5).gainedFirstDown == false)
         #expect(record(distance: 6, ballOn: 6, yards: 6, endedIn: .touchdown).gainedFirstDown)
+    }
+
+    /// A play is addressed by where it sits, not by an allocated number
+    /// ([ADR-0011](../../../../docs/adr/0011-derived-identity-for-regenerable-streams.md)).
+    /// This is what lets a link to a play survive the game being regenerated from its
+    /// seed rather than retained.
+    @Test("A play's identity is derived from its game and index")
+    func derivedIdentity() {
+        let play = record()
+        #expect(play.id == PlayRef(game: GameID(1), index: 12))
+
+        var replayed = play
+        replayed.outcome = Outcome(kind: .rush, yards: 2, endedIn: .tackled)
+        #expect(
+            replayed.id == play.id,
+            "identity must not depend on what happened, only on where the play sits")
+    }
+
+    /// Plays are ordered within a game. A week's games are concurrent, so there is no
+    /// global play order to appeal to — ordering across games comes from the schedule.
+    @Test("References order by game, then by index within it")
+    func referenceOrdering() {
+        let first = PlayRef(game: GameID(1), index: 0)
+        let later = PlayRef(game: GameID(1), index: 40)
+        let otherGame = PlayRef(game: GameID(2), index: 0)
+
+        #expect(first < later)
+        #expect(later < otherGame)
+        #expect(first != otherGame)
+    }
+
+    /// The calls are captured, not pointed at
+    /// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)). Editing a
+    /// design in the play designer must never rewrite what was called three seasons ago.
+    @Test("The record captures both calls by value")
+    func callsAreCapturedByValue() {
+        let play = record()
+        #expect(play.calls.defense.coverage == .twoMan)
+        #expect(play.calls.offense.design == PlayDesignID(100))
+        #expect(play.calls.offense.tempo == .normal)
+    }
+
+    /// The call selects the package and the situation observes it, so the two must
+    /// agree on a well-formed record.
+    @Test("A record's defensive package matches the call that selected it")
+    func packageMatchesCall() {
+        var play = record()
+        play.situation.defensePackage = play.calls.defense.package
+        #expect(play.situation.defensePackage == .nickel)
     }
 
     @Test("Kicks are not first downs regardless of yardage")

@@ -43,3 +43,5 @@ any other.
 | [0007](0007-event-stream-contract.md) | The play event stream is the engine's public contract | Accepted |
 | [0008](0008-win-probability-keystone.md) | Win probability as shared infrastructure | Accepted |
 | [0009](0009-event-sourcing-by-default.md) | Event sourcing as the default state model | Accepted |
+| [0010](0010-plays-designs-and-calls.md) | Distinguish play designs, calls, and plays | Accepted |
+| [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted |

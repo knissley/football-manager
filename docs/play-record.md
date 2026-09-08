@@ -44,8 +44,8 @@ instrumentation on. Debuggable without being visible.
 
 ```
 PlayRecord
-  id            PlayID          monotonic within game
-  gameID        GameID
+  game          GameID
+  index         UInt16          monotonic within the game; also the seed-split label
 
   situation     Situation       state before the snap
   calls         Calls           what each side chose, and who chose it
@@ -71,12 +71,10 @@ history.
 
 
 Calls
-  offensivePlay PlayID            into the play catalogue
-  defensiveCall DefensiveCallID   into the defensive catalogue, entries shaped
-                                  as FMCore.DefensiveCall
-  offensiveCaller  .coordinator(StaffID) | .player
-  defensiveCaller  .coordinator(StaffID) | .player
-  tempo, formation, motion
+  offense       OffensiveCall     design + tempo + motion, by value
+  defense       DefensiveCall     coverage, rush, front, package, run fit, by value
+  offensiveCaller  .coordinator(PersonnelID) | .player | .automatic
+  defensiveCaller  .coordinator(PersonnelID) | .player | .automatic
 
 Outcome
   kind          .rush .pass .sack .scramble .punt .fieldGoal .kickoff .kneel
@@ -118,13 +116,33 @@ A crude engine emits a handful of these per play; the spatial engine emits many.
 cases, same meaning** — which is exactly what lets the engine be replaced without touching
 anything above it.
 
+## Identity
+
+A play is addressed by `PlayRef` — `(game, index)` — and nothing is stored for it. The
+record already carries both fields, so the reference is computed
+([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)).
+
+There is no allocated play identifier, and that is deliberate rather than frugal. Most
+games are never retained; they are replayed from a seed on demand. An allocated
+identifier would have to be recovered on replay, which means storing the allocator's
+state per game — a snapshot justified by nothing but the identifier itself, and the same
+replay cascade the design removes everywhere else. A derived reference resolves by
+replaying the game and indexing into it.
+
+Nothing queries a play by reference in any case. The real queries are *this game's
+plays*, *every third-and-long this season*, *this player's snaps* — keyed off `game`,
+`SituationClass` and participant slots. References exist for pointing *in* from outside:
+a highlight, a news item, a bookmark.
+
 ## Constraints from the rest of the design
 
 - **No strings, ever.** IDs and enums only; text is rendered later by `FMNarrative`
   ([performance budget](match-engine.md#performance-budget)).
 - **Fixed-size where possible.** `DecisionPoint` is 8 bytes; `decisions` is the only
   variable-length part of a record.
-- **Append-only, ordered by `PlayID`.** No mutation after the whistle.
+- **Append-only, ordered by `index` within a game.** No mutation after the whistle. There
+  is no global play order: a week's games are concurrent, so ordering across games comes
+  from the schedule ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)).
 - **Versioned from day one** — old events must still fold correctly
   ([ADR-0009](adr/0009-event-sourcing-by-default.md)).
 - **Derived values are not stored.** Win probability, leverage and grades are computed by
@@ -140,34 +158,47 @@ it omitted the participant list entirely, which turned out to dominate.
 Measured against the real types (`swift run --package-path Tools/playsize`):
 
 ```
-Situation      29 B     DecisionPoint    8 B
-Calls          43 B     Participation   24 B
+Situation      29 B     OffensiveCall   10 B     DecisionPoint    8 B
+Calls          41 B     DefensiveCall    6 B     Participation   24 B
+PlayRef        10 B     PlayRecord     131 B  (fixed part)
 ```
 
-A realistic play — twelve decision points, ten credited participants — is **424 bytes**
+A realistic play — twelve decision points, ten credited participants — is **467 bytes**
 in Swift's in-memory layout:
 
 ```
-per game (150 plays)          62 KB
-your season (17 games)      1,055 KB
-league season (272 games)      16 MB
-ten seasons, league-wide      164 MB
+per game (150 plays)          68 KB
+your season (17 games)      1,162 KB
+league season (272 games)      18 MB
+ten seasons, league-wide      181 MB
 ```
 
-Two things changed as a result of measuring.
+Three things changed as a result of measuring.
 
 **Participants are only the players who did something.** Crediting all twenty-two made
 participants roughly three-quarters of a record for no analytical gain, and the team is
 now derived from the slot convention (0–10 offence, 11–21 defence) rather than stored.
 Together those cut a play from 756 bytes to 424.
 
+**The 424 figure was itself an underestimate.** It hand-counted the record's fixed fields
+at 16 bytes. Measuring `MemoryLayout<PlayRecord>.size` directly gives 131 — the
+hand-count omitted Swift's padding and the pointer each of the two arrays carries. The
+tool now measures the struct instead of adding up its parts, which is why the number rose
+to 467 without the type ever growing.
+
+For the record, the type changes from
+[ADR-0010](adr/0010-plays-designs-and-calls.md) made a play *two bytes smaller*
+like-for-like: `Calls` went 43 → 41 as tempo and motion moved into `OffensiveCall` and
+the 8-byte `DefensiveCallID` became a 6-byte value stored inline. Storing both calls by
+value, so a playbook edit cannot rewrite history, was close to free.
+
 **The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~62 KB of records — under 2×, not the 6× asserted before. Records and
+game against ~68 KB of records — 1.6×, not the 6× asserted before. Records and
 trajectories are the same order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 164 MB of league-wide history for a
+in full; replay everything else from its seed.** 181 MB of league-wide history for a
 ten-season career is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not

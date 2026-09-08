@@ -21,6 +21,10 @@ func report(_ label: String, _ value: Int, unit: String = "bytes") {
 print("Component sizes")
 report("Situation", MemoryLayout<Situation>.size)
 report("Calls", MemoryLayout<Calls>.size)
+report("  OffensiveCall", MemoryLayout<OffensiveCall>.size)
+report("  DefensiveCall", MemoryLayout<DefensiveCall>.size)
+report("PlayRef", MemoryLayout<PlayRef>.size)
+report("PlayRecord (fixed part)", MemoryLayout<PlayRecord>.size)
 report("DecisionPoint", MemoryLayout<DecisionPoint>.stride)
 report("Participation", MemoryLayout<Participation>.stride)
 report("PenaltyRecord", MemoryLayout<PenaltyRecord>.stride)
@@ -29,14 +33,13 @@ report("PenaltyRecord", MemoryLayout<PenaltyRecord>.stride)
 // blockers and two rushers whose matchups resolved, and the tackler.
 let decisions = 12
 let participants = 10
-let fixedFields = 16  // ids, index, yards, ending, runoff, points
-
+// Measured rather than hand-counted: the struct's own size already covers the
+// situation, both calls, the game and index, and one pointer per array. Only the
+// heap-allocated elements have to be added.
 let perPlay =
-    MemoryLayout<Situation>.size
-    + MemoryLayout<Calls>.size
+    MemoryLayout<PlayRecord>.size
     + decisions * MemoryLayout<DecisionPoint>.stride
     + participants * MemoryLayout<Participation>.stride
-    + fixedFields
 
 print("")
 print("A realistic play (\(decisions) decisions, \(participants) credited)")
@@ -60,4 +63,5 @@ print("")
 print("Trajectory, for comparison (10Hz, 22 players, 4 bytes per position)")
 let trajectoryPerGame = 1_300 * 22 * 4
 report("per game", trajectoryPerGame / 1024, unit: "KB")
-report("ratio to records", trajectoryPerGame / (perPlay * playsPerGame))
+let ratioTenths = (trajectoryPerGame * 10) / (perPlay * playsPerGame)
+print("  ratio to records            \(ratioTenths / 10).\(ratioTenths % 10)x")
