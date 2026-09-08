@@ -163,3 +163,34 @@ public enum RosterGenerator {
         return starters
     }
 }
+
+extension RosterGenerator {
+
+    /// The depth chart a team starts a career with.
+    ///
+    /// Ordered by overall, which is the *initial* arrangement and nothing more. Once a
+    /// career is running, reordering a chart is roster management — a coach's judgement
+    /// about fit, scheme and form — and it shares no mechanism with this
+    /// ([decision 125](../../../../docs/design-decisions.md)). If the AI ever needs to
+    /// call into here to set a lineup, something has gone wrong.
+    ///
+    /// Ties break on identifier so a chart never depends on the order players happened
+    /// to arrive in.
+    public static func depthChart(from players: [Player]) -> DepthChart {
+        var order: [Position: [PlayerID]] = [:]
+
+        for position in Position.allCases {
+            let ranked =
+                players
+                .filter { $0.position == position }
+                .sorted { left, right in
+                    if left.overall != right.overall { return left.overall > right.overall }
+                    return left.id < right.id
+                }
+            guard !ranked.isEmpty else { continue }
+            order[position] = ranked.map(\.id)
+        }
+
+        return DepthChart(order: order)
+    }
+}
