@@ -1,5 +1,14 @@
 # The weekly loop
 
+> **Status: provisional.** This was written as a *probe* — a way to test whether the
+> systems design stores the right data and models the right decisions, by forcing it onto
+> a phone screen. Its findings about data and architecture are durable and are recorded as
+> decisions; its screens, layouts and interactions are **sketches, not commitments**, and
+> should be redesigned properly at M4 when the interactive UI is actually built.
+>
+> Read the wireframes below as "something roughly like this must be possible", not as
+> "this is the design".
+
 Eighty-nine systems decisions meet a phone screen. This is where the five-minute path
 either exists or doesn't.
 
@@ -31,10 +40,10 @@ app rather than the feature:
 > Coordinator calls plays · scouting director drafts · negotiator closes deals ·
 > staff clears the queue
 
-## The dashboard
+## The dashboard *(sketch)*
 
-The landing screen, and its first module is the queue. Familiar my-team framing, fast
-path built in.
+One arrangement that works: a my-team landing whose first module is the queue. Shown to
+demonstrate that the fast path and a familiar landing can coexist, not to fix a layout.
 
 ```
 ┌─────────────────────────────────┐
@@ -72,9 +81,10 @@ the red zone, then work the full causal breakdown afterwards.
 
 Same loop. The player chooses resolution, exactly as they do inside a game.
 
-## Watching a game
+## Watching a game *(sketch)*
 
-Portrait, field pinned above a scrolling play feed.
+Portrait, field pinned above a scrolling play feed. The durable parts here are the
+*requirements* below the wireframe, not the arrangement.
 
 ```
 ┌─────────────────────────────────┐
@@ -102,9 +112,11 @@ log ([ADR-0003](adr/0003-deterministic-seeded-simulation.md)) to replay — and 
 be backgrounded on any snap. So the decision log must be **persisted incrementally during
 the game**, not written at the whistle. Cheap if built in; a corrupted-replay bug if not.
 
-## After the game
+## After the game *(sketch)*
 
-A headline that carries a *reason*, then three ways in:
+The durable requirement is that a **one-line causal summary must be derivable** from
+Findings, so that interrogation can live in the default path rather than behind a tab.
+How it's presented is a UI decision for M4. One illustration:
 
 > **Lost 24–17.** The interior line gave up pressure on 41% of dropbacks.
 >
@@ -128,10 +140,12 @@ live event, with auto-draft as its default
 Nothing new to learn, and a whole offseason can be defaulted through in a couple of
 minutes.
 
-## What this validated
+## What this probe found
 
-The loop was designed last deliberately, to catch systems decisions that couldn't survive
-a phone. None broke:
+The loop was designed to stress the systems work, and these findings are durable
+regardless of what the UI eventually looks like.
+
+No systems decision broke:
 
 - The coordinator proposing a gameplan ([54](design-decisions.md)) becomes *approve
   gameplan* — a one-tap queue item.
@@ -143,12 +157,20 @@ One requirement did get *stronger*: it isn't enough for a deep system to have a 
 **The delegate must act on its own when you don't**, or the queue can't drain and the
 five-minute path is a fiction.
 
+## Durable requirements
+
+What the rest of the project must satisfy, whatever the UI becomes:
+
+1. **`WeekItem` carries a default.** Every decision type must have a resolution that can
+   fire without the player.
+2. **Delegates run unattended.** Each delegate system needs an autonomous mode, not just
+   an advisory one.
+3. **The decision log persists incrementally**, mid-game.
+4. **A one-line causal summary is derivable** from Findings.
+5. **Playoff odds are computable on demand** — a Monte Carlo over the remaining schedule.
+6. **In-season and offseason share one item model.**
+
 ## Build order
 
-1. `WeekItem`, deadlines, weights, and defaults — the queue before any screen.
-2. The dashboard with the queue module.
-3. Advance-week, with everything defaulting.
-4. Post-game headline and the three routes.
-5. The play feed; then the field above it.
-6. Take-control, with incremental decision-log persistence.
-7. Offseason items reusing the same queue.
+`WeekItem` with deadlines, weights and defaults lands in the season engine at M3. The
+screens are M4, and get a real design pass then.

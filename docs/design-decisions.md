@@ -96,19 +96,21 @@ See [gameplan.md](gameplan.md).
 
 ## The weekly loop
 
-See [weekly-loop.md](weekly-loop.md).
+See [weekly-loop.md](weekly-loop.md), which is a **provisional** document — a probe run
+against the systems design rather than a UI commitment. These are the durable findings.
 
 | # | Decision | Implication |
 | --- | --- | --- |
-| 90 | **The week is a deadline-driven queue, not a calendar** | Things surface when they need you; no forced stops during a season you're simming through |
-| 91 | **Every decision has a default** | Ignoring the queue is a legitimate way to play. This is what makes a four-minute rebuild season and a ninety-minute title game the same loop |
-| 92 | **A delegate must act on its own, not merely exist** | Strengthened from the delegation pattern — otherwise the queue can't drain and the five-minute path is a fiction |
-| 93 | **The dashboard's first module is the queue** | Familiar my-team landing and the fast path in one screen; state sits below what needs you |
-| 94 | **The post-game headline carries a reason, not just a result** | Puts interrogation in the default path rather than an analytics tab, while keeping box score and highlights one tap away |
-| 95 | **Portrait play feed with the field pinned above** | One-handed, resumable, and dropping in and out of control is frictionless |
-| 96 | **One tap in, one tap out of play calling** | Taking a snap must never feel like entering a mode, or toggle-at-will becomes a decision players avoid |
-| 97 | **The decision log persists incrementally during a game** | The app can be backgrounded on any snap; writing at the whistle is a corrupted-replay bug waiting to happen |
-| 98 | **The offseason reuses the same queue** | Draft day is a queue item that opens a full-screen event, with auto-draft as its default |
+| 90 | **The week is a queue of deadline-bearing items, not a calendar** | `WeekItem` with deadline and weight; no forced stops during a season you're simming through |
+| 91 | **Every decision carries a default** | Ignoring the queue is a legitimate way to play. This is what makes a four-minute rebuild season and a ninety-minute title game the same loop |
+| 92 | **A delegate must act on its own, not merely exist** | Strengthened from the delegation pattern — each delegate system needs an autonomous mode, not just an advisory one |
+| 93 | **The decision log persists incrementally during a game** | The app can be backgrounded on any snap; writing at the whistle is a corrupted-replay bug waiting to happen |
+| 94 | **A one-line causal summary is derivable from Findings** | Whatever the UI does with it, interrogation must be able to live in the default path rather than behind a tab |
+| 95 | **In-season and offseason share one item model** | Draft day is a queue item with auto-draft as its default; nothing new to learn |
+
+**Deliberately not decided yet:** dashboard layout, post-game presentation, the game-watching
+screen, and every other presentation choice sketched in that doc. Those get a real design
+pass at M4 ([roadmap](roadmap.md)), informed by a running build rather than by argument.
 
 ## Traits
 
