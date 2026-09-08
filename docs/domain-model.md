@@ -24,9 +24,32 @@ Structure is data, not hardcoded. A generated world *defaults* to 32 teams in tw
 conferences of four divisions, but the generator takes it as configuration so we can
 test smaller leagues quickly.
 
-**Team** — identity (city, nickname, colors, stadium, market size), `Roster`,
-`DepthChart`, `Contracts`, `CoachingStaff`, `Scheme`, `Finances`, `TeamStrategy`
-(the AI's rebuild-vs-contend posture), and season record.
+**Team** — the enduring entity. It keeps its `TeamID` through a rename, a rebrand or a
+move, so franchise history spans all of them; there is deliberately no separate
+"franchise" concept, for the same reason a play has one identifier and not two
+([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)).
+
+It splits along one line that matters:
+
+- **`TeamIdentity`** — city, nickname, abbreviation, colours. Editable at any time
+  ([decision 106](design-decisions.md)) precisely *because* none of it reaches the
+  simulation. It is a cached projection over `TeamIdentityEvent`; the stream is the
+  truth, and `TeamSnapshot.projected(at:from:)` gives the identity of any past season.
+- **`Stadium`** — name, capacity, roof, surface, climate, altitude, noise. This *is*
+  simulation input: roof and climate decide the weather, altitude reaches kicking and
+  fatigue, and noise is the mechanism behind home field advantage rather than a bonus
+  applied on top of one ([penalties.md](penalties.md)).
+
+Plus `MarketSize`, `Scheme`, and — still to come — `Roster`, `DepthChart`, `Contracts`,
+`CoachingStaff`, `Finances`, `TeamStrategy` (the AI's rebuild-vs-contend posture), and
+season record.
+
+**League / Conference / Division** — the structure, fixed at world creation
+([decision 105](design-decisions.md)). A division holds its members and a team does not
+also record its division, because two copies of one fact drift. `LeagueShape` validates
+the shape; `League.structureFailures` validates that what was built matches it, which
+catches a short or duplicated division that a legal shape would otherwise carry all the
+way to a broken schedule.
 
 ## Player
 

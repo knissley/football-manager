@@ -44,7 +44,8 @@ while let argument = arguments.next() {
               --teams <n>     teams in the league (default 32)
               --team <n>      which team to show (default 0)
               --season <n>    season number (default 2030)
-              --show <mode>   roster | starters | league | colleges
+              --show <mode>   roster | starters | league | teams | standings
+                              | colleges
 
             Same seed, same world, every time.
             """)
@@ -263,6 +264,58 @@ case "league":
     print("  under 60         \(all.filter { $0.overall < 60 }.count)")
     print("  mean age         \(oneDecimal(mean(all.map { $0.age(in: season) })))")
     print("  star developers  \(all.filter { $0.hidden.developmentTrait == .star }.count)")
+
+case "teams", "standings":
+    var structureRandom = SplittableRandom(seed: seed)
+    let shape = LeagueShape(
+        conferences: 2,
+        divisionsPerConference: max(1, teamCount / 8),
+        teamsPerDivision: 4,
+        regularSeasonGames: 17,
+        playoffTeamsPerConference: max(1, teamCount / 8) + 3)
+
+    switch LeagueGenerator.league(shape: shape, using: &structureRandom) {
+    case .failure(let error):
+        print("That is not a league:")
+        for explanation in error.explanations {
+            print("  - \(explanation)")
+        }
+        exit(1)
+    case .success(let world):
+        print("\(world.league.name), seed \(seed)")
+        print("")
+        for conference in world.league.conferences {
+            print("\(conference.name) Conference")
+            for division in conference.divisions {
+                print("  \(division.name)")
+                for id in division.teams {
+                    guard let team = world.team(id) else { continue }
+                    let ground = team.stadium
+                    let roof = ground.isIndoors ? "dome" : "\(ground.climate)"
+                    let altitude = ground.isHighAltitude ? ", \(ground.altitudeFeet)ft" : ""
+                    print(
+                        "    " + pad(team.identity.abbreviation, 5)
+                            + pad(team.identity.fullName, 32)
+                            + pad("\(team.market)", 8)
+                            + pad(ground.name, 26)
+                            + "\(roof), \(ground.capacity / 1000)k, noise \(ground.noise)"
+                            + altitude)
+                }
+            }
+            print("")
+        }
+
+        let stadiums = world.teams.map(\.stadium)
+        print("League texture")
+        print("  domes            \(stadiums.filter(\.isIndoors).count) of \(stadiums.count)")
+        print("  grass fields     \(stadiums.filter { $0.surface == .grass }.count)")
+        print("  high altitude    \(stadiums.filter(\.isHighAltitude).count)")
+        print("  major markets    \(world.teams.filter { $0.market == .major }.count)")
+        print("  small markets    \(world.teams.filter { $0.market == .small }.count)")
+        print(
+            "  loudest          \(stadiums.max { $0.noise < $1.noise }.map { "\($0.name) (\($0.noise))" } ?? "-")"
+        )
+    }
 
 case "colleges":
     print("College pool, seed \(seed)")

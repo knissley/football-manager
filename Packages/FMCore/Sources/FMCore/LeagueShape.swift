@@ -197,3 +197,21 @@ extension LeagueShape {
         validationFailures.isEmpty
     }
 }
+
+/// A shape that is not a league, with everything wrong with it.
+///
+/// A type rather than a bare array so it can be thrown and carried in a `Result`, and
+/// so the player-facing text has one place to live.
+public struct InvalidLeagueShape: Error, Sendable, Hashable {
+
+    public let failures: [LeagueShape.ValidationFailure]
+
+    public init(_ failures: [LeagueShape.ValidationFailure]) {
+        self.failures = failures
+    }
+
+    /// Every reason, in the order the validator found them.
+    public var explanation: String {
+        failures.map(\.explanation).joined(separator: " ")
+    }
+}

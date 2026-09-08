@@ -275,6 +275,20 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 145 | **Allocated identity for source-of-truth streams; derived for caches over a seed** | The general rule ADR-0011 extracts. The eight world streams keep monotonic sequence numbers; `PlayRecord` is the one stream that is discarded and rebuilt, and it cannot |
 | 146 | **There is no global play ordering** | A week's games are concurrent. Ordering is `index` within a game; across games it comes from the schedule |
 
+## Franchises
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 147 | **One entity for a team, not a franchise-and-team pair** | A team keeps its `TeamID` through a rename, rebrand or move, so history spans all of them. A second concept would be a second identity for one thing, which is the mistake ADR-0010 and ADR-0011 just removed from plays |
+| 148 | **Identity is event-sourced; the stored value is a cache** | `TeamSnapshot.projected(at:from:)` folds from a `founded` event. Watching a game from four seasons ago shows the name and the building of the time, exactly as it shows the gear of the time |
+| 149 | **The founding state is an event, not a field outside the log** | It is what makes the fold total — every later state is reachable by replaying from the beginning, so a projection is provably faithful rather than merely plausible. A stream with no founding event projects to nothing rather than to a blank team |
+| 150 | **A relocation moves the city and the stadium in one event** | Two events could interleave and put a team in a building it never played in |
+| 151 | **A stadium is simulation input; an identity is not** | Roof and climate decide the weather, altitude reaches kicking and fatigue, noise raises the *visiting* offence's pre-snap penalties. Home field advantage is therefore a mechanism, not a bonus |
+| 152 | **Colours are checked for contrast at generation** | Two darks on a jersey is a scoreboard nobody can read. `hasReadableContrast` is enforced by a test across twelve seeds, not left to chance |
+| 153 | **Divisions are regional, and named for the region they hold** | A "South" division full of cold-weather cities reads as generated on sight. City demand is computed per region from the shape before anything is generated, because an even spread and then dealing leaves regions short |
+| 154 | **A name ledger is threaded through generation** | Nicknames, stadium names, abbreviations and city stems are all finite pools whose collisions are invisible per team and obvious in a standings table. Four teams named Saltflat-something passes a uniqueness test on the full name |
+| 155 | **The generator validates the league it built** | Demand arithmetic should make a malformed league unreachable. It is checked anyway, so a future change surfaces here rather than as a broken schedule several systems downstream |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

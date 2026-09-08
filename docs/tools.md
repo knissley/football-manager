@@ -18,6 +18,7 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show roster --team 3` | A full 53-man roster |
 | `swift run worldgen --show starters --team 7` | Projected starting lineup |
 | `swift run worldgen --show league --teams 32` | Talent summary for every team |
+| `swift run worldgen --show teams --teams 32` | Cities, colours, stadiums, divisions |
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
@@ -34,7 +35,18 @@ swift run worldgen --seed 7 --show league --teams 32
 
 # The same team from a different world
 swift run worldgen --seed 99 --show roster --team 3
+
+# Does the world read as a league someone drew, or as output?
+# Watch for: repeated city stems, colliding abbreviations, a "South" division
+# full of cold-weather cities, every stadium a temperate dome.
+swift run worldgen --seed 42 --show teams
 ```
+
+Reading this output has now caught four classes of bug that the tests did not:
+athletic profiles decoupled from position, dead scheme modifiers, a roster built for
+the wrong scheme, and — here — duplicate stadium names, colliding abbreviations, four
+cities sharing a stem, and divisions named for regions they did not contain. It is
+worth doing every time the generator changes.
 
 ## playsize — footprint, and a link guard
 

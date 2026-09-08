@@ -20,9 +20,15 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - ✅ **The `PlayRecord` event stream shape** — the most important design work in the
   project (`Packages/FMCore`, specified in [play-record.md](play-record.md)).
 - World generation: ✅ names, colleges, players with hidden ceilings and development
-  traits, and 53-man rosters with a league talent spread (`Packages/FMGeneration`);
-  franchises, draft classes and seeded rivalry history still to come.
+  traits, and 53-man rosters with a league talent spread; ✅ franchises — fictional
+  cities with regions, nicknames, legible colours, and stadiums whose roof, climate,
+  altitude and noise are real simulation input (`Packages/FMGeneration`); draft classes
+  and seeded rivalry history still to come.
 - ✅ `Tools/worldgen` — inspect any of it from a terminal, no app required.
+- ✅ `League`, `Conference`, `Division` assembled to a validated `LeagueShape`, with a
+  second validator for a legal shape filled in wrongly.
+- ✅ Team identity event-sourced, so a replay shows the name and the building of the
+  time rather than the ones a rebrand has since given the team.
 - A crude outcome engine that emits real event shapes and plausible scorelines.
 - `Tools/simharness` running headless.
 - ✅ Configurable, validated league shape with 8- and 12-team test presets.
