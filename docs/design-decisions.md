@@ -183,6 +183,13 @@ See [news-and-narrative.md](news-and-narrative.md).
 | 61 | **`MediaPressure` is an `FMAnalysis` metric, not an `FMNarrative` artifact** | `FMNarrative` stays a pure leaf. The owner system reads a measurement, so `FMSimulation` never depends on prose generation |
 | 62 | **Media feeds owner patience only** | Lagging and aggregated, never per-article, and one input among record, expectation delta, finances and tenure |
 
+## Module boundaries
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 124 | **`FMGeneration` runs once, at world creation** | It describes the league you inherit; every later change is a decision in `FMSimulation` |
+| 125 | **AI roster management shares no mechanism with generation** | Generation assigns from full knowledge; an AI team must earn a roster under a cap from noisy estimates. Reusing generation's heuristics would make its trades and drafts theatre. They share only `RosterShape` |
+
 ## Penalties and officiating
 
 See [penalties.md](penalties.md).

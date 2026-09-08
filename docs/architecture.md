@@ -65,6 +65,28 @@ computed in `FMAnalysis`*, never something `FMNarrative` produces. Otherwise
 `FMNarrative` renders and nothing depends on it. See
 [news-and-narrative.md](news-and-narrative.md#media-pressure-feeds-owner-expectations-carefully).
 
+## Generation describes the world; simulation changes it
+
+`FMGeneration` runs **once, at world creation**. It answers "what does this league
+look like on day one" — franchises, rosters, staff, a draft class, plausible
+history. Nothing it contains is a rule about how the world should behave
+afterwards.
+
+Everything after day one is `FMSimulation`: games, development, and every roster
+transaction, including the ones AI teams make.
+
+The boundary is worth stating explicitly because the two will look temptingly
+similar. Both want a roster with good starters and useful depth. But generation
+gets there by *assigning* — it knows every hidden value and simply writes them
+down — while an AI team has to get there the hard way, under a cap, from noisy
+estimates, through choices it can get wrong. An AI that reused generation's
+heuristics would be handing itself outcomes instead of earning them, and every
+trade and draft it made would be theatre.
+
+So they share a *target* — `RosterShape`, which lives in `FMCore` — and no
+mechanism at all. If AI roster management ever needs a function from
+`FMGeneration`, that is the signal something has gone wrong.
+
 ## Win probability is shared infrastructure
 
 One model, four consumers ([ADR-0008](adr/0008-win-probability-keystone.md)):

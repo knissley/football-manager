@@ -1,12 +1,23 @@
 import FMCore
 import FMRandom
 
-/// Builds a roster.
+/// Builds the rosters a new career *starts* with.
+///
+/// **This runs once, at world creation.** It describes the league you inherit —
+/// nothing here decides how a roster should be built afterwards. Every later
+/// change comes from drafting, signing, trading and cutting, which live in
+/// `FMSimulation` and are decisions, not generation.
+///
+/// The distinction matters for one specific reason. An AI team must reach a
+/// roster shape the hard way: under a cap, with imperfect information, through
+/// choices it can get wrong. If it borrowed the heuristics below it would be
+/// assigning itself ceilings instead of earning them, which is cheating with
+/// extra steps. The two share a *target* — `RosterShape` in `FMCore` — and
+/// nothing else. See docs/architecture.md.
 ///
 /// The individual-player generator makes believable people; this decides whether
-/// they add up to a believable *team* — starters clearly better than backups, an
-/// age curve with rookies and veterans in it, and a league whose talent spread
-/// makes some teams contenders and others not.
+/// they add up to a believable *team*, and whether the league they form has a
+/// talent spread that makes some clubs contenders and others not.
 public enum RosterGenerator {
 
     /// How good a team is meant to be, roughly in overall points either side of
@@ -29,9 +40,15 @@ public enum RosterGenerator {
 
     /// Ceiling for the player at a given depth, before noise.
     ///
-    /// The drop from starter to backup is steep and then flattens: the gap
-    /// between a starter and his replacement is what makes an injury matter,
-    /// while the gap between the fourth and fifth receiver is nearly nothing.
+    /// Describes how real rosters are *shaped* at a moment in time: steep from
+    /// starter to backup, then flattening, because the fourth and fifth
+    /// receivers on any team are much the same player.
+    ///
+    /// This is an observation about starting conditions, not a rule about how a
+    /// roster ought to be built. Assembling a team with no drop-off behind the
+    /// starters, or with a great backup quarterback and nothing else, is a
+    /// perfectly legitimate thing for a general manager to do — and generation
+    /// has no opinion about it.
     static func ceilingTarget(depth: Int, strength: Strength, position: Position) -> Double {
         let byDepth: Double
         switch depth {
@@ -41,12 +58,12 @@ public enum RosterGenerator {
         default: byDepth = 62
         }
 
-        // Team quality lifts starters most. Everyone's fifth receiver is roughly
-        // the same player.
+        // Better teams differ from worse ones mostly at the top of the depth
+        // chart. Everyone's fifth receiver is roughly the same player.
         let strengthShare = depth == 0 ? 1.0 : (depth == 1 ? 0.6 : 0.3)
 
-        // Teams invest where it matters: a good team's left tackle is better
-        // than its fullback by more than the depth chart alone suggests.
+        // Rosters reflect what positions are worth: a left tackle outranks a
+        // fullback by more than the depth chart alone would suggest.
         let premium = (position.positionalValue - 0.35) * 6.0
 
         return byDepth + strength.offset * strengthShare + premium
@@ -54,9 +71,10 @@ public enum RosterGenerator {
 
     /// Age for a player at a given depth.
     ///
-    /// Starters skew toward their prime and depth skews young, because a roster
-    /// spot behind a starter is where teams put players they are developing —
-    /// which is also what makes snap share a real decision.
+    /// Starters skew toward their prime and depth skews young, because that is
+    /// what rosters look like: the spot behind a starter is where a developing
+    /// player usually sits. Again a description of the initial league, not a
+    /// constraint on what you do with yours.
     static func age(
         depth: Int, position: Position, using random: inout SplittableRandom
     ) -> Int {
