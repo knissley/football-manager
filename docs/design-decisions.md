@@ -58,6 +58,20 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 37 | **Estimates are seeded per (observer, player) and fixed** | Re-evaluating must not average the noise away and converge on truth for free |
 | 38 | **Ceiling recovery is situational only** | A player buried behind a veteran with a good development trait can still get there; one whose attributes were simply low never will. Falls out of the model with nothing added |
 
+## AI play calling
+
+See [play-calling.md](play-calling.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 39 | **Your OC calls the plays; the gameplan is his guardrails** | Delegation quality becomes a staff decision, so coordinator hiring has real stakes and AI quality varies believably across the league |
+| 40 | **AI quality is decision quality, never outcome modification** | A bad coordinator makes worse choices with the same information; his plays resolve through identical physics. Keeps the engine honest |
+| 41 | **Continuous in-game adaptation, rate-limited** | Beliefs update drive by drive, capped by the coordinator's `adaptability`, with a floor on prior weight so he can't overreact to one play |
+| 42 | **The defense reads formation, personnel, motion and tendency — never the call** | Non-negotiable: if the AI saw your call, every causal explanation would be a lie. Makes formation diversity mechanically valuable |
+| 43 | **Opponent models are built from `PlayRecord` history** | Another event stream query; the same tendency data serves AI decisions, self-scouting, and interrogation. Same architecture as player evaluation |
+| 44 | **The opponent model snapshot is part of `GameSetup`** | Otherwise replaying one game cascades into replaying the whole season before it |
+| 45 | **Benchmarked against an oracle, a baseline, and a human** | Target: a good coordinator within ~1 point per game of a skilled human, with a 3-4 point spread across the league |
+
 ## Presentation and editing
 
 | # | Decision | Implication |

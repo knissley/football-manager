@@ -33,7 +33,8 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     Names, franchises, rosters, draft classes, seeded rivalries.
     │
     ├── FMSimulation      Spatial match engine + season engine. → FMCore, FMRandom
-    │                     Tick loop, play resolution, schedules, playoffs, progression.
+    │                     Tick loop, play resolution, schedules, playoffs, progression,
+    │                     and the AI play-caller (see docs/play-calling.md).
     │
     ├── FMAnalysis        The interrogation layer. → FMCore
     │                     Win probability, leverage, player grades, situational splits,

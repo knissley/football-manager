@@ -149,10 +149,12 @@ worth keeping — they're memorable.
   Fourth-down decisions run on expected points, with coach aggression shifting the
   threshold.
 
-Because play calling can be toggled at will, the AI caller is a **headline system**.
-If it calls plays worse than the player does, every sim-ahead is a tax and the feature
-dies. It gets benchmarked: the AI's points-per-drive against a fixed opponent is a
-tracked metric, not a vibe.
+Because play calling can be toggled at will, the AI caller is a **headline system** and
+has its own design doc: [play-calling.md](play-calling.md). In short — your offensive
+coordinator makes the calls inside guardrails your gameplan sets, both sides carry noisy
+tendency models of each other built from `PlayRecord` history, the defense never sees
+the call, and caller quality is benchmarked against an oracle and against human play
+rather than assessed by feel.
 
 ## Sliders
 

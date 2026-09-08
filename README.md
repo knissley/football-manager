@@ -25,6 +25,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [Architecture](docs/architecture.md) | Module map, layering rules, why the sim is pure Swift |
 | [Domain model](docs/domain-model.md) | Entities, ratings, contracts, the season calendar |
 | [Match engine](docs/match-engine.md) | Spatial simulation, the event stream, performance budget, calibration |
+| [Play calling](docs/play-calling.md) | Coordinators, gameplan constraints, opponent models, benchmarking |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
 | [ADRs](docs/adr/) | Architecture decision records |
 
