@@ -1,0 +1,35 @@
+# Architecture Decision Records
+
+Short documents capturing decisions that are expensive to reverse, and *why* we made
+them — so that six months from now nobody re-litigates a settled question from scratch,
+and when we do reverse one, we know what we're giving up.
+
+## When to write one
+
+Write an ADR when a decision:
+
+- is hard to undo later (persistence layer, module boundaries, determinism guarantees),
+- will confuse someone who wasn't in the room,
+- was made after considering a real alternative, or
+- overturns a previous ADR.
+
+Don't write one for a naming choice, a library version bump, or anything you'd happily
+change on a whim.
+
+## How
+
+Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` with the next number.
+Or ask Claude: `/adr <the decision>`.
+
+ADRs are immutable once accepted. To change a decision, write a new ADR that supersedes
+the old one and update the old one's status line to point at it.
+
+## Index
+
+| # | Title | Status |
+| --- | --- | --- |
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| [0002](0002-swiftdata-offline-first.md) | SwiftData, offline-first, no backend | Accepted |
+| [0003](0003-deterministic-seeded-simulation.md) | Deterministic seeded simulation | Accepted |
+| [0004](0004-pure-swift-domain-core.md) | Pure Swift domain core, isolated from frameworks | Accepted |
+| [0005](0005-generated-fictional-content.md) | Generated fictional players and teams | Accepted |
