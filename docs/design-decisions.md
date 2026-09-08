@@ -30,6 +30,7 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 13 | **Clutch is real and mechanical** | A hidden attribute that genuinely modifies high-leverage performance |
 | 14 | **Sliders are league-wide** | World tuning, not a personal difficulty dial — keeps stats comparable |
 | 15 | **League shape configurable, real by default** | 32/17/7 to start; a 4-team league for fast tests |
+| 26 | **Sliders lock at career creation** | Slider config is part of world identity, not mutable state. Records need no stamping; new settings mean a new career |
 
 ## Interrogation and narrative
 
@@ -46,21 +47,36 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | # | Decision | Implication |
 | --- | --- | --- |
 | 21 | **Player development is player-driven; you nudge** | Traits and personality drive growth; you influence via role, playing time, mentorship |
+| 22 | **Coach has both a skill tree and a spendable currency** | Two economies: personal abilities, and capital spent on players |
+| 23 | **Coach skills affect information and staff, never the field** | Scouting, intel, development, negotiation. The physics stay untouched — the engine never winks |
+| 24 | **Carousel: personal skills carry, org perks don't** | Organizations need visible infrastructure (scouting dept, facilities, medical) as a new domain concept |
+| 25 | **Development is an append-only event log** | `DevelopmentEvent` with a `source`; the deferred currency is one more case. Makes nudges legible and development interrogable *(proposed — confirm)* |
+
+## Presentation and editing
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 27 | **Player editing is cosmetic only** | Name, appearance, gear, jersey number. Nothing touching the sim, so careers stay honest and records comparable |
+| 28 | **Any player in the league is editable** | Full ownership of your world; a direct mitigation for the generated-content cold start ([ADR-0005](adr/0005-generated-fictional-content.md)) |
+| 29 | **Appearance is presentation data, not sim data** | Keyed by `PlayerID`, outside `FMCore`'s sim types and outside the replay tuple. The engine never reads it |
+| 30 | **Seen as portraits, readable dots, an inspect view, and full ceremonial renders** | Player-of-the-week cards, trophy hoists and Hall of Fame moments render fully |
+| 31 | **Pixel art** | One style covers field sprites and portraits from a shared parts library; two resolutions (small sprites, chunkier portraits with real facial variety) |
+| 32 | **Appearance generated correlated with physicals** | A 340lb nose tackle and a 180lb slot receiver don't roll from the same distribution; the editor edits deviations from that baseline |
 
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.
 
-- **Sliders vs. records.** If sliders change mid-career, records stop being comparable.
-  Lock them at career creation, or stamp each record with the config that produced it?
-- **Development authorship.** Decision 21 is the least directive option available.
-  Confirm it delivers enough sense of authorship, or add an offseason focus lever.
-- **Scouting risk vs. development control.** These dial against each other: strong
-  development control makes a draft bust recoverable and defuses scouting tension.
-  Where's the balance point?
+- **Bust recoverability.** *Under discussion.* Proposal: a failing player carries a
+  hidden `failureCause` — unknowable at the draft, diagnosable afterwards through
+  organization and coach-skill investment. Situational causes (scheme, role, coaching,
+  confidence) are fixable; "the tools were never there" is not, and the diagnosis tells
+  you which so you can stop spending. Recoverability decays with age, and the cause is
+  seeded per player and fixed so re-diagnosing can't converge on truth for free.
+  Open sub-questions: does a recovered player ever reach his original ceiling, does
+  diagnosis cost currency or accrue from staff quality over time, and is there any
+  pre-draft bust-risk signal at all.
 - **Trade AI.** "Feels legit, not getting one over on the game" requires AI teams that
   can refuse, and that can beat you in ways you'd notice. Approach undecided.
-- **Coach/GM progression.** The carousel implies a reputation model. Does the coach
-  also have developing skills, or only a record and a reputation?
 - **How much scouting fog is shown.** Error bars that narrow with investment, or
   something less numeric?
