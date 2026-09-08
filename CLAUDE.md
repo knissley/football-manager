@@ -129,12 +129,15 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
 
 ## Commands
 
-Nothing to build yet. As modules land, this section gets the real commands.
-
 ```
+# Available now
+swift build --package-path Packages/FMRandom
+swift test  --package-path Packages/FMRandom
+swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
+swift format lint --recursive --parallel Packages/        # run before committing
+swift format --in-place --recursive --parallel Packages/
+
 # Planned — not yet available
-swift build --package-path Packages/FMCore
-swift test  --package-path Packages/FMSimulation
 swift run   --package-path Tools/simharness -- --seasons 1000 --out calibration.json
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```

@@ -13,6 +13,7 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 46 | **Event sourcing is the default state model** | The world is a fold over an ordered event log; current state is a rebuildable projection ([ADR-0009](adr/0009-event-sourcing-by-default.md)) |
 | 47 | **Appearance, contracts, scouting grades and staff are all event-sourced** | A replay shows the gear he wore then; "how did our cap get like this" and "what did we grade him at" become ordinary queries |
 | 48 | **Snapshot only where independent reproduction demands it** | `GameSetup`'s opponent-model snapshot is the model case, and each such boundary is justified where it appears |
+| 96 | **No transcendental functions in seeded draws** | `log`, `exp` and trigonometry come from libm, whose results differ between platforms. Normal draws use the Irwin–Hall construction — exact arithmetic, tails bounded to ±6, which is the right trade for attributes clamped to 0...99 |
 
 ## Product
 
