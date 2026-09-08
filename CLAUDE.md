@@ -139,6 +139,7 @@ swift test  --package-path Packages/FMGeneration
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content
+                                                          # see docs/tools.md for recipes
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 

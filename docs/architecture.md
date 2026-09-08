@@ -143,8 +143,11 @@ Replay-from-tuple is why determinism is load-bearing rather than merely convenie
 Golden-seed tests are the tripwire for accidental behavior drift. Regenerate them only
 when behavior changed on purpose, in the same commit, with the diff reviewed.
 
-A 4-team, 4-game league sims a season instantly — use it for tests
-([configurable league shape](design-decisions.md#simulation)).
+Use the smallest league shape that still exercises what a test is about
+([`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift)):
+`.minimal` (8 teams) for scheduling and brackets, `.compact` (12 teams) for
+anything touching standings — with only two teams in a division, most tiebreaker
+rules never fire.
 
 ## Tooling
 

@@ -40,7 +40,7 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 12 | **Play calling: toggle at will** | Sim ahead or take any snap. The AI play-caller must be good enough to trust |
 | 13 | **Clutch is real and mechanical** | A hidden attribute that genuinely modifies high-leverage performance |
 | 14 | **Sliders are league-wide** | World tuning, not a personal difficulty dial — keeps stats comparable |
-| 15 | **League shape configurable, real by default** | 32/17/7 to start; a 4-team league for fast tests |
+| 15 | **League shape configurable, real by default** | 32/17/7 to start. Test presets are 8 teams (structural floor) and 12 teams (real division races) — 4 teams cannot express two conferences and tests nothing structural |
 | 26 | **Sliders lock at career creation** | Slider config is part of world identity, not mutable state. Records need no stamping; new settings mean a new career |
 
 ## Interrogation and narrative
@@ -182,6 +182,19 @@ See [news-and-narrative.md](news-and-narrative.md).
 | 60 | **Harshness tracks expectation, not record** | A rebuild going to plan isn't punished; criticism is always specific and evidence-backed |
 | 61 | **`MediaPressure` is an `FMAnalysis` metric, not an `FMNarrative` artifact** | `FMNarrative` stays a pure leaf. The owner system reads a measurement, so `FMSimulation` never depends on prose generation |
 | 62 | **Media feeds owner patience only** | Lagging and aggregated, never per-article, and one input among record, expectation delta, finances and tenure |
+
+## League customisation
+
+See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 105 | **League structure is editable at world creation, and fixed thereafter** | Conferences, divisions and team counts determine the schedule, the bracket and every record in league history. Same reasoning as sliders locking at creation |
+| 106 | **Names, cities, colours and uniforms are editable at any time** | None of them mean anything to the simulation. They are events, so a replay shows the uniform worn then |
+| 107 | **Validation names the failure and explains it** | A player who has just tried to build a one-conference league is told the championship game would have nobody to play, not that their input was invalid |
+| 108 | **All failures are reported at once** | Someone fixing a custom league should not be led through problems one at a time |
+| 109 | **Invariants: two conferences, two teams per division, every division winner makes the playoffs, an even team count, and a schedule the structure can actually support** | The validator exists to catch shapes that break the sport, not shapes that are merely unfamiliar — four conferences, or one big division per conference, are allowed |
+| 110 | **Expansion is a separate, deferred feature** | Adding a team to a *running* league needs a draft and a schedule rebuild. Not the same thing as editing configuration |
 
 ## Presentation and editing
 

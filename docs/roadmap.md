@@ -25,7 +25,7 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - ✅ `Tools/worldgen` — inspect any of it from a terminal, no app required.
 - A crude outcome engine that emits real event shapes and plausible scorelines.
 - `Tools/simharness` running headless.
-- Configurable league shape, with a 4-team league for fast tests.
+- ✅ Configurable, validated league shape with 8- and 12-team test presets.
 
 *Exit:* `generateWorld(seed:)` is reproducible byte-for-byte, a season sims headless,
 and the event stream carries everything M2 needs without changes.

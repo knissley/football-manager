@@ -35,6 +35,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [Traits](docs/traits.md) | The four hook kinds, discovery, and the starter catalogue |
 | [Weekly loop](docs/weekly-loop.md) | *Provisional* — a UI probe run against the systems design |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
+| [Tools](docs/tools.md) | Command-line tools for inspecting the engine, with example invocations |
 | [ADRs](docs/adr/) | Architecture decision records |
 
 ## Working on this repo
