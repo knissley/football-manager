@@ -124,26 +124,50 @@ anything above it.
   `FMAnalysis`, not written into the record, so improving those models improves history
   retroactively.
 
-## Sizing, and a revision it forces
+## Sizing — measured, not estimated
 
-Rough per-play budget: situation ~16 bytes, calls ~8, outcome ~24, decisions ~10 × 8 = 80.
-Call it **~130 bytes per play**.
+An earlier draft of this document estimated ~130 bytes per play and concluded that
+records were cheap enough to keep league-wide for a decade. **That estimate was wrong**:
+it omitted the participant list entirely, which turned out to dominate.
+
+Measured against the real types (`swift run --package-path Tools/playsize`):
 
 ```
-per game    150 plays × 130 B   ≈  20 KB
-your season 17 games            ≈ 340 KB
-whole league season 272 games   ≈ 5.4 MB
-ten seasons, league-wide        ≈  54 MB
+Situation      29 B     DecisionPoint    8 B
+Calls          43 B     Participation   24 B
 ```
 
-**Records are cheap. Trajectories are not:** ~1,300 ticks × 22 players × 4 bytes is
-**~114 KB per game**, six times the record itself.
+A realistic play — twelve decision points, ten credited participants — is **424 bytes**
+in Swift's in-memory layout:
 
-That refines the retention story in [ADR-0003](adr/0003-deterministic-seeded-simulation.md).
-The thing that has to be replayed rather than stored is the **trajectory**, not the record.
-Keeping `PlayRecord`s league-wide for a decade is affordable — and it's what makes
-league-wide tendencies, historical Findings and cross-era comparisons cheap queries rather
-than reconstruction jobs.
+```
+per game (150 plays)          62 KB
+your season (17 games)      1,055 KB
+league season (272 games)      16 MB
+ten seasons, league-wide      164 MB
+```
+
+Two things changed as a result of measuring.
+
+**Participants are only the players who did something.** Crediting all twenty-two made
+participants roughly three-quarters of a record for no analytical gain, and the team is
+now derived from the slot convention (0–10 offence, 11–21 defence) rather than stored.
+Together those cut a play from 756 bytes to 424.
+
+**The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
+game against ~62 KB of records — under 2×, not the 6× asserted before. Records and
+trajectories are the same order of magnitude.
+
+So the retention story reverts to roughly where
+[ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
+in full; replay everything else from its seed.** 164 MB of league-wide history for a
+ten-season career is not something to put on a phone casually.
+
+One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not
+a wire format. A packed encoding — no padding, no eight-byte identifiers where an index
+would do — should roughly halve them. The retention policy can be revisited once
+`FMPersistence` exists and the real encoded size is known. Until then, plan for the
+measured figure rather than the hoped-for one.
 
 ## Open questions for M1
 

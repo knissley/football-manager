@@ -15,9 +15,10 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 
 `FMCore`, `FMRandom`, `FMGeneration`, and a deliberately crude `FMSimulation`.
 
-- Typed IDs, domain value types, traits, ratings.
+- ✅ Typed IDs, positions, ratings; contracts and cap arithmetic.
 - ✅ `SplittableRandom` with known-answer tests (`Packages/FMRandom`).
-- **The `PlayRecord` event stream shape** — the most important design work in the project.
+- ✅ **The `PlayRecord` event stream shape** — the most important design work in the
+  project (`Packages/FMCore`, specified in [play-record.md](play-record.md)).
 - World generation: names, franchises, rosters, draft classes, seeded rivalry history.
 - A crude outcome engine that emits real event shapes and plausible scorelines.
 - `Tools/simharness` running headless.

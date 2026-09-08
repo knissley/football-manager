@@ -134,8 +134,11 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
 swift build --package-path Packages/FMRandom
 swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
-swift format lint --recursive --parallel Packages/        # run before committing
-swift format --in-place --recursive --parallel Packages/
+swift test  --package-path Packages/FMCore
+swift run   --package-path Tools/playsize                 # play record footprint; also
+                                                          # proves FMCore links standalone
+swift format lint --recursive --parallel Packages/ Tools/ # run before committing
+swift format --in-place --recursive --parallel Packages/ Tools/
 
 # Planned — not yet available
 swift run   --package-path Tools/simharness -- --seasons 1000 --out calibration.json

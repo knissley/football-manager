@@ -20,7 +20,21 @@ public struct Money: Sendable, Hashable, Comparable, Codable {
     /// Rounds to the nearest dollar. Not for use inside cap arithmetic, which
     /// stays in integers throughout.
     public static func millions(_ value: Double) -> Money {
-        Money(dollars: Int64((value * 1_000_000).rounded()))
+        Money(dollars: roundToNearest(value * 1_000_000))
+    }
+
+    /// Round half away from zero, without `Double.rounded()`.
+    ///
+    /// `rounded()` resolves to libm's `round`, and linking libm is a dependency
+    /// `FMCore` does not have — the module imports nothing at all, not even
+    /// Foundation, and a client that only imports `FMCore` must still link.
+    /// Conversion, subtraction and comparison are enough.
+    static func roundToNearest(_ value: Double) -> Int64 {
+        let truncated = Int64(value)
+        let fraction = value - Double(truncated)
+        if fraction >= 0.5 { return truncated + 1 }
+        if fraction <= -0.5 { return truncated - 1 }
+        return truncated
     }
 
     public var isNegative: Bool { dollars < 0 }
@@ -44,7 +58,7 @@ public struct Money: Sendable, Hashable, Comparable, Codable {
     /// rounding is explicit so the result is reproducible rather than
     /// dependent on where a `Double` happened to land.
     public func scaled(by factor: Double) -> Money {
-        Money(dollars: Int64((Double(dollars) * factor).rounded()))
+        Money(dollars: Self.roundToNearest(Double(dollars) * factor))
     }
 }
 

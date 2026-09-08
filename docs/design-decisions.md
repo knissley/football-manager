@@ -13,6 +13,8 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 46 | **Event sourcing is the default state model** | The world is a fold over an ordered event log; current state is a rebuildable projection ([ADR-0009](adr/0009-event-sourcing-by-default.md)) |
 | 47 | **Appearance, contracts, scouting grades and staff are all event-sourced** | A replay shows the gear he wore then; "how did our cap get like this" and "what did we grade him at" become ordinary queries |
 | 48 | **Snapshot only where independent reproduction demands it** | `GameSetup`'s opponent-model snapshot is the model case, and each such boundary is justified where it appears |
+| 97 | **Only players who did something are credited in a play record** | Crediting all 22 made participants three-quarters of a record; team is derived from the slot convention rather than stored. Cut a play from 756 to 424 bytes |
+| 98 | **`FMCore` links with no Foundation and no libm** | `Double.rounded()` resolves to libm's `round`, so the module silently failed to link into any client that did not already pull in Foundation. Guarded by `Tools/playsize` |
 | 96 | **No transcendental functions in seeded draws** | `log`, `exp` and trigonometry come from libm, whose results differ between platforms. Normal draws use the Irwin–Hall construction — exact arithmetic, tails bounded to ±6, which is the right trade for attributes clamped to 0...99 |
 
 ## Product
