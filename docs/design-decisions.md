@@ -183,6 +183,18 @@ See [news-and-narrative.md](news-and-narrative.md).
 | 61 | **`MediaPressure` is an `FMAnalysis` metric, not an `FMNarrative` artifact** | `FMNarrative` stays a pure leaf. The owner system reads a measurement, so `FMSimulation` never depends on prose generation |
 | 62 | **Media feeds owner patience only** | Lagging and aggregated, never per-article, and one input among record, expectation delta, finances and tenure |
 
+## Schemes and identity
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 126 | **Scheme belongs to the team, not the coach** | You choose it freely. Coordinator quality is *how well it is run* — the season-level version of gameplan guardrails |
+| 127 | **The cost of switching is familiarity, and familiarity decays** | An unfamiliar coordinator runs a scheme at 60% and reaches full command in four seasons. A penalty that fades is a different thing from a gate that opens only when the right name appears on a hiring list |
+| 128 | **Familiarity is tracked per component, not per family** | A west-coast coach moving to spread keeps his zone-blocking background; moving to power run he keeps nothing. Related schemes share, unrelated ones do not |
+| 129 | **Scheme fit is a weight delta, not a multiplier** | A scheme can make a rating *start* counting — a guard's agility is worthless in gap and central in zone. A multiplier on a zero weight is silently nothing |
+| 130 | **Every scheme de-emphasises something** | A modifier set that only adds emphasis barely moves anyone once weights renormalise. An identity is as much what it stops valuing as what it starts valuing |
+| 131 | **Offseason changes are free; mid-season carries a steep install penalty** | The desperation move real teams occasionally make stays available and stays expensive |
+| 132 | **Generated teams have identities, occasionally clashing with their talent** | A run-heavy club with a gifted young passer is a team that ought to change, and a good AI will. Puts the trade market's logic into the world on day one |
+
 ## Module boundaries
 
 | # | Decision | Implication |
