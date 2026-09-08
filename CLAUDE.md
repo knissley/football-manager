@@ -135,6 +135,7 @@ swift build --package-path Packages/FMRandom
 swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
+swift test  --package-path Packages/FMGeneration
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FMCore links standalone
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
