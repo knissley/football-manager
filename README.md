@@ -30,6 +30,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [News and narrative](docs/news-and-narrative.md) | Story detection, writers, whimsy, media pressure |
 | [Draft and scouting](docs/draft-and-scouting.md) | Biased scouts, the fog, consensus boards, draft day |
 | [Contracts](docs/contracts.md) | Structures over numbers, agents, negotiation, failure modes |
+| [Traits](docs/traits.md) | The four hook kinds, discovery, and the starter catalogue |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
 | [ADRs](docs/adr/) | Architecture decision records |
 

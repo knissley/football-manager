@@ -94,6 +94,21 @@ See [gameplan.md](gameplan.md).
 | 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
 | 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
 
+## Traits
+
+See [traits.md](traits.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 82 | **A trait must do something a rating cannot** | Conditional, branch-selecting, distribution-shaping, or threshold-changing. Otherwise it's a number with a nickname |
+| 83 | **Ratings are the baseline, traits are the character** | Two 78-rated receivers play noticeably differently; 60-100 traits, most players carrying one to three |
+| 84 | **Revelation is evidence-based, with the evidence shown** | Inferred from the event stream — the fifth use of state-a-claim-measure-it-show-it |
+| 85 | **`TraitBelief` is per observer** | You confirm your own players faster because you see practice; a rival learns from game tape, sometimes before you do. Grounds the trade asymmetry concretely |
+| 86 | **Staff can suspect before the maths confirms** | Hunches are graded, so a coach who is repeatedly right becomes someone you trust |
+| 87 | **A trait that never fires stays hidden** | Your backup's clutch trait is unknown until he takes a high-leverage snap — playing him is how you find out |
+| 88 | **Traits are gained and lost through `DevelopmentEvent`** | Ageing is transformation, not just decline; injury can add negative traits; the deferred currency has an obvious job |
+| 89 | **Traits change inputs, branches and thresholds — never outcomes** | No post-hoc fudge factors. Each trait is testable in isolation on a fixed seed |
+
 ## Contracts
 
 See [contracts.md](contracts.md).
