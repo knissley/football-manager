@@ -94,6 +94,23 @@ See [gameplan.md](gameplan.md).
 | 54 | **The coordinator always proposes a plan** | The player never faces a blank form; the five-minute path is review-and-accept, and the proposal itself signals coordinator quality |
 | 55 | **Gameplan changes are events; plan-vs-execution drift is a readout** | "You said run-heavy; he threw it 62% of the time" is self-scouting, coordinator evidence, and a reason to tighten guardrails, all at once |
 
+## Contracts
+
+See [contracts.md](contracts.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 72 | **You negotiate a structure, not a number** | The same total can be built many ways; the problem is satisfying him at least cap pain to you. Football-specific rather than a generic haggle |
+| 73 | **Preferences are hidden, seeded per player, and fixed** | No re-rolling by reopening talks |
+| 74 | **Counters leak preferences** | The delta between offer and counter points along his preference gradient, making negotiation readable |
+| 75 | **Agent style distorts the signal systematically** | You read through a consistent bias, so learning the league's agents is the same meta-game as learning your scouts |
+| 76 | **Staff intelligence gives a partial read up front** | Rewards staff investment and stops the information game being pure trial and error |
+| 77 | **Probing costs patience, and lowballs insult** | Plus a market that moves under you while you stall — otherwise you binary-search the reservation value and it's a slider again |
+| 78 | **Agents are named characters with memory and cross-client leverage** | Third use of the writer/scout machinery; who represents a player is real information |
+| 79 | **Presets generate structures over a canonical representation** | Same two-tier pattern as gameplan, so a deeper authoring surface is additive |
+| 80 | **All four failure modes are live** | Walking, holdouts and trade demands, league-wide relationship damage, and locker room effects — the last kept legible as an interrogable Finding |
+| 81 | **Every offer, counter and signing is a `ContractEvent`** | "How did our cap get like this" walks the real history: the restructure that bought a playoff run and the dead money that paid for it |
+
 ## Draft and scouting
 
 See [draft-and-scouting.md](draft-and-scouting.md).
