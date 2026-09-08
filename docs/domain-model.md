@@ -226,6 +226,20 @@ and `developmentTrait` do the work; your levers are indirect:
 Progression resolves at training camp. How much authorship this actually delivers is
 [an open question](design-decisions.md#open-questions).
 
+## Appearance and identity
+
+Cosmetic, editable, and outside the simulation entirely — the engine never reads it, and
+it is not part of the replay tuple.
+
+Appearance is **generated correlated with physicals** (a 340lb nose tackle and a 180lb
+slot receiver don't roll from the same distribution), and edits are `AppearanceEvent`s
+layered over that baseline rather than mutations of it. Two properties follow: a seed
+still reproduces a world, and any historical view reconstructs the player as he looked
+*then* — the 2029 replay shows the visor he wore in 2029, not the one you gave him last
+week ([ADR-0009](adr/0009-event-sourcing-by-default.md)).
+
+Name changes, gear, and jersey numbers are all the same kind of event.
+
 ## Invariants worth enforcing in code
 
 These are the ones that will bite. Each gets a checker in `FMCore` and an assertion

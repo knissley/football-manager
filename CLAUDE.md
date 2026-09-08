@@ -41,27 +41,33 @@ are *stored*, so a determinism bug corrupts saved history, it doesn't just fail 
 unordered collection reach the output — sort by a stable ID first.
 ([ADR-0003](docs/adr/0003-deterministic-seeded-simulation.md))
 
-**3. Everything downstream reads the event stream.** The engine emits typed
+**3. The world is a fold over an event log.** Event sourcing is the default for domain
+state, not a simulation technique. Anything whose past value could ever be asked for is
+event-sourced; current state is a *projection* — derived, cached, rebuildable, never the
+source of truth. Snapshot only at boundaries that must reproduce independently, and
+justify each one. ([ADR-0009](docs/adr/0009-event-sourcing-by-default.md))
+
+**4. Everything downstream reads the event stream.** The engine emits typed
 `PlayRecord`s. Box scores, grades, news, highlights and tendencies are *queries* over
 that stream — never accumulated in parallel with the simulation. This is what lets the
 engine be replaced without touching anything above it.
 ([ADR-0007](docs/adr/0007-event-stream-contract.md))
 
-**4. The tick loop never allocates.** The engine has a hard budget — a season in ~60s,
+**5. The tick loop never allocates.** The engine has a hard budget — a season in ~60s,
 about 1.1µs per entity-tick. Flat arrays of `struct`, no dictionaries, no per-tick
 object churn, no string building during simulation. This is architectural; retrofitting
 it is a rewrite. ([ADR-0006](docs/adr/0006-spatial-simulation.md))
 
-**5. Game rules live in the sim, never in a view.** If a SwiftUI view contains an `if`
+**6. Game rules live in the sim, never in a view.** If a SwiftUI view contains an `if`
 that decides something about football, it's in the wrong layer.
 
-**6. Only `FMPersistence` knows SwiftData exists.**
+**7. Only `FMPersistence` knows SwiftData exists.**
 
-**7. Never ship real names or marks.** No real players, teams, leagues, logos, or
+**8. Never ship real names or marks.** No real players, teams, leagues, logos, or
 likenesses — not in code, not in test fixtures, not in placeholder data. Generated
 fiction only. ([ADR-0005](docs/adr/0005-generated-fictional-content.md))
 
-**8. Never regenerate a golden test file to make a red test pass.** If the engine
+**9. Never regenerate a golden test file to make a red test pass.** If the engine
 changed on purpose, regenerate it in the same commit and describe the behavior change
 in the commit message. If you didn't mean to change behavior, you found a bug.
 

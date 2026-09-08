@@ -6,6 +6,14 @@ rounds of scoping. Anything not listed here is still open.
 Decisions with real architectural rationale get an [ADR](adr/); this is the index of
 *what* was decided, not *why*.
 
+## Foundational
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 46 | **Event sourcing is the default state model** | The world is a fold over an ordered event log; current state is a rebuildable projection ([ADR-0009](adr/0009-event-sourcing-by-default.md)) |
+| 47 | **Appearance, contracts, scouting grades and staff are all event-sourced** | A replay shows the gear he wore then; "how did our cap get like this" and "what did we grade him at" become ordinary queries |
+| 48 | **Snapshot only where independent reproduction demands it** | `GameSetup`'s opponent-model snapshot is the model case, and each such boundary is justified where it appears |
+
 ## Product
 
 | # | Decision | Implication |
