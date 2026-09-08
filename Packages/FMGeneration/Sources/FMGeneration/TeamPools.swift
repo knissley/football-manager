@@ -1,17 +1,5 @@
 import FMCore
 
-/// Where in the fictional world a city sits.
-///
-/// The world has no map, so a region is not a coordinate — it is the coarsest fact
-/// that makes divisions feel like they were drawn by someone rather than dealt at
-/// random, and it is what lets a rivalry be geographic later.
-public enum Region: UInt8, CaseIterable, Sendable, Hashable, Codable {
-    case north = 0
-    case south = 1
-    case east = 2
-    case west = 3
-}
-
 /// A generated city: a name, a region, and the market and weather that follow from it.
 public struct GeneratedCity: Sendable, Hashable, Codable {
     public let name: String

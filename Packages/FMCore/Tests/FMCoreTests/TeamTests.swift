@@ -153,7 +153,7 @@ struct TeamIdentityEventTests {
         }
 
         let team = Team(
-            id: TeamID(1), identity: folded.identity, stadium: folded.stadium,
+            id: TeamID(1), region: .east, identity: folded.identity, stadium: folded.stadium,
             market: .large, scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch))
 
         #expect(team.snapshot == folded)

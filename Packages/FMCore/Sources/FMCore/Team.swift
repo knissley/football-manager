@@ -162,6 +162,10 @@ public enum MarketSize: UInt8, CaseIterable, Sendable, Hashable, Codable {
 public struct Team: Sendable, Hashable, Codable, Identifiable {
 
     public let id: TeamID
+    /// Where in the world the team plays. World structure, fixed at creation like
+    /// division membership — not identity, and not simulation input. It is here so a
+    /// rivalry can be geographic across a conference boundary.
+    public let region: Region
     /// The identity as of now.
     ///
     /// A **cached projection** over `TeamIdentityEvent`, never the source of truth
@@ -176,12 +180,14 @@ public struct Team: Sendable, Hashable, Codable, Identifiable {
 
     public init(
         id: TeamID,
+        region: Region,
         identity: TeamIdentity,
         stadium: Stadium,
         market: MarketSize,
         scheme: TeamScheme
     ) {
         self.id = id
+        self.region = region
         self.identity = identity
         self.stadium = stadium
         self.market = market

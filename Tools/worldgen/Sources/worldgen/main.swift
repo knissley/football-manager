@@ -45,7 +45,7 @@ while let argument = arguments.next() {
               --team <n>      which team to show (default 0)
               --season <n>    season number (default 2030)
               --show <mode>   roster | starters | league | teams | standings
-                              | class | pipeline | colleges
+                              | class | pipeline | rivalries | colleges
 
             Same seed, same world, every time.
             """)
@@ -378,6 +378,59 @@ case "class", "pipeline":
             print("  buried concerns  \(buried.count) of \(draftClass.prospects.count)")
         }
         print("")
+    }
+
+case "rivalries":
+    var rivalryRandom = SplittableRandom(seed: seed)
+    let rivalryShape = LeagueShape(
+        conferences: 2, divisionsPerConference: max(1, teamCount / 8), teamsPerDivision: 4,
+        regularSeasonGames: 17, playoffTeamsPerConference: max(1, teamCount / 8) + 3)
+
+    switch LeagueGenerator.league(shape: rivalryShape, using: &rivalryRandom) {
+    case .failure(let error):
+        print("That is not a league:")
+        for explanation in error.explanations { print("  - \(explanation)") }
+        exit(1)
+    case .success(let world):
+        let rivalries = RivalryGenerator.rivalries(
+            league: world.league, teams: world.teams, currentSeason: season,
+            using: &rivalryRandom)
+
+        func name(_ id: TeamID) -> String {
+            world.team(id)?.identity.fullName ?? "?"
+        }
+
+        print("Rivalries, seed \(seed), season \(season)")
+        print("")
+        let hottest = rivalries.sorted { $0.intensity(in: season) > $1.intensity(in: season) }
+        for rivalry in hottest.prefix(12) {
+            let heat = rivalry.heat(in: season)
+            print(
+                "  " + pad("\(name(rivalry.pair.lower)) v \(name(rivalry.pair.higher))", 54)
+                    + pad("\(rivalry.origin)", 12)
+                    + pad("\(heat)", 11)
+                    + oneDecimal(rivalry.intensity(in: season)))
+            for event in rivalry.liveHistory(in: season, limit: 2) {
+                let who = event.aggrievedTeam.map { " (\(name($0)) on the wrong end)" } ?? ""
+                print("      \(event.season)  \(event.kind)\(who)")
+            }
+        }
+
+        print("")
+        print("League texture")
+        print("  rivalries        \(rivalries.count)")
+        for heat in RivalryHeat.allCases {
+            let count = rivalries.filter { $0.heat(in: season) == heat }.count
+            print(
+                "    " + pad("\(heat)", 14) + String(repeating: "#", count: count / 2) + " \(count)"
+            )
+        }
+        let events = rivalries.flatMap(\.history)
+        print("  seeded events    \(events.count)")
+        for origin in RivalryOrigin.allCases {
+            let count = rivalries.filter { $0.origin == origin }.count
+            print("    " + pad("\(origin)", 14) + "\(count)")
+        }
     }
 
 case "colleges":

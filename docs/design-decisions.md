@@ -51,7 +51,7 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 17 | **Full replay with scrubbing** | Replay from `(state, seed, sliders, decision log)` — see [ADR-0003](adr/0003-deterministic-seeded-simulation.md) |
 | 18 | **Player grades and situational splits** | Derived from the event stream, never accumulated separately |
 | 19 | **Season-level tendencies** | Self-scouting and opponent scouting as gameplanning inputs |
-| 20 | **Rivalries seeded at generation, then grown** | Plausible history on day one; real grudges accumulate |
+| 20 | **Rivalries seeded at generation, then grown** | Plausible history on day one; real grudges accumulate. Refined by decisions 166–171 |
 
 ## Development and progression
 
@@ -303,6 +303,17 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 163 | **A cohort is not a draft class** | A cohort is a year group; a class is who is actually available. Conflating them reported early entrants against the year they would have graduated, leaving the current draft missing its best young players |
 | 164 | **Class shape is zero-sum; only overall strength moves the total** | A year can be deep at quarterback and empty at edge while carrying normal total talent. Keeping the two separable is what lets conservation be asserted on one number |
 | 165 | **Position is weighted per group and decoupled from talent rank** | Weighting per position inflated whichever groups have more enum cases — five offensive line positions against one quarterback. And assigning positions down the ceiling curve made every class's best players the same positions in the same order, which is not a draft |
+
+## Rivalries
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 166 | **Seeded history is a fabricated event log, not a starting number** | The invented past uses the same `RivalryEvent` vocabulary lived history will, so a write-up can cite what happened and M2's growth simply appends. Nothing downstream can tell invented from lived history, because there is no difference |
+| 167 | **Intensity is folded with decay, never stored** | A rivalry nobody feeds goes quiet. Without decay it is a running total that only rises, and after twenty seasons every pairing in the league is a blood feud |
+| 168 | **Origin sets a floor; history does the rest** | Two teams in a division care a little on principle. Two who met once in January and never again fade back to nothing, which is why the structural floor belongs to structure and not to history |
+| 169 | **An earned origin carries the event that earned it** | A `.postseason` rivalry has the January game in its log, or the origin is an assertion with nothing behind it |
+| 170 | **A new world tops out at heated** | The seeded past gives texture; the first genuine blood feud should be one the player caused. `bitter` is reachable through lived history, and tested to be, so the band is not dead |
+| 171 | **League-wide facts are enforced across the whole set, not per pair** | History invented per pair had three rivalries independently playing in the same championship game. One title game per season, league-wide; the extras become playoff eliminations, which can legitimately happen several times a year |
 
 ## Open questions
 

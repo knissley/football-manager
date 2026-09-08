@@ -285,6 +285,7 @@ public enum TeamGenerator {
 
         return Team(
             id: id,
+            region: city.region,
             identity: identity,
             stadium: stadium(for: city, ledger: &ledger, using: &random),
             market: city.market,

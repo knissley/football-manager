@@ -21,6 +21,7 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show teams --teams 32` | Cities, colours, stadiums, divisions |
 | `swift run worldgen --show class` | This year's draft class, top prospects and shape |
 | `swift run worldgen --show pipeline` | All three visible classes at a glance |
+| `swift run worldgen --show rivalries` | Seeded grudges, their history and heat |
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
@@ -47,6 +48,11 @@ swift run worldgen --seed 42 --show teams
 # top every year, a flat ceiling histogram, production that never disagrees with
 # ability, nobody declaring early.
 swift run worldgen --seed 7 --season 2030 --show class
+
+# Does the invented past hold together? Watch for: two championship games in one
+# season, every rivalry the same origin, a league that opens as all blood feuds
+# or all indifference.
+swift run worldgen --seed 42 --season 2030 --show rivalries
 ```
 
 Reading this output has now caught four classes of bug that the tests did not:

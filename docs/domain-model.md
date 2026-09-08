@@ -219,10 +219,27 @@ between a shipped play and one you drew.
 
 ## Rivalries
 
-`Rivalry` holds a pair of teams and an intensity that changes over time. The world
-generator seeds plausible history at creation — geography, shared division, an invented
-grudge — so rivalries exist in season one. After that they grow from what actually
-happens: close games, playoff eliminations, upsets, streaks.
+`Rivalry` holds an unordered `TeamPair`, the `RivalryOrigin` that started it, and the
+history of what has happened since. Intensity is **not stored** — it is folded from that
+history with decay, so a rivalry nobody feeds goes quiet. Without decay, intensity is a
+running total that only rises, and after twenty seasons every pairing in the league is a
+blood feud.
+
+**Seeded history is a fabricated event log, not a starting number.** A new world's
+invented past uses the same `RivalryEvent` vocabulary that lived history will: a playoff
+elimination in 2026, a coach who crossed the divide in 2028. That is what lets a pre-game
+write-up *cite* the history rather than report an intensity nobody can account for, and
+it means M2's growth simply appends — nothing downstream can tell invented history from
+lived history, because there is no difference. The same canonical-representation pattern
+as gameplan rule sets, officiating profiles and composable schemes.
+
+Divisional pairs are rivalries by construction. Everything else is earned, and its origin
+carries the event that earned it — a `.postseason` rivalry has the January game in its
+log, or the origin is an assertion with nothing behind it.
+
+A brand-new world tops out at **heated**, deliberately. The seeded past gives texture;
+the first genuine blood feud should be one you caused. `bitter` is reachable in a few
+seasons of real events, and tested to be.
 
 Intensity feeds the news voice, pre-game buildup, and drama detection. Nobody else's
 league has your grudges.

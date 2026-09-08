@@ -24,8 +24,9 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
   cities with regions, nicknames, legible colours, and stadiums whose roof, climate,
   altitude and noise are real simulation input; ✅ draft classes — a three-year college
   pipeline with hidden ceilings, production carrying independent error, red flags, early
-  declarations and mean-reverting class strength (`Packages/FMGeneration`); seeded
-  rivalry history still to come.
+  declarations and mean-reverting class strength; ✅ seeded rivalry history — a
+  fabricated event log in the same shape lived history will use, folded to intensity with
+  decay (`Packages/FMGeneration`).
 - ✅ `Tools/worldgen` — inspect any of it from a terminal, no app required.
 - ✅ `League`, `Conference`, `Division` assembled to a validated `LeagueShape`, with a
   second validator for a legal shape filled in wrongly.
