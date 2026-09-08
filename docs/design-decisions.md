@@ -183,6 +183,31 @@ See [news-and-narrative.md](news-and-narrative.md).
 | 61 | **`MediaPressure` is an `FMAnalysis` metric, not an `FMNarrative` artifact** | `FMNarrative` stays a pure leaf. The owner system reads a measurement, so `FMSimulation` never depends on prose generation |
 | 62 | **Media feeds owner patience only** | Lagging and aggregated, never per-article, and one input among record, expectation delta, finances and tenure |
 
+## Penalties and officiating
+
+See [penalties.md](penalties.md).
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 111 | **Two classes: discipline and desperation** | Procedural fouls come from ratings and situation; holding and interference emerge from *losing a matchup*, so a flag is explicable rather than random |
+| 112 | **Home field advantage emerges from crowd noise** | Noise raises visiting pre-snap fouls, so the advantage is a mechanism rather than a bonus applied after the fact |
+| 113 | **Twelve men is a substitution failure against tempo** | Makes hurry-up a genuine weapon rather than only a clock tactic |
+| 114 | **Hard Count is a two-sided trait** | Draws opponent offside, raises your own false-start and delay risk |
+| 115 | **Drawing fouls is a by-product of winning matchups** | No trait reaches across to modify an opponent's rate; a beaten defender holds because he is losing |
+| 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because |ΔWP| is enormous |
+| 117 | **Accept/decline is yours while calling plays, your coordinator's otherwise** | Both branches compared on win probability, so the better option is always known and explicable |
+| 118 | **`OfficiatingProfile` is the contract; crews are a generator over it** | Walking back named officials means deleting a generator, not unpicking a feature |
+| 119 | **Thirty-three fouls, with pass interference the only spot foul** | Sounds like a broadcast rather than a rulebook subset, and each one has real enforcement |
+
+## Characters and lifecycle
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 120 | **Every non-player character ages and retires** | Coaches, scouts, agents, writers, officials and trainers are all `Personnel` with a hidden retirement age. Without it, a fiftieth season is covered by the columnist who started it |
+| 121 | **One identifier space and one lifecycle for all of them** | Modelling five professions separately means writing the same lifecycle five times and getting it slightly different each time |
+| 122 | **Cohorts are generated spread across their careers** | Generating everyone at the same stage retires a whole profession in one offseason, then again in lockstep a generation later |
+| 123 | **Retirement age is hidden, like a player's ceiling** | You learn someone is near the end by watching, which makes succession something a general manager has to think about |
+
 ## League customisation
 
 See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).

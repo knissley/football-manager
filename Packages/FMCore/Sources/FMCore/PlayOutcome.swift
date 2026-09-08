@@ -1,6 +1,6 @@
 /// Who chose a play.
 public enum PlayCaller: Sendable, Hashable, Codable {
-    case coordinator(StaffID)
+    case coordinator(PersonnelID)
     case player
     /// No call was made — a kneel, a spike, or an untimed administrative play.
     case automatic
@@ -163,41 +163,110 @@ public struct Participation: Sendable, Hashable, Codable {
 }
 
 public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
+
+    // Pre-snap, procedural
     case falseStart = 0
     case offside = 1
     case encroachment = 2
-    case delayOfGame = 3
-    case offensiveHolding = 4
-    case defensiveHolding = 5
-    case defensivePassInterference = 6
-    case offensivePassInterference = 7
-    case illegalContact = 8
-    case roughingThePasser = 9
-    case facemask = 10
-    case unnecessaryRoughness = 11
-    case illegalFormation = 12
-    case illegalMotion = 13
+    case neutralZoneInfraction = 3
+    case delayOfGame = 4
+    case illegalFormation = 5
+    case illegalMotion = 6
+    case illegalShift = 7
+    case tooManyMenOnField = 8
+    case illegalSubstitution = 9
 
+    // Blocking and the line of scrimmage
+    case offensiveHolding = 20
+    case illegalUseOfHands = 21
+    case illegalBlockInTheBack = 22
+    case illegalBlindsideBlock = 23
+    case chopBlock = 24
+    case tripping = 25
+    case ineligibleReceiverDownfield = 26
+    case illegalManDownfield = 27
+
+    // Coverage and receiving
+    case defensiveHolding = 40
+    case defensivePassInterference = 41
+    case offensivePassInterference = 42
+    case illegalContact = 43
+
+    // Contact
+    case roughingThePasser = 60
+    case facemask = 61
+    case unnecessaryRoughness = 62
+    case horseCollarTackle = 63
+    case illegalUseOfHelmet = 64
+    case lowBlock = 65
+
+    // Kicking
+    case roughingTheKicker = 80
+    case runningIntoTheKicker = 81
+    case illegalTouching = 82
+
+    // Conduct
+    case unsportsmanlikeConduct = 90
+    case taunting = 91
+
+    /// Called before the snap, so the play never happens and the situation is
+    /// simply replayed from a new spot.
     public var isPreSnap: Bool {
-        switch self {
-        case .falseStart, .offside, .encroachment, .delayOfGame,
-            .illegalFormation, .illegalMotion:
-            return true
-        default:
-            return false
-        }
+        rawValue < 20
     }
 
     /// Fouls that give the offence a first down automatically when accepted.
     public var carriesAutomaticFirstDown: Bool {
         switch self {
         case .defensiveHolding, .defensivePassInterference, .illegalContact,
-            .roughingThePasser, .unnecessaryRoughness:
-            return true
-        case .facemask:
+            .roughingThePasser, .unnecessaryRoughness, .facemask, .horseCollarTackle,
+            .illegalUseOfHelmet, .roughingTheKicker, .lowBlock:
             return true
         default:
             return false
+        }
+    }
+
+    /// Enforced from the spot of the foul rather than the previous line of
+    /// scrimmage, which is what makes deep interference the highest-variance
+    /// call in the sport.
+    public var isSpotFoul: Bool {
+        self == .defensivePassInterference
+    }
+
+    /// Standard yardage. Spot fouls are measured instead, and carry zero here.
+    public var yards: UInt8 {
+        switch self {
+        case .falseStart, .offside, .encroachment, .neutralZoneInfraction, .delayOfGame,
+            .illegalFormation, .illegalMotion, .illegalShift, .tooManyMenOnField,
+            .illegalSubstitution, .defensiveHolding, .illegalContact, .illegalTouching,
+            .runningIntoTheKicker, .illegalManDownfield:
+            return 5
+        case .offensiveHolding, .illegalUseOfHands, .illegalBlockInTheBack, .tripping,
+            .ineligibleReceiverDownfield, .offensivePassInterference:
+            return 10
+        case .illegalBlindsideBlock, .chopBlock, .roughingThePasser, .facemask,
+            .unnecessaryRoughness, .horseCollarTackle, .illegalUseOfHelmet, .lowBlock,
+            .roughingTheKicker, .unsportsmanlikeConduct, .taunting:
+            return 15
+        case .defensivePassInterference:
+            return 0
+        }
+    }
+
+    /// Which side commits it, where only one side can.
+    public var committedBy: Side? {
+        switch self {
+        case .falseStart, .delayOfGame, .illegalFormation, .illegalMotion, .illegalShift,
+            .offensiveHolding, .illegalBlockInTheBack, .illegalBlindsideBlock, .chopBlock,
+            .ineligibleReceiverDownfield, .illegalManDownfield, .offensivePassInterference:
+            return .offense
+        case .offside, .encroachment, .neutralZoneInfraction, .defensiveHolding,
+            .defensivePassInterference, .illegalContact, .roughingThePasser,
+            .roughingTheKicker, .runningIntoTheKicker:
+            return .defense
+        default:
+            return nil
         }
     }
 }
@@ -212,6 +281,7 @@ public struct PenaltyRecord: Sendable, Hashable, Codable {
     public var foul: Foul
     public var offender: PlayerSlot
     public var offendingTeam: TeamID
+    /// Yards enforced. Usually `foul.yards`, but a spot foul is measured.
     public var yards: UInt8
     public var wasAccepted: Bool
     public var awardedFirstDown: Bool

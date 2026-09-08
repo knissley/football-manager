@@ -234,12 +234,43 @@ struct PlayOutcomeTests {
     func fouls() {
         #expect(Foul.falseStart.isPreSnap)
         #expect(Foul.delayOfGame.isPreSnap)
+        #expect(Foul.tooManyMenOnField.isPreSnap)
         #expect(Foul.offensiveHolding.isPreSnap == false)
 
         #expect(Foul.defensivePassInterference.carriesAutomaticFirstDown)
         #expect(Foul.roughingThePasser.carriesAutomaticFirstDown)
+        #expect(Foul.horseCollarTackle.carriesAutomaticFirstDown)
         #expect(Foul.offensiveHolding.carriesAutomaticFirstDown == false)
         #expect(Foul.falseStart.carriesAutomaticFirstDown == false)
+    }
+
+    @Test("The foul list is detailed enough to sound like a broadcast")
+    func foulCoverage() {
+        #expect(Foul.allCases.count >= 30)
+        #expect(Set(Foul.allCases.map(\.rawValue)).count == Foul.allCases.count)
+    }
+
+    /// Deep interference is the highest-variance call in the sport precisely
+    /// because it is enforced from the spot rather than as fixed yardage.
+    @Test("Only pass interference is a spot foul")
+    func spotFouls() {
+        #expect(Foul.defensivePassInterference.isSpotFoul)
+        #expect(Foul.defensivePassInterference.yards == 0)
+        for foul in Foul.allCases where !foul.isSpotFoul {
+            #expect(foul.yards > 0, "\(foul) has no yardage and is not a spot foul")
+            #expect([5, 10, 15].contains(foul.yards), "\(foul) has odd yardage \(foul.yards)")
+        }
+    }
+
+    @Test("Fouls only one side can commit are attributed to that side")
+    func foulSides() {
+        #expect(Foul.falseStart.committedBy == .offense)
+        #expect(Foul.offensiveHolding.committedBy == .offense)
+        #expect(Foul.offside.committedBy == .defense)
+        #expect(Foul.roughingThePasser.committedBy == .defense)
+        // Either side can taunt, or have twelve on the field.
+        #expect(Foul.taunting.committedBy == nil)
+        #expect(Foul.tooManyMenOnField.committedBy == nil)
     }
 
     @Test("Participants are addressable by slot and by role")
@@ -284,8 +315,8 @@ struct PlayRecordTests {
                 distance: distance, ballOn: ballOn, possession: TeamID(1)),
             calls: Calls(
                 offensivePlay: PlayID(100), defensiveCall: DefensiveCallID(200),
-                offensiveCaller: .coordinator(StaffID(9)),
-                defensiveCaller: .coordinator(StaffID(10))),
+                offensiveCaller: .coordinator(PersonnelID(9)),
+                defensiveCaller: .coordinator(PersonnelID(10))),
             outcome: Outcome(kind: kind, yards: yards, endedIn: endedIn))
     }
 
@@ -344,7 +375,7 @@ struct PlayRecordTests {
     @Test("Callers are recorded so plan and execution can be compared")
     func callers() {
         let play = record()
-        #expect(play.calls.offensiveCaller == .coordinator(StaffID(9)))
+        #expect(play.calls.offensiveCaller == .coordinator(PersonnelID(9)))
         #expect(play.calls.offensiveCaller != .player)
     }
 }

@@ -37,9 +37,7 @@ public enum DivisionSubject {}
 public enum GameSubject {}
 public enum PlaySubject {}
 public enum ContractSubject {}
-public enum StaffSubject {}
-public enum AgentSubject {}
-public enum ScoutSubject {}
+public enum PersonnelSubject {}
 public enum TraitSubject {}
 public enum CareerSubject {}
 public enum SeasonSubject {}
@@ -53,9 +51,10 @@ public typealias DivisionID = Identifier<DivisionSubject>
 public typealias GameID = Identifier<GameSubject>
 public typealias PlayID = Identifier<PlaySubject>
 public typealias ContractID = Identifier<ContractSubject>
-public typealias StaffID = Identifier<StaffSubject>
-public typealias AgentID = Identifier<AgentSubject>
-public typealias ScoutID = Identifier<ScoutSubject>
+/// Everyone in the league who is not a player: coaches, scouts, agents, writers,
+/// officials and trainers. `PersonnelRole` distinguishes them, so one identifier
+/// space serves all of them and one lifecycle is written once.
+public typealias PersonnelID = Identifier<PersonnelSubject>
 public typealias TraitID = Identifier<TraitSubject>
 public typealias CareerID = Identifier<CareerSubject>
 public typealias SeasonID = Identifier<SeasonSubject>

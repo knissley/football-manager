@@ -31,6 +31,7 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 | [News and narrative](docs/news-and-narrative.md) | Story detection, writers, whimsy, media pressure |
 | [Draft and scouting](docs/draft-and-scouting.md) | Biased scouts, the fog, consensus boards, draft day |
 | [Contracts](docs/contracts.md) | Structures over numbers, agents, negotiation, failure modes |
+| [Penalties](docs/penalties.md) | Why flags happen, officiating, accept/decline |
 | [Development](docs/development.md) | Breakouts, ceilings, the conservation law, calibration |
 | [Traits](docs/traits.md) | The four hook kinds, discovery, and the starter catalogue |
 | [Weekly loop](docs/weekly-loop.md) | *Provisional* — a UI probe run against the systems design |
