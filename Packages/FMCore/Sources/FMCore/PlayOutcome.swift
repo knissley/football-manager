@@ -295,6 +295,14 @@ public struct Outcome: Sendable, Hashable, Codable {
     public var endedIn: PlayEnding
     public var participants: [Participation]
     public var penalties: [PenaltyRecord]
+    /// Where the ball came to rest, measured from the **snapping team's** opponent
+    /// goal line — the same frame as `Situation.ballOn`.
+    ///
+    /// `yards` is the offence's net gain, which says nothing useful once the defence
+    /// has the ball: an interception returned thirty yards is not "minus thirty" for
+    /// anybody. So a play that changes possession reports the spot outright, and a
+    /// normal play leaves this `nil` and lets it follow from the yardage.
+    public var finalSpot: UInt8?
     /// Seconds taken off the clock, live action and play clock together.
     public var clockRunoff: UInt16
     public var pointsScored: UInt8
@@ -305,9 +313,11 @@ public struct Outcome: Sendable, Hashable, Codable {
         endedIn: PlayEnding,
         participants: [Participation] = [],
         penalties: [PenaltyRecord] = [],
+        finalSpot: UInt8? = nil,
         clockRunoff: UInt16 = 0,
         pointsScored: UInt8 = 0
     ) {
+        self.finalSpot = finalSpot
         self.kind = kind
         self.yards = yards
         self.endedIn = endedIn
