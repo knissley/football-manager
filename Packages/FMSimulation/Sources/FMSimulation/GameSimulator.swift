@@ -126,6 +126,20 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     // MARK: - One snap
 
     private func step(_ state: inout State, random: inout SplittableRandom) {
+        // Timeouts first, and both sides get asked. They are not plays, so they happen
+        // before one and change the situation the callers then read.
+        if !state.pendingKickoff && !state.pendingTry {
+            for isOffense in [false, true] {
+                let before = state.situation()
+                guard
+                    caller.callsTimeout(
+                        for: before, classified: SituationClass(before), isOffense: isOffense,
+                        context: state.context())
+                else { continue }
+                state.spendTimeout(offense: isOffense)
+            }
+        }
+
         let situation = state.situation()
         let context = state.context()
         let classified = SituationClass(situation)

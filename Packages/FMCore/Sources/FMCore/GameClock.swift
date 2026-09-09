@@ -82,8 +82,8 @@ extension Tempo {
         switch self {
         case .hurryUp: return 8
         case .fast: return 16
-        case .normal: return 29
-        case .slow: return 34
+        case .normal: return 31
+        case .slow: return 36
         case .bleedClock: return 39
         }
     }

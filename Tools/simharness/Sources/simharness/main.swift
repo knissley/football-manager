@@ -293,6 +293,30 @@ spread(
     Array(rushYardsByCarrierGame.values), "Rushing yards by one carrier in a game",
     buckets: [100, 150, 200, 250])
 
+let kneels = allPlays.filter { $0.outcome.kind == .kneel }.count
+let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
+var timeoutsSpent = 0
+for result in results {
+    for (previous, next) in zip(result.plays, result.plays.dropFirst())
+    where previous.situation.possession == next.situation.possession {
+        if next.situation.offenseTimeouts < previous.situation.offenseTimeouts {
+            timeoutsSpent += 1
+        }
+        if next.situation.defenseTimeouts < previous.situation.defenseTimeouts {
+            timeoutsSpent += 1
+        }
+    }
+}
+print("")
+print("  The endgame")
+print(
+    "    kneels per game             \(oneDecimal(Double(kneels) / Double(max(1, results.count))))")
+print(
+    "    spikes per game             \(oneDecimal(Double(spikes) / Double(max(1, results.count))))")
+print(
+    "    timeouts spent per game     \(oneDecimal(Double(timeoutsSpent) / Double(max(1, results.count))))"
+)
+
 print("")
 print("  Not measured here")
 print("    Spread of team win totals — the single most important row in the")

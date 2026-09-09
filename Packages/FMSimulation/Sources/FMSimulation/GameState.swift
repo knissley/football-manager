@@ -91,8 +91,27 @@ extension GameSimulator {
                 players: setup.players,
                 offenseScheme: offense.scheme,
                 defenseScheme: defense.scheme,
+                clockIsRunning: previousBehavior == .keepsRunning,
                 form: form,
                 rules: setup.rules)
+        }
+
+        /// Spend a timeout, which stops the clock until the snap.
+        ///
+        /// A timeout is not a play, so it produces no `PlayRecord`. It does not need to:
+        /// the next play's situation carries the counts, so *they burned their last one
+        /// with a minute forty left* is a query over the stream rather than a new event
+        /// type ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)).
+        mutating func spendTimeout(offense: Bool) {
+            let team = offense ? possession : defending
+            if team == setup.home.id {
+                guard homeTimeouts > 0 else { return }
+                homeTimeouts -= 1
+            } else {
+                guard awayTimeouts > 0 else { return }
+                awayTimeouts -= 1
+            }
+            previousBehavior = .stopsUntilSnap
         }
 
         // MARK: - Applying a play

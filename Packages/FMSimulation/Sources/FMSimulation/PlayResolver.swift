@@ -17,6 +17,12 @@ public struct PlayContext: Sendable {
     public let players: [PlayerID: Player]
     public let offenseScheme: TeamScheme
     public let defenseScheme: TeamScheme
+    /// Whether the clock is running into this snap.
+    ///
+    /// A pre-snap fact both callers need and neither can derive: the same down and
+    /// distance is a different problem depending on whether the huddle is free. It is
+    /// what separates spiking the ball from simply running the next play.
+    public let clockIsRunning: Bool
     /// Each player's day, in rating points, fixed for the whole game.
     ///
     /// A game-level fact, so it is computed once and read here rather than drawn per
@@ -32,9 +38,11 @@ public struct PlayContext: Sendable {
         players: [PlayerID: Player],
         offenseScheme: TeamScheme,
         defenseScheme: TeamScheme,
+        clockIsRunning: Bool = false,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
+        self.clockIsRunning = clockIsRunning
         self.form = form
         self.offense = offense
         self.defense = defense

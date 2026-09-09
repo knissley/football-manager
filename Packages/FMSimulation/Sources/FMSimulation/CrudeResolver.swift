@@ -38,13 +38,32 @@ public struct CrudeResolver: PlayResolver {
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
+        // A kneel and a spike are snaps somebody took. Crediting nobody would leave the
+        // quarterback's snap count short and put plays in the stream that happened to
+        // no one.
         case .kneel:
             return (
-                Outcome(kind: .kneel, yards: -1, endedIn: .tackled, clockRunoff: 2), []
+                Outcome(
+                    kind: .kneel, yards: -1, endedIn: .tackled,
+                    participants: quarterbackOnly(.rusher, personnel), clockRunoff: 2), []
             )
         case .spike:
-            return (Outcome(kind: .spike, yards: 0, endedIn: .incomplete, clockRunoff: 1), [])
+            return (
+                Outcome(
+                    kind: .spike, yards: 0, endedIn: .incomplete,
+                    participants: quarterbackOnly(.passer, personnel), clockRunoff: 1), []
+            )
         }
+    }
+
+    /// The quarterback, for plays only he takes part in.
+    private func quarterbackOnly(_ role: PlayRole, _ personnel: Personnel) -> [Participation] {
+        guard let id = personnel[SlotLayout.quarterback],
+            let position = personnel.position(at: SlotLayout.quarterback)
+        else { return [] }
+        return [
+            Participation(slot: SlotLayout.quarterback, player: id, position: position, role: role)
+        ]
     }
 
     // MARK: - Ratings

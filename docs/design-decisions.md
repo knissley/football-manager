@@ -345,6 +345,16 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 191 | **Team form exists, and is driven by causes** | Travel, a short week, a hostile crowd, the game before. A shared draw with no reason behind it is indistinguishable from an excuse — and team-level variance is the direct lever on the spread of team win totals |
 | 187 | **A balanced player fits everywhere; an uneven one does not** | Scheme boosts and penalties cancel on a balanced profile. A burner is a vertical receiver and a bad air-raid one; a route technician is the reverse. The design only shows on players with a shape |
 
+## The endgame clock
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 192 | **A timeout is not a play and produces no `PlayRecord`** | The next play's situation already carries the counts, so *they burned their last one with a minute forty left* is a query over the stream rather than a new event type |
+| 193 | **Both sides are asked for a timeout, every snap** | The defence spends them to get the ball back, which is the half nothing in a football game ever does if you only model the team holding it |
+| 194 | **Kneeling is arithmetic against the defence's timeouts** | Three kneels from first down, each burning the play clock, less what the defence can claw back. Kneel a play early and you hand the ball over; run one you did not need to and a won game becomes a fumble |
+| 195 | **A spike costs a down, so it is a last resort** | Only when the clock is running and there is no timeout to spend instead. Spiking with timeouts in hand wastes a down; spiking on a stopped clock wastes one for nothing |
+| 196 | **Kneels and spikes credit the quarterback** | They are snaps somebody took. Crediting nobody would leave his snap count short and put plays in the stream that happened to no one |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

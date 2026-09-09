@@ -96,9 +96,9 @@ deliberately rather than forgotten.
 **Landing before M2**, because M2's analysis and narrative are built on this stream and
 would otherwise be built against a league missing them:
 
-- Endgame clock — spikes, kneels and timeouts. The clock rules underneath are already
-  correct and tested; the caller has never learned to use them, so a two-minute drill
-  cannot currently be played properly.
+- ✅ Endgame clock — spikes, kneels and timeouts. The clock rules underneath were already
+  correct and tested; the caller has now learned to use them, and both sides call
+  timeouts.
 - Penalties. Enforcement and accept/decline are built and tested; **zero are ever drawn**.
   Unlocks a calibration row, the `discipline` rating, crowd noise as the home-field
   mechanism [penalties.md](penalties.md) describes, and a category of news.

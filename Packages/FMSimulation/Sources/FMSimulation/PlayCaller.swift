@@ -25,6 +25,17 @@ public protocol PlayCaller: Sendable {
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> DefensiveCall
+
+    /// Whether this side stops the clock before the snap.
+    ///
+    /// A timeout is not a play, so it is asked separately. Both sides get the question:
+    /// the offence spends them to keep a drive alive, and the defence spends them to get
+    /// the ball back, which is the half nothing in a football game ever does if you only
+    /// model the team with the ball.
+    func callsTimeout(
+        for situation: Situation, classified: SituationClass, isOffense: Bool,
+        context: PlayContext
+    ) -> Bool
 }
 
 /// A caller with no memory, no gameplan and no opinion about the opponent.
@@ -53,6 +64,12 @@ public struct BaselineCaller: PlayCaller {
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> OffensiveCall {
+        if shouldKneel(situation, classified, context) {
+            return CrudePlaybook.call(.kneel, tempo: .bleedClock)
+        }
+        if shouldSpike(situation, classified, context) {
+            return CrudePlaybook.call(.spike, tempo: .hurryUp)
+        }
         if situation.down == .fourth, let kick = fourthDown(situation, classified, context) {
             return CrudePlaybook.call(kick)
         }
@@ -149,6 +166,65 @@ public struct BaselineCaller: PlayCaller {
         if situation.isClockBurn { return .bleedClock }
         if situation.time.isTwoMinute { return .fast }
         return .normal
+    }
+
+    // MARK: - The endgame
+
+    /// Victory formation: the lead is safe if the clock can be exhausted.
+    ///
+    /// Three kneels from first down, each burning the play clock and a couple of seconds
+    /// of live ball — less whatever the defence can claw back with its timeouts. A team
+    /// that kneels a play too early hands the ball back, and one that runs a play it did
+    /// not need to can fumble the game away.
+    private func shouldKneel(
+        _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
+    ) -> Bool {
+        guard classified.score.isLeading, classified.time.isEndgame else { return false }
+        guard situation.down != .fourth else { return false }
+
+        let kneelsAvailable = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
+        guard kneelsAvailable > 0 else { return false }
+
+        let secondsPerKneel = Int(context.rules.playClock) + 2
+        let clawedBack = Int(situation.defenseTimeouts) * secondsPerKneel
+        let burnable = kneelsAvailable * secondsPerKneel - clawedBack
+        return Int(situation.clockRemaining) <= burnable
+    }
+
+    /// Throw it at the ground to stop the clock.
+    ///
+    /// Costs a down and a second, and it is only ever worth it when the clock is
+    /// actually running and there is no timeout left to spend instead. Spiking with
+    /// timeouts in hand wastes a down; spiking on a stopped clock wastes one for nothing.
+    private func shouldSpike(
+        _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
+    ) -> Bool {
+        guard context.clockIsRunning, classified.time.isTwoMinute else { return false }
+        guard classified.isDesperation || classified.score.isOneScoreGame else { return false }
+        guard situation.offenseTimeouts == 0 else { return false }
+        // A spike on fourth down is a turnover with extra steps.
+        guard situation.down != .fourth else { return false }
+        return situation.clockRemaining <= 28
+    }
+
+    public func callsTimeout(
+        for situation: Situation, classified: SituationClass, isOffense: Bool,
+        context: PlayContext
+    ) -> Bool {
+        guard context.clockIsRunning else { return false }
+        let remaining = isOffense ? situation.offenseTimeouts : situation.defenseTimeouts
+        guard remaining > 0 else { return false }
+
+        if isOffense {
+            // Keep the drive alive: the clock is running and there is not enough of it.
+            guard classified.isDesperation else { return false }
+            return situation.clockRemaining <= 100
+        }
+
+        // The defence spends them to get the ball back. `scoreDifferential` is the
+        // offence's, so a positive number means the team without the ball is behind.
+        guard classified.time.isEndgame, situation.scoreDifferential > 0 else { return false }
+        return situation.clockRemaining <= 200
     }
 
     // MARK: - Defence

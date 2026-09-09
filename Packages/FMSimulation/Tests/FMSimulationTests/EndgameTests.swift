@@ -1,0 +1,231 @@
+import FMCore
+import FMGeneration
+import FMRandom
+import Testing
+
+@testable import FMSimulation
+
+/// The two-minute drill and the victory formation are where players pay the most
+/// attention, and until now the caller could play neither: it never knelt, never spiked,
+/// and never called a timeout, so `Situation.offenseTimeouts` was decoration.
+@Suite("The endgame")
+struct EndgameTests {
+
+    private let caller = BaselineCaller()
+
+    private func context(clockRunning: Bool) -> PlayContext {
+        PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: [], defenseRotation: [],
+            players: [:], offenseScheme: TeamScheme(offense: .westCoast, defense: .nickelMatch),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
+            clockIsRunning: clockRunning, rules: .standard)
+    }
+
+    private func situation(
+        down: Down = .first, distance: UInt8 = 10, ballOn: UInt8 = 60,
+        quarter: UInt8 = 4, clock: UInt16 = 90, differential: Int16 = 0,
+        offenseTimeouts: UInt8 = 3, defenseTimeouts: UInt8 = 3
+    ) -> Situation {
+        Situation(
+            quarter: quarter, clockRemaining: clock, down: down, distance: distance,
+            ballOn: ballOn, possession: TeamID(1), scoreDifferential: differential,
+            offenseTimeouts: offenseTimeouts, defenseTimeouts: defenseTimeouts)
+    }
+
+    private func family(
+        _ situation: Situation, clockRunning: Bool = true, seed: UInt64 = 1
+    ) -> PlayFamily? {
+        var random = SplittableRandom(seed: seed)
+        let call = caller.offensiveCall(
+            for: situation, classified: SituationClass(situation),
+            context: context(clockRunning: clockRunning), random: &random)
+        return CrudePlaybook.family(of: call.design)
+    }
+
+    // MARK: - Victory formation
+
+    /// The lead is safe if the clock can be exhausted. Running a play you did not need
+    /// to is how a won game becomes a fumble.
+    @Test("A team leading late kneels the game out")
+    func kneelsWhenTheClockCanBeBurned() {
+        let safe = situation(
+            down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
+        #expect(family(safe) == .kneel)
+    }
+
+    /// Kneeling a play too early hands the ball back. Timeouts are exactly what buys the
+    /// defence that chance.
+    @Test("Defensive timeouts make the lead unsafe")
+    func timeoutsPreventKneeling() {
+        let withTimeouts = situation(
+            down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 3)
+        #expect(family(withTimeouts) != .kneel, "three timeouts can still get the ball back")
+
+        let noTimeouts = situation(
+            down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
+        #expect(family(noTimeouts) == .kneel)
+    }
+
+    @Test("A team that is behind or level never kneels")
+    func neverKneelsWhenItCannotAfford() {
+        #expect(family(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
+        #expect(family(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
+    }
+
+    @Test("Nobody kneels in the first quarter")
+    func neverKneelsEarly() {
+        #expect(
+            family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
+    }
+
+    /// Kneeling on fourth down is a turnover on downs, not a way to end a game.
+    @Test("Fourth down is not a kneel")
+    func neverKneelsOnFourth() {
+        #expect(
+            family(
+                situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0)
+            ) != .kneel)
+    }
+
+    // MARK: - Spiking
+
+    /// Costs a down and a second. Worth it only when the clock is running and there is
+    /// no timeout to spend instead.
+    @Test("A team out of timeouts spikes to stop the clock")
+    func spikesWithNoTimeouts() {
+        let racing = situation(
+            down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
+        #expect(family(racing, clockRunning: true) == .spike)
+    }
+
+    @Test("A team with a timeout uses it rather than burning a down")
+    func doesNotSpikeWithTimeouts() {
+        let hasTimeouts = situation(
+            down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 2)
+        #expect(family(hasTimeouts, clockRunning: true) != .spike)
+    }
+
+    /// Spiking on a stopped clock wastes a down for nothing.
+    @Test("Nobody spikes when the clock is already stopped")
+    func doesNotSpikeOnAStoppedClock() {
+        let stopped = situation(
+            down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
+        #expect(family(stopped, clockRunning: false) != .spike)
+    }
+
+    @Test("A spike on fourth down is a turnover with extra steps")
+    func neverSpikesOnFourth() {
+        let fourth = situation(
+            down: .fourth, quarter: 4, clock: 20, differential: -4, offenseTimeouts: 0)
+        #expect(family(fourth, clockRunning: true) != .spike)
+    }
+
+    // MARK: - Timeouts
+
+    private func callsTimeout(
+        _ situation: Situation, isOffense: Bool, clockRunning: Bool = true
+    ) -> Bool {
+        caller.callsTimeout(
+            for: situation, classified: SituationClass(situation), isOffense: isOffense,
+            context: context(clockRunning: clockRunning))
+    }
+
+    @Test("A trailing offence spends timeouts to keep the clock")
+    func offenceSpendsToSurvive() {
+        #expect(callsTimeout(situation(clock: 60, differential: -4), isOffense: true))
+        #expect(
+            callsTimeout(
+                situation(clock: 60, differential: -4, offenseTimeouts: 0), isOffense: true)
+                == false)
+    }
+
+    /// The half nothing does if you only model the team with the ball: the defence
+    /// spends timeouts to get it back.
+    @Test("A trailing defence spends timeouts to get the ball back")
+    func defenceSpendsToGetItBack() {
+        // `scoreDifferential` is the offence's, so a positive number means the team
+        // without the ball is the one behind.
+        #expect(callsTimeout(situation(clock: 150, differential: 6), isOffense: false))
+        #expect(
+            callsTimeout(situation(clock: 150, differential: -6), isOffense: false) == false,
+            "a defence that is ahead wants the clock to run")
+    }
+
+    @Test("Nobody calls a timeout on a stopped clock or in the first quarter")
+    func timeoutsAreNotWasted() {
+        #expect(
+            callsTimeout(
+                situation(clock: 60, differential: -4), isOffense: true, clockRunning: false)
+                == false)
+        #expect(
+            callsTimeout(situation(quarter: 1, clock: 600, differential: -4), isOffense: true)
+                == false)
+    }
+
+    // MARK: - In a real game
+
+    private func game(seed: UInt64) -> GameResult {
+        var random = SplittableRandom(seed: seed)
+        var colleges = NameGenerator.collegePool(count: 20, using: &random)
+        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
+        var ids = IdentifierSequence<PlayerSubject>()
+        let homeRoster = RosterGenerator.roster(
+            season: 2030, colleges: colleges, ids: &ids, using: &random)
+        let awayRoster = RosterGenerator.roster(
+            season: 2030, colleges: colleges, ids: &ids, using: &random)
+        var players: [PlayerID: Player] = [:]
+        for player in homeRoster + awayRoster { players[player.id] = player }
+
+        return GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
+            .simulate(
+                GameSetup(
+                    game: GameID(1),
+                    home: GameTeam(
+                        id: TeamID(1), depthChart: RosterGenerator.depthChart(from: homeRoster),
+                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
+                    away: GameTeam(
+                        id: TeamID(2), depthChart: RosterGenerator.depthChart(from: awayRoster),
+                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
+                    players: players, seed: seed))
+    }
+
+    /// Timeouts are spent, and the counts in the stream are what records it — no new
+    /// event type, because the next play's situation already carries them.
+    @Test("Timeouts are spent over a game and visible in the stream")
+    func timeoutsAreSpentAndVisible() {
+        var everSpent = false
+        for seed in UInt64(1)...8 {
+            let plays = game(seed: seed).plays
+            for (previous, next) in zip(plays, plays.dropFirst())
+            where previous.situation.possession == next.situation.possession {
+                if next.situation.offenseTimeouts < previous.situation.offenseTimeouts {
+                    everSpent = true
+                }
+            }
+        }
+        #expect(everSpent, "eight games and nobody ever called a timeout")
+    }
+
+    @Test("Timeouts never go negative and reset at the half")
+    func timeoutsStayLegal() {
+        for seed in UInt64(1)...6 {
+            let plays = game(seed: seed).plays
+            #expect(plays.allSatisfy { $0.situation.offenseTimeouts <= 3 })
+            #expect(plays.allSatisfy { $0.situation.defenseTimeouts <= 3 })
+
+            // Somebody starts the second half with a full complement.
+            let secondHalf = plays.first { $0.situation.quarter == 3 }
+            #expect(secondHalf?.situation.offenseTimeouts == 3, "timeouts did not reset")
+        }
+    }
+
+    /// Games should end in victory formation rather than with a meaningless snap.
+    @Test("Won games get knelt out")
+    func gamesEndInVictoryFormation() {
+        var kneels = 0
+        for seed in UInt64(1)...10 {
+            kneels += game(seed: seed).plays.filter { $0.outcome.kind == .kneel }.count
+        }
+        #expect(kneels > 0, "ten games and nobody ever took a knee")
+    }
+}
