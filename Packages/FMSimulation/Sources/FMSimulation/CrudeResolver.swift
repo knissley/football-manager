@@ -23,7 +23,7 @@ public struct CrudeResolver: PlayResolver {
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        let personnel = Personnel.onField(context, random: &random)
+        let personnel = Personnel.onField(context, family: family, random: &random)
 
         // A flag before the snap means the play never happened, whatever was called.
         if family.isRun || family.isPass,
@@ -52,7 +52,13 @@ public struct CrudeResolver: PlayResolver {
         case .twoPointConversion:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
-            return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
+            return (
+                Outcome(
+                    kind: .kickoff, yards: 0, endedIn: .touchback,
+                    participants: participation(
+                        for: SlotLayout.specialist, personnel, role: .kicker)),
+                []
+            )
         // A kneel and a spike are snaps somebody took. Crediting nobody would leave the
         // quarterback's snap count short and put plays in the stream that happened to
         // no one.
@@ -72,6 +78,28 @@ public struct CrudeResolver: PlayResolver {
     }
 
     /// One player, for a play where only he did anything worth recording.
+    /// Credit a player, or **upgrade** the role he is already credited in.
+    ///
+    /// A player earns one line per play, so when two credits apply the more specific one
+    /// has to win. Dropping the second silently is a bug this engine has now made three
+    /// times: it made a sack attributable to nobody (the sacker was already down as a
+    /// pass rusher), it hid every target behind a `.receiver` credit, and it threw away
+    /// the tackle on a completed pass because the man who made it was already credited
+    /// with the coverage. One rule, in one place, is the fix.
+    private func credit(
+        _ slot: PlayerSlot, _ role: PlayRole, _ personnel: Personnel,
+        into participants: inout [Participation]
+    ) {
+        guard let id = personnel[slot], let position = personnel.position(at: slot) else { return }
+        if let existing = participants.firstIndex(where: { $0.slot == slot }) {
+            guard role.outranks(participants[existing].role) else { return }
+            participants[existing] = Participation(
+                slot: slot, player: id, position: position, role: role)
+            return
+        }
+        participants.append(Participation(slot: slot, player: id, position: position, role: role))
+    }
+
     private func participation(
         for slot: PlayerSlot, _ personnel: Personnel, role: PlayRole
     ) -> [Participation] {
@@ -137,25 +165,8 @@ public struct CrudeResolver: PlayResolver {
         var penalty: PenaltyRecord?
         let defense = calls.defense
 
-        /// Credit a player, or **upgrade** the role he is already credited in.
-        ///
-        /// Dropping the second credit silently is what made a sack attributable to
-        /// nobody: the rusher was already down as a pass rusher from winning his rep,
-        /// so the tackle credit that names him as the sacker was thrown away and the
-        /// league had no sack leaders at all.
         func credit(_ slot: PlayerSlot, _ role: PlayRole) {
-            guard let id = personnel[slot], let position = personnel.position(at: slot)
-            else { return }
-            if let existing = participants.firstIndex(where: { $0.slot == slot }) {
-                // A tackle is the more specific fact about what he did on this play.
-                if role == .tackler {
-                    participants[existing] = Participation(
-                        slot: slot, player: id, position: position, role: role)
-                }
-                return
-            }
-            participants.append(
-                Participation(slot: slot, player: id, position: position, role: role))
+            self.credit(slot, role, personnel, into: &participants)
         }
 
         credit(SlotLayout.quarterback, .passer)
@@ -217,7 +228,12 @@ public struct CrudeResolver: PlayResolver {
         let depth = routeDepth(family)
         var reads: [(receiver: PlayerSlot, defender: PlayerSlot, separation: Int)] = []
 
-        for (index, receiver) in SlotLayout.receivers.prefix(3).enumerated() {
+        // Four route runners: the three receivers and the tight end, which is what `11`
+        // personnel *is* and what the slot layout says it fields. Taking three dropped
+        // the tight end silently — he stood on the field on every snap of every game
+        // without ever running a route, being thrown to, or being credited with
+        // anything.
+        for (index, receiver) in SlotLayout.receivers.prefix(4).enumerated() {
             let defender = SlotLayout.coverage[min(index, SlotLayout.coverage.count - 1)]
             guard personnel[receiver] != nil, personnel[defender] != nil else { continue }
             let route = rating(.routeRunning, receiver, personnel, context)
@@ -273,7 +289,8 @@ public struct CrudeResolver: PlayResolver {
                         value: Int16(pressureAt ?? 2_000)))
 
                 let scramble = tackleSequence(
-                    carrier: SlotLayout.quarterback, personnel: personnel, context: context,
+                    carrier: SlotLayout.quarterback, pursuit: SlotLayout.scramblePursuit,
+                    personnel: personnel, context: context,
                     decisions: &decisions, participants: &participants, startTick: 30,
                     random: &random)
                 let gained = Int16(
@@ -329,6 +346,12 @@ public struct CrudeResolver: PlayResolver {
         }
 
         // 4. The throw, and the ball arriving.
+        //
+        // Every route runner is already credited as a `.receiver`; the one the ball goes
+        // to is upgraded to `.target`. Without this the distinction is unrecoverable
+        // downstream — three men look identically involved on every dropback, which
+        // makes target share, catch rate and drop rate unanswerable from the stream.
+        credit(target.receiver, .target)
         let accuracy = rating(depth.accuracyKey, SlotLayout.quarterback, personnel, context)
         let placement = placement(accuracy: accuracy, pressured: pressured, random: &random)
         let throwTick = UInt16(timeNeeded / 100)
@@ -370,8 +393,8 @@ public struct CrudeResolver: PlayResolver {
 
         case .caught, .contestedCatch:
             let afterCatch = yardsAfterCatch(
-                carrier: target.receiver, personnel: personnel, context: context,
-                separation: target.separation, decisions: &decisions,
+                carrier: target.receiver, coveredBy: target.defender, personnel: personnel,
+                context: context, separation: target.separation, decisions: &decisions,
                 participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
@@ -411,25 +434,8 @@ public struct CrudeResolver: PlayResolver {
         var participants: [Participation] = []
         var penalty: PenaltyRecord?
 
-        /// Credit a player, or **upgrade** the role he is already credited in.
-        ///
-        /// Dropping the second credit silently is what made a sack attributable to
-        /// nobody: the rusher was already down as a pass rusher from winning his rep,
-        /// so the tackle credit that names him as the sacker was thrown away and the
-        /// league had no sack leaders at all.
         func credit(_ slot: PlayerSlot, _ role: PlayRole) {
-            guard let id = personnel[slot], let position = personnel.position(at: slot)
-            else { return }
-            if let existing = participants.firstIndex(where: { $0.slot == slot }) {
-                // A tackle is the more specific fact about what he did on this play.
-                if role == .tackler {
-                    participants[existing] = Participation(
-                        slot: slot, player: id, position: position, role: role)
-                }
-                return
-            }
-            participants.append(
-                Participation(slot: slot, player: id, position: position, role: role))
+            self.credit(slot, role, personnel, into: &participants)
         }
 
         credit(SlotLayout.back, .rusher)
@@ -449,7 +455,13 @@ public struct CrudeResolver: PlayResolver {
             let won = random.nextBool(probability: contest(block, shed, edge: -commitment))
 
             credit(blocker, .blocker)
-            credit(defender, .tackler)
+            // Taking on a block is not making a tackle. Crediting `.tackler` here gave
+            // every defensive lineman a tackle on every run before anyone had touched
+            // the ball — tackle leaders were four deep in defensive tackles and no
+            // linebacker ever made one — and it aimed contact fouls at the first man in
+            // this loop rather than at whoever actually made the hit. The tackle
+            // sequence names the tackler, and that credit outranks this one.
+            credit(defender, .other)
             decisions.append(
                 .init(
                     tick: UInt16(4 + index), kind: .blockResult, primary: blocker,
@@ -484,7 +496,11 @@ public struct CrudeResolver: PlayResolver {
         }
 
         let tackle = tackleSequence(
-            carrier: SlotLayout.back, personnel: personnel, context: context,
+            carrier: SlotLayout.back,
+            pursuit: family == .insideRun
+                ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
+            personnel: personnel,
+            context: context,
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
@@ -518,18 +534,22 @@ public struct CrudeResolver: PlayResolver {
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let power =
-            42.0 + (rating(.puntPower, SlotLayout.quarterback, personnel, context) - 60) * 0.25
+            42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60) * 0.25
         let distance = Int(power) + Int(random.next(upperBound: 14)) - 7
         let landing = Int(situation.ballOn) - distance
+        let punter = participation(for: SlotLayout.specialist, personnel, role: .kicker)
 
         if landing <= 0 {
             return (
-                Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), []
+                Outcome(
+                    kind: .punt, yards: 0, endedIn: .touchback, participants: punter,
+                    clockRunoff: 6),
+                []
             )
         }
         return (
             Outcome(
-                kind: .punt, yards: 0, endedIn: .fairCatch,
+                kind: .punt, yards: 0, endedIn: .fairCatch, participants: punter,
                 finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
             []
         )
@@ -540,7 +560,7 @@ public struct CrudeResolver: PlayResolver {
         _ personnel: Personnel, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let length = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
-        let accuracy = rating(.kickAccuracy, SlotLayout.quarterback, personnel, context)
+        let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
         // Near certainty inside thirty, falling away steeply past fifty. Weather and a
         // strong leg move the curve; the shape is the same either way.
@@ -554,6 +574,7 @@ public struct CrudeResolver: PlayResolver {
             Outcome(
                 kind: family == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
                 endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
+                participants: participation(for: SlotLayout.specialist, personnel, role: .kicker),
                 clockRunoff: family == .extraPoint ? 0 : 5),
             []
         )
@@ -634,12 +655,16 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func yardsAfterCatch(
-        carrier: PlayerSlot, personnel: Personnel, context: PlayContext, separation: Int,
+        carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Personnel, context: PlayContext,
+        separation: Int,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (yards: Int, ending: PlayEnding) {
+        // The man who was covering him has the first shot, and the help arrives behind.
+        let pursuit = [(coveredBy, 5.0)] + SlotLayout.catchPursuit.filter { $0.0 != coveredBy }
         let tackle = tackleSequence(
-            carrier: carrier, personnel: personnel, context: context, decisions: &decisions,
+            carrier: carrier, pursuit: pursuit, personnel: personnel, context: context,
+            decisions: &decisions,
             participants: &participants, startTick: startTick, random: &random)
         // A receiver who caught it in stride is already past somebody. Separation earned
         // before the catch is worth yards after it.
@@ -654,7 +679,8 @@ public struct CrudeResolver: PlayResolver {
     /// The tackler credited here is the one the outcome names. Nothing else can be, and
     /// that is asserted rather than assumed.
     private func tackleSequence(
-        carrier: PlayerSlot, personnel: Personnel, context: PlayContext,
+        carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Personnel,
+        context: PlayContext,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (extraYards: Int, ending: PlayEnding) {
@@ -666,9 +692,14 @@ public struct CrudeResolver: PlayResolver {
         var broke = 0
         let attempts = 3
 
-        for defender in SlotLayout.coverage.prefix(attempts) {
-            guard let id = personnel[defender], let position = personnel.position(at: defender)
-            else { continue }
+        // Drawn without replacement, so a broken tackle brings a different man, and a
+        // slot nobody is standing in simply does not appear.
+        var remaining = pursuit.filter { personnel[$0.0] != nil }
+
+        for _ in 0..<attempts {
+            guard let index = random.weightedIndex(remaining.map(\.1)) else { break }
+            let defender = remaining.remove(at: index).0
+            guard let id = personnel[defender] else { continue }
             let tackling =
                 context.player(id).map {
                     Double($0.ratings[.tackling] ?? $0.overall)
@@ -685,12 +716,7 @@ public struct CrudeResolver: PlayResolver {
                     detail: (broken ? TackleResult.broken : .madeTackle).rawValue))
             tick += 4
 
-            if !participants.contains(where: { $0.slot == defender }) {
-                participants.append(
-                    Participation(
-                        slot: defender, player: id, position: position,
-                        role: broken ? .other : .tackler))
-            }
+            credit(defender, broken ? .other : .tackler, personnel, into: &participants)
 
             if !broken {
                 return (extra, random.nextBool(probability: 0.14) ? .outOfBounds : .tackled)

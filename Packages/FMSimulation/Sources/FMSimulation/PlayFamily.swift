@@ -44,6 +44,29 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
     ]
 
+    /// The unit the offence sends out for this play.
+    ///
+    /// A kick is not eleven starters plus a placeholder for the ball: it is a different
+    /// eleven, and the crude engine had only ever fielded the one.
+    var offenseLayout: [(Position, Int)] {
+        switch self {
+        case .punt: return SlotLayout.puntUnit
+        case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
+        case .kickoff: return SlotLayout.kickoffUnit
+        default: return SlotLayout.offense
+        }
+    }
+
+    /// The return side. A crude engine does not model a return, but the men who have to
+    /// be out there still take the snap — a punt is a play eleven of them were on the
+    /// field for, and their snap counts should say so.
+    var defenseLayout: [(Position, Int)] {
+        switch self {
+        case .punt, .fieldGoal, .extraPoint, .kickoff: return SlotLayout.returnUnit
+        default: return SlotLayout.defense
+        }
+    }
+
     public var kind: PlayKind {
         switch self {
         case .insideRun, .outsideRun: return .rush

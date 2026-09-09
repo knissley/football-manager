@@ -106,6 +106,28 @@ public enum PlayRole: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case kicker = 9
     case returner = 10
     case other = 11
+
+    /// How specific this role is about what the player actually did.
+    ///
+    /// A player earns at most one credit per play, so when two apply the more specific
+    /// one has to win: a corner who covered a route *and* made the tackle is a tackler,
+    /// and a receiver who ran a route *and* was thrown to is a target. Resolving that by
+    /// keeping whichever credit happened to be written first is how a sack once ended up
+    /// attributable to nobody, and how targets stayed invisible for a while after.
+    var specificity: UInt8 {
+        switch self {
+        case .other: return 0
+        case .blocker, .coverage, .passRusher, .receiver: return 1
+        case .passer, .rusher, .target, .returner, .kicker: return 2
+        case .assistTackler: return 3
+        case .tackler: return 4
+        }
+    }
+
+    /// Whether this credit says more about the play than one already recorded.
+    public func outranks(_ other: PlayRole) -> Bool {
+        specificity > other.specificity
+    }
 }
 
 /// A player's involvement in a play, and the slot the decision points reference.

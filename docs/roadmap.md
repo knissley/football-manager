@@ -98,6 +98,44 @@ and is referenced by nothing that runs. The structural fix is **wiring tests** �
 that asserts systems are *consulted*, not merely correct — because vigilance is not a
 mechanism and this happened once already.
 
+### First pass: the event vocabulary
+
+`FMSimulation`'s `VocabularyCoverageTests` is the first of these. It sims forty games and
+checks what came out against the vocabulary that exists, in both directions: a case the
+engine cannot yet produce has to be named in a register with the milestone that closes
+it, and the moment one *starts* being produced the test fails too, so the register cannot
+rot into a list of things that used to be true.
+
+Asking the question once found five things, all of the same shape — a value the type
+system knew about that nothing ever wrote:
+
+- **The kicking game had no kickers.** Every roster had carried a kicker, a punter and a
+  long snapper since world generation existed, and none had ever been on the field: the
+  resolver read `.kickAccuracy` and `.puntPower` off slot 0 and got the *quarterback's*.
+  A team's kicker had no bearing on whether it made kicks.
+- **The tight end never did anything.** He was placed on the field on every snap and the
+  route loop took the first three receivers, so he never ran a route, was never thrown to
+  and was never credited.
+- **Targets were invisible.** All route runners were credited `.receiver` and the man
+  actually thrown to was never distinguished, which makes target share, catch rate and
+  drop rate unanswerable from the stream.
+- **Every tackle was made by a cornerback.** Pursuit was `coverage.prefix(3)` for every
+  kind of play, so a run up the middle was tackled by a corner and a linebacker never
+  made a tackle all season.
+- **And before that, every run credited four tackles**, to the defensive line, in the
+  blocking loop before anyone had touched the ball — which also aimed contact fouls at
+  the wrong man.
+
+Three of those were the *same bug*: a more specific credit silently dropped because the
+player already had a line on the play. That rule now lives in one place
+(`PlayRole.outranks`), which is the actual fix.
+
+Note what this says about the audit's scope. Coverage tests catch a case nothing
+produces; they cannot catch a case produced by the *wrong* thing — the four bogus tackles
+per run looked perfectly healthy from the outside. Those need an assertion about who the
+credits land on, which is why the suite also checks that tackles reach all three levels
+of the defence.
+
 ## Designed but not yet in the engine
 
 An audit of the crude resolver found it reads `runFit` and the weather on a kick, and

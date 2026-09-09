@@ -199,7 +199,7 @@ struct PenaltyTests {
                 offenseScheme: TeamScheme(offense: .westCoast, defense: .nickelMatch),
                 defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
                 rules: .standard)
-            let personnel = Personnel.onField(context, random: &random)
+            let personnel = Personnel.onField(context, family: .insideRun, random: &random)
             let situation = Situation(
                 quarter: 1, clockRemaining: 600, down: .first, distance: 10, ballOn: 60,
                 possession: TeamID(1))
