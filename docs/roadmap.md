@@ -86,6 +86,18 @@ App target, `FMUI`, `FMPersistence`. The first build that is a game.
 *Exit:* install on a phone, start a career, play a season, background and resume without
 loss.
 
+## Audit owed at the end of M1
+
+A designed system can be complete, thoroughly unit-tested, and **entirely unused**, and
+nothing in the suite goes red. That is how the crude engine came to consult none of
+`SchemeFit`, traits, penalties, `CallVulnerability`, stadium noise or scheme experience
+while every one of them had passing tests of its own.
+
+Before M2, sweep the whole codebase for the same failure: a type that exists, is tested,
+and is referenced by nothing that runs. The structural fix is **wiring tests** — a suite
+that asserts systems are *consulted*, not merely correct — because vigilance is not a
+mechanism and this happened once already.
+
 ## Designed but not yet in the engine
 
 An audit of the crude resolver found it reads `runFit` and the weather on a kick, and
@@ -102,7 +114,8 @@ would otherwise be built against a league missing them:
 - ✅ Penalties. Both classes: procedural fouls from `discipline`, noise and tempo, and
   desperation fouls drawn at the matchup that beat the man committing them. Crowd noise
   is now the home-field mechanism [penalties.md](penalties.md) describes.
-- Injury availability, already agreed for M1.
+- ✅ Injury availability. A player goes down, misses games, and next-man-up follows from
+  the depth chart. `InjuryEvent` is its own stream; severity and rehabilitation are M3's.
 - Kick and punt returns. Every kickoff is a touchback and every punt a fair catch.
 - Traits, as engine hooks rather than cosmetic modifiers.
 - ✅ Crowd noise and stadium, through the penalty model. Weather beyond the kicking game

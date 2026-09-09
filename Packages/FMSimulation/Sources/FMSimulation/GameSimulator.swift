@@ -74,16 +74,24 @@ public struct GameResult: Sendable {
 
     public let game: GameID
     public let plays: [PlayRecord]
+    /// Everyone hurt in this game, in the order it happened.
+    ///
+    /// Returned alongside the stream rather than folded into it: an injury is its own
+    /// event stream, and the season layer is what turns "out for three" into a player
+    /// missing weeks nine through eleven.
+    public let injuries: [InjuryEvent]
     public let homeScore: Int16
     public let awayScore: Int16
     /// `nil` when the game ended level, which a regular season game may.
     public let winner: TeamID?
 
     public init(
-        game: GameID, plays: [PlayRecord], homeScore: Int16, awayScore: Int16, winner: TeamID?
+        game: GameID, plays: [PlayRecord], injuries: [InjuryEvent] = [], homeScore: Int16,
+        awayScore: Int16, winner: TeamID?
     ) {
         self.game = game
         self.plays = plays
+        self.injuries = injuries
         self.homeScore = homeScore
         self.awayScore = awayScore
         self.winner = winner
@@ -169,6 +177,15 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             situation: situation, calls: calls, context: context, random: &random)
 
         state.apply(resolved.outcome, calls: calls, decisions: resolved.decisions)
+
+        // Injuries are drawn from who was involved, after the play is recorded, so the
+        // event can point at the snap it happened on.
+        if let play = state.plays.last,
+            let injury = Injuries.drawn(on: play, context: context, random: &random)
+        {
+            state.injuries.append(injury)
+            if injury.leavesTheGame { state.hurt.insert(injury.player) }
+        }
     }
 
     /// A try is a decision, not a formality: down eight late, you go for two.

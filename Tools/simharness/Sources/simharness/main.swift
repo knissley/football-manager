@@ -344,6 +344,23 @@ print(
         + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%"
 )
 
+// Player-games lost is the calibration row. A season is seventeen games, so the rate per
+// game times seventeen is what has to land in range.
+let allInjuries = results.flatMap(\.injuries)
+let missedGames = allInjuries.reduce(0) { $0 + Int($1.gamesOut) }
+let perTeamSeason = Double(missedGames) / teamGames * 17
+print("")
+print("  Injuries")
+print(
+    "    per game (both teams)       \(oneDecimal(Double(allInjuries.count) / Double(max(1, results.count))))"
+)
+print(
+    "    forced out of the game      \(oneDecimal(Double(allInjuries.filter(\.leavesTheGame).count) / Double(max(1, results.count))))"
+)
+row("player-games lost per season", perTeamSeason, 40, 90)
+let longest = allInjuries.map(\.gamesOut).max() ?? 0
+print("    longest absence             \(longest) games")
+
 print("")
 print("  The endgame")
 print(

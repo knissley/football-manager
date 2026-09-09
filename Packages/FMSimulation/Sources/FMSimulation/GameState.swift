@@ -30,6 +30,10 @@ extension GameSimulator {
         var previousBehavior: ClockBehavior = .stopsUntilSnap
 
         var plays: [PlayRecord] = []
+        var injuries: [InjuryEvent] = []
+        /// Anyone who has left this game. Next man up follows from the depth chart, so
+        /// nothing else has to change.
+        var hurt: Set<PlayerID> = []
         var isOver = false
 
         /// Every player's day, drawn once when the game starts.
@@ -86,8 +90,10 @@ extension GameSimulator {
             return PlayContext(
                 offense: offense.id,
                 defense: defense.id,
-                offenseRotation: offense.rotation(),
-                defenseRotation: defense.rotation(),
+                offenseRotation: offense.depthChart.rotation(
+                    unavailable: offense.unavailable.union(hurt)),
+                defenseRotation: defense.depthChart.rotation(
+                    unavailable: defense.unavailable.union(hurt)),
                 players: setup.players,
                 offenseScheme: offense.scheme,
                 defenseScheme: defense.scheme,
@@ -295,8 +301,8 @@ extension GameSimulator {
                 winner = nil
             }
             return GameResult(
-                game: setup.game, plays: plays, homeScore: homeScore, awayScore: awayScore,
-                winner: winner)
+                game: setup.game, plays: plays, injuries: injuries, homeScore: homeScore,
+                awayScore: awayScore, winner: winner)
         }
     }
 }

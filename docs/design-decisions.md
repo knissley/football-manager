@@ -365,6 +365,15 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 200 | **Twelve men is a substitution failure, so hurry-up causes it** | Defensive personnel churn against offensive tempo. Which makes hurry-up a weapon rather than a clock tactic: it does not only save time, it catches defences with twelve on the grass |
 | 201 | **The penalty model never reads leverage** | A flag is not likelier because it is January. It is exactly as likely as it always was and simply matters more, and the analysis layer surfaces it because the swing in win probability is enormous. Arranging the drama would break the honesty pillar |
 
+## Injuries
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 202 | **Injuries are drawn from the play's participants, not inside the resolver** | An injury is about who was involved in contact, not about how the contact was modelled. So it survives the spatial resolver replacing the crude one, at which point real contact severity can feed it instead of the play kind |
+| 203 | **An injury is located by the play it happened on** | `PlayRef` names the game, the game names the week. No stamped date to disagree with anything — the same derived-identity rule that governs plays ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)) |
+| 204 | **A knock played through is still an event** | *He was hurt in the third and stayed in* is a real thing to be able to say, and it is the same event as one that ends a season, only smaller |
+| 205 | **Availability only in M1; severity in M3** | He is out, and for how many games. Rehabilitation, reaggravation and long-term effects built against a resolver being deleted would be tuned twice |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.
