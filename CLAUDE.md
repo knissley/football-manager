@@ -243,9 +243,10 @@ swift format lint --strict --recursive --parallel Packages/ Tools/
                                                           # script that trusts the exit code
                                                           # passes while CI fails
 swift format --in-place --recursive --parallel Packages/ Tools/
+scripts/lint-sim.sh                                       # banned primitives, no Foundation;
+                                                          # see docs/tools.md
 
 # Planned — land with the backlog
-scripts/lint-sim.sh                                       # banned primitives, no Foundation (H2)
 scripts/test-census.sh                                    # test kinds per package (I6)
 cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11   # play-by-play (H4)
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
