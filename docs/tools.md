@@ -102,6 +102,38 @@ swift test --package-path Packages/FMGeneration
 swift test -c release --package-path Packages/FMRandom
 ```
 
+## lint-sim — the determinism and purity lint
+
+```bash
+./scripts/lint-sim.sh
+```
+
+Prints `file:line: what` for every hit and exits 1; exits 0 on a clean tree. It takes
+about two seconds — run it before committing. CI runs it as a hard failure once the
+Linux workflow lands (issue H1); the script is the half that does the work.
+
+It enforces two rules that were conventions with nothing behind them:
+
+- The primitives [ADR-0003](adr/0003-deterministic-seeded-simulation.md) bans in the
+  `Sources/` tree of every `FM*` package — `.random(`, `SystemRandomNumberGenerator`,
+  `.shuffled()`, `.randomElement(`, `UUID(`, `Date(`, `Hasher(`, a clock or environment
+  read — plus the framework imports
+  [ADR-0004](adr/0004-pure-swift-domain-core.md) bans: `Foundation`, `Dispatch`,
+  `SwiftData`, `SwiftUI`, `UIKit` and the rest. `playsize` already catches a framework
+  dependency at link time; this catches it at the import, with a line number.
+- `Hasher` in a `*Golden*Tests.swift`. Swift randomises its hash seed per process, so a
+  golden checksum built on `Hasher` agrees with itself inside one run and disagrees with
+  yesterday's — it cannot detect the drift it exists to detect. Both goldens use FNV-1a.
+
+Comments are stripped before matching, so prose *about* the ban — the doc comment on
+`SplittableRandom` naming `Int.random(in:using:)`, the one on each golden `Checksum`
+saying it is deliberately not `Hasher` — does not trip the lint. String literals are
+not stripped: interpolation can hold real code.
+
+A file that genuinely needs an exemption goes in the `allowlist` array at the top of the
+script as a `"<path> <rule-id>"` pair. It is empty today. Widening it to turn a red lint
+green is the one thing it must not be used for.
+
 ## Formatting
 
 ```bash

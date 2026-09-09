@@ -238,9 +238,10 @@ cd Tools/simharness && swift run simharness --games 400 --seed 7
                                                           # and rare-event rows need --games 1000
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
+scripts/lint-sim.sh                                       # banned primitives, no Foundation;
+                                                          # see docs/tools.md
 
 # Planned — land with the backlog
-scripts/lint-sim.sh                                       # banned primitives, no Foundation (H2)
 scripts/test-census.sh                                    # test kinds per package (I6)
 cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11   # play-by-play (H4)
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
