@@ -53,6 +53,14 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    # Without this the runner picks `sh -e {0}` for steps inside the container, and dash
+    # has no `pipefail` — the first step that asked for it died with "Illegal option -o
+    # pipefail". `bash` here means `bash --noprofile --norc -eo pipefail`, so no step
+    # needs to set either flag itself.
+    shell: bash
+
 concurrency:
   group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
@@ -85,12 +93,14 @@ jobs:
           path: |
             Packages/*/.build
             Tools/*/.build
-          # The manifests are globbed explicitly rather than with `**` so that a
-          # manifest vendored under .build by a future dependency cannot change the key.
+          # Every pattern is depth-fixed, never `**`. The post step re-evaluates this key
+          # on the host after the container has written .build as root, and a `**` glob
+          # walks into those root-owned directories and fails the whole job with "Fail to
+          # hash files under directory". Nothing here descends past a package directory.
           # No Package.resolved exists yet — the FM* packages have no external
-          # dependencies — but it is in the key so the day one lands, the cache turns
-          # over.
-          key: spm-test-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', '**/Package.resolved') }}
+          # dependencies, and hashFiles is content with a pattern that matches nothing —
+          # but it is in the key so the day one lands, the cache turns over.
+          key: spm-test-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', 'Packages/*/Package.resolved', 'Tools/*/Package.resolved') }}
           restore-keys: |
             spm-test-swift6.2-${{ runner.arch }}-
 
@@ -153,7 +163,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Tools/simharness/.build
-          key: spm-harness-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', '**/Package.resolved') }}
+          # Depth-fixed patterns only — see the note on the same key in `test`.
+          key: spm-harness-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', 'Packages/*/Package.resolved', 'Tools/*/Package.resolved') }}
           restore-keys: |
             spm-harness-swift6.2-${{ runner.arch }}-
 
@@ -179,7 +190,6 @@ jobs:
       - name: Calibration table
         if: always()
         run: |
-          set -euo pipefail
           if [ ! -s harness-seed7.txt ]; then
             echo "The harness produced no output — see the failing step above." \
               >> "$GITHUB_STEP_SUMMARY"
