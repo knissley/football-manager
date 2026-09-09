@@ -236,7 +236,12 @@ cd Tools/worldgen && swift run worldgen --help            # inspect generated co
 cd Tools/simharness && swift run simharness --games 400 --seed 7
                                                           # the calibration harness. Weather
                                                           # and rare-event rows need --games 1000
-swift format lint --recursive --parallel Packages/ Tools/ # run before committing
+swift format lint --strict --recursive --parallel Packages/ Tools/
+                                                          # run before committing. Without
+                                                          # --strict the linter prints its
+                                                          # findings and still exits 0, so a
+                                                          # script that trusts the exit code
+                                                          # passes while CI fails
 swift format --in-place --recursive --parallel Packages/ Tools/
 
 # Planned — land with the backlog

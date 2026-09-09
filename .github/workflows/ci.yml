@@ -1,0 +1,225 @@
+# CI — the checks that gate a merge, run on both architectures the sim promises to
+# agree on.
+#
+# ## Required checks
+#
+# Branch protection on `main` should require exactly these two checks (Settings →
+# Branches → "Require status checks to pass"). Only the repo owner can set that; an
+# agent cannot.
+#
+#     test (ubuntu-24.04)
+#     test (ubuntu-24.04-arm)
+#
+# The two `harness (...)` jobs are REPORTING, not gating, and must not be added to the
+# required list. Calibration rows print with an `ok`/`OFF` mark; an `OFF` row does not
+# fail the job today. Flipping a row to gating is a later, per-row decision made in a
+# retune issue, not here.
+#
+# ## Why two architectures
+#
+# Determinism is the guarantee the project calls the most expensive to break: a stored
+# game is the tuple `(initialState, seed, sliderConfig, decisionLog)` and is re-simulated
+# on demand, so drift corrupts saved history rather than merely failing a test
+# (ADR-0003). Floating-point results can differ between arm64 and x86_64, so the golden
+# tests — `GoldenWorldTests` in FMGeneration, `GoldenSeedTests` in FMSimulation — run on
+# both, and a one-digit change to either constant turns both legs red.
+#
+# `ubuntu-24.04-arm` is a GitHub-hosted runner, free while this repository is public. If
+# it ever goes private, the arm leg needs a paid plan or a self-hosted arm64 runner —
+# swap the label rather than deleting the leg.
+#
+# ## Why a container rather than a toolchain install
+#
+# `swift:6.2` is the official image and is published for both linux/amd64 and
+# linux/arm64, so both legs compile with the same toolchain build and neither leg spends
+# two minutes downloading a tarball. If a pull ever fails on the arm leg, do not drop
+# arm64 — drop `container:` for that leg instead and install the toolchain on the runner:
+# either `swift-actions/setup-swift@v2`, or `./scripts/install-swift.sh`, which picks the
+# right tarball for the machine's architecture.
+#
+# ## Cost note
+#
+# `push` is deliberately unfiltered, so a branch is checked before a PR exists. While a
+# PR is open its branch is therefore built twice per push (once for `push`, once for
+# `pull_request`). That is the price of getting a signal on a bare branch; narrow the
+# `push` trigger to `main` if the minutes ever start to matter.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: swift:6.2
+    timeout-minutes: 30
+    steps:
+      - name: Trust the workspace
+        # The job runs as root inside the container; without this git calls from the
+        # checkout action and from SwiftPM can trip "dubious ownership".
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          # SwiftPM keeps each package's artifacts under its own .build; there is no
+          # shared derived-data directory to cache.
+          path: |
+            Packages/*/.build
+            Tools/*/.build
+          # The manifests are globbed explicitly rather than with `**` so that a
+          # manifest vendored under .build by a future dependency cannot change the key.
+          # No Package.resolved exists yet — the FM* packages have no external
+          # dependencies — but it is in the key so the day one lands, the cache turns
+          # over.
+          key: spm-test-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', '**/Package.resolved') }}
+          restore-keys: |
+            spm-test-swift6.2-${{ runner.arch }}-
+
+      - name: Format
+        # `swift format lint` exits 0 even when it reports findings; --strict is what
+        # makes them errors, and without it this step could never fail.
+        run: swift format lint --strict --recursive --parallel Packages/ Tools/
+
+      - name: Banned primitives in the sim
+        # scripts/lint-sim.sh lands with issue #8. The guard lets this branch and that
+        # one merge in either order; delete it once #8 is on main and make this step a
+        # plain `./scripts/lint-sim.sh`.
+        run: |
+          if [ -f scripts/lint-sim.sh ]; then
+            bash scripts/lint-sim.sh
+          else
+            echo "scripts/lint-sim.sh is not on this branch yet — see issue #8. Skipped."
+          fi
+
+      - name: FMRandom
+        run: swift test --package-path Packages/FMRandom
+
+      - name: FMRandom (release)
+        # The RNG's integer maths must give the same answers with optimisation on.
+        run: swift test -c release --package-path Packages/FMRandom
+
+      - name: FMCore
+        run: swift test --package-path Packages/FMCore
+
+      - name: FMGeneration
+        run: swift test --package-path Packages/FMGeneration
+
+      - name: FMSimulation
+        run: swift test --package-path Packages/FMSimulation
+
+      - name: playsize
+        # Also the proof that the FM* modules link standalone, outside a test bundle.
+        run: swift run --package-path Tools/playsize
+
+      - name: worldgen
+        # Nothing else compiles this tool, so without this step it can rot unnoticed.
+        run: swift build --package-path Tools/worldgen
+
+  harness:
+    # Reporting only — see the header. Do not make this a required check.
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: swift:6.2
+    timeout-minutes: 30
+    steps:
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/checkout@v4
+
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: Tools/simharness/.build
+          key: spm-harness-swift6.2-${{ runner.arch }}-${{ hashFiles('Packages/*/Package.swift', 'Tools/*/Package.swift', '**/Package.resolved') }}
+          restore-keys: |
+            spm-harness-swift6.2-${{ runner.arch }}-
+
+      - name: Build
+        run: swift build -c release --package-path Tools/simharness
+
+      - name: Run 400 games at seed 7
+        # --skip-build keeps SwiftPM's progress lines out of the captured output, so the
+        # artifact and the summary table are the harness's own words and nothing else.
+        run: |
+          swift run -c release --skip-build --package-path Tools/simharness \
+            simharness --games 400 --seed 7 > harness-seed7.txt
+          cat harness-seed7.txt
+
+      - name: Upload the full output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simharness-seed7-${{ matrix.runner }}
+          path: harness-seed7.txt
+          if-no-files-found: error
+
+      - name: Calibration table
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -s harness-seed7.txt ]; then
+            echo "The harness produced no output — see the failing step above." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # The harness prints fixed-width columns: label at 3, value at 35, target at
+          # 44, mark at 57. Pick out the rows that carry a target and leave the prose.
+          rows="$(awk '
+            {
+              label  = substr($0, 3, 32)
+              value  = substr($0, 35, 9)
+              target = substr($0, 44, 13)
+              mark   = substr($0, 57)
+              gsub(/^ +| +$/, "", label)
+              gsub(/^ +| +$/, "", value)
+              gsub(/^ +| +$/, "", target)
+              gsub(/^ +| +$/, "", mark)
+              if (label != "" && value ~ /^-?[0-9]+\.[0-9]+$/ && target ~ /^-?[0-9.]+--?[0-9.]+$/)
+                printf "| %s | %s | %s | %s |\n", label, value, target, mark
+            }
+          ' harness-seed7.txt)"
+          {
+            echo "## simharness — 400 games, seed 7 — ${{ matrix.runner }}"
+            echo
+            echo "Reporting only: an \`OFF\` row does not fail this job."
+            echo
+            if [ -n "$rows" ]; then
+              echo "| metric (per team per game) | value | target | |"
+              echo "| --- | ---: | :---: | --- |"
+              echo "$rows"
+            else
+              echo "No calibration rows parsed — the harness's column layout changed, and"
+              echo "the table in this summary needs updating. Full output below."
+            fi
+            echo
+            echo "<details><summary>Full harness output</summary>"
+            echo
+            echo '```text'
+            cat harness-seed7.txt
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"

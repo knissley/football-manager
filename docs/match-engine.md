@@ -291,9 +291,14 @@ settings only**.
 
 ## Calibration
 
-Tuned against `Tools/simharness` — never by playing the app. The harness sims N seasons
-headless and emits distributions as JSON; a checked-in target file defines acceptable
-ranges and CI fails on drift.
+Tuned against `Tools/simharness` — never by playing the app. The harness sims N games
+headless and prints each metric against its target range, marking the row `ok` or `OFF`.
+
+CI runs it at 400 games on seed 7 on both architectures, uploads the output as an
+artifact and puts the table in the job summary — but the job **reports, it does not
+gate**: an `OFF` row is a finding to read, not a red build. *Intent, not yet built:* the
+ranges live in the harness source rather than a checked-in target file, and no row fails
+CI yet. Making a row gating is a per-row decision, taken in a retune issue.
 
 | Metric (per team per season) | Target range |
 | --- | --- |
