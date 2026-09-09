@@ -10,9 +10,10 @@ hardcoded — the world's `Rules` object carries them so we can test variants �
 these are the defaults, and the vocabulary here is the vocabulary the code should use.
 
 **The rulebook we model is the 2025 season.** Every rule statement in
-[`references/game-rules.md`](references/game-rules.md) carries a rule number and that
-season, in our own words. A claim about the sport that cannot cite one does not go in a
-doc, a test name or a PR.
+[`references/game-rules.md`](references/game-rules.md) carries a rule, section and article
+number from that book, in our own words, and was read there. A claim about the sport that
+cannot cite one does not go in a doc, a test name or a PR — and a later book, or reporting
+about one, is not evidence about this one.
 
 Deeper references:
 - [`references/game-rules.md`](references/game-rules.md) — clock, scoring, penalties, overtime
