@@ -390,3 +390,171 @@ print("    Spread of team win totals — the single most important row in the")
 print("    calibration table, and it needs a season with a schedule rather than")
 print("    arbitrary matchups. It arrives with M3.")
 print("    Penalties, injuries and red zone rate — not yet resolved.")
+
+// MARK: - Is this football?
+//
+// The calibration table measures the passing and running game and almost nothing else,
+// which is how the engine came to be tuned to plausible per-play numbers while the shape
+// of a football game around them went unexamined. These rows are the shape: where points
+// come from, how drives end, and where teams start.
+
+print("")
+print("  Where the points come from")
+
+var pointsBySource: [String: Int] = [:]
+var driveEnds: [String: Int] = [:]
+var startingSpots: [Int] = []
+var kickoffEndings: [String: Int] = [:]
+var puntSpots: [Int] = []
+var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
+
+var twoPointTries = 0
+var twoPointGood = 0
+
+for result in results {
+    // A drive is a run of consecutive snaps by one team. Classified by how its last
+    // snap ended, so a drive killed by the clock is counted rather than dropped.
+    var current: (team: TeamID, start: Int, last: PlayRecord)?
+
+    func closeDrive(_ drive: (team: TeamID, start: Int, last: PlayRecord)) {
+        startingSpots.append(drive.start)
+        let play = drive.last
+        let label: String
+        switch play.outcome.endedIn {
+        case .touchdown: label = "touchdown"
+        case .fieldGoalGood: label = "field goal"
+        case .fieldGoalMissed: label = "missed kick"
+        case .intercepted, .fumbleLost: label = "turnover"
+        case .safety: label = "safety"
+        case .fairCatch, .touchback, .downed: label = "punt"
+        default:
+            label =
+                play.situation.down == .fourth
+                    && play.outcome.yards < Int16(play.situation.distance)
+                ? "downs" : "clock ran out"
+        }
+        driveEnds[label, default: 0] += 1
+    }
+
+    for play in result.plays {
+        let outcome = play.outcome
+
+        switch outcome.kind {
+        case .kickoff:
+            kickoffEndings["\(outcome.endedIn)", default: 0] += 1
+        case .punt:
+            puntSpots.append(Int(play.situation.ballOn) - Int(outcome.finalSpot ?? 0))
+        case .fieldGoal:
+            fieldGoalsByDistance.append(
+                (Int(play.situation.ballOn) + 17, outcome.endedIn == .fieldGoalGood))
+        case .twoPointConversion:
+            twoPointTries += 1
+            if outcome.endedIn == .touchdown { twoPointGood += 1 }
+        default:
+            break
+        }
+
+        switch outcome.endedIn {
+        case .touchdown where outcome.kind == .twoPointConversion:
+            pointsBySource["two-point", default: 0] += 2
+        case .touchdown:
+            pointsBySource["touchdown", default: 0] += 6
+        case .fieldGoalGood where outcome.kind == .extraPoint:
+            pointsBySource["extra point", default: 0] += 1
+        case .fieldGoalGood:
+            pointsBySource["field goal", default: 0] += 3
+        case .safety:
+            pointsBySource["safety", default: 0] += 2
+        default:
+            break
+        }
+
+        guard outcome.kind.isScrimmagePlay || outcome.kind == .punt || outcome.kind == .fieldGoal
+        else { continue }
+
+        if let drive = current, drive.team != play.situation.possession {
+            closeDrive(drive)
+            current = nil
+        }
+        if current == nil {
+            current = (play.situation.possession, Int(play.situation.ballOn), play)
+        } else {
+            current?.last = play
+        }
+    }
+    if let drive = current { closeDrive(drive) }
+}
+
+let totalPoints = pointsBySource.values.reduce(0, +)
+for (source, value) in pointsBySource.sorted(by: { $0.value > $1.value }) {
+    let share = Double(value) / Double(max(1, totalPoints)) * 100
+    print(
+        "    \(pad(source, 26))\(pad(oneDecimal(Double(value) / teamGames), 7))\(oneDecimal(share))%"
+    )
+}
+
+print("")
+print("  How drives end")
+let totalDrives = driveEnds.values.reduce(0, +)
+for (end, count) in driveEnds.sorted(by: { $0.value > $1.value }) {
+    let share = Double(count) / Double(max(1, totalDrives)) * 100
+    print(
+        "    \(pad(end, 26))\(pad(oneDecimal(Double(count) / teamGames), 7))\(oneDecimal(share))%")
+}
+print("    \(pad("drives per team-game", 26))\(oneDecimal(Double(totalDrives) / teamGames))")
+
+print("")
+print("  Field position")
+let averageStart = Double(startingSpots.reduce(0, +)) / Double(max(1, startingSpots.count))
+print("    \(pad("average start (own yard)", 30))\(oneDecimal(100 - averageStart))")
+let ownHalf = startingSpots.filter { $0 > 50 }.count
+print(
+    "    \(pad("drives starting in own half", 30))"
+        + "\(oneDecimal(Double(ownHalf) / Double(max(1, startingSpots.count)) * 100))%")
+let averagePunt = Double(puntSpots.reduce(0, +)) / Double(max(1, puntSpots.count))
+print("    \(pad("punts per team-game", 30))\(oneDecimal(Double(puntSpots.count) / teamGames))")
+print("    \(pad("net punt (yards)", 30))\(oneDecimal(averagePunt))")
+print(
+    "    \(pad("two-point tries per team-game", 30))"
+        + "\(oneDecimal(Double(twoPointTries) / teamGames)) (\(twoPointGood) good)")
+
+print("")
+print("  Kicking")
+for (ending, count) in kickoffEndings.sorted(by: { $0.value > $1.value }) {
+    print(
+        "    \(pad("kickoff → \(ending)", 30))"
+            + "\(oneDecimal(Double(count) / Double(max(1, kickoffEndings.values.reduce(0, +))) * 100))%"
+    )
+}
+print(
+    "    \(pad("field goals per team-game", 30))"
+        + "\(oneDecimal(Double(fieldGoalsByDistance.count) / teamGames))")
+for bucket in [(0, 29), (30, 39), (40, 49), (50, 70)] {
+    let inBucket = fieldGoalsByDistance.filter {
+        $0.distance >= bucket.0 && $0.distance <= bucket.1
+    }
+    guard !inBucket.isEmpty else { continue }
+    let made = inBucket.filter(\.good).count
+    print(
+        "    \(pad("  \(bucket.0)-\(bucket.1) yards", 30))"
+            + "\(pad(String(inBucket.count), 7))\(oneDecimal(Double(made) / Double(inBucket.count) * 100))%"
+    )
+}
+
+print("")
+print("  Scoreboard")
+var finals: [String: Int] = [:]
+for result in results {
+    let high = max(result.homeScore, result.awayScore)
+    let low = min(result.homeScore, result.awayScore)
+    finals["\(high)-\(low)", default: 0] += 1
+}
+let common = finals.sorted { ($0.value, $0.key) > ($1.value, $1.key) }.prefix(6)
+print("    most common finals          " + common.map { "\($0.key)" }.joined(separator: "  "))
+let margins = results.map { abs(Int($0.homeScore - $0.awayScore)) }
+for margin in [3, 7] {
+    let within = margins.filter { $0 <= margin }.count
+    print(
+        "    \(pad("games within \(margin)", 30))"
+            + "\(oneDecimal(Double(within) / Double(max(1, results.count)) * 100))%")
+}

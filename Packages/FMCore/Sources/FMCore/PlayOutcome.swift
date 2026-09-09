@@ -105,6 +105,10 @@ public enum PlayRole: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case assistTackler = 8
     case kicker = 9
     case returner = 10
+    /// A defender taking on a block against the run — the run's counterpart to
+    /// `.passRusher`, and the assignment a run fit is made of. He is not credited with a
+    /// tackle unless he makes one.
+    case runDefender = 12
     case other = 11
 
     /// How specific this role is about what the player actually did.
@@ -117,7 +121,7 @@ public enum PlayRole: UInt8, CaseIterable, Sendable, Hashable, Codable {
     var specificity: UInt8 {
         switch self {
         case .other: return 0
-        case .blocker, .coverage, .passRusher, .receiver: return 1
+        case .blocker, .coverage, .passRusher, .runDefender, .receiver: return 1
         case .passer, .rusher, .target, .returner, .kicker: return 2
         case .assistTackler: return 3
         case .tackler: return 4

@@ -461,7 +461,7 @@ public struct CrudeResolver: PlayResolver {
             // linebacker ever made one — and it aimed contact fouls at the first man in
             // this loop rather than at whoever actually made the hit. The tackle
             // sequence names the tackler, and that credit outranks this one.
-            credit(defender, .other)
+            credit(defender, .runDefender)
             decisions.append(
                 .init(
                     tick: UInt16(4 + index), kind: .blockResult, primary: blocker,
