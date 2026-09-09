@@ -160,7 +160,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         if state.pendingTry {
             let provisional = state.situation()
             state.moveToTrySpot(
-                goingForTwo: Self.goesForTwo(
+                goingForTwo: caller.goesForTwo(
                     situation: provisional, classified: SituationClass(provisional)))
         }
 
@@ -171,8 +171,13 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         let calls =
             state.pendingKickoff
             ? Calls(
-                offense: CrudePlaybook.call(.kickoff), defense: .preventShell,
-                offensiveCaller: .automatic, defensiveCaller: .automatic)
+                offense: CrudePlaybook.call(
+                    caller.kicksOnside(situation: situation, classified: classified)
+                        ? .onsideKick : .kickoff),
+                defense: .preventShell,
+                offensiveCaller: caller.kicksOnside(situation: situation, classified: classified)
+                    ? .coordinator(PersonnelID(1)) : .automatic,
+                defensiveCaller: .automatic)
             : state.pendingTry
                 ? tryCalls(situation: situation, classified: classified, random: &random)
                 : Calls(
@@ -205,15 +210,10 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     /// The score here is *before* the touchdown has its try, so trailing by two after
     /// scoring means the conversion ties it, and trailing by five means it cuts the lead
     /// to a field goal. Those are the ones worth taking.
-    static func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
-        classified.time.isEndgame && situation.scoreDifferential < 0
-            && situation.scoreDifferential >= -10
-    }
-
     private func tryCalls(
         situation: Situation, classified: SituationClass, random: inout SplittableRandom
     ) -> Calls {
-        let goesForTwo = Self.goesForTwo(situation: situation, classified: classified)
+        let goesForTwo = caller.goesForTwo(situation: situation, classified: classified)
         return Calls(
             offense: CrudePlaybook.call(goesForTwo ? .twoPointConversion : .extraPoint),
             defense: .goalLineStop,

@@ -26,7 +26,10 @@ public struct CrudeResolver: PlayResolver {
         let personnel = Personnel.onField(context, family: family, random: &random)
 
         // A flag before the snap means the play never happened, whatever was called.
-        if family.isRun || family.isPass,
+        // A punt team false-starts and a field goal team gets called for delay like
+        // anybody else. Tries and kickoffs are left out: a flag there would replay a
+        // pending-try or pending-kickoff state the rules loop consumes on any play.
+        if family.isRun || family.isPass || family == .punt || family == .fieldGoal,
             let foul = Penalties.preSnap(
                 situation: situation, calls: calls, context: context, personnel: personnel,
                 random: &random)
@@ -52,13 +55,9 @@ public struct CrudeResolver: PlayResolver {
         case .twoPointConversion:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
-            return (
-                Outcome(
-                    kind: .kickoff, yards: 0, endedIn: .touchback,
-                    participants: participation(
-                        for: SlotLayout.specialist, personnel, role: .kicker)),
-                []
-            )
+            return kickoff(situation, context, personnel, &random)
+        case .onsideKick:
+            return onsideKick(context, personnel, &random)
         // A kneel and a spike are snaps somebody took. Crediting nobody would leave the
         // quarterback's snap count short and put plays in the stream that happened to
         // no one.
@@ -98,6 +97,31 @@ public struct CrudeResolver: PlayResolver {
             return
         }
         participants.append(Participation(slot: slot, player: id, position: position, role: role))
+    }
+
+    /// Turn a hit into a fumble, if it was one.
+    ///
+    /// Returns the ending and resting spot to use instead of the tackle's. The spot is in
+    /// the offence's frame throughout: a defender who recovers runs *back* towards the
+    /// offence's own goal, so his return **increases** `ballOn`, and reaching a hundred
+    /// is a defensive touchdown.
+    private func looseBall(
+        carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int,
+        personnel: Personnel, context: PlayContext,
+        participants: inout [Participation], random: inout SplittableRandom
+    ) -> (ending: PlayEnding, finalSpot: UInt8)? {
+        guard let tackler,
+            let loose = Fumbles.drawn(
+                carrier: carrier, tackler: tackler, isSack: isSack, personnel: personnel,
+                context: context, random: &random)
+        else { return nil }
+
+        credit(loose.forcedBy, .tackler, personnel, into: &participants)
+        guard loose.lost else {
+            return (.fumbleRecovered, UInt8(max(1, min(99, spot))))
+        }
+        let resting = spot + loose.returnYards
+        return (.fumbleLost, UInt8(max(1, min(100, resting))))
     }
 
     private func participation(
@@ -293,15 +317,25 @@ public struct CrudeResolver: PlayResolver {
                     personnel: personnel, context: context,
                     decisions: &decisions, participants: &participants, startTick: 30,
                     random: &random)
-                let gained = Int16(
+                var gained = Int16(
                     max(-2, 2 + Int(random.next(upperBound: 6)) + scramble.extraYards))
                 let scores = Int(situation.ballOn) - Int(gained) <= 0
+                let dropped =
+                    scores
+                    ? nil
+                    : looseBall(
+                        carrier: SlotLayout.quarterback,
+                        tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
+                        spot: Int(situation.ballOn) - Int(gained), personnel: personnel,
+                        context: context, participants: &participants, random: &random)
+                if dropped?.ending == .fumbleLost { gained = 0 }
                 return (
                     Outcome(
                         kind: .scramble,
                         yards: scores ? Int16(situation.ballOn) : gained,
-                        endedIn: scores ? .touchdown : scramble.ending,
+                        endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
                         participants: participants, penalties: penalty.map { [$0] } ?? [],
+                        finalSpot: dropped?.finalSpot,
                         clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
                     decisions
                 )
@@ -328,11 +362,24 @@ public struct CrudeResolver: PlayResolver {
             let inOwnEndZone: Bool = rawLoss > room
             let loss: Int16 = Int16(-min(rawLoss, room))
             let runoff = UInt16(5 + Int(random.next(upperBound: 3)))
+
+            // The strip sack: he never saw it coming, so it comes out far more often than
+            // it does from a ball carrier who knows the hit is arriving.
+            let strip =
+                inOwnEndZone
+                ? nil
+                : looseBall(
+                    carrier: SlotLayout.quarterback, tackler: pressureBy, isSack: true,
+                    spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
+                    context: context, participants: &participants, random: &random)
+
             return (
                 Outcome(
-                    kind: .sack, yards: inOwnEndZone ? Int16(-room) : loss,
-                    endedIn: inOwnEndZone ? .safety : .tackled,
+                    kind: .sack,
+                    yards: strip?.ending == .fumbleLost ? 0 : (inOwnEndZone ? Int16(-room) : loss),
+                    endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    finalSpot: strip?.finalSpot,
                     clockRunoff: runoff),
                 decisions
             )
@@ -382,8 +429,16 @@ public struct CrudeResolver: PlayResolver {
 
         switch catchResult {
         case .intercepted:
-            credit(target.defender, .coverage)
-            let spot = UInt8(max(1, min(99, Int(situation.ballOn) - depth.yards)))
+            credit(target.defender, .tackler)
+            // He catches it and runs it back. Without a return an interception was worth
+            // exactly where the throw was caught, and a pick six could not happen at all
+            // — the spot was clamped one short of the only value that scores.
+            let caught = Int(situation.ballOn) - depth.yards
+            let ballHawk = rating(.ballHawk, target.defender, personnel, context)
+            let broken = random.nextBool(probability: 0.18 + max(0, (ballHawk - 75) * 0.004))
+            let back =
+                broken ? Int(random.next(upperBound: 70)) + 20 : Int(random.next(upperBound: 14))
+            let spot = UInt8(max(1, min(100, caught + back)))
             return (
                 Outcome(
                     kind: .pass, yards: 0, endedIn: .intercepted, participants: participants,
@@ -398,13 +453,27 @@ public struct CrudeResolver: PlayResolver {
                 participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
-            let gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
-            let ending: PlayEnding = reachesEndZone ? .touchdown : afterCatch.ending
+            var gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
             let kind: PlayKind = isTry ? .twoPointConversion : .pass
+
+            // A receiver can put it on the ground too. A try is left alone: it cannot
+            // fumble into anything but a failed try.
+            let fumble =
+                (reachesEndZone || isTry)
+                ? nil
+                : looseBall(
+                    carrier: target.receiver,
+                    tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
+                    spot: Int(situation.ballOn) - total, personnel: personnel, context: context,
+                    participants: &participants, random: &random)
+            if fumble?.ending == .fumbleLost { gained = 0 }
+            let ending: PlayEnding =
+                fumble?.ending ?? (reachesEndZone ? .touchdown : afterCatch.ending)
             return (
                 Outcome(
                     kind: kind, yards: gained, endedIn: ending,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    finalSpot: fumble?.finalSpot,
                     clockRunoff: runoff),
                 decisions
             )
@@ -513,9 +582,23 @@ public struct CrudeResolver: PlayResolver {
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
-        let gained = Int16(max(-8, min(80, yards)))
-        let reachesEndZone = Int(situation.ballOn) - Int(gained) <= 0
+        var gained = Int16(max(-8, min(80, yards)))
+        var reachesEndZone = Int(situation.ballOn) - Int(gained) <= 0
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
+
+        // The ball on the ground, before the play is allowed to have been a gain.
+        var fumble: (ending: PlayEnding, finalSpot: UInt8)?
+        if !reachesEndZone && !intoOwnEndZone {
+            fumble = looseBall(
+                carrier: SlotLayout.back,
+                tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
+                spot: Int(situation.ballOn) - Int(gained), personnel: personnel, context: context,
+                participants: &participants, random: &random)
+            if fumble?.ending == .fumbleLost {
+                gained = 0
+                reachesEndZone = false
+            }
+        }
 
         // Contact fouls are drawn where the contact happened, on the man who made it.
         if penalty == nil, let tackler = participants.first(where: { $0.role == .tackler })?.slot {
@@ -528,15 +611,148 @@ public struct CrudeResolver: PlayResolver {
             Outcome(
                 kind: .rush,
                 yards: reachesEndZone ? Int16(situation.ballOn) : gained,
-                endedIn: reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending),
+                endedIn: fumble?.ending
+                    ?? (reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending)),
                 participants: participants,
                 penalties: penalty.map { [$0] } ?? [],
+                finalSpot: fumble?.finalSpot,
                 clockRunoff: UInt16(5 + Int(random.next(upperBound: 3)))),
             decisions
         )
     }
 
-    // MARK: - Kicks
+    // MARK: - Kicks and the return game
+
+    /// A kickoff, and what the man back there does with it.
+    ///
+    /// This used to be one line returning a touchback, unconditionally, which meant no
+    /// kick was ever returned, a kicker's leg was irrelevant on the one play it most
+    /// obviously matters, and every drive after a score started on the same yard line.
+    private func kickoff(
+        _ situation: Situation, _ context: PlayContext, _ personnel: Personnel,
+        _ random: inout SplittableRandom
+    ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
+        var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
+
+        // How deep it goes. A strong leg buys touchbacks, which is the whole reason
+        // teams pay for one.
+        let leg = rating(.kickPower, SlotLayout.specialist, personnel, context)
+        var touchbackChance = 0.50 + (leg - 68) * 0.012
+        if situation.weather.windSpeed > 15 { touchbackChance -= 0.10 }
+        if situation.weather.isIndoors { touchbackChance += 0.04 }
+
+        if random.nextBool(probability: min(0.88, max(0.25, touchbackChance))) {
+            return (
+                Outcome(kind: .kickoff, yards: 0, endedIn: .touchback, participants: participants),
+                []
+            )
+        }
+
+        // Fielded and brought out. He starts around his own goal line, so the yard line
+        // he reaches *is* the return.
+        var decisions: [DecisionPoint] = []
+        let start = -Int(random.next(upperBound: 6))
+        let run = returnRun(
+            from: start, average: 26, breakawayChance: 0.0028, personnel: personnel,
+            context: context, participants: &participants, decisions: &decisions,
+            random: &random)
+
+        if run.scores {
+            return (
+                Outcome(
+                    kind: .kickoff, yards: 0, endedIn: .touchdown, participants: participants,
+                    finalSpot: 100, clockRunoff: 12),
+                decisions
+            )
+        }
+        return (
+            Outcome(
+                kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
+                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: UInt16(6 + run.spot / 12)),
+            decisions
+        )
+    }
+
+    /// A kick kept deliberately short, so the kicking team can fight for it.
+    ///
+    /// The one play that lets a trailing team get the ball back without a stop, and its
+    /// absence meant the last two minutes of a two-score game had no football left in
+    /// them.
+    private func onsideKick(
+        _ context: PlayContext, _ personnel: Personnel, _ random: inout SplittableRandom
+    ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
+        var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
+
+        // A kick everyone in the stadium knows is coming. Roughly one in nine.
+        let recovered = random.nextBool(probability: 0.11)
+        // It has to travel ten yards, so it is recovered around the kicking team's
+        // forty-five whoever comes up with it.
+        let spot = 45 + Int(random.next(upperBound: 7))
+
+        if recovered {
+            for slot in SlotLayout.coverageUnit.prefix(2) {
+                credit(slot.0, .other, personnel, into: &participants)
+            }
+            return (
+                Outcome(
+                    kind: .kickoff, yards: 0, endedIn: .fumbleRecovered,
+                    participants: participants,
+                    finalSpot: UInt8(max(1, min(99, 100 - spot))), clockRunoff: 5),
+                []
+            )
+        }
+        credit(SlotLayout.returner, .returner, personnel, into: &participants)
+        return (
+            Outcome(
+                kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
+                finalSpot: UInt8(max(1, min(99, spot))), clockRunoff: 5),
+            []
+        )
+    }
+
+    /// A man with the ball in space, and the coverage running at him.
+    ///
+    /// Shared by both kinds of return because they are the same problem: most are
+    /// ordinary, the occasional one is gone. `from` is where he fields it, measured from
+    /// his own goal line, and the result is the yard line he reaches in the same frame.
+    private func returnRun(
+        from start: Int, average: Int, breakawayChance: Double,
+        personnel: Personnel, context: PlayContext,
+        participants: inout [Participation], decisions: inout [DecisionPoint],
+        random: inout SplittableRandom
+    ) -> (spot: Int, scores: Bool) {
+        let returner =
+            personnel[SlotLayout.returner] != nil ? SlotLayout.returner : SlotLayout.secondReturner
+        credit(returner, .returner, personnel, into: &participants)
+
+        let burst =
+            (context.effective(.speed, for: personnel[returner], onOffense: false)
+                + context.effective(.elusiveness, for: personnel[returner], onOffense: false)) / 2
+
+        var gained = average + Int((burst - 68) * 0.22) + Int(random.next(upperBound: 15)) - 7
+        decisions.append(
+            .init(
+                tick: 20, kind: .holeQuality, primary: returner, detail: 2,
+                value: Int16(clamping: gained)))
+
+        // He beats the first wave, and then it is a footrace. This is where a return
+        // touchdown comes from, and it has to be rare: a house call on one kick in
+        // thirty is a different sport.
+        if random.nextBool(probability: breakawayChance + max(0, (burst - 80) * 0.0016)) {
+            return (100, true)
+        }
+
+        // Otherwise somebody on the coverage unit gets him.
+        var remaining = SlotLayout.coverageUnit.filter { personnel[$0.0] != nil }
+        if let index = random.weightedIndex(remaining.map(\.1)) {
+            let tackler = remaining.remove(at: index).0
+            credit(tackler, .tackler, personnel, into: &participants)
+            let pursuit = context.effective(.pursuit, for: personnel[tackler], onOffense: true)
+            gained -= Int((pursuit - 68) * 0.10)
+        }
+
+        return (max(1, min(99, start + max(0, gained))), false)
+    }
 
     private func punt(
         _ situation: Situation, _ context: PlayContext, _ personnel: Personnel,
@@ -546,21 +762,77 @@ public struct CrudeResolver: PlayResolver {
             42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60) * 0.25
         let distance = Int(power) + Int(random.next(upperBound: 14)) - 7
         let landing = Int(situation.ballOn) - distance
-        let punter = participation(for: SlotLayout.specialist, personnel, role: .kicker)
+        var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
+        var decisions: [DecisionPoint] = []
 
         if landing <= 0 {
             return (
                 Outcome(
-                    kind: .punt, yards: 0, endedIn: .touchback, participants: punter,
+                    kind: .punt, yards: 0, endedIn: .touchback, participants: participants,
                     clockRunoff: 6),
                 []
             )
         }
+
+        // Accuracy is what turns distance into field position: the punter who can place
+        // it inside the ten is worth more than the one who simply hits it a long way.
+        let placement = rating(.puntAccuracy, SlotLayout.specialist, personnel, context)
+        let pinned = landing <= 12
+
+        // What the man back there does with it. Close to his own goal he lets it go and
+        // hopes it bounces; in the middle of the field he catches it and runs.
+        let letItGo = pinned ? 0.30 + (placement - 68) * 0.005 : 0.10
+        if random.nextBool(probability: min(0.55, max(0.05, letItGo))) {
+            // Downed by the coverage team, or run out of bounds — either way the ball is
+            // dead where it stopped and nobody returned it.
+            let roll = random.next(upperBound: 10)
+            let drift = Int(random.next(upperBound: 5))
+            if let index = random.weightedIndex(SlotLayout.coverageUnit.map(\.1)) {
+                credit(SlotLayout.coverageUnit[index].0, .other, personnel, into: &participants)
+            }
+            return (
+                Outcome(
+                    kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
+                    participants: participants,
+                    finalSpot: UInt8(max(1, min(99, landing + drift))), clockRunoff: 6),
+                []
+            )
+        }
+
+        // Fair catch or return. Hang time buys the coverage team the chance to make him
+        // wave it off; a returner with something about him takes it anyway.
+        let returner =
+            personnel[SlotLayout.returner] != nil ? SlotLayout.returner : SlotLayout.secondReturner
+        let nerve = context.effective(.elusiveness, for: personnel[returner], onOffense: false)
+        let fairCatch = 0.42 + (placement - 68) * 0.006 - (nerve - 68) * 0.004
+        if random.nextBool(probability: min(0.85, max(0.15, fairCatch))) {
+            credit(returner, .returner, personnel, into: &participants)
+            return (
+                Outcome(
+                    kind: .punt, yards: 0, endedIn: .fairCatch, participants: participants,
+                    finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
+                []
+            )
+        }
+
+        let run = returnRun(
+            from: landing, average: 9, breakawayChance: 0.009, personnel: personnel,
+            context: context, participants: &participants, decisions: &decisions,
+            random: &random)
+
+        if run.scores {
+            return (
+                Outcome(
+                    kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
+                    finalSpot: 100, clockRunoff: 12),
+                decisions
+            )
+        }
         return (
             Outcome(
-                kind: .punt, yards: 0, endedIn: .fairCatch, participants: punter,
-                finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
-            []
+                kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
+                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: 8),
+            decisions
         )
     }
 

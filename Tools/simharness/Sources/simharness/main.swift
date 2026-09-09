@@ -51,6 +51,13 @@ func oneDecimal(_ value: Double) -> String {
     return "\(scaled / 10).\(abs(scaled % 10))"
 }
 
+/// Two places, for rates small enough that one hides the whole signal — a fifth of a
+/// touchdown per team-game reads as "0.1" and tells you nothing.
+func twoDecimals(_ value: Double) -> String {
+    let scaled = Int((value * 100).rounded())
+    return "\(scaled / 100).\(scaled % 100 < 10 ? "0" : "")\(scaled % 100)"
+}
+
 func row(_ label: String, _ value: Double, _ low: Double, _ high: Double, owned: Bool = true) {
     let mark = !owned ? "·" : (value >= low && value <= high ? "ok" : "OFF")
     print(
@@ -423,18 +430,26 @@ for result in results {
         startingSpots.append(drive.start)
         let play = drive.last
         let label: String
-        switch play.outcome.endedIn {
-        case .touchdown: label = "touchdown"
-        case .fieldGoalGood: label = "field goal"
-        case .fieldGoalMissed: label = "missed kick"
-        case .intercepted, .fumbleLost: label = "turnover"
-        case .safety: label = "safety"
-        case .fairCatch, .touchback, .downed: label = "punt"
+        // Classify by what the play *was* before how it ended. A punt that gets returned
+        // ends in a tackle on fourth down, which read as a turnover on downs and put that
+        // row at 19% against a real 5% — the drive chart was calling punts failed
+        // fourth-down gambles.
+        switch play.outcome.kind {
+        case .punt:
+            label = play.outcome.endedIn == .touchdown ? "punt returned for a score" : "punt"
+        case .fieldGoal:
+            label = play.outcome.endedIn == .fieldGoalGood ? "field goal" : "missed kick"
         default:
-            label =
-                play.situation.down == .fourth
-                    && play.outcome.yards < Int16(play.situation.distance)
-                ? "downs" : "clock ran out"
+            switch play.outcome.endedIn {
+            case .touchdown: label = "touchdown"
+            case .intercepted, .fumbleLost: label = "turnover"
+            case .safety: label = "safety"
+            default:
+                label =
+                    play.situation.down == .fourth
+                        && play.outcome.yards < Int16(play.situation.distance)
+                    ? "downs" : "clock ran out"
+            }
         }
         driveEnds[label, default: 0] += 1
     }
@@ -562,6 +577,72 @@ for bucket in [(0, 29), (30, 39), (40, 49), (50, 70)] {
             + "\(pad(String(inBucket.count), 7))\(oneDecimal(Double(made) / Double(inBucket.count) * 100))%"
     )
 }
+
+print("")
+print("  Turnovers and the return game")
+let fumblesLost = allPlays.filter { $0.outcome.endedIn == .fumbleLost }
+let fumblesKept = allPlays.filter { $0.outcome.endedIn == .fumbleRecovered }
+print(
+    "    \(pad("fumbles lost per team-game", 30))\(pad(oneDecimal(Double(fumblesLost.count) / teamGames), 8))0.5-0.8"
+)
+print(
+    "    \(pad("fumbles kept per team-game", 30))\(pad(oneDecimal(Double(fumblesKept.count) / teamGames), 8))0.4-0.8"
+)
+let takeaways = fumblesLost.count + interceptions.count
+print(
+    "    \(pad("turnovers per team-game", 30))\(pad(oneDecimal(Double(takeaways) / teamGames), 8))1.1-1.6"
+)
+
+// A touchdown the offence did not score. Real football takes about a fifth of a point
+// per team-game from each source, and this engine produced none of them at all.
+var returnScores: [String: Int] = [:]
+for play in allPlays where play.outcome.endedIn == .touchdown {
+    switch play.outcome.kind {
+    case .kickoff: returnScores["kickoff return", default: 0] += 1
+    case .punt: returnScores["punt return", default: 0] += 1
+    default:
+        if play.outcome.finalSpot == 100 {
+            returnScores[
+                play.outcome.kind == .pass ? "interception return" : "fumble return", default: 0] +=
+                1
+        }
+    }
+}
+for play in allPlays where play.outcome.finalSpot == 100 && play.outcome.endedIn != .touchdown {
+    returnScores[
+        play.outcome.endedIn == .intercepted ? "interception return" : "fumble return", default: 0] +=
+        1
+}
+let nonOffensive = returnScores.values.reduce(0, +)
+print(
+    "    \(pad("touchdowns not by the offence", 30))\(pad(twoDecimals(Double(nonOffensive) / teamGames), 8))0.15-0.28"
+)
+for (source, count) in returnScores.sorted(by: { $0.value > $1.value }) {
+    print(
+        "      \(pad(source, 28))\(pad(twoDecimals(Double(count) / teamGames), 8))\(count) in \(Int(teamGames)) team-games"
+    )
+}
+
+var kickoffReturns = 0
+var onside = 0
+var onsideRecovered = 0
+for play in allPlays where play.outcome.kind == .kickoff {
+    if play.calls.offense.design == CrudePlaybook.design(for: .onsideKick) {
+        onside += 1
+        if play.outcome.endedIn == .fumbleRecovered { onsideRecovered += 1 }
+    } else if play.outcome.endedIn != .touchback {
+        kickoffReturns += 1
+    }
+}
+print("    \(pad("onside kicks (recovered)", 30))\(onside) (\(onsideRecovered))")
+print(
+    "    \(pad("kickoffs returned", 30))\(kickoffReturns) of \(allPlays.filter { $0.outcome.kind == .kickoff }.count)"
+)
+let puntsReturned = allPlays.filter { $0.outcome.kind == .punt && $0.outcome.endedIn == .tackled }
+    .count
+print(
+    "    \(pad("punts returned", 30))\(puntsReturned) of \(allPlays.filter { $0.outcome.kind == .punt }.count)"
+)
 
 print("")
 print("  Scoreboard")

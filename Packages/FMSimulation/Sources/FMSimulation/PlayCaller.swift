@@ -36,6 +36,37 @@ public protocol PlayCaller: Sendable {
         for situation: Situation, classified: SituationClass, isOffense: Bool,
         context: PlayContext
     ) -> Bool
+
+    /// Whether to go for two after this touchdown.
+    ///
+    /// The score here is *before* the try, so trailing by two means the conversion ties
+    /// it and trailing by five means it cuts the lead to a field goal.
+    func goesForTwo(situation: Situation, classified: SituationClass) -> Bool
+
+    /// Whether to keep the kickoff short and fight for it.
+    ///
+    /// Note the frame: the *kicking* team has possession on a kickoff, so a negative
+    /// differential here is the team that just scored and is still behind.
+    func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
+}
+
+extension PlayCaller {
+
+    /// The conventional chart, and the floor any real caller has to beat. A coach with a
+    /// gameplan overrides these; one without still has to answer the question, because a
+    /// team that never goes for two and never kicks onside cannot come back from ten.
+    public func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
+        classified.time.isEndgame && situation.scoreDifferential < 0
+            && situation.scoreDifferential >= -10
+    }
+
+    public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
+        guard situation.quarter >= 4, situation.scoreDifferential < 0 else { return false }
+        // Two scores down: any time inside the last three minutes.
+        if situation.scoreDifferential <= -9 && situation.clockRemaining <= 180 { return true }
+        // One score down with no realistic way to get the ball back and score again.
+        return situation.clockRemaining <= 50 && situation.defenseTimeouts == 0
+    }
 }
 
 /// A caller with no memory, no gameplan and no opinion about the opponent.

@@ -29,10 +29,7 @@ struct VocabularyCoverageTests {
     static let unreachableKinds: [PlayKind: String] = [:]
 
     static let unreachableEndings: [PlayEnding: String] = [
-        .fumbleLost: "M5 — the crude resolver models no ball security at all.",
-        .fumbleRecovered: "M5 — likewise; a fumble the offence keeps needs the same code.",
-        .downed: "M2 — punts are resolved as a net distance, with no coverage team.",
-        .blocked: "M2 — no rush lane exists on a kick, so nothing can get a hand up.",
+        .blocked: "M3 — no rush lane exists on a kick, so nothing can get a hand up."
     ]
 
     private static func result(seed: UInt64) -> GameResult {
@@ -174,8 +171,7 @@ struct VocabularyCoverageTests {
     @Test("Every play role gets credited to somebody")
     func everyRoleIsCredited() {
         let unreachable: [PlayRole: String] = [
-            .returner: "M2 — a kick is fielded, never run back.",
-            .assistTackler: "M5 — the crude resolver credits a single tackler.",
+            .assistTackler: "M5 — the crude resolver credits a single tackler."
         ]
         let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.role))
         for role in PlayRole.allCases where unreachable[role] == nil {

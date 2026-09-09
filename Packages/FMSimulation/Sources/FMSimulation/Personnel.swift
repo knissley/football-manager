@@ -148,6 +148,18 @@ enum SlotLayout {
         (PlayerSlot(17), 1), (PlayerSlot(18), 1), (PlayerSlot(19), 1),
     ]
 
+    /// The man back to field a kick, and the second one beside him. Both sit in the
+    /// return unit's defensive slots, because on a kick the *kicking* team has
+    /// possession — the returner is on the side that does not.
+    static let returner = PlayerSlot(21)
+    static let secondReturner = PlayerSlot(20)
+
+    /// The coverage team running down to meet him.
+    static let coverageUnit: [(PlayerSlot, Double)] = [
+        (PlayerSlot(1), 2), (PlayerSlot(2), 2), (PlayerSlot(3), 2), (PlayerSlot(4), 2),
+        (PlayerSlot(5), 2), (PlayerSlot(6), 1), (PlayerSlot(7), 1),
+    ]
+
     static let quarterback = PlayerSlot(0)
     static let back = PlayerSlot(1)
     /// Slot 0 again, named for what sits there on a kick. Reading `quarterback` in the

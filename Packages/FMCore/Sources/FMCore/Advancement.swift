@@ -87,6 +87,49 @@ extension Rules {
             requiresKickoff: true)
     }
 
+    /// A kickoff or a punt, which are the same rules problem: the ball changes hands as
+    /// a matter of course, and where it ends up is the whole point of the play.
+    ///
+    /// `finalSpot` is in the *kicking* team's frame like every other spot, so the flip at
+    /// the end is what makes the receiving team's field position read correctly.
+    private func advanceKick(from situation: Situation, outcome: Outcome) -> Advancement {
+        switch outcome.endedIn {
+        case .touchback:
+            // A kickoff into the end zone comes out further than a punt into it.
+            let spot = outcome.kind == .kickoff ? kickoffTouchbackSpot : puntTouchbackSpot
+            let downs = freshDowns(at: spot)
+            return Advancement(
+                ballOn: spot, down: downs.down, distance: downs.distance,
+                possessionChanged: true)
+
+        case .touchdown:
+            // Taken back the other way. The receiving team scores, so from the kicking
+            // team's point of view this is a defensive touchdown, and the *returning*
+            // team is the one that owes a try.
+            return Advancement(
+                ballOn: extraPointSnapYard, down: .first, distance: 1,
+                possessionChanged: true, scoring: .defensiveTouchdown, points: touchdown,
+                requiresTry: true)
+
+        case .fumbleRecovered:
+            // The kicking team kept it: an onside kick recovered, or a muff fallen on.
+            // No flip, and a fresh set where it was recovered.
+            let spot = UInt8(max(1, min(99, Int(outcome.finalSpot ?? situation.ballOn))))
+            let downs = freshDowns(at: spot)
+            return Advancement(ballOn: spot, down: downs.down, distance: downs.distance)
+
+        default:
+            // Fielded and then fair caught, downed, run out of bounds, or returned and
+            // tackled. All of them hand the ball over where it stopped.
+            let resting = Int(outcome.finalSpot ?? situation.ballOn)
+            let theirSpot = UInt8(max(1, min(99, 100 - resting)))
+            let downs = freshDowns(at: theirSpot)
+            return Advancement(
+                ballOn: theirSpot, down: downs.down, distance: downs.distance,
+                possessionChanged: true)
+        }
+    }
+
     /// Where the ball goes next, and who has it.
     public func advance(from situation: Situation, outcome: Outcome) -> Advancement {
         // What kind of play this was decides the rules that apply to it, and asking only
@@ -94,6 +137,9 @@ extension Rules {
         // was spotted like a punt's.
         if outcome.kind == .extraPoint || outcome.kind == .twoPointConversion {
             return advanceTry(outcome)
+        }
+        if outcome.kind == .kickoff || outcome.kind == .punt {
+            return advanceKick(from: situation, outcome: outcome)
         }
 
         // The offence's frame throughout: yards gained bring the ball closer to the
@@ -135,11 +181,9 @@ extension Rules {
                 possessionChanged: true)
 
         case .touchback:
-            // A kickoff into the end zone and a punt into it are not spotted alike: the
-            // kickoff comes out to the thirty and the punt to the twenty. Both used the
-            // punt's spot, which cost the receiving team ten yards on every possession
-            // after a score.
-            let spot = outcome.kind == .kickoff ? kickoffTouchbackSpot : puntTouchbackSpot
+            // Kicks are handled above; what is left here is a touchback from a play from
+            // scrimmage — a fumble through the end zone — which is spotted like a punt's.
+            let spot = puntTouchbackSpot
             let downs = freshDowns(at: spot)
             return Advancement(
                 ballOn: spot, down: downs.down, distance: downs.distance,

@@ -113,6 +113,77 @@ struct TryAndTouchbackTests {
         #expect(kickoff.possessionChanged && punt.possessionChanged)
     }
 
+    /// A kick that is fielded and run back hands the ball over where the return stopped.
+    /// This used to fall through to `advanceDown`, which does not change possession at
+    /// all — so a returned kick would have given the ball back to the kicking team.
+    @Test("A returned kick changes hands where the return ended")
+    func returnedKickChangesHands() {
+        let situation = Situation(
+            quarter: 1, clockRemaining: 900, down: .first, distance: 10,
+            ballOn: rules.ballOnFromOwnYard(rules.kickoffFromOwnYard), possession: TeamID(1))
+
+        // Brought out to his own twenty-two, which is spot 22 in the kicking team's frame.
+        let advancement = rules.advance(
+            from: situation,
+            outcome: Outcome(kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: 22))
+
+        #expect(advancement.possessionChanged)
+        #expect(advancement.ballOn == 78, "his own twenty-two is 78 from the other goal line")
+        #expect(advancement.down == .first)
+        #expect(advancement.distance == rules.yardsToGain)
+    }
+
+    /// A return taken the distance scores for the team that did not have the ball, and
+    /// *they* are the ones who then owe a try.
+    @Test("A kick returned all the way is a touchdown for the returning team")
+    func kickReturnedForScore() {
+        for kind in [PlayKind.kickoff, .punt] {
+            let advancement = rules.advance(
+                from: Situation(
+                    quarter: 3, clockRemaining: 400, down: .fourth, distance: 8, ballOn: 70,
+                    possession: TeamID(1)),
+                outcome: Outcome(kind: kind, yards: 0, endedIn: .touchdown, finalSpot: 100))
+
+            #expect(advancement.scoring == .defensiveTouchdown)
+            #expect(advancement.points == 6)
+            #expect(advancement.possessionChanged, "the returning team has the ball for the try")
+            #expect(advancement.requiresTry)
+        }
+    }
+
+    /// The one kick the kicking team means to keep. Recovering it must not flip
+    /// possession, which is the entire point of trying it.
+    @Test("An onside kick the kicking team recovers does not change hands")
+    func onsideRecovered() {
+        let advancement = rules.advance(
+            from: Situation(
+                quarter: 4, clockRemaining: 90, down: .first, distance: 10,
+                ballOn: rules.ballOnFromOwnYard(rules.kickoffFromOwnYard), possession: TeamID(1)),
+            outcome: Outcome(kind: .kickoff, yards: 0, endedIn: .fumbleRecovered, finalSpot: 52))
+
+        #expect(advancement.possessionChanged == false)
+        #expect(advancement.ballOn == 52)
+        #expect(advancement.down == .first)
+    }
+
+    /// A fair catch and a downed punt are the same rule from two directions, and both
+    /// have to flip the frame or the receiving team's field position reads backwards.
+    @Test(
+        "A punt fielded or downed hands over at the flipped spot",
+        arguments: [
+            PlayEnding.fairCatch, .downed, .outOfBounds, .tackled,
+        ])
+    func puntHandsOver(ending: PlayEnding) {
+        let advancement = rules.advance(
+            from: Situation(
+                quarter: 2, clockRemaining: 300, down: .fourth, distance: 9, ballOn: 70,
+                possession: TeamID(1)),
+            outcome: Outcome(kind: .punt, yards: 0, endedIn: ending, finalSpot: 18))
+
+        #expect(advancement.possessionChanged)
+        #expect(advancement.ballOn == 82, "downed on their 18 is their own 18")
+    }
+
     /// The arithmetic a scoreboard is actually made of. A drive chart that adds up is the
     /// cheapest possible check that the scoring rules are the sport's.
     @Test("A touchdown and the kick are worth seven, and two field goals are six")

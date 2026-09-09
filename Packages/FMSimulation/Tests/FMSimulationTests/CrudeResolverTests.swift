@@ -202,19 +202,30 @@ struct CrudeResolverTests {
 
     /// Offence and defence live on opposite sides of the slot convention. A defender
     /// credited in an offensive slot would make every team-derived statistic wrong.
+    ///
+    /// A kick inverts it, and that is the sport rather than an exception to code around:
+    /// the kicking team has possession, so the man carrying the ball is on the
+    /// *defensive* side and the men chasing him are on the offensive one. Getting this
+    /// backwards would put a punt return on the punting team's stat line.
     @Test("Participants sit on the correct side of the slot convention")
     func slotsMatchSides() {
         for play in game().plays {
+            let kick = play.outcome.kind == .kickoff || play.outcome.kind == .punt
+
             for participant in play.outcome.participants {
-                let isOffensiveRole: Bool
+                let hasTheBall: Bool
                 switch participant.role {
-                case .passer, .rusher, .receiver, .target, .blocker: isOffensiveRole = true
-                case .passRusher, .coverage, .tackler, .assistTackler: isOffensiveRole = false
+                case .passer, .rusher, .receiver, .target, .blocker: hasTheBall = true
+                case .returner: hasTheBall = true
+                case .passRusher, .coverage, .tackler, .assistTackler, .runDefender:
+                    hasTheBall = false
                 default: continue
                 }
+                // The side with the ball is the offence, except on a kick.
                 #expect(
-                    participant.slot.isOffense == isOffensiveRole,
-                    "\(participant.role) in slot \(participant.slot.rawValue)")
+                    participant.slot.isOffense == (kick ? !hasTheBall : hasTheBall),
+                    "\(participant.role) in slot \(participant.slot.rawValue) on a \(play.outcome.kind)"
+                )
             }
         }
     }

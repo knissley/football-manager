@@ -46,7 +46,7 @@ worth, and the two-point decision is made before the situation is built so the t
 snapped from the two. The same root cause was behind the kickoff touchback spot in S2,
 which is fixed with it. Scores now look like the sport's: 20-10, 24-20, 23-20, 24-17.
 
-## S2 — Field position is a dead variable
+## S2 — Field position is a dead variable — **fixed**
 
 Field position is one of the two or three things a football game is *about*. Here it
 barely moves.
@@ -59,6 +59,7 @@ barely moves.
 - **Kickoff touchbacks use the punt spot.** `Advancement` routes both through
   `puntTouchbackSpot`, the own 20. A kickoff touchback is the 30 under current rules (the
   25 before 2024), so every possession after a score starts five to ten yards too deep.
+  (Fixed with S1 — same root cause.)
 - **No punt returns.** A punt is a fair catch or a touchback. Net punting reads 44.5 yards
   against a real 41–42 — flattering, because nothing is ever returned.
 - **No fumbles at all**, and an interception is spotted where it was caught with no return,
@@ -66,6 +67,32 @@ barely moves.
 
 Turnovers end 8.2% of drives against a real 11–12%, and the short field that makes a
 turnover worth more than its count does not exist.
+
+**Fixed.** The kicking game is a phase now rather than a way of ending a drive:
+
+- `Rules.advance` gained an `advanceKick` branch beside `advanceTry`, for the same reason
+  — a kick is its own rules problem and asking only how the play *ended* cannot tell a
+  returned punt from a fourth-down stop.
+- Kickoffs are returned or not depending on the kicker's leg and the weather; touchbacks
+  run about 62%. Punts are fair caught, downed, run out of bounds or returned, and net
+  punting fell from a flattering 44.5 to a realistic 40.4 now that returns come off it.
+- **Onside kicks exist**, so a trailing team can get the ball back. About one in nine is
+  recovered, and the decision to try one belongs to the caller.
+- **Fumbles exist**, in `Fumbles`, driven by `carrying` against `hitPower` — ratings that
+  nothing had ever read. Strip sacks come loose at five times the rate of a hit on a
+  runner who saw it coming. Fumbles lost run 0.6 per team-game against a real 0.5–0.8, and
+  turnovers overall 1.4 against 1.1–1.6.
+- **Interceptions are returned**, so a pick six is possible. It was not merely rare
+  before: the spot was clamped one yard short of the only value that scores.
+
+Touchdowns the offence did not score now run 0.15 per team-game — 0.08 from interception
+returns, 0.04 from fumbles, 0.02 from punt returns, 0.01 from kickoffs — against a real
+figure near 0.18 that also includes the blocked kicks this engine still does not model.
+
+What remains: **90.2% of drives still start in the offence's own half** against a real
+75–82%, down from 95.6%. Average start is the own 30, which is right. The distribution is
+still too tight, and the rest of it is the fourth-down conservatism in S4 and the blocked
+kicks in S6 rather than anything left in the return game.
 
 ## S3 — One personnel grouping, one defensive package, all game
 

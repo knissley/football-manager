@@ -27,6 +27,10 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case kickoff = 11
     case extraPoint = 12
     case twoPointConversion = 13
+    /// A kick deliberately kept short so the kicking team can fight for it. Its own
+    /// family because it is a different play, not a kickoff with a flag on it: different
+    /// personnel, a different decision, and a different distribution of outcomes.
+    case onsideKick = 14
 
     public var isRun: Bool { self == .insideRun || self == .outsideRun }
 
@@ -52,7 +56,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         switch self {
         case .punt: return SlotLayout.puntUnit
         case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
-        case .kickoff: return SlotLayout.kickoffUnit
+        case .kickoff, .onsideKick: return SlotLayout.kickoffUnit
         default: return SlotLayout.offense
         }
     }
@@ -62,7 +66,8 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// field for, and their snap counts should say so.
     var defenseLayout: [(Position, Int)] {
         switch self {
-        case .punt, .fieldGoal, .extraPoint, .kickoff: return SlotLayout.returnUnit
+        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick:
+            return SlotLayout.returnUnit
         default: return SlotLayout.defense
         }
     }
@@ -75,7 +80,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         case .fieldGoal: return .fieldGoal
         case .kneel: return .kneel
         case .spike: return .spike
-        case .kickoff: return .kickoff
+        case .kickoff, .onsideKick: return .kickoff
         case .extraPoint: return .extraPoint
         case .twoPointConversion: return .twoPointConversion
         }

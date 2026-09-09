@@ -343,6 +343,11 @@ football?**:
 | Field goals made, 50+ yards | 60–70% |
 | Extra points made | 93–97% |
 | Games decided by 3 or fewer | 25–31% |
+| Fumbles lost per team per game | 0.5–0.8 |
+| Turnovers per team per game | 1.1–1.6 |
+| Touchdowns not scored by the offence | 0.15–0.28 |
+| Kickoffs returned | 30–40% |
+| Punts returned | 33–42% |
 
 A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
 and a half yards every time, and that would be nothing like the sport — which is why the
