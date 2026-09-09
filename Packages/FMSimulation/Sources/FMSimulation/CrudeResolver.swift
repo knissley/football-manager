@@ -27,13 +27,13 @@ public struct CrudeResolver: PlayResolver {
             context, family: family, situation: situation, random: &random)
 
         // A flag before the snap means the play never happened, whatever was called.
-        // A punt team false-starts and a field goal team gets called for delay like
-        // anybody else. Tries and kickoffs are left out: a flag there would replay a
-        // pending-try or pending-kickoff state the rules loop consumes on any play.
-        if family.isRun || family.isPass || family == .punt || family == .fieldGoal,
-            let foul = Penalties.preSnap(
-                situation: situation, calls: calls, context: context, personnel: personnel,
-                random: &random)
+        // Every snap can draw one, kicks included. Tries and kickoffs used to be excluded
+        // because a flag there cancelled the try or the kickoff outright — the rules loop
+        // consumed the pending state on any play, including one that never happened. It
+        // replays them properly now.
+        if let foul = Penalties.preSnap(
+            situation: situation, calls: calls, context: context, personnel: personnel,
+            random: &random)
         {
             return (
                 Outcome(
@@ -328,7 +328,7 @@ public struct CrudeResolver: PlayResolver {
 
             if penalty == nil {
                 penalty = Penalties.whenBeatenInCoverage(
-                    defender: defender, separationCentimetres: separation,
+                    defender: defender, receiver: receiver, separationCentimetres: separation,
                     routeDepth: depth.yards, personnel: personnel, context: context,
                     random: &random)
             }
@@ -434,6 +434,13 @@ public struct CrudeResolver: PlayResolver {
                 Outcome(kind: .pass, yards: 0, endedIn: .incomplete, participants: participants),
                 decisions
             )
+        }
+
+        // Linemen who released to block a run that turned out to be a throw.
+        if penalty == nil {
+            penalty = Penalties.onLineRelease(
+                blockers: protection, isScreen: family == .screen || family == .playAction,
+                personnel: personnel, context: context, random: &random)
         }
 
         // 4. The throw, and the ball arriving.
@@ -663,6 +670,20 @@ public struct CrudeResolver: PlayResolver {
             }
         }
 
+        if penalty == nil {
+            penalty = Penalties.afterThePlay(
+                Outcome(kind: .rush, yards: gained, endedIn: tackle.ending),
+                personnel: personnel, context: context, random: &random)
+        }
+
+        // A run that got into space was blocked in space, and that is where a hold in the
+        // back comes from.
+        if penalty == nil, gained >= 5 {
+            penalty = Penalties.onDownfieldBlock(
+                blockers: blocking, onOffense: true, personnel: personnel, context: context,
+                random: &random)
+        }
+
         // Contact fouls are drawn where the contact happened, on the man who made it.
         if penalty == nil, let tackler = participants.first(where: { $0.role == .tackler })?.slot {
             penalty = Penalties.onContact(
@@ -828,6 +849,18 @@ public struct CrudeResolver: PlayResolver {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
         var decisions: [DecisionPoint] = []
 
+        // The rush at the punter, which the rules protect him from.
+        if let foul = Penalties.onKick(
+            rushers: personnel.front, personnel: personnel, context: context, random: &random)
+        {
+            return (
+                Outcome(
+                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
+                    participants: participants, penalties: [foul], clockRunoff: 4),
+                []
+            )
+        }
+
         if landing <= 0 {
             return (
                 Outcome(
@@ -850,13 +883,25 @@ public struct CrudeResolver: PlayResolver {
             // dead where it stopped and nobody returned it.
             let roll = random.next(upperBound: 10)
             let drift = Int(random.next(upperBound: 5))
+            var toucher = PlayerSlot.none
             if let index = random.weightedIndex(SlotLayout.coverageUnit.map(\.1)) {
-                credit(SlotLayout.coverageUnit[index].0, .other, personnel, into: &participants)
+                toucher = SlotLayout.coverageUnit[index].0
+                credit(toucher, .other, personnel, into: &participants)
+            }
+
+            // A cover man who gets to it first and touches it before the returner does.
+            // The receiving team takes the ball at the spot, which is why downing one at
+            // the two is a skill and not a guarantee.
+            var illegal: PenaltyRecord?
+            if personnel[toucher] != nil, random.nextBool(probability: 0.018) {
+                illegal = PenaltyRecord(
+                    foul: .illegalTouching, offender: toucher, offendingTeam: context.offense,
+                    yards: 0, wasAccepted: false)
             }
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
-                    participants: participants,
+                    participants: participants, penalties: illegal.map { [$0] } ?? [],
                     finalSpot: UInt8(max(1, min(99, landing + drift))), clockRunoff: 6),
                 []
             )
@@ -883,10 +928,17 @@ public struct CrudeResolver: PlayResolver {
             context: context, participants: &participants, decisions: &decisions,
             random: &random)
 
+        // Blocks in the back are what bring a return back, and the return team is on the
+        // defensive slots because the kicking team has possession.
+        let blockBack = Penalties.onDownfieldBlock(
+            blockers: SlotLayout.catchPursuit.map(\.0), onOffense: false, personnel: personnel,
+            context: context, random: &random)
+
         if run.scores {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
+                    penalties: blockBack.map { [$0] } ?? [],
                     finalSpot: 100, clockRunoff: 12),
                 decisions
             )
@@ -894,6 +946,7 @@ public struct CrudeResolver: PlayResolver {
         return (
             Outcome(
                 kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
+                penalties: blockBack.map { [$0] } ?? [],
                 finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: 8),
             decisions
         )
@@ -903,6 +956,19 @@ public struct CrudeResolver: PlayResolver {
         _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
+        if let foul = Penalties.onKick(
+            rushers: personnel.front, personnel: personnel, context: context, random: &random)
+        {
+            return (
+                Outcome(
+                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
+                    participants: participation(
+                        for: SlotLayout.specialist, personnel, role: .kicker),
+                    penalties: [foul], clockRunoff: 4),
+                []
+            )
+        }
+
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 

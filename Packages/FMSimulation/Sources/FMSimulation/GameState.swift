@@ -162,7 +162,7 @@ extension GameSimulator {
             record(effective, calls: calls, decisions: decisions, situation: before)
             score(advancement)
             runClock(effective, tempo: calls.offense.tempo)
-            reposition(advancement)
+            reposition(advancement, replayed: effective.kind == .penaltyOnly)
             checkForEnd(scored: advancement.scoring)
         }
 
@@ -220,7 +220,19 @@ extension GameSimulator {
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
         }
 
-        private mutating func reposition(_ advancement: Advancement) {
+        private mutating func reposition(_ advancement: Advancement, replayed: Bool) {
+            // A flag before the snap means the play never happened. The down is replayed
+            // from the enforcement spot, and — the part that used to be wrong — a try or a
+            // kickoff is still *owed*. Consuming the pending state on a snap that never
+            // took place is why neither could draw a flag at all: a false start on a field
+            // goal simply cancelled the kick.
+            if replayed {
+                ballOn = advancement.ballOn
+                down = advancement.down
+                distance = advancement.distance
+                return
+            }
+
             if advancement.possessionChanged {
                 possession = defending
             }

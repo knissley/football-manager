@@ -217,6 +217,16 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case unsportsmanlikeConduct = 90
     case taunting = 91
 
+    /// Thrown after the whistle, so the play *stands* and the yardage is walked off from
+    /// where it ended.
+    ///
+    /// Neither a pre-snap foul (which cancels the snap) nor a live-ball one (which the
+    /// other team may decline in favour of the play). There is nothing to decline: the
+    /// play already counted and this is on top of it.
+    public var isDeadBall: Bool {
+        self == .unsportsmanlikeConduct || self == .taunting
+    }
+
     /// Called before the snap, so the play never happens and the situation is
     /// simply replayed from a new spot.
     public var isPreSnap: Bool {

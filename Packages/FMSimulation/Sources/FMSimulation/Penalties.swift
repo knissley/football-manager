@@ -42,7 +42,7 @@ enum Penalties {
 
         // The offence's procedural fouls. A loud road stadium is worth roughly a extra
         // false start a game, which is what the advantage is made of.
-        let lineSlots = SlotLayout.blockers
+        let lineSlots = personnel.blockers(includingEligibles: false)
         let offenseDiscipline = averageDiscipline(lineSlots, personnel, context, onOffense: true)
         var falseStart = 0.027 + (62 - offenseDiscipline) * 0.0011
         // Softer than it was. A road team commits measurably more of these, but the real
@@ -61,7 +61,7 @@ enum Penalties {
         // coach's problem, not the crowd's. At a tenth of a point per unit of noise it was
         // doubling the road team's delay-of-game rate and quietly supplying most of the
         // road/home penalty gap.
-        var delay = 0.006 + noise * 0.00003
+        var delay = 0.0035 + noise * 0.00003
         if calls.offense.tempo == .bleedClock { delay += 0.004 }
         if random.nextBool(probability: delay) {
             return record(
@@ -69,14 +69,45 @@ enum Penalties {
                 offense: true)
         }
 
+        // The rest of the procedural offensive fouls: lining up wrong, moving early, a
+        // man still drifting at the snap, a substitution that did not beat the whistle.
+        // All four exist in `Foul` with their yardage and their side already settled;
+        // nothing had ever produced one.
+        //
+        // Motion is the reason `OffensiveCall.usedMotion` exists, and until now it was a
+        // field the resolver never read: shifting people around before the snap is how
+        // you find out what the defence is in, and it is also how you get flagged.
+        var procedural = 0.006 + (62 - offenseDiscipline) * 0.0004
+        if calls.offense.usedMotion { procedural += 0.004 }
+        if calls.offense.tempo == .hurryUp { procedural += 0.003 }
+        if random.nextBool(probability: max(0.001, procedural)) {
+            let foul: Foul
+            switch random.next(upperBound: 100) {
+            case ..<46: foul = .illegalFormation
+            case ..<72: foul = .illegalMotion
+            case ..<91: foul = .illegalShift
+            default: foul = .illegalSubstitution
+            }
+            return record(
+                foul, by: personnel.routeRunners() + lineSlots, personnel, context, &random,
+                offense: true)
+        }
+
         // The defence jumping. A blitz asks defenders to time the snap, which is exactly
         // when they get it wrong.
-        let rushSlots = SlotLayout.rushers
+        let rushSlots = personnel.front
         let defenseDiscipline = averageDiscipline(rushSlots, personnel, context, onOffense: false)
         var offside = 0.019 + (62 - defenseDiscipline) * 0.0009
         if calls.defense.rush.isBlitz { offside += 0.004 }
         if random.nextBool(probability: max(0.002, offside)) {
-            let foul: Foul = random.nextBool(probability: 0.6) ? .offside : .neutralZoneInfraction
+            // Three ways to be early, and they are enforced alike: over the ball,
+            // into the neutral zone, or into somebody.
+            let foul: Foul
+            switch random.next(upperBound: 100) {
+            case ..<52: foul = .offside
+            case ..<86: foul = .neutralZoneInfraction
+            default: foul = .encroachment
+            }
             return record(foul, by: rushSlots, personnel, context, &random, offense: false)
         }
 
@@ -92,7 +123,7 @@ enum Penalties {
         }
         if random.nextBool(probability: churn) {
             return record(
-                .tooManyMenOnField, by: SlotLayout.coverage, personnel, context, &random,
+                .tooManyMenOnField, by: personnel.coverageDefenders, personnel, context, &random,
                 offense: false)
         }
 
@@ -118,9 +149,20 @@ enum Penalties {
         // per blocker and produced holding on a quarter of all snaps — five and a half
         // calls a game against a real one and a half, and because it is drawn first it
         // crowded every other flag out of the game entirely.
-        let chance = 0.018 + (62 - discipline) * 0.0005 + (62 - technique) * 0.0004
-        guard random.nextBool(probability: max(0.002, min(0.06, chance))) else { return nil }
-        return record(.offensiveHolding, by: [blocker], personnel, context, &random, offense: true)
+        let chance = 0.025 + (62 - discipline) * 0.0007 + (62 - technique) * 0.0006
+        guard random.nextBool(probability: max(0.002, min(0.08, chance))) else { return nil }
+
+        // A beaten blocker holds, or gets his hands outside, or gets his feet wrong. They
+        // are the same moment with different flags on it, and only the first of them had
+        // ever been thrown.
+        let foul: Foul
+        switch random.next(upperBound: 100) {
+        case ..<72: foul = .offensiveHolding
+        case ..<92: foul = .illegalUseOfHands
+        case ..<96: foul = .tripping
+        default: foul = .chopBlock
+        }
+        return record(foul, by: [blocker], personnel, context, &random, offense: true)
     }
 
     /// A defender who has been beaten in coverage.
@@ -128,7 +170,7 @@ enum Penalties {
     /// Separation is the input, so interference is drawn against exactly the receivers
     /// who won — and the deep ones, where the spot foul hurts most.
     static func whenBeatenInCoverage(
-        defender: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
+        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
         personnel: Lineup, context: PlayContext, random: inout SplittableRandom
     ) -> PenaltyRecord? {
         guard separationCentimetres > 120 else { return nil }
@@ -136,6 +178,15 @@ enum Penalties {
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
         let chance = 0.014 + beatenBy + (62 - discipline) * 0.0009
         guard random.nextBool(probability: max(0.004, min(0.14, chance))) else { return nil }
+
+        // Sometimes the separation was made with a hand in the chest and the flag goes
+        // the other way. Offensive interference is the third most common foul in the sport
+        // that this engine had never once called.
+        if random.nextBool(probability: 0.16) {
+            return record(
+                .offensivePassInterference, by: [receiver], personnel, context, &random,
+                offense: true)
+        }
 
         // Deep, it is interference and enforced from the spot. Underneath, it is holding
         // or illegal contact and costs five.
@@ -146,7 +197,8 @@ enum Penalties {
                 foul: .defensivePassInterference, offender: defender,
                 offendingTeam: context.defense, yards: spot, wasAccepted: false)
         }
-        let foul: Foul = random.nextBool(probability: 0.55) ? .defensiveHolding : .illegalContact
+        // Illegal contact is a rare call in the modern game; grabbing is the usual one.
+        let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
         return record(foul, by: [defender], personnel, context, &random, offense: false)
     }
 
@@ -164,8 +216,96 @@ enum Penalties {
             return record(
                 .roughingThePasser, by: [tackler], personnel, context, &random, offense: false)
         }
-        let foul: Foul = random.nextBool(probability: 0.5) ? .facemask : .unnecessaryRoughness
+        let foul: Foul
+        switch random.next(upperBound: 100) {
+        case ..<38: foul = .unnecessaryRoughness
+        case ..<70: foul = .facemask
+        case ..<88: foul = .illegalUseOfHelmet
+        default: foul = .horseCollarTackle
+        }
         return record(foul, by: [tackler], personnel, context, &random, offense: false)
+    }
+
+    /// Blocking in space, on a run that got past the line or a kick that got returned.
+    ///
+    /// This is where a return gets called back, and it is most of the reason a punt return
+    /// average is lower than the yards actually gained. None of these fouls had ever been
+    /// thrown, so a return had no way of being wiped out.
+    static func onDownfieldBlock(
+        blockers: [PlayerSlot], onOffense: Bool, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        let available = blockers.filter { personnel[$0] != nil }
+        guard !available.isEmpty else { return nil }
+        let discipline = averageDiscipline(available, personnel, context, onOffense: onOffense)
+        let chance = 0.014 + (62 - discipline) * 0.0005
+        guard random.nextBool(probability: max(0.002, chance)) else { return nil }
+
+        let foul: Foul
+        switch random.next(upperBound: 100) {
+        case ..<66: foul = .illegalBlockInTheBack
+        case ..<86: foul = .illegalBlindsideBlock
+        default: foul = .lowBlock
+        }
+        return record(foul, by: available, personnel, context, &random, offense: onOffense)
+    }
+
+    /// A lineman who went to block a run that turned out to be a pass.
+    ///
+    /// Screens and play-action are where this happens, which is why it is drawn against
+    /// the concept rather than at a flat rate.
+    static func onLineRelease(
+        blockers: [PlayerSlot], isScreen: Bool, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        let chance = isScreen ? 0.010 : 0.002
+        guard random.nextBool(probability: chance) else { return nil }
+        let foul: Foul =
+            random.nextBool(probability: 0.6)
+            ? .ineligibleReceiverDownfield : .illegalManDownfield
+        return record(foul, by: blockers, personnel, context, &random, offense: true)
+    }
+
+    /// The kicker is protected, and the rule distinguishes brushing him from ending him.
+    static func onKick(
+        rushers: [PlayerSlot], personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        guard random.nextBool(probability: 0.009) else { return nil }
+        // Fifteen and a first down against five and a replay: the difference between
+        // running into him and running through him.
+        let foul: Foul =
+            random.nextBool(probability: 0.4) ? .roughingTheKicker : .runningIntoTheKicker
+        return record(foul, by: rushers, personnel, context, &random, offense: false)
+    }
+
+    /// What somebody says or does once the whistle has gone.
+    ///
+    /// Drawn after a play worth reacting to, because that is when it happens — and
+    /// deliberately not scaled by leverage, which would be authoring drama.
+    static func afterThePlay(
+        _ outcome: Outcome, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        // Deliberately not on a score or a turnover. A dead-ball foul on a play that ends
+        // a possession is enforced on the kickoff, which is a rule the engine does not
+        // model yet — so it is left uncalled rather than called and mis-enforced.
+        let notable = outcome.yards >= 14 || outcome.kind == .sack
+        guard notable, outcome.endedIn != .touchdown, !outcome.endedIn.isTurnover,
+            random.nextBool(probability: 0.075)
+        else { return nil }
+
+        let byOffense = random.nextBool(probability: 0.45)
+        let slots =
+            byOffense
+            ? personnel.routeRunners() + [SlotLayout.back]
+            : personnel.coverageDefenders
+        // Unsportsmanlike is the commoner call of the two; taunting is the one people
+        // remember.
+        let foul: Foul =
+            random.nextBool(probability: 0.6)
+            ? .unsportsmanlikeConduct : .taunting
+        return record(foul, by: slots, personnel, context, &random, offense: byOffense)
     }
 
     // MARK: - Building the record

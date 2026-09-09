@@ -49,6 +49,32 @@ extension Rules {
                 penalty: accepted.record, accepted: true, advancement: accepted.advancement)
         }
 
+        // A dead-ball foul is walked off from where the play ended, and there is nothing
+        // to decline: the play already counted. Without this the engine could not call
+        // one at all, because every path it had either cancelled the snap or offered the
+        // other team a choice between the flag and the play.
+        if penalty.foul.isDeadBall {
+            var after = declined
+            // Who will have the ball, and is it them who did it?
+            let offenderHasItNow = offendingTeamHadBall != declined.possessionChanged
+            let yards = Int(penalty.foul.yards)
+            if offenderHasItNow {
+                after.ballOn = UInt8(max(1, min(99, Int(declined.ballOn) + yards)))
+                after.distance = UInt8(
+                    max(1, min(99, Int(declined.distance) + yards)))
+            } else {
+                after.ballOn = UInt8(max(1, min(99, Int(declined.ballOn) - yards)))
+                let fresh = freshDowns(at: after.ballOn)
+                after.down = fresh.down
+                after.distance = fresh.distance
+            }
+            let record = PenaltyRecord(
+                foul: penalty.foul, offender: penalty.offender,
+                offendingTeam: penalty.offendingTeam, yards: penalty.foul.yards,
+                wasAccepted: true, awardedFirstDown: !offenderHasItNow)
+            return PenaltyDecision(penalty: record, accepted: true, advancement: after)
+        }
+
         let takesIt = prefers(
             accepted.advancement, over: declined, forOffense: !offendingTeamHadBall)
 

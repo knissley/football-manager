@@ -103,6 +103,25 @@ struct VocabularyCoverageTests {
         }
     }
 
+    /// Fouls are the same question as play kinds, and the answer was worse: `Foul` has
+    /// thirty-three cases, every one of them with its yardage, its side and its
+    /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
+    /// of them. There was no offensive pass interference in the league, nobody was ever
+    /// called for lining up wrong, and a kicker could be run over with impunity.
+    @Test("Every foul the rules define actually gets called")
+    func everyFoulIsCalled() {
+        // Nothing. Every foul in the book gets thrown.
+        let unreachable: [Foul: String] = [:]
+
+        let called = Set(Self.plays().flatMap(\.outcome.penalties).map(\.foul))
+        for foul in Foul.allCases where unreachable[foul] == nil {
+            #expect(called.contains(foul), "\(foul) was never called in ninety games")
+        }
+        for (foul, reason) in unreachable {
+            #expect(!called.contains(foul), "\(foul) is called now (was: \(reason))")
+        }
+    }
+
     /// The mirror of an unreachable case: a credit handed to somebody who did not earn
     /// it. Coverage tests cannot see this one — the role *is* produced — so it needs its
     /// own assertion, and the shape that catches it is who the credits land on.

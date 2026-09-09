@@ -104,9 +104,9 @@ struct GoldenSeedTests {
     @Test(
         "A seed produces the same game in every process",
         arguments: [
-            (UInt64(1), UInt64(611_449_536_856_860_841)),
-            (UInt64(5), UInt64(13_756_111_262_482_296_786)),
-            (UInt64(12), UInt64(4_302_046_050_070_805_593)),
+            (UInt64(1), UInt64(2_342_118_265_591_190_839)),
+            (UInt64(5), UInt64(8_841_975_023_701_611_735)),
+            (UInt64(12), UInt64(15_584_503_308_422_963_415)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

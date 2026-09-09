@@ -218,7 +218,7 @@ kicked from the middle of the field against a rush nobody means. Now 93.1% / 83.
 Nothing about a kickoff depends on the kicker: the outcome is a constant, so leg strength
 is irrelevant on the one play it most obviously matters.
 
-## S6 — 21 of 33 fouls never occur
+## S6 — 21 of 33 fouls never occur — **fixed**
 
 Never produced: encroachment, illegal formation, illegal motion, illegal shift, illegal
 substitution, illegal use of hands, illegal block in the back, blindside block, chop
@@ -228,6 +228,50 @@ kicker**, running into the kicker, illegal touching, unsportsmanlike conduct, ta
 
 Special teams draw no flags at all: `Penalties.preSnap` runs only on run and pass
 families, so there is no false start on a field goal and no offside on a punt.
+
+**Fixed. All thirty-three are called now**, and the shape of the gap is worth naming:
+every one of those fouls already had its yardage, its side and its automatic-first-down
+rule settled in `FMCore`. The rules layer was complete; the engine reached twelve of it.
+
+The families that were missing, and where they now come from:
+
+- **Procedural offence** — illegal formation, motion, shift and substitution, drawn off
+  discipline and tempo. This is also what finally reads `OffensiveCall.usedMotion`, a
+  field the resolver had never looked at: shifting people before the snap is how you find
+  out what the defence is in, and it is also how you get flagged.
+- **Blocking** — a beaten blocker holds, or gets his hands outside, or gets his feet
+  wrong. Only the first of those had ever been thrown.
+- **Offensive pass interference**, drawn from the same moment as the defensive kind: the
+  separation was real but it was made with a hand in the chest.
+- **Downfield blocking** — a block in the back, a blindside block, a low block, on runs
+  that reach space and on punt returns. This is what brings a return back, and without it
+  a return could not be wiped out.
+- **Ineligible man downfield**, on screens and play-action, which is when linemen release.
+- **Kicker protection** — running into him is five, roughing him is fifteen and a first
+  down, and the difference between them is the rule.
+- **Illegal touching**, when a cover man gets to a punt before the returner does.
+- **Conduct** — and this one needed a rules capability that did not exist. A dead-ball
+  foul is neither a pre-snap foul (which cancels the snap) nor a live-ball one (which the
+  other team may decline in favour of the play): the play *stands* and the yardage is
+  walked off from where it ended. `Rules.enforce` now has that path.
+
+Two structural fixes came with it. **A pre-snap flag no longer cancels a try or a
+kickoff** — the rules loop used to consume the pending state on any play, including one
+that never happened, so a false start on a field goal simply erased the kick, which is why
+those two were excluded from flags entirely. And `Penalties` now picks its offender from
+the actual `Lineup` rather than the stale static slot lists, so the man charged is one who
+was on the field.
+
+Penalties run 12.3 per game against a real 12.8, with a distribution that matches the
+sport's rather than twelve fouls carrying all of it.
+
+**And it cost something, which is the honest part.** A realistic penalty load is a real
+tax on an offence: third-down conversion fell to 35.9 and yards per carry to 3.9–4.0, both
+at or just under their floors on two seeds. Those bands were set when the engine threw ten
+fouls a game and had never called offensive interference, illegal formation or a hold in
+the back. Combined with S3 giving the defence real sub packages, third down got harder
+twice over. Both rows are the first item for the engine-wide retune rather than something
+to paper over here.
 
 ## S7 — Calibration runs in conditions no game is played in — **fixed**
 
