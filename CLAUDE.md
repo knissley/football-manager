@@ -207,7 +207,7 @@ wave order and rebase.
 
 - Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
 - Before you push: all four suites green, `swift test -c release` for FMRandom,
-  `swift format lint` clean, `playsize` builds.
+  `swift format lint --strict` clean, `playsize` builds.
 - Goldens regenerated in the same commit as the behaviour change, with the change
   described. Never to make a red test pass.
 - No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after;

@@ -109,8 +109,8 @@ swift test -c release --package-path Packages/FMRandom
 ```
 
 Prints `file:line: what` for every hit and exits 1; exits 0 on a clean tree. It takes
-about two seconds — run it before committing. CI runs it as a hard failure once the
-Linux workflow lands (issue H1); the script is the half that does the work.
+about two seconds — run it before committing. CI runs it as a hard-failing step, on both
+architectures, in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 It enforces two rules that were conventions with nothing behind them:
 

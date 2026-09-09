@@ -58,18 +58,20 @@ tests have to agree on both, because a stored game is re-simulated from its seed
 floating-point drift between architectures would corrupt saved history
 ([ADR-0003](docs/adr/0003-deterministic-seeded-simulation.md)).
 
-The `test` job gates a merge. It is the same list as *before you push*, in order:
+The `test` job gates a merge. It runs everything the *before you push* list in
+[`CLAUDE.md`](CLAUDE.md) asks for, and two checks beyond it — the sim lint and a
+`worldgen` build, both marked below:
 
 ```
 swift format lint --strict --recursive --parallel Packages/ Tools/
-scripts/lint-sim.sh                          # once it lands
+./scripts/lint-sim.sh                        # beyond the push list
 swift test --package-path Packages/FMRandom
 swift test -c release --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
 swift test --package-path Packages/FMSimulation
 swift run --package-path Tools/playsize
-swift build --package-path Tools/worldgen
+swift build --package-path Tools/worldgen    # beyond the push list
 ```
 
 Note the `--strict` on the format step: without it `swift format lint` reports findings
