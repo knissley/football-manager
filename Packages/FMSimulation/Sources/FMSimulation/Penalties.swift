@@ -44,7 +44,7 @@ enum Penalties {
         // false start a game, which is what the advantage is made of.
         let lineSlots = SlotLayout.blockers
         let offenseDiscipline = averageDiscipline(lineSlots, personnel, context, onOffense: true)
-        var falseStart = 0.024 + (62 - offenseDiscipline) * 0.001
+        var falseStart = 0.027 + (62 - offenseDiscipline) * 0.0011
         falseStart += noise * 0.00022
         if calls.offense.tempo == .hurryUp { falseStart += 0.004 }
 

@@ -168,6 +168,10 @@ public struct CrudeResolver: PlayResolver {
 
         for (index, rusher) in rushers.enumerated() {
             let blocker = SlotLayout.blockers[min(index, SlotLayout.blockers.count - 1)]
+            // A matchup needs two players. If injuries have emptied a spot, there is no
+            // rep to resolve — and recording one would name a slot nobody is standing in,
+            // which is a decision point pointing at an uncredited player.
+            guard personnel[rusher] != nil, personnel[blocker] != nil else { continue }
             let rush = rating(.powerMove, rusher, personnel, context)
             let block = rating(.passBlock, blocker, personnel, context)
             // A blitz means somebody is unblocked by construction.
@@ -215,6 +219,7 @@ public struct CrudeResolver: PlayResolver {
 
         for (index, receiver) in SlotLayout.receivers.prefix(3).enumerated() {
             let defender = SlotLayout.coverage[min(index, SlotLayout.coverage.count - 1)]
+            guard personnel[receiver] != nil, personnel[defender] != nil else { continue }
             let route = rating(.routeRunning, receiver, personnel, context)
             let cover = rating(
                 defense.coverage.isMan ? .manCoverage : .zoneCoverage, defender, personnel, context)
@@ -250,6 +255,41 @@ public struct CrudeResolver: PlayResolver {
         let timeNeeded = depth.timeMillis
         let pressured = pressureAt.map { $0 < timeNeeded } ?? false
         let best = reads.max { $0.separation < $1.separation }
+
+        // A quarterback who feels it and takes off. Escaping was missing entirely — the
+        // resolver went straight from pressure to a sack or a throw, so `PlayKind`
+        // carried a `.scramble` case nothing could ever produce, and a quarterback could
+        // not get hurt running.
+        if pressured, random.nextBool(probability: 0.26) {
+            let mobility =
+                (rating(.speed, SlotLayout.quarterback, personnel, context)
+                    + rating(.elusiveness, SlotLayout.quarterback, personnel, context)) / 2
+            if random.nextBool(probability: min(0.8, max(0.16, (mobility - 42) * 0.013))) {
+                decisions.append(
+                    .init(
+                        tick: UInt16((pressureAt ?? 2_000) / 100), kind: .throwDecision,
+                        primary: SlotLayout.quarterback, secondary: pressureBy,
+                        detail: ThrowDecision.scramble.rawValue,
+                        value: Int16(pressureAt ?? 2_000)))
+
+                let scramble = tackleSequence(
+                    carrier: SlotLayout.quarterback, personnel: personnel, context: context,
+                    decisions: &decisions, participants: &participants, startTick: 30,
+                    random: &random)
+                let gained = Int16(
+                    max(-2, 2 + Int(random.next(upperBound: 6)) + scramble.extraYards))
+                let scores = Int(situation.ballOn) - Int(gained) <= 0
+                return (
+                    Outcome(
+                        kind: .scramble,
+                        yards: scores ? Int16(situation.ballOn) : gained,
+                        endedIn: scores ? .touchdown : scramble.ending,
+                        participants: participants, penalties: penalty.map { [$0] } ?? [],
+                        clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
+                    decisions
+                )
+            }
+        }
 
         // Most pressure is survived — thrown away, checked down, or simply beaten by the
         // ball coming out. Only a minority becomes a sack.
@@ -399,6 +439,7 @@ public struct CrudeResolver: PlayResolver {
         var blockScore = 0.0
         for (index, blocker) in SlotLayout.blockers.enumerated() {
             let defender = SlotLayout.rushers[min(index, SlotLayout.rushers.count - 1)]
+            guard personnel[blocker] != nil, personnel[defender] != nil else { continue }
             let block = rating(.runBlock, blocker, personnel, context)
             let shed = rating(.blockShedding, defender, personnel, context)
             let commitment =

@@ -178,6 +178,31 @@ Kick distance and accuracy from ratings, wind, and precipitation; returns resolv
 pursuit geometry like any other play. Blocks and muffs are low-probability branches and
 worth keeping — they're memorable.
 
+## Injuries
+
+Availability in M1; severity, rehabilitation and reaggravation in M3.
+
+Injuries are drawn from a play's **participants** rather than inside the resolver,
+because an injury is about who was involved and not about how the contact was modelled —
+so the model survives the spatial resolver replacing the crude one, at which point real
+contact severity can feed it instead of the play kind.
+
+Two causes, and they are genuinely different events rather than two sizes of the same
+one:
+
+**Contact.** Somebody was hit. Weighted toward the ball carrier and the men who brought
+him down, scaled by how much contact the play involved.
+
+**Non-contact.** A cut, a plant, a landing. Drawn from who was *moving hard* rather than
+who was hit, so it is uncorrelated with how the play went and can happen on a snap where
+nobody was touched at all. It has no walk-it-off branch: an achilles is most of a season
+and a hamstring is still weeks. About a sixth of injuries and well over a third of the
+games lost, which is the relationship the sport actually has.
+
+A linemen in a phone booth does not tear a knee coming out of a break, so only explosive
+roles are exposed — and a quarterback is exposed when he scrambles and not when he stands
+in the pocket.
+
 ## Clock, penalties, and AI
 
 - **Clock** rules are explicit states, not approximations. Two-minute warning, spikes,

@@ -372,6 +372,8 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 202 | **Injuries are drawn from the play's participants, not inside the resolver** | An injury is about who was involved in contact, not about how the contact was modelled. So it survives the spatial resolver replacing the crude one, at which point real contact severity can feed it instead of the play kind |
 | 203 | **An injury is located by the play it happened on** | `PlayRef` names the game, the game names the week. No stamped date to disagree with anything — the same derived-identity rule that governs plays ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)) |
 | 204 | **A knock played through is still an event** | *He was hurt in the third and stayed in* is a real thing to be able to say, and it is the same event as one that ends a season, only smaller |
+| 206 | **A non-contact injury is a different event, not a heavier tackle** | Nobody touched him, it is uncorrelated with how the play went, and it is where the season-ending ones come from. Drawn from who was *moving hard* rather than who was hit, so a receiver can plant on an incompletion — one of the more common ways a season actually ends |
+| 207 | **Non-contact injuries have no walk-it-off branch** | An achilles is most of a season and a hamstring is still weeks. They are a sixth of injuries and well over a third of the games lost, which is the real relationship |
 | 205 | **Availability only in M1; severity in M3** | He is out, and for how many games. Rehabilitation, reaggravation and long-term effects built against a resolver being deleted would be tuned twice |
 
 ## Open questions

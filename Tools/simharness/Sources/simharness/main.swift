@@ -358,8 +358,21 @@ print(
     "    forced out of the game      \(oneDecimal(Double(allInjuries.filter(\.leavesTheGame).count) / Double(max(1, results.count))))"
 )
 row("player-games lost per season", perTeamSeason, 40, 90)
+let nonContact = allInjuries.filter { $0.cause == .nonContact }
+print(
+    "    non-contact share           "
+        + "\(oneDecimal(Double(nonContact.count) / Double(max(1, allInjuries.count)) * 100))%")
+let nonContactGames = nonContact.reduce(0) { $0 + Int($1.gamesOut) }
+print(
+    "    non-contact games lost      "
+        + "\(oneDecimal(Double(nonContactGames) / Double(max(1, missedGames)) * 100))% of all")
 let longest = allInjuries.map(\.gamesOut).max() ?? 0
 print("    longest absence             \(longest) games")
+
+let scrambles = allPlays.filter { $0.outcome.kind == .scramble }
+print(
+    "    scrambles per game          "
+        + "\(oneDecimal(Double(scrambles.count) / Double(max(1, results.count))))")
 
 print("")
 print("  The endgame")

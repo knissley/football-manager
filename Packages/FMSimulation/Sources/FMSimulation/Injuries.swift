@@ -21,12 +21,70 @@ enum Injuries {
     /// absence is folded in.
     static let baseRate = 0.0029
 
+    /// How often a snap ends somebody's afternoon with nobody having touched him.
+    ///
+    /// Roughly a fifth of injuries in the sport are non-contact, and they are the ones
+    /// that end seasons. A model that only hurts people who were tackled cannot produce
+    /// a receiver planting on an incompletion, which is one of the more common ways a
+    /// season actually ends.
+    static let nonContactRate = 0.00055
+
     /// Anyone hurt on this play.
     ///
     /// At most one, because two players going down on the same snap is rare enough that
     /// modelling it would cost more than it is worth, and a crowd of them would read as
     /// a bug rather than a bad afternoon.
     static func drawn(
+        on play: PlayRecord, context: PlayContext, random: inout SplittableRandom
+    ) -> InjuryEvent? {
+        if let nonContact = nonContactInjury(on: play, context: context, random: &random) {
+            return nonContact
+        }
+        return contactInjury(on: play, context: context, random: &random)
+    }
+
+    /// A knee or an achilles going on a cut, a plant or a landing.
+    ///
+    /// Drawn from who was **moving hard**, not from who was hit — so it is uncorrelated
+    /// with how the play went, and it can happen on a snap where nobody was touched at
+    /// all. That independence is the point: it is what makes it a different event rather
+    /// than a heavier tackle.
+    static func nonContactInjury(
+        on play: PlayRecord, context: PlayContext, random: inout SplittableRandom
+    ) -> InjuryEvent? {
+        // Everyone who changed direction at speed. A lineman in a phone booth does not
+        // tear an ACL the way a receiver coming out of a break does.
+        let exposed = play.outcome.participants.filter { participation in
+            switch participation.role {
+            case .rusher, .receiver, .target, .coverage, .passRusher: return true
+            case .passer: return play.outcome.kind == .scramble
+            default: return false
+            }
+        }
+        guard !exposed.isEmpty else { return nil }
+
+        let chance = nonContactRate * Double(exposed.count)
+        guard random.nextBool(probability: min(0.02, chance)) else { return nil }
+        guard let index = random.weightedIndex(exposed.map { _ in 1.0 }) else { return nil }
+        let hurt = exposed[index]
+
+        // These skew long. An ACL or an achilles is most of a season, and a hamstring is
+        // still weeks — so there is no walk-it-off branch here at all.
+        let resilience = Double(context.players[hurt.player]?.hidden.durability ?? 60)
+        let roll = random.nextDouble() - (resilience - 60) * 0.004
+        let gamesOut: UInt8
+        switch roll {
+        case ..<0.30: gamesOut = UInt8(1 + random.next(upperBound: 2))
+        case ..<0.62: gamesOut = UInt8(3 + random.next(upperBound: 4))
+        default: gamesOut = UInt8(9 + random.next(upperBound: 11))
+        }
+
+        return InjuryEvent(
+            player: hurt.player, occurredOn: play.id, cause: .nonContact, gamesOut: gamesOut)
+    }
+
+    /// Somebody was hit.
+    static func contactInjury(
         on play: PlayRecord, context: PlayContext, random: inout SplittableRandom
     ) -> InjuryEvent? {
         // Contact is what hurts people. A play nobody was tackled on rarely does.
@@ -87,6 +145,7 @@ enum Injuries {
         default: gamesOut = UInt8(8 + random.next(upperBound: 10))
         }
 
-        return InjuryEvent(player: hurt.player, occurredOn: play.id, gamesOut: gamesOut)
+        return InjuryEvent(
+            player: hurt.player, occurredOn: play.id, cause: .contact, gamesOut: gamesOut)
     }
 }
