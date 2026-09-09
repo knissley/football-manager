@@ -53,11 +53,31 @@ re-litigates a settled question — or reverses it without knowing what they're 
 
 - **Short.** One page. If it's longer, the decision probably contains several decisions.
 
+## Amending
+
+The **body** of an accepted ADR is immutable — context, decision, consequences and
+alternatives are the record of what was decided and what it was weighed against. When
+practice teaches something the original could not have known (a way the decision got
+broken, a case it did not cover, a consequence that landed differently), **append a dated
+amendment** rather than editing the body:
+
+1. Add a section at the end of the file headed `## Amendment YYYY-MM-DD`, optionally with
+   a short title after an em dash.
+2. Say what it adds and why the body could not have said it. Name what was measured.
+3. Leave the body exactly as it was, even where the amendment contradicts it. The
+   contradiction is the point: it shows what we learned.
+
+`docs/adr/0003-deterministic-seeded-simulation.md` is the worked example.
+
+An amendment is not a reversal. If the decision itself changes, supersede instead.
+
 ## Superseding
 
-ADRs are immutable once accepted. To reverse one:
+To reverse a decision:
 
 1. Write a new ADR whose context explains what changed since the original.
-2. Set the old ADR's status to `Superseded by [ADR-NNNN](NNNN-....md)` — this is the
-   only permitted edit to an accepted ADR.
+2. Set the old ADR's status to `Superseded by [ADR-NNNN](NNNN-....md)`.
 3. Update both rows in the index.
+
+The status line and an appended `Amendment` section are the only permitted edits to an
+accepted ADR. The rule is stated in `docs/adr/README.md`; keep the two in step.

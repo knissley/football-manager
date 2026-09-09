@@ -6,6 +6,11 @@ rounds of scoping. Anything not listed here is still open.
 Decisions with real architectural rationale get an [ADR](adr/); this is the index of
 *what* was decided, not *why*.
 
+A decision the September 2026 audit measured against the tree and found wanting carries a
+**Reopened by** note naming the issue that reopens it. The original text stays exactly as
+it was written: the note records what was measured, not a new decision. A reopened
+decision is not a settled answer until its issue lands, so ask before building on one.
+
 ## Foundational
 
 | # | Decision | Implication |
@@ -13,7 +18,7 @@ Decisions with real architectural rationale get an [ADR](adr/); this is the inde
 | 46 | **Event sourcing is the default state model** | The world is a fold over an ordered event log; current state is a rebuildable projection ([ADR-0009](adr/0009-event-sourcing-by-default.md)) |
 | 47 | **Appearance, contracts, scouting grades and staff are all event-sourced** | A replay shows the gear he wore then; "how did our cap get like this" and "what did we grade him at" become ordinary queries |
 | 48 | **Snapshot only where independent reproduction demands it** | `GameSetup`'s opponent-model snapshot is the model case, and each such boundary is justified where it appears |
-| 97 | **Only players who did something are credited in a play record** | Crediting all 22 made participants three-quarters of a record; team is derived from the slot convention rather than stored. Cut a play from 756 to 424 bytes |
+| 97 | **Only players who did something are credited in a play record** | Crediting all 22 made participants three-quarters of a record; team is derived from the slot convention rather than stored. Cut a play from 756 to 424 bytes. **Reopened by [#21](https://github.com/knissley/football-manager/issues/21):** dropping the uncredited participants also dropped the answer to who was on the field, so snap counts — decision 177's promise, and the development model's main lever — cannot be asked of the stream |
 | 98 | **`FMCore` links with no Foundation and no libm** | `Double.rounded()` resolves to libm's `round`, so the module silently failed to link into any client that did not already pull in Foundation. Guarded by `Tools/playsize` |
 | 96 | **No transcendental functions in seeded draws** | `log`, `exp` and trigonometry come from libm, whose results differ between platforms. Normal draws use the Irwin–Hall construction — exact arithmetic, tails bounded to ±6, which is the right trade for attributes clamped to 0...99 |
 
@@ -216,7 +221,7 @@ See [penalties.md](penalties.md).
 | 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because |ΔWP| is enormous |
 | 117 | **Accept/decline is yours while calling plays, your coordinator's otherwise** | Both branches compared on win probability, so the better option is always known and explicable |
 | 118 | **`OfficiatingProfile` is the contract; crews are a generator over it** | Walking back named officials means deleting a generator, not unpicking a feature |
-| 119 | **Thirty-three fouls, with pass interference the only spot foul** | Sounds like a broadcast rather than a rulebook subset, and each one has real enforcement |
+| 119 | **Thirty-three fouls, with pass interference the only spot foul** | Sounds like a broadcast rather than a rulebook subset, and each one has real enforcement. **Reopened by [#18](https://github.com/knissley/football-manager/issues/18) and [#38](https://github.com/knissley/football-manager/issues/38):** `Rules.enforcedAdvancement` measures every foul from the previous spot, so the contact family (facemask, roughing, horse collar, helmet) has no real enforcement and interference is not in fact the only spot foul; interference itself is drawn per read in the coverage loop, before the quarterback has thrown |
 
 ## Characters and lifecycle
 
@@ -256,7 +261,7 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | # | Decision | Implication |
 | --- | --- | --- |
 | 133 | **One situational vocabulary, in `FMCore.SituationClass`** | Down-and-distance, field, score and time buckets live in one type. A gameplan rule, an AI policy, a tendency table and a post-game report cannot disagree about what "third and long" means |
-| 134 | **The classification decides nothing** | It is a description other systems key off, not a policy. Anything that reads like a recommendation (`isFourthDownTerritory`) is explicitly a description of the situation, with the decision left to a win-probability call |
+| 134 | **The classification decides nothing** | It is a description other systems key off, not a policy. Anything that reads like a recommendation (`isFourthDownTerritory`) is explicitly a description of the situation, with the decision left to a win-probability call. **Reopened by [#37](https://github.com/knissley/football-manager/issues/37):** the baseline caller reads the classification as law — `isMustPass` follows `isPassingDown`, which includes second and 8 and third and 4, and `mustPassIsHonoured` asserts zero runs on those downs |
 | 135 | **One classification per snap, offence-relative** | Like `Situation`, it reads from the possessing team's point of view. The defence reads the *same* value and draws the opposite conclusion — a two-minute drill is `isDesperation` to one bench and `isClockBurn` to the other. Mirroring a flipped copy would be two vocabularies again |
 | 136 | **Defense is toggleable snap by snap, exactly as offense is** | Same profile shape, same gameplan mechanism, same opponent model, same benchmark. Watching the opponent run a two-minute drill at you is the same product as running one |
 | 137 | **A defensive call is composed data, not a named label** | `DefensiveCall` carries coverage, rush, front alignment, package, run fit and disguise. The engine reasons about components; named calls are a convenience layer over the composition, so a designed call needs no new engine case |
@@ -323,8 +328,8 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 173 | **The crude resolver is matchup-lite, not outcome tables** | Real named matchups without geometry, so `Participation` and `DecisionPoint` carry real data. Empty decision arrays would leave the interrogation layer unbuildable until M5 — the exact risk ADR-0007 exists to remove |
 | 174 | **Its decision points must agree with its own outcome** | A fabricated causal chain that looks plausible lets the analysis layer appear to work while reading noise. If it reports pressure at 2.1s and a sack, the sack is by that rusher |
 | 175 | **Scaffolding, deleted at M5 — not a permanent fast-sim** | Two resolvers would have to agree forever, and every calibration change would land twice. Unwatched games are already stored as replay tuples and reproduce exactly |
-| 176 | **Parametric calibration rows now; emergent ones at M5** | Completion percentage, sack rate and penalties are inputs at this fidelity, so there is no reason not to hit them. The spread of team win totals is emergent and is taken seriously — it is the number the league's credibility rests on |
-| 177 | **Every snap credits a real player, with real rotation** | Backs share carries, the defensive line rotates heavily, the offensive line barely at all. Snap counts look real and a backup breaking out is possible. `DepthChart` is FMCore machinery M4 and M5 need anyway, not resolver code |
+| 176 | **Parametric calibration rows now; emergent ones at M5** | Completion percentage, sack rate and penalties are inputs at this fidelity, so there is no reason not to hit them. The spread of team win totals is emergent and is taken seriously — it is the number the league's credibility rests on. **Reopened by [#22](https://github.com/knissley/football-manager/issues/22) and [#42](https://github.com/knissley/football-manager/issues/42):** the parametric rows are not read from the record — the harness counts a completion as `yards > 0`, reporting 62.8% against a true 68.4% — so a row that lands is not yet evidence the input was hit |
+| 177 | **Every snap credits a real player, with real rotation** | Backs share carries, the defensive line rotates heavily, the offensive line barely at all. Snap counts look real and a backup breaking out is possible. `DepthChart` is FMCore machinery M4 and M5 need anyway, not resolver code. **Reopened by [#21](https://github.com/knissley/football-manager/issues/21) and [#27](https://github.com/knissley/football-manager/issues/27):** the stream cannot report a snap count at all, and `Lineup.fill` redraws every slot per snap, so across 40 games the quarterback changed 125 times between consecutive dropbacks with no injury |
 | 179 | **`Outcome.finalSpot` reports where the ball came to rest** | `yards` is the offence's net, which says nothing once the defence has the ball — an interception returned thirty yards is not "minus thirty" for anybody. Costs nothing: the record's fixed part is still 131 bytes, absorbed by padding |
 | 180 | **Advancement clamps a contradiction rather than reinterpreting it** | A gain that reaches the end zone but is not reported as a touchdown produces a legal spot, not a silent score. The contradiction is the resolver's bug to fix, and papering over it would hide exactly the fabricated-causal-chain failure ADR-0012 names |
 | 181 | **Accept/decline is certain where it is certain and crude where it is not** | Nobody declines their own score, nobody accepts a flag leaving the other side's score standing, and losing the ball dominates. Third-and-twenty-two against fourth-and-ten is a real expected-points question, and win probability is what answers it ([ADR-0008](adr/0008-win-probability-keystone.md)) — so the proxy is provisional, documented as provisional, and not pinned by tests |
