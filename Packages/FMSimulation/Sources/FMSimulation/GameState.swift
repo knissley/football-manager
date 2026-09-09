@@ -91,6 +91,8 @@ extension GameSimulator {
                 players: setup.players,
                 offenseScheme: offense.scheme,
                 defenseScheme: defense.scheme,
+                crowdNoise: setup.stadium.noise,
+                offenseIsHome: possession == setup.home.id,
                 clockIsRunning: previousBehavior == .keepsRunning,
                 form: form,
                 rules: setup.rules)

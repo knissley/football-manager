@@ -150,6 +150,10 @@ row(
     36, 43)
 row("plays from scrimmage", rate(scrimmage.count), 60, 70)
 
+let flags = allPlays.flatMap(\.outcome.penalties)
+let accepted = flags.filter(\.wasAccepted)
+row("penalties (both teams)", Double(accepted.count) / Double(results.count), 10, 14)
+
 let thirdDownDistance =
     thirdDowns.isEmpty
     ? 0
@@ -307,6 +311,39 @@ for result in results {
         }
     }
 }
+// Home field has to be a *mechanism*: noise, pre-snap penalties, drives stalling. If the
+// road team does not commit measurably more procedural fouls, it is not modelled.
+var homePreSnap = 0
+var awayPreSnap = 0
+for result in results {
+    for play in result.plays {
+        for flag in play.outcome.penalties where flag.foul.isPreSnap && flag.wasAccepted {
+            if flag.offendingTeam == play.situation.possession {
+                // The offence committed it; was the offence at home?
+                if play.situation.possession == result.plays.first?.situation.possession {
+                    homePreSnap += 1
+                } else {
+                    awayPreSnap += 1
+                }
+            }
+        }
+    }
+}
+
+print("")
+print("  Flags")
+var byFoul: [String: Int] = [:]
+for flag in accepted { byFoul["\(flag.foul)", default: 0] += 1 }
+for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
+    print(
+        "    " + pad(foul, 28)
+            + "\(oneDecimal(Double(count) / Double(results.count))) per game")
+}
+print(
+    "    " + pad("declined", 28)
+        + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%"
+)
+
 print("")
 print("  The endgame")
 print(

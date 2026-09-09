@@ -99,13 +99,14 @@ would otherwise be built against a league missing them:
 - ✅ Endgame clock — spikes, kneels and timeouts. The clock rules underneath were already
   correct and tested; the caller has now learned to use them, and both sides call
   timeouts.
-- Penalties. Enforcement and accept/decline are built and tested; **zero are ever drawn**.
-  Unlocks a calibration row, the `discipline` rating, crowd noise as the home-field
-  mechanism [penalties.md](penalties.md) describes, and a category of news.
+- ✅ Penalties. Both classes: procedural fouls from `discipline`, noise and tempo, and
+  desperation fouls drawn at the matchup that beat the man committing them. Crowd noise
+  is now the home-field mechanism [penalties.md](penalties.md) describes.
 - Injury availability, already agreed for M1.
 - Kick and punt returns. Every kickoff is a touchback and every punt a fair catch.
 - Traits, as engine hooks rather than cosmetic modifiers.
-- Crowd noise and stadium; weather beyond the kicking game.
+- ✅ Crowd noise and stadium, through the penalty model. Weather beyond the kicking game
+  is still to come.
 
 **Deferred to M5, and still needed** — these want the spatial engine to be meaningful, not
 merely to be wired up:

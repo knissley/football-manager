@@ -25,6 +25,21 @@ public struct CrudeResolver: PlayResolver {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
         let personnel = Personnel.onField(context, random: &random)
 
+        // A flag before the snap means the play never happened, whatever was called.
+        if family.isRun || family.isPass,
+            let foul = Penalties.preSnap(
+                situation: situation, calls: calls, context: context, personnel: personnel,
+                random: &random)
+        {
+            return (
+                Outcome(
+                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
+                    participants: participation(for: foul.offender, personnel, role: .other),
+                    penalties: [foul], clockRunoff: 0),
+                []
+            )
+        }
+
         switch family {
         case .insideRun, .outsideRun:
             return run(family, situation, calls, context, personnel, &random)
@@ -54,6 +69,16 @@ public struct CrudeResolver: PlayResolver {
                     participants: quarterbackOnly(.passer, personnel), clockRunoff: 1), []
             )
         }
+    }
+
+    /// One player, for a play where only he did anything worth recording.
+    private func participation(
+        for slot: PlayerSlot, _ personnel: Personnel, role: PlayRole
+    ) -> [Participation] {
+        guard let id = personnel[slot], let position = personnel.position(at: slot) else {
+            return []
+        }
+        return [Participation(slot: slot, player: id, position: position, role: role)]
     }
 
     /// The quarterback, for plays only he takes part in.
@@ -109,6 +134,7 @@ public struct CrudeResolver: PlayResolver {
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var decisions: [DecisionPoint] = []
         var participants: [Participation] = []
+        var penalty: PenaltyRecord?
         let defense = calls.defense
 
         /// Credit a player, or **upgrade** the role he is already credited in.
@@ -163,6 +189,12 @@ public struct CrudeResolver: PlayResolver {
                         tick: UInt16(millis / 100), kind: .pressureAllowed, primary: blocker,
                         secondary: rusher, detail: BlockResult.lost.rawValue,
                         value: Int16(millis)))
+                // Drawn here, conditional on having lost, so the flag and the reason for
+                // it are the same event: he held because he was beaten.
+                if penalty == nil {
+                    penalty = Penalties.whenBeatenBlocking(
+                        blocker: blocker, personnel: personnel, context: context, random: &random)
+                }
                 if millis < (pressureAt ?? Int.max) {
                     pressureAt = millis
                     pressureBy = rusher
@@ -204,6 +236,13 @@ public struct CrudeResolver: PlayResolver {
                     primary: SlotLayout.quarterback,
                     secondary: receiver, detail: UInt8(index + 1), value: Int16(separation)))
             reads.append((receiver, defender, separation))
+
+            if penalty == nil {
+                penalty = Penalties.whenBeatenInCoverage(
+                    defender: defender, separationCentimetres: separation,
+                    routeDepth: depth.yards, personnel: personnel, context: context,
+                    random: &random)
+            }
         }
 
         // 3. The decision. Pressure that arrives before the route develops is what turns
@@ -222,6 +261,11 @@ public struct CrudeResolver: PlayResolver {
                     primary: SlotLayout.quarterback, secondary: pressureBy,
                     detail: ThrowDecision.sack.rawValue, value: Int16(pressureAt ?? 2_000)))
             credit(pressureBy, .tackler)
+            if penalty == nil {
+                penalty = Penalties.onContact(
+                    tackler: pressureBy, isQuarterback: true, personnel: personnel,
+                    context: context, random: &random)
+            }
             let room: Int = 99 - Int(situation.ballOn)
             let rawLoss: Int = 4 + Int(random.next(upperBound: 6))
             let inOwnEndZone: Bool = rawLoss > room
@@ -231,7 +275,8 @@ public struct CrudeResolver: PlayResolver {
                 Outcome(
                     kind: .sack, yards: inOwnEndZone ? Int16(-room) : loss,
                     endedIn: inOwnEndZone ? .safety : .tackled,
-                    participants: participants, clockRunoff: runoff),
+                    participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    clockRunoff: runoff),
                 decisions
             )
         }
@@ -279,7 +324,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .pass, yards: 0, endedIn: .intercepted, participants: participants,
-                    finalSpot: spot, clockRunoff: runoff),
+                    penalties: penalty.map { [$0] } ?? [], finalSpot: spot, clockRunoff: runoff),
                 decisions
             )
 
@@ -296,7 +341,8 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: kind, yards: gained, endedIn: ending,
-                    participants: participants, clockRunoff: runoff),
+                    participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    clockRunoff: runoff),
                 decisions
             )
 
@@ -304,7 +350,8 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: isTry ? .twoPointConversion : .pass, yards: 0, endedIn: .incomplete,
-                    participants: participants, clockRunoff: runoff),
+                    participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    clockRunoff: runoff),
                 decisions
             )
         }
@@ -322,6 +369,7 @@ public struct CrudeResolver: PlayResolver {
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var decisions: [DecisionPoint] = []
         var participants: [Participation] = []
+        var penalty: PenaltyRecord?
 
         /// Credit a player, or **upgrade** the role he is already credited in.
         ///
@@ -367,6 +415,12 @@ public struct CrudeResolver: PlayResolver {
                     secondary: defender,
                     detail: (won ? BlockResult.won : .lost).rawValue))
             blockScore += won ? 1 : -1
+
+            // Same rule as in protection: a hold is what a beaten blocker does.
+            if !won, penalty == nil {
+                penalty = Penalties.whenBeatenBlocking(
+                    blocker: blocker, personnel: personnel, context: context, random: &random)
+            }
         }
 
         let quality = Int16(blockScore * 12) + Int16(random.next(upperBound: 30)) - 15
@@ -397,12 +451,20 @@ public struct CrudeResolver: PlayResolver {
         let reachesEndZone = Int(situation.ballOn) - Int(gained) <= 0
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
+        // Contact fouls are drawn where the contact happened, on the man who made it.
+        if penalty == nil, let tackler = participants.first(where: { $0.role == .tackler })?.slot {
+            penalty = Penalties.onContact(
+                tackler: tackler, isQuarterback: false, personnel: personnel, context: context,
+                random: &random)
+        }
+
         return (
             Outcome(
                 kind: .rush,
                 yards: reachesEndZone ? Int16(situation.ballOn) : gained,
                 endedIn: reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending),
                 participants: participants,
+                penalties: penalty.map { [$0] } ?? [],
                 clockRunoff: UInt16(5 + Int(random.next(upperBound: 3)))),
             decisions
         )

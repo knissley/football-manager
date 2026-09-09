@@ -35,6 +35,8 @@ public struct GameSetup: Sendable {
     public let home: GameTeam
     public let away: GameTeam
     public let players: [PlayerID: Player]
+    /// Where the game is played. Its noise is the mechanism behind home field advantage.
+    public let stadium: Stadium
     public let weather: WeatherState
     public let rules: Rules
     public let seed: UInt64
@@ -45,6 +47,7 @@ public struct GameSetup: Sendable {
         home: GameTeam,
         away: GameTeam,
         players: [PlayerID: Player],
+        stadium: Stadium = Stadium(name: "Neutral Field", capacity: 68_000),
         weather: WeatherState = .clear,
         rules: Rules = .standard,
         seed: UInt64,
@@ -54,6 +57,7 @@ public struct GameSetup: Sendable {
         self.home = home
         self.away = away
         self.players = players
+        self.stadium = stadium
         self.weather = weather
         self.rules = rules
         self.seed = seed

@@ -355,6 +355,16 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 195 | **A spike costs a down, so it is a last resort** | Only when the clock is running and there is no timeout to spend instead. Spiking with timeouts in hand wastes a down; spiking on a stopped clock wastes one for nothing |
 | 196 | **Kneels and spikes credit the quarterback** | They are snaps somebody took. Crediting nobody would leave his snap count short and put plays in the stream that happened to no one |
 
+## Penalties in the engine
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 197 | **Desperation fouls are drawn at the matchup that beat the man** | Not beside the play — *at* the moment he loses. So the flag and the reason for it are the same event, and a bad offensive line holds more without anybody tuning a holding rate |
+| 198 | **Procedural fouls are the only ones that are a roll** | False start, offside, delay, twelve men. Nobody was beaten; somebody broke a rule, and the rule comes from `discipline`, the noise he is working in, and the tempo he is asked to play at |
+| 199 | **Crowd noise is asymmetric, or it is weather** | It raises the *visiting* offence's pre-snap fouls and spares the home team. Tested in both directions, because a symmetric effect would be a stadium quirk rather than home field advantage |
+| 200 | **Twelve men is a substitution failure, so hurry-up causes it** | Defensive personnel churn against offensive tempo. Which makes hurry-up a weapon rather than a clock tactic: it does not only save time, it catches defences with twelve on the grass |
+| 201 | **The penalty model never reads leverage** | A flag is not likelier because it is January. It is exactly as likely as it always was and simply matters more, and the analysis layer surfaces it because the swing in win probability is enormous. Arranging the drama would break the honesty pillar |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

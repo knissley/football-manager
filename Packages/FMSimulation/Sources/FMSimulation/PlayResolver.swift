@@ -17,6 +17,13 @@ public struct PlayContext: Sendable {
     public let players: [PlayerID: Player]
     public let offenseScheme: TeamScheme
     public let defenseScheme: TeamScheme
+    /// How loud it is, 0–100, and whether the offence is the visiting team.
+    ///
+    /// Home field advantage is a **mechanism** rather than a bonus: noise raises the
+    /// visiting offence's pre-snap penalties, drives stall, and the advantage falls out
+    /// ([penalties.md](../../../../docs/penalties.md)).
+    public let crowdNoise: UInt8
+    public let offenseIsHome: Bool
     /// Whether the clock is running into this snap.
     ///
     /// A pre-snap fact both callers need and neither can derive: the same down and
@@ -38,10 +45,14 @@ public struct PlayContext: Sendable {
         players: [PlayerID: Player],
         offenseScheme: TeamScheme,
         defenseScheme: TeamScheme,
+        crowdNoise: UInt8 = 50,
+        offenseIsHome: Bool = true,
         clockIsRunning: Bool = false,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
+        self.crowdNoise = crowdNoise
+        self.offenseIsHome = offenseIsHome
         self.clockIsRunning = clockIsRunning
         self.form = form
         self.offense = offense
