@@ -350,12 +350,83 @@ struct RestructureTests {
         #expect(contract.restructured(in: seasonZero, converting: .millions(-1)) == nil)
     }
 
-    @Test("Converted money becomes guaranteed")
-    func convertedMoneyIsGuaranteed() throws {
-        let contract = makeContract(baseSalaries: [.millions(10), .millions(10)])
+    /// Rewritten from `Converted money becomes guaranteed`, which asserted the
+    /// bug: it required the conversion to land in `guaranteedSalary` as well as
+    /// in a proration stream, so dead money charged the same dollars twice.
+    ///
+    /// A restructure converts base salary into a signing-bonus-like payment. The
+    /// cash is paid at the conversion and prorates over the remaining seasons,
+    /// capped at five; that proration is its only cap treatment. Dead money is
+    /// remaining proration plus guaranteed salary *still owed*, and converted
+    /// money is no longer owed — it has been paid.
+    ///
+    /// Source: `football-domain` skill, `references/salary-cap.md`, sections
+    /// "Contract anatomy" (signing bonus is cash up front, prorated), "Dead
+    /// money" (`remainingProration + guaranteedSalaryStillOwed`) and
+    /// "Restructures".
+    @Test("football · Converted money is counted once in dead money")
+    func convertedMoneyIsCountedOnce() throws {
+        // Three years at 10 apiece, a 9 signing bonus prorating 3 a season, and
+        // 4 of year two's base guaranteed before anything is converted.
+        let contract = makeContract(
+            signingBonus: .millions(9),
+            baseSalaries: [.millions(10), .millions(10), .millions(10)],
+            guarantees: [.zero, .millions(4), .zero]
+        )
         let restructured = try #require(
             contract.restructured(in: seasonZero, converting: .millions(6)))
-        #expect(restructured.year(seasonZero)?.guaranteedSalary == .millions(6))
+
+        // The 6 leaves year one's base and opens a second stream at 2 a season.
+        // It does not join the guarantee schedule: it is cash paid, not owed.
+        #expect(restructured.year(seasonZero)?.baseSalary == .millions(4))
+        #expect(restructured.year(seasonZero)?.guaranteedSalary == .zero)
+        #expect(restructured.prorationCharge(in: seasonZero) == .millions(5))
+
+        // Released in the same league year as the conversion: 9 of signing bonus
+        // and 6 of conversion accelerate, plus the 4 guaranteed in year two.
+        let immediately = restructured.deadMoney(releasedBefore: seasonZero)
+        #expect(immediately.currentSeason == .millions(19))
+        #expect(immediately.total == .millions(19))
+
+        // Released before year two: two seasons of each stream remain, 6 and 4,
+        // plus the same 4 of guaranteed salary — and nothing else.
+        let dead = restructured.deadMoney(releasedBefore: seasonZero + 1)
+        #expect(dead.currentSeason == .millions(6) + .millions(4) + .millions(4))
+        #expect(dead.followingSeason == .zero)
+
+        // "Nothing else" stated against the un-restructured deal: converting
+        // adds exactly the conversion's unamortised proration, 4, not 10.
+        let before = contract.deadMoney(releasedBefore: seasonZero + 1)
+        #expect(dead.total - before.total == .millions(4))
+    }
+
+    /// Converting base salary that was already guaranteed does not create new
+    /// money. The guarantee is satisfied in cash at the conversion and rides
+    /// into the proration stream; what stays guaranteed is the base salary that
+    /// is left, because that is all that can still be owed.
+    ///
+    /// Source: `football-domain` skill, `references/salary-cap.md`, "Dead money"
+    /// — dead money counts guaranteed salary *still owed* — and "Restructures".
+    @Test("football · Converting guaranteed base salary discharges that guarantee in cash")
+    func convertingGuaranteedBaseDischargesTheGuarantee() throws {
+        // Year one's 10 is fully guaranteed, as a first year usually is. No
+        // signing bonus, so the conversion is the only proration stream.
+        let contract = makeContract(
+            baseSalaries: [.millions(10), .millions(8), .millions(6)],
+            guarantees: [.millions(10), .zero, .zero]
+        )
+        let restructured = try #require(
+            contract.restructured(in: seasonZero, converting: .millions(6)))
+
+        #expect(restructured.year(seasonZero)?.baseSalary == .millions(4))
+        #expect(restructured.year(seasonZero)?.guaranteedSalary == .millions(4))
+
+        // Releasing before a snap is played costs the 6 already paid, now
+        // accelerating as proration, plus the 4 still owed: exactly the 10 the
+        // team had guaranteed, which is what it was on the hook for all along.
+        let dead = restructured.deadMoney(releasedBefore: seasonZero)
+        #expect(dead.currentSeason == .millions(10))
+        #expect(dead.total == contract.deadMoney(releasedBefore: seasonZero).total)
     }
 }
 
