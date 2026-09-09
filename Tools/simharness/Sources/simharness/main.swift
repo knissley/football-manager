@@ -427,6 +427,7 @@ var twoPointTries = 0
 var twoPointGood = 0
 var drivePlays: [Int] = []
 var threeAndOuts = 0
+var shortDriveEndings: [String: Int] = [:]
 
 for result in results {
     // A drive is a run of consecutive snaps by one team. Classified by how its last
@@ -463,6 +464,7 @@ for result in results {
             }
         }
         driveEnds[label, default: 0] += 1
+        if drive.plays <= 3 { shortDriveEndings[label, default: 0] += 1 }
     }
 
     for play in result.plays {
@@ -647,6 +649,13 @@ for (label, low, high, test) in [
             + "\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))"
             + (share < low || share > high ? "OFF" : "ok"))
 }
+print("    how the short ones ended")
+let shortTotal = shortDriveEndings.values.reduce(0, +)
+for (label, count) in shortDriveEndings.sorted(by: { $0.value > $1.value }) {
+    print(
+        "      \(pad(label, 24))\(pad(oneDecimal(Double(count) / Double(max(1, shortTotal)) * 100) + "%", 9))\(count)"
+    )
+}
 print(
     "    \(pad("three and out", 26))\(pad(oneDecimal(Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100) + "%", 9))20.0-27.0"
 )
@@ -722,6 +731,39 @@ print(
 print(
     "    \(pad("conversion rate", 26))\(pad(oneDecimal(Double(converted.count) / Double(max(1, goes.count)) * 100) + "%", 9))45.0-58.0"
 )
+// Where the offence actually stays on the field. "Going for it" is only a real decision
+// in some parts of the field and some parts of the game; a team going for it on fourth
+// and four from its own thirty in the first quarter is a broken caller, not a bold one.
+print("    where it went for it")
+for (label, test) in [
+    ("own 1 to own 30", { (b: UInt8) in b > 70 }),
+    ("own 30 to midfield", { (b: UInt8) in b > 50 && b <= 70 }),
+    ("midfield to their 30", { (b: UInt8) in b > 30 && b <= 50 }),
+    ("inside their 30", { (b: UInt8) in b <= 30 }),
+] as [(String, (UInt8) -> Bool)] {
+    let inZone = goes.filter { test($0.situation.ballOn) }
+    let share = Double(inZone.count) / Double(max(1, goes.count)) * 100
+    print("      \(pad(label, 24))\(pad(oneDecimal(share) + "%", 9))\(inZone.count) attempts")
+}
+let deepGoes = goes.filter { $0.situation.ballOn > 70 }
+var deepByTime: [String: Int] = [:]
+for play in deepGoes { deepByTime["\(SituationClass(play.situation).time)", default: 0] += 1 }
+if !deepGoes.isEmpty {
+    print(
+        "      \(pad("    deep ones, by time", 24))"
+            + deepByTime.sorted { $0.value > $1.value }.map { "\($0.key) \($0.value)" }.joined(
+                separator: ", "))
+}
+let neutral = goes.filter {
+    let classified = SituationClass($0.situation)
+    return !classified.score.isTrailing && !classified.time.isEndgame
+}
+print(
+    "      \(pad("level or ahead, not late", 24))"
+        + "\(pad(oneDecimal(Double(neutral.count) / Double(max(1, goes.count)) * 100) + "%", 9))"
+        + "avg \(oneDecimal(Double(neutral.reduce(0) { $0 + Int($1.situation.distance) }) / Double(max(1, neutral.count)))) to go"
+)
+
 let shortGoes = fourthDowns.filter { $0.situation.distance <= 1 }
 let shortWent = shortGoes.filter { $0.outcome.kind.isScrimmagePlay }
 print(

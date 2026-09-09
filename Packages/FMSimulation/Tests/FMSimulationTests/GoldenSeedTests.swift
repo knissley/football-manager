@@ -104,7 +104,7 @@ struct GoldenSeedTests {
     @Test(
         "A seed produces the same game in every process",
         arguments: [
-            (UInt64(1), UInt64(2_342_118_265_591_190_839)),
+            (UInt64(1), UInt64(8_506_620_023_489_985_209)),
             (UInt64(5), UInt64(8_841_975_023_701_611_735)),
             (UInt64(12), UInt64(15_584_503_308_422_963_415)),
         ])

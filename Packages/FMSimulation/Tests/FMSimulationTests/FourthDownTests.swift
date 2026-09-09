@@ -100,6 +100,32 @@ struct FourthDownTests {
             "down seven, a field goal does not help")
     }
 
+    /// Two minutes before halftime is not two minutes before the end.
+    ///
+    /// `SituationClass.isDesperation` is true inside two minutes of *either* half, which
+    /// is right as a description — you are behind and time is short. Acting on it the same
+    /// way in both halves is not: before the break there is a whole half left, and
+    /// punting from your own twenty is still the right call. Reading the description as an
+    /// instruction had teams going for it on fourth and long from their own end before
+    /// halftime, which was half of every deep fourth-down attempt in the league.
+    @Test("Being behind before halftime does not mean going for it from your own end")
+    func firstHalfIsNotDesperation() {
+        // Own 20, fourth and eight, down four, ninety seconds before the break.
+        #expect(
+            decision(distance: 8, ballOn: 80, quarter: 2, clock: 90, differential: -4) == .punt)
+        // The same down and distance with ninety seconds left in the game is a different
+        // question, and there the punt really is a surrender.
+        #expect(
+            goesForIt(decision(distance: 8, ballOn: 80, quarter: 4, clock: 90, differential: -4)),
+            "down four with ninety seconds left in the game")
+
+        // A first-half two-minute drill still behaves normally in good field position.
+        #expect(
+            decision(distance: 6, ballOn: 30, quarter: 2, clock: 90, differential: -4)
+                == .fieldGoal,
+            "in range before the half, take the points")
+    }
+
     /// The conversion chart, on both sides of the scoreboard. The differential is read
     /// *before* the try, so trailing by two means the conversion ties it.
     @Test("Two-point decisions follow the chart")

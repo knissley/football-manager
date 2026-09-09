@@ -248,7 +248,15 @@ public struct BaselineCaller: PlayCaller {
 
         // Behind, late: a punt is a surrender, and a kick is only worth taking if it ties
         // the game or wins it.
-        if classified.isDesperation {
+        //
+        // The *second* half only. `isDesperation` is true inside two minutes of either
+        // half — correctly, as a description of the moment — but two minutes before
+        // halftime you are trying to score before the break, not trying to save the game.
+        // There is a whole half left, and punting from your own twenty is still the right
+        // call. Treating both halves alike had teams going for it on fourth and long from
+        // their own end before halftime, which was half of every deep fourth-down attempt
+        // in the league.
+        if classified.isDesperation && classified.time != .twoMinuteFirstHalf {
             return inRange && situation.scoreDifferential >= -3 ? .fieldGoal : nil
         }
 
