@@ -8,6 +8,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../FMCore"),
+        .package(path: "../FMGeneration"),
         .package(path: "../FMRandom"),
     ],
     targets: [
@@ -21,7 +22,10 @@ let package = Package(
         ),
         .testTarget(
             name: "FMSimulationTests",
-            dependencies: ["FMSimulation"],
+            dependencies: [
+                "FMSimulation",
+                .product(name: "FMGeneration", package: "FMGeneration"),
+            ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

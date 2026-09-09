@@ -75,6 +75,22 @@ That has already caught `Double.rounded()` — which resolves to libm's `round` 
 twice. Test targets hide the problem because the testing library links
 Foundation.
 
+## simharness — calibration
+
+```bash
+swift run --package-path Tools/simharness -- --games 60
+```
+
+Simulates games headless and prints the [calibration table](match-engine.md#calibration)
+with each row marked `ok` or `OFF`. **Tuning is done against this and never by playing
+the app.**
+
+The crude resolver owns the parametric rows — completion percentage, sack rate,
+interception rate — because at matchup-lite fidelity those are inputs rather than
+emergent properties. Rows that depend on the *shape* of the yardage distribution rather
+than its mean are harder, and the spread of team win totals is not measurable at all
+until a schedule exists in M3.
+
 ## Tests
 
 ```bash

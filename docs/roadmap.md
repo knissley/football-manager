@@ -37,9 +37,11 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
   ([ADR-0012](adr/0012-play-resolver-seam.md)).
 - `DepthChart` with real rotation by position group, so every snap credits a real player
   and backups accumulate genuine statistics.
-- A crude matchup-lite `PlayResolver` emitting real participants and decision points.
+- ✅ A crude matchup-lite `PlayResolver` emitting real participants and decision points,
+  with the internal-consistency constraints from ADR-0012 asserted as tests.
+- ✅ `GameSimulator`, the shared game-state machine, and a baseline caller on both sides.
 - Injury availability — a player can go down and miss weeks. Severity stays in M3.
-- `Tools/simharness` running headless.
+- ✅ `Tools/simharness` running headless and reporting the calibration table.
 - ✅ Configurable, validated league shape with 8- and 12-team test presets.
 - ✅ `SituationClass` — the shared situational vocabulary both callers, the gameplan
   layer and analysis key off ([play-calling.md](play-calling.md#situational-football)).

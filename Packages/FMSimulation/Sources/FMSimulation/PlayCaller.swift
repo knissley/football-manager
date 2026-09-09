@@ -105,10 +105,10 @@ public struct BaselineCaller: PlayCaller {
 
         let runShare: Double
         switch situation.downAndDistance {
-        case .firstDown, .goalToGo: runShare = 0.52
+        case .firstDown, .goalToGo: runShare = 0.61
         case .secondShort, .thirdShort, .fourthShort: runShare = 0.70
-        case .secondMedium: runShare = 0.44
-        case .secondLong, .thirdMedium, .thirdLong, .fourthLong: runShare = 0.18
+        case .secondMedium: runShare = 0.53
+        case .secondLong, .thirdMedium, .thirdLong, .fourthLong: runShare = 0.22
         }
 
         if random.nextBool(probability: runShare) {
@@ -126,10 +126,10 @@ public struct BaselineCaller: PlayCaller {
             return random.nextBool(probability: 0.55) ? .deepPass : .mediumPass
         }
         switch random.next(upperBound: 100) {
-        case ..<34: return .quickPass
-        case ..<64: return .mediumPass
-        case ..<78: return .deepPass
-        case ..<90: return .playAction
+        case ..<44: return .quickPass
+        case ..<72: return .mediumPass
+        case ..<82: return .deepPass
+        case ..<92: return .playAction
         default: return .screen
         }
     }

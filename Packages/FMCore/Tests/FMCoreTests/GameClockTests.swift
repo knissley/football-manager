@@ -154,7 +154,7 @@ struct GameClockTests {
         let afterTackle = GameClock.elapsed(
             playDuration: 6, tempo: .normal, previousBehavior: .keepsRunning)
         #expect(afterTackle.beforeSnap == Tempo.normal.secondsBetweenSnaps)
-        #expect(afterTackle.total == 6 + 26)
+        #expect(afterTackle.total == 6 + Tempo.normal.secondsBetweenSnaps)
 
         let afterOutOfBounds = GameClock.elapsed(
             playDuration: 6, tempo: .normal, previousBehavior: .stopsUntilReadyForPlay)
