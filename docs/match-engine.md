@@ -197,6 +197,33 @@ tendency models of each other built from `PlayRecord` history, the defense never
 the call, and caller quality is benchmarked against an oracle and against human play
 rather than assessed by feel.
 
+## Variance, and why records have to be reachable
+
+Means are the easy part. A league tuned only to its averages produces a distribution that
+is *narrower than chance*, and in one a record is not merely unlikely — it is impossible.
+An early crude resolver managed a maximum of three passing touchdowns in four hundred
+team-games and could never have produced four. A Poisson process with the same mean would
+have produced four in one game in twenty-five.
+
+Two mechanisms fix that, and neither is "more randomness":
+
+**Form.** A rating is a central tendency, not a constant. Each player draws a day once per
+game, seeded from the game and his identifier, applied to every rep he takes. This is what
+*correlates* a player's plays within a game — and correlation, not magnitude, is what
+gives a distribution tails. Independent per-play noise averages out over a hundred snaps;
+a day does not. Ordinary days stay within a few rating points so talent still decides a
+season; a rare day well outside that is what lets a generational player in the right
+situation chase a number nobody should reach.
+
+**Explosive plays.** A receiver who beats every defender with an angle on him is in open
+field, not three yards further on. The run game had a burst through the hole from the
+start and the passing game had no equivalent, which is precisely why one had a tail and
+the other did not.
+
+The test of this is not the mean. It is whether, over a long enough career, somebody
+breaks a record that looked unattainable — and `Tools/simharness` reports the tails
+alongside the means for exactly that reason.
+
 ## Sliders
 
 Sliders are **league-wide world tuning**, not a personal difficulty dial. Pass

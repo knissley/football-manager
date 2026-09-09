@@ -52,8 +52,7 @@ public struct CrudeResolver: PlayResolver {
     private func rating(
         _ key: RatingKey, _ slot: PlayerSlot, _ personnel: Personnel, _ context: PlayContext
     ) -> Double {
-        guard let id = personnel[slot], let player = context.player(id) else { return 60 }
-        return Double(player.ratings[key] ?? player.overall)
+        context.effective(key, for: personnel[slot], onOffense: slot.isOffense)
     }
 
     /// A contest between two ratings, as a probability the attacker wins.
@@ -268,8 +267,8 @@ public struct CrudeResolver: PlayResolver {
         case .caught, .contestedCatch:
             let afterCatch = yardsAfterCatch(
                 carrier: target.receiver, personnel: personnel, context: context,
-                decisions: &decisions, participants: &participants,
-                startTick: arrivalTick + 2, random: &random)
+                separation: target.separation, decisions: &decisions,
+                participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
             let gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
@@ -513,14 +512,19 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func yardsAfterCatch(
-        carrier: PlayerSlot, personnel: Personnel, context: PlayContext,
+        carrier: PlayerSlot, personnel: Personnel, context: PlayContext, separation: Int,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (yards: Int, ending: PlayEnding) {
         let tackle = tackleSequence(
             carrier: carrier, personnel: personnel, context: context, decisions: &decisions,
             participants: &participants, startTick: startTick, random: &random)
-        return (max(0, Int(random.next(upperBound: 3)) + tackle.extraYards), tackle.ending)
+        // A receiver who caught it in stride is already past somebody. Separation earned
+        // before the catch is worth yards after it.
+        let inStride = max(0, separation - 140) / 45
+        return (
+            max(0, Int(random.next(upperBound: 3)) + inStride + tackle.extraYards), tackle.ending
+        )
     }
 
     /// Who brought him down, and whether he broke one first.
@@ -532,15 +536,15 @@ public struct CrudeResolver: PlayResolver {
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (extraYards: Int, ending: PlayEnding) {
-        let breakTackle = { () -> Double in
-            guard let id = personnel[carrier], let player = context.player(id) else { return 60 }
-            return Double(player.ratings[.breakTackle] ?? player.overall)
-        }()
+        let breakTackle = context.effective(
+            .breakTackle, for: personnel[carrier], onOffense: carrier.isOffense)
 
         var extra = 0
         var tick = startTick
+        var broke = 0
+        let attempts = 3
 
-        for defender in SlotLayout.coverage.prefix(3) {
+        for defender in SlotLayout.coverage.prefix(attempts) {
             guard let id = personnel[defender], let position = personnel.position(at: defender)
             else { continue }
             let tackling =
@@ -570,6 +574,19 @@ public struct CrudeResolver: PlayResolver {
                 return (extra, random.nextBool(probability: 0.14) ? .outOfBounds : .tackled)
             }
             extra += 2 + Int(random.next(upperBound: 5))
+            broke += 1
+        }
+
+        // He beat everybody who had an angle on him, so he is in open field rather than
+        // three yards further on. This is the passing game's equivalent of the run's
+        // burst through a hole, and its absence is why a first pass could produce a
+        // maximum of three passing touchdowns in four hundred team-games: without a
+        // breakaway there is no long touchdown, and without long touchdowns there is no
+        // tail at all.
+        if broke == attempts {
+            let speed = context.effective(.speed, for: personnel[carrier], onOffense: true)
+            let burst = 6 + Int((speed - 55) * 0.35) + Int(random.next(upperBound: 22))
+            extra += max(4, burst)
         }
 
         return (extra, .outOfBounds)

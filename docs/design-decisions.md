@@ -330,6 +330,17 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 181 | **Accept/decline is certain where it is certain and crude where it is not** | Nobody declines their own score, nobody accepts a flag leaving the other side's score standing, and losing the ball dominates. Third-and-twenty-two against fourth-and-ten is a real expected-points question, and win probability is what answers it ([ADR-0008](adr/0008-win-probability-keystone.md)) — so the proxy is provisional, documented as provisional, and not pinned by tests |
 | 178 | **Injury availability in M1; severity in M3** | A player can go down and miss weeks, so M2's news gets the sport's biggest recurring story and "why is my run defense bad" can answer "your nose tackle has been out since week 4" |
 
+## Variance and the tails
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 182 | **Per-game form: a rating is a central tendency, not a constant** | Players have good and bad days for reasons no model captures. Drawn once per game from the game's seed and the player's identifier, so a replay shows the same day |
+| 183 | **Form exists to correlate a player's plays *within* a game** | Independent per-play randomness concentrates — a game is a sum of a hundred draws and sums of independent draws cluster. Without it, a maximum of three passing touchdowns in four hundred team-games, and never four: **narrower than pure chance**, with records permanently unreachable |
+| 184 | **Ordinary variation is modest; the outlier tail is real** | Most days sit within eight rating points, so talent still decides a season. A rare day well outside that is what lets a generational player in the right situation chase a number nobody should reach |
+| 185 | **Explosive plays are what give a passing game a tail** | A receiver who beats everyone with an angle on him is in open field, not three yards further on. The run had a burst through the hole and the pass had no equivalent, which is exactly why the run had a tail and the pass had none |
+| 186 | **Scheme fit reaches the engine, not just the roster screen** | The resolver never mentioned a scheme, so a player in a system built around him performed exactly as one it wasted. `SchemeFit` was an elaborate no-op. Fit is worth a few points — enough to decide a close matchup, not to overturn talent |
+| 187 | **A balanced player fits everywhere; an uneven one does not** | Scheme boosts and penalties cancel on a balanced profile. A burner is a vertical receiver and a bad air-raid one; a route technician is the reverse. The design only shows on players with a shape |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

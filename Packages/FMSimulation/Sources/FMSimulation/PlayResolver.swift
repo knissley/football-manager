@@ -17,6 +17,11 @@ public struct PlayContext: Sendable {
     public let players: [PlayerID: Player]
     public let offenseScheme: TeamScheme
     public let defenseScheme: TeamScheme
+    /// Each player's day, in rating points, fixed for the whole game.
+    ///
+    /// A game-level fact, so it is computed once and read here rather than drawn per
+    /// play. See `Form` for why a resolver without it cannot produce a record.
+    public let form: [PlayerID: Double]
     public let rules: Rules
 
     public init(
@@ -27,8 +32,10 @@ public struct PlayContext: Sendable {
         players: [PlayerID: Player],
         offenseScheme: TeamScheme,
         defenseScheme: TeamScheme,
+        form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
+        self.form = form
         self.offense = offense
         self.defense = defense
         self.offenseRotation = offenseRotation
@@ -40,6 +47,23 @@ public struct PlayContext: Sendable {
     }
 
     public func player(_ id: PlayerID) -> Player? { players[id] }
+
+    /// A player's effective rating today: what he is, how he fits what he is being
+    /// asked to do, and what kind of day he is having.
+    ///
+    /// Scheme fit is the piece an earlier version left out entirely — the resolver never
+    /// mentioned a scheme, so a player in a system built around him performed exactly as
+    /// he would in one that wasted him. That made `SchemeFit` an elaborate no-op and
+    /// removed the whole reason a team has an identity.
+    public func effective(_ key: RatingKey, for id: PlayerID?, onOffense: Bool) -> Double {
+        guard let id, let player = players[id] else { return 60 }
+        let base = Double(player.ratings[key] ?? player.overall)
+        let scheme = onOffense ? offenseScheme : defenseScheme
+        // Fit moves a player a few points either way, which is enough to matter over a
+        // season without overturning talent.
+        let fit = Double(player.schemeFit(scheme)) * 0.35
+        return base + fit + (form[id] ?? 0)
+    }
 }
 
 /// The seam between the sport's rules and the physics

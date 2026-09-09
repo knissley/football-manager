@@ -32,6 +32,9 @@ extension GameSimulator {
         var plays: [PlayRecord] = []
         var isOver = false
 
+        /// Every player's day, drawn once when the game starts.
+        private let form: [PlayerID: Double]
+
         /// Who receives the second-half kickoff — the team that did not receive first.
         private let secondHalfReceiver: TeamID
         /// Which teams have had the ball in overtime, for the both-teams-touch rule.
@@ -39,6 +42,9 @@ extension GameSimulator {
 
         init(setup: GameSetup) {
             self.setup = setup
+            form = Form.table(
+                for: setup.players.keys.sorted { $0.rawValue < $1.rawValue },
+                game: setup.game, seed: setup.seed)
             clock = .start(setup.rules)
             homeTimeouts = setup.rules.timeoutsPerHalf
             awayTimeouts = setup.rules.timeoutsPerHalf
@@ -85,6 +91,7 @@ extension GameSimulator {
                 players: setup.players,
                 offenseScheme: offense.scheme,
                 defenseScheme: defense.scheme,
+                form: form,
                 rules: setup.rules)
         }
 

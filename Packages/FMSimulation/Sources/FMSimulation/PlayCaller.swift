@@ -96,6 +96,11 @@ public struct BaselineCaller: PlayCaller {
             return passFamily(for: situation, random: &random)
         }
         if situation.downAndDistance.isShortYardage {
+            // Short yardage on the goal line is not the same as short yardage at
+            // midfield: the end zone is a defender-free area a throw can reach.
+            if situation.field == .goalLine && random.nextBool(probability: 0.34) {
+                return .quickPass
+            }
             return random.nextBool(probability: 0.72) ? .insideRun : .outsideRun
         }
         if situation.isClockBurn {
@@ -105,7 +110,12 @@ public struct BaselineCaller: PlayCaller {
 
         let runShare: Double
         switch situation.downAndDistance {
-        case .firstDown, .goalToGo: runShare = 0.61
+        case .firstDown: runShare = 0.61
+        // Near the goal line the field is short and the throw is the higher-value call
+        // more often than a run-first lean suggests. A run-heavy goal line put too many
+        // touchdowns on the ground and left the passing distribution without a mean high
+        // enough to have a tail.
+        case .goalToGo: runShare = 0.38
         case .secondShort, .thirdShort, .fourthShort: runShare = 0.70
         case .secondMedium: runShare = 0.53
         case .secondLong, .thirdMedium, .thirdLong, .fourthLong: runShare = 0.22

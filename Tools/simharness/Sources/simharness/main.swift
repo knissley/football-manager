@@ -244,6 +244,55 @@ if rushers.count > 6 {
     print("    sacks by the worse half               \(oneDecimal(bottomRate))")
 }
 
+// MARK: - Tails
+
+// Means are easy and tails are where the sport lives. If nobody ever has a huge day,
+// records are unreachable and a generational player is indistinguishable from a good one
+// over a career.
+var passTouchdownsByGameTeam: [String: Int] = [:]
+var passYardsByGameTeam: [String: Int] = [:]
+var rushYardsByCarrierGame: [String: Int] = [:]
+
+for play in allPlays {
+    let key = "\(play.game.rawValue)-\(play.situation.possession.rawValue)"
+    if play.outcome.kind.isPassAttempt {
+        passYardsByGameTeam[key, default: 0] += max(0, Int(play.outcome.yards))
+        if play.outcome.endedIn == .touchdown {
+            passTouchdownsByGameTeam[key, default: 0] += 1
+        }
+    }
+    if play.outcome.kind == .rush {
+        for participant in play.outcome.participants where participant.role == .rusher {
+            rushYardsByCarrierGame[
+                "\(play.game.rawValue)-\(participant.player.rawValue)", default: 0] += Int(
+                    play.outcome.yards)
+        }
+    }
+}
+
+func spread(_ values: [Int], _ label: String, buckets: [Int]) {
+    guard !values.isEmpty else { return }
+    let sorted = values.sorted()
+    let mean = Double(values.reduce(0, +)) / Double(values.count)
+    print("")
+    print("  \(label)  (mean \(oneDecimal(mean)), max \(sorted.last ?? 0))")
+    for bucket in buckets {
+        let count = values.filter { $0 >= bucket }.count
+        let share = Double(count) / Double(values.count) * 100
+        print("    " + pad(">= \(bucket)", 10) + pad("\(count)", 7) + "\(oneDecimal(share))%")
+    }
+}
+
+spread(
+    Array(passTouchdownsByGameTeam.values), "Passing touchdowns in a team-game",
+    buckets: [3, 4, 5, 6, 7])
+spread(
+    Array(passYardsByGameTeam.values), "Passing yards in a team-game",
+    buckets: [300, 400, 450, 500])
+spread(
+    Array(rushYardsByCarrierGame.values), "Rushing yards by one carrier in a game",
+    buckets: [100, 150, 200, 250])
+
 print("")
 print("  Not measured here")
 print("    Spread of team win totals — the single most important row in the")
