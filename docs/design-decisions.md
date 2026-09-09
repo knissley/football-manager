@@ -376,6 +376,16 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 207 | **Non-contact injuries have no walk-it-off branch** | An achilles is most of a season and a hamstring is still weeks. They are a sixth of injuries and well over a third of the games lost, which is the real relationship |
 | 205 | **Availability only in M1; severity in M3** | He is out, and for how many games. Rehabilitation, reaggravation and long-term effects built against a resolver being deleted would be tuned twice |
 
+## World generation
+
+| # | Decision | Implication |
+| --- | --- | --- |
+| 208 | **One call builds a world, and everything uses it** | `WorldGenerator.generate(seed:shape:season:)` returns the league, its teams, every roster and depth chart, the colleges, the draft pipeline and the rivalries. Three callers used to assemble three different leagues — the tool's, the harness's, and one per test suite — and only one of them could be the world the game ships |
+| 209 | **Team strength is drawn from the seed, never from the team's index** | Strength interpolated from generation order made team 0 the worst club in every league and team 31 the best, and made a division race a function of the order cities were dealt. The draw is uniform on ±8 overall rather than Gaussian, because a league wants real contenders and real rebuilds at its edges and a normal draw puts almost everyone in the middle |
+| 210 | **The league is centred after the draw** | The mean offset is subtracted from every team, so a league's overall mean does not wander with the seed and a calibration run at one seed is comparable with another. Without it, "points per game moved" cannot be told apart from "this seed drew a better league" |
+| 211 | **Each generation stage draws from its own labelled substream** | Colleges, structure, strength, each team, the draft pipeline and rivalries each derive from `(rootSeed, label)` rather than from a single advancing stream. A stage that grows — or a new one inserted — cannot shift anything generated before it, which is what makes the generator extensible without rewriting every golden constant |
+| 212 | **A world can be asked for without its optional parts** | A caller simulating one game has no use for a draft pipeline or a rivalry ledger, and generating them doubles the work before the first kickoff. `Parts` omits them; because of [decision 211](#world-generation) the world you do get is bit-for-bit the one you would have got anyway, which is asserted rather than assumed |
+
 ## Open questions
 
 Not yet decided. Each needs an answer before the system it touches is built.

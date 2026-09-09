@@ -1,6 +1,4 @@
 import FMCore
-import FMGeneration
-import FMRandom
 import Testing
 
 @testable import FMSimulation
@@ -16,28 +14,7 @@ import Testing
 struct TryTests {
 
     private static func game(seed: UInt64) -> GameResult {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let home = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        let away = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in home + away { players[player.id] = player }
-
-        return GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(
-                GameSetup(
-                    game: GameID(seed),
-                    home: GameTeam(
-                        id: TeamID(1), depthChart: RosterGenerator.depthChart(from: home),
-                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-                    away: GameTeam(
-                        id: TeamID(2), depthChart: RosterGenerator.depthChart(from: away),
-                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-                    players: players, seed: seed))
+        TestWorld.game(seed: seed, game: GameID(seed))
     }
 
     private static func plays(_ seeds: ClosedRange<UInt64>) -> [PlayRecord] {

@@ -1,5 +1,4 @@
 import FMCore
-import FMGeneration
 import FMRandom
 import Testing
 
@@ -16,15 +15,8 @@ import Testing
 struct PersonnelTests {
 
     private func world() -> (rotation: [DepthChart.Rotation], players: [PlayerID: Player]) {
-        var random = SplittableRandom(seed: 12)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let roster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in roster { players[player.id] = player }
-        return (RosterGenerator.depthChart(from: roster).rotation(), players)
+        let (_, chart, players) = TestWorld.team(seed: 12)
+        return (chart.rotation(), players)
     }
 
     private func onField(
