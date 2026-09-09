@@ -176,6 +176,74 @@ print("    first scorelines            \(scores.prefix(8).joined(separator: "  "
 let ties = results.filter(\.isTie).count
 print("    ties                        \(ties) of \(results.count)")
 
+// MARK: - Do the best players lead?
+
+// Every credit is a query over the stream, never accumulated alongside it.
+var sacksBy: [PlayerID: Int] = [:]
+var carriesBy: [PlayerID: Int] = [:]
+var rushYardsBy: [PlayerID: Int] = [:]
+var catchesBy: [PlayerID: Int] = [:]
+var snapsBy: [PlayerID: Int] = [:]
+
+for play in allPlays {
+    for participant in play.outcome.participants {
+        snapsBy[participant.player, default: 0] += 1
+    }
+    switch play.outcome.kind {
+    case .sack:
+        for participant in play.outcome.participants where participant.role == .tackler {
+            sacksBy[participant.player, default: 0] += 1
+        }
+    case .rush:
+        for participant in play.outcome.participants where participant.role == .rusher {
+            carriesBy[participant.player, default: 0] += 1
+            rushYardsBy[participant.player, default: 0] += Int(play.outcome.yards)
+        }
+    case .pass where play.outcome.yards > 0 || play.outcome.endedIn == .touchdown:
+        for participant in play.outcome.participants where participant.role == .receiver {
+            catchesBy[participant.player, default: 0] += 1
+        }
+    default:
+        break
+    }
+}
+
+@MainActor
+func leaders(_ counts: [PlayerID: Int], _ label: String, minimum: Int = 1) {
+    let ranked = counts.filter { $0.value >= minimum }
+        .sorted { ($0.value, $0.key.rawValue) > ($1.value, $1.key.rawValue) }
+    print("")
+    print("  \(label)")
+    for (id, count) in ranked.prefix(5) {
+        guard let player = players[id] else { continue }
+        print(
+            "    " + pad(player.name.full, 24) + pad("\(player.position)", 15)
+                + pad("ovr \(player.overall)", 9) + pad("\(count)", 7)
+                + "\(snapsBy[id] ?? 0) snaps")
+    }
+}
+
+leaders(sacksBy, "Sack leaders")
+leaders(rushYardsBy, "Rushing yard leaders")
+
+// The question this answers: does rating predict production? If the leaders are
+// ordinary players, ratings are decoration.
+let rushers = sacksBy.compactMap { id, count -> (Int, Int)? in
+    guard let player = players[id] else { return nil }
+    return (Int(player.overall), count)
+}
+if rushers.count > 6 {
+    let sorted = rushers.sorted { $0.0 > $1.0 }
+    let topHalf = sorted.prefix(sorted.count / 2)
+    let bottomHalf = sorted.suffix(sorted.count / 2)
+    let topRate = Double(topHalf.reduce(0) { $0 + $1.1 }) / Double(topHalf.count)
+    let bottomRate = Double(bottomHalf.reduce(0) { $0 + $1.1 }) / Double(bottomHalf.count)
+    print("")
+    print("  Rating predicts production")
+    print("    sacks by the better half of rushers   \(oneDecimal(topRate))")
+    print("    sacks by the worse half               \(oneDecimal(bottomRate))")
+}
+
 print("")
 print("  Not measured here")
 print("    Spread of team win totals — the single most important row in the")

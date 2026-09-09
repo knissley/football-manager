@@ -59,10 +59,20 @@ public struct CrudeResolver: PlayResolver {
     /// A contest between two ratings, as a probability the attacker wins.
     ///
     /// A logistic curve would be tidier and pulls in `exp`, which the FM modules do not
-    /// link. This is the same shape by other means: even at parity, and saturating
-    /// rather than ever reaching certainty, because a great player still loses sometimes
-    /// and that is where upsets come from.
-    private func contest(_ attacker: Double, _ defender: Double, edge: Double = 0) -> Double {
+    /// link. This is the same shape by other means, and three properties matter:
+    ///
+    /// - **Even at parity.** Equal players split their reps.
+    /// - **Monotonic, with no ceiling short of the clamp.** A ninety-nine rusher must be
+    ///   measurably better than an eighty-one against the same tackle. An earlier version
+    ///   capped the pass-rush win rate at a flat number and those two came out identical,
+    ///   which makes elite talent worthless exactly where it should show.
+    /// - **Never certain.** Hard-clamped to 7%–93%, so the best player in the league
+    ///   still loses reps and the worst still wins some. That is where upsets live, and
+    ///   why a pass rusher is happy with two good snaps in a game rather than twelve.
+    ///
+    /// Internal rather than private so the curve itself can be tested. Its shape is a
+    /// design property, not an implementation detail.
+    func contest(_ attacker: Double, _ defender: Double, edge: Double = 0) -> Double {
         let margin = (attacker - defender) / 22.0 + edge
         let scaled = margin / (1.0 + abs(margin))
         return min(0.93, max(0.07, 0.5 + scaled * 0.45))
@@ -83,10 +93,23 @@ public struct CrudeResolver: PlayResolver {
         var participants: [Participation] = []
         let defense = calls.defense
 
+        /// Credit a player, or **upgrade** the role he is already credited in.
+        ///
+        /// Dropping the second credit silently is what made a sack attributable to
+        /// nobody: the rusher was already down as a pass rusher from winning his rep,
+        /// so the tackle credit that names him as the sacker was thrown away and the
+        /// league had no sack leaders at all.
         func credit(_ slot: PlayerSlot, _ role: PlayRole) {
-            guard let id = personnel[slot], let position = personnel.position(at: slot),
-                !participants.contains(where: { $0.slot == slot })
+            guard let id = personnel[slot], let position = personnel.position(at: slot)
             else { return }
+            if let existing = participants.firstIndex(where: { $0.slot == slot }) {
+                // A tackle is the more specific fact about what he did on this play.
+                if role == .tackler {
+                    participants[existing] = Participation(
+                        slot: slot, player: id, position: position, role: role)
+                }
+                return
+            }
             participants.append(
                 Participation(slot: slot, player: id, position: position, role: role))
         }
@@ -105,11 +128,12 @@ public struct CrudeResolver: PlayResolver {
             let block = rating(.passBlock, blocker, personnel, context)
             // A blitz means somebody is unblocked by construction.
             let edge = defense.rush.isBlitz && index >= SlotLayout.blockers.count ? 0.35 : 0
-            // Heavily against the rusher: four men each winning a coin flip means
-            // somebody is home on every snap, which is a 24% sack rate and not football.
-            // Around one rusher in eleven wins, so roughly a third of dropbacks see
-            // pressure from somebody.
-            let winChance = min(0.45, contest(rush, block, edge: edge - 0.62))
+            // Scaled down rather than capped. Four rushers each winning a coin flip
+            // means somebody is home on every snap, which is a 24% sack rate and not
+            // football — but clipping the top at a fixed ceiling made a 99 rusher no
+            // better than an 81 against a weak tackle, which is worse. Multiplying keeps
+            // the whole talent curve intact and still bounds the best case.
+            let winChance = contest(rush, block, edge: edge) * 0.64
 
             credit(rusher, .passRusher)
             credit(blocker, .blocker)
@@ -172,7 +196,7 @@ public struct CrudeResolver: PlayResolver {
 
         // Most pressure is survived — thrown away, checked down, or simply beaten by the
         // ball coming out. Only a minority becomes a sack.
-        if pressured, random.nextBool(probability: 0.13) {
+        if pressured, random.nextBool(probability: 0.155) {
             // Sacked, by the rusher who actually got there. Nothing else can be credited.
             decisions.append(
                 .init(
@@ -281,10 +305,23 @@ public struct CrudeResolver: PlayResolver {
         var decisions: [DecisionPoint] = []
         var participants: [Participation] = []
 
+        /// Credit a player, or **upgrade** the role he is already credited in.
+        ///
+        /// Dropping the second credit silently is what made a sack attributable to
+        /// nobody: the rusher was already down as a pass rusher from winning his rep,
+        /// so the tackle credit that names him as the sacker was thrown away and the
+        /// league had no sack leaders at all.
         func credit(_ slot: PlayerSlot, _ role: PlayRole) {
-            guard let id = personnel[slot], let position = personnel.position(at: slot),
-                !participants.contains(where: { $0.slot == slot })
+            guard let id = personnel[slot], let position = personnel.position(at: slot)
             else { return }
+            if let existing = participants.firstIndex(where: { $0.slot == slot }) {
+                // A tackle is the more specific fact about what he did on this play.
+                if role == .tackler {
+                    participants[existing] = Participation(
+                        slot: slot, player: id, position: position, role: role)
+                }
+                return
+            }
             participants.append(
                 Participation(slot: slot, player: id, position: position, role: role))
         }

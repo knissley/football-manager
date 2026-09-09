@@ -92,14 +92,31 @@ struct CrudeResolverTests {
                         $0.kind == .pressureAllowed && $0.secondary == rusher
                     },
                     "the sacking rusher never beat anybody")
+                // Specifically as the tackler. Accepting either role here is what let a
+                // silently dropped credit through: the rusher was still down as a pass
+                // rusher from winning his rep, so the test passed while the league had
+                // no sack leaders at all.
                 #expect(
                     play.outcome.participants.contains {
-                        $0.slot == rusher && ($0.role == .tackler || $0.role == .passRusher)
+                        $0.slot == rusher && $0.role == .tackler
                     },
-                    "the sacking rusher was not credited")
+                    "the sack was attributable to nobody")
             }
         }
         #expect(sacks > 0, "six games produced no sacks at all")
+    }
+
+    /// Every sack belongs to exactly one player. A sack nobody is credited with does
+    /// not appear in a stat line, an award race, or a Hall of Fame case.
+    @Test("Every sack is attributable to exactly one player")
+    func sacksAreAttributable() {
+        for seed in UInt64(1)...6 {
+            for play in game(seed: seed).plays where play.outcome.kind == .sack {
+                let tacklers = play.outcome.participants.filter { $0.role == .tackler }
+                #expect(tacklers.count == 1, "\(tacklers.count) players credited with a sack")
+                #expect(tacklers.first?.slot.isOffense == false, "the offence sacked itself")
+            }
+        }
     }
 
     /// An interception has to name the defender who took it, and the ending has to agree
@@ -219,5 +236,71 @@ struct CrudeResolverTests {
         let second = game(seed: 12)
         #expect(first.plays.map(\.outcome) == second.plays.map(\.outcome))
         #expect(first.plays.map(\.decisions) == second.plays.map(\.decisions))
+    }
+}
+
+/// The shape of the contest curve is a design property, not an implementation detail.
+///
+/// If a slightly better player always won, football would be a lookup table. If an
+/// enormously better player won no more often than a slightly better one, ratings at the
+/// top of the league would be decoration.
+@Suite("Contest curve")
+struct ContestCurveTests {
+
+    private let resolver = CrudeResolver()
+
+    @Test("Equal players split their reps")
+    func parityIsEven() {
+        #expect(resolver.contest(80, 80) == 0.5)
+        #expect(resolver.contest(45, 45) == 0.5)
+    }
+
+    /// A point of overall is a nudge, not a verdict.
+    @Test("A one-point edge is a nudge")
+    func smallEdgesAreSmall() {
+        let edge = resolver.contest(81, 80)
+        #expect(edge > 0.5)
+        #expect(edge < 0.54, "one point of overall should not decide a matchup")
+    }
+
+    /// The property that failed: a ceiling made a ninety-nine no better than an
+    /// eighty-one against the same man.
+    @Test("Better is always better, all the way up")
+    func strictlyMonotonic() {
+        let ladder = [60.0, 70.0, 75.0, 81.0, 86.0, 90.0, 95.0, 99.0]
+        let odds = ladder.map { resolver.contest($0, 70) }
+        for (index, value) in odds.enumerated().dropFirst() {
+            #expect(
+                value > odds[index - 1],
+                "\(Int(ladder[index])) is no better than \(Int(ladder[index - 1])) against a 70")
+        }
+    }
+
+    /// Nobody is ever certain. The best pass rusher in the league is happy with two
+    /// sacks in a game, not one every snap against a weaker tackle.
+    @Test("Nobody wins or loses every rep")
+    func neverCertain() {
+        #expect(resolver.contest(99, 20) <= 0.93)
+        #expect(resolver.contest(99, 20) < 0.9, "even a total mismatch loses reps")
+        #expect(resolver.contest(20, 99) >= 0.07)
+        #expect(resolver.contest(20, 99) > 0.1, "even a hopeless matchup wins some")
+    }
+
+    @Test("The curve is symmetric about parity")
+    func symmetric() {
+        for (a, b) in [(90.0, 70.0), (99.0, 40.0), (81.0, 80.0)] {
+            let forward = resolver.contest(a, b)
+            let reverse = resolver.contest(b, a)
+            #expect(abs((forward + reverse) - 1.0) < 0.0001, "\(a) v \(b)")
+        }
+    }
+
+    /// A situational edge shifts the whole curve without breaking any of the above.
+    @Test("An edge shifts the curve and keeps it bounded")
+    func edgesStayBounded() {
+        #expect(resolver.contest(80, 80, edge: 0.35) > 0.5)
+        #expect(resolver.contest(80, 80, edge: -0.35) < 0.5)
+        #expect(resolver.contest(99, 20, edge: 0.9) <= 0.93)
+        #expect(resolver.contest(20, 99, edge: -0.9) >= 0.07)
     }
 }
