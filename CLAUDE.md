@@ -20,15 +20,22 @@ and `simharness`. **No app target, no SwiftUI, no SwiftData yet**; that is M4. D
 assume a file exists because a doc describes it; check first, because several docs still
 describe intent rather than what is built.
 
-What works today: world and roster generation, a crude but complete game engine behind
-the real `PlayRecord` contract — clock, downs, scoring, penalties, personnel
-substitution, the kicking game, fumbles, returns and injuries — and a calibration harness
-that measures it against the sport.
+What works today: world and roster generation, a crude game engine behind the real
+`PlayRecord` contract, and a calibration harness. The per-play numbers land. **The rules
+layer does not yet finish a game correctly.** An external audit in September 2026 found,
+among other things, that regular-season games end tied with no overtime, a touchdown on
+the last play of a half gets no try, the wrong team kicks off after a safety, the clock
+runs through a change of possession, and contact fouls are enforced from the wrong spot.
+Five hundred sixty-two tests were green throughout, and three of them assert wrong
+football.
 
-**Read [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching
-the engine.** It is the record of eight findings from asking whether the simulation
-behaves like football rather than whether its units pass, all of them now fixed, and its
-closing section says what is still open.
+The fixes are an issue backlog, tracked in **#1**. Read that issue and
+[`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
+engine. The audit doc's own closing section predates the external audit and overstates
+what is fixed; the tracker is current.
+
+The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024
+values until issue D1 lands.
 
 ## The rules that matter
 
@@ -73,11 +80,28 @@ that decides something about football, it's in the wrong layer.
 
 **8. Never ship real names or marks.** No real players, teams, leagues, logos, or
 likenesses — not in code, not in test fixtures, not in placeholder data. Generated
-fiction only. ([ADR-0005](docs/adr/0005-generated-fictional-content.md))
+fiction only. Citing a rulebook by rule number and season is fine; pasting its text into
+the repo is not. ([ADR-0005](docs/adr/0005-generated-fictional-content.md))
 
 **9. Never regenerate a golden test file to make a red test pass.** If the engine
 changed on purpose, regenerate it in the same commit and describe the behavior change
-in the commit message. If you didn't mean to change behavior, you found a bug.
+in the commit message. If you didn't mean to change behavior, you found a bug. And never
+retune a calibration constant to keep a harness row green inside a fix: report the row
+that moved and why, and leave tuning to a dedicated retune.
+
+**10. Football is asserted from a reference, never from memory.** A claim about the
+sport — in a doc, a test name, a PR — cites a rule number and rulebook season, or a
+real-league season and the source the number came from. A claim about the engine's
+behaviour cites a harness row or a scenario test. The reference the engine was first
+written from was memory, and the code carried its errors for weeks while a table in the
+football-domain skill said the opposite and nothing connected the two.
+
+**11. Football tests come first, and every test says what kind it is.** A change to the
+rules layer, the resolver, or a caller lands with at least one football test it turned
+green: a scenario or a sourced statistical band, written from the reference *before* the
+code, committed red, then made green. A test derived from the code afterwards is a
+regression pin, not a football test, and is tagged as one. Nobody asserts a football
+outcome they cannot cite. Details under Conventions → Tests.
 
 ## Conventions
 
@@ -95,7 +119,8 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
   `FMPlayer`).
 - Use the sport's real vocabulary — `downAndDistance`, `redZone`, `deadMoney`,
   `proration`. Don't invent generic synonyms for terms of art. When unsure of a term,
-  the `football-domain` skill has the reference.
+  the `football-domain` skill has the reference. Fluent vocabulary is not correct rules;
+  the code sounded like a broadcast while the wrong team kicked off after a safety.
 
 **SwiftUI**
 - Views are small and take exactly what they render. A view that takes the whole
@@ -106,16 +131,35 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
 
 **Tests**
 - Swift Testing (`@Test`), not XCTest, for new code.
+- Every test is one of three kinds, and carries the tag:
+  - `.football` asserts something true of the sport: a scenario from the rules reference,
+    or a band from a sourced season. Named as the football sentence plus its citation.
+    Written from the reference before the code, committed red, then made green.
+  - `.contract` asserts a promise the engine makes about itself: the same seed replays
+    identically, decisions agree with the outcome, twenty-two men are on every play, the
+    scoreboard is the stream summed.
+  - `.unit` asserts a unit does its arithmetic: cap math, RNG known answers.
+  - A test that pins current behaviour because changing it would be surprising is
+    `.pin`, and its name says what it pins and why.
+- A harness band with a sourced season counts as a football test for a rate. A scenario
+  is the only acceptable test for a rules change; a unit test on the helper alone is not.
+- Balance is measured, not hoped for. `scripts/test-census.sh` counts tags per package
+  and CI prints it. A football share that falls in the rules layer or the resolver between
+  milestones is a finding. (The script and tags land with issue I6; until then, tag new
+  tests by kind in the test name.)
 - Cap math, clock rules, and schedule generation get exhaustive unit tests. They're
   rule-based, player-visible, and easy to get subtly wrong.
 - Engine changes need both a golden-seed test and a statistical check.
 - A test that needs a `ModelContext` to test a game rule means the rule is in the
   wrong layer.
+- A test that encodes a bug is rewritten, not deleted, and the PR says so.
 
 **Docs**
 - A change that alters the design updates the doc in the same commit.
 - A decision that was hard to make, or that rejected a real alternative, gets an ADR.
   Use `/adr`.
+- A doc describes intent; the tree describes reality. Where they disagree, the doc says
+  so at the top rather than describing the intent in the present tense.
 
 ## Working style here
 
@@ -127,24 +171,53 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
   deepen.
 - **Balance the engine with the harness, not by playing.** Tuning constants is done
   against `Tools/simharness` output and the
-  [calibration table](docs/match-engine.md#calibration).
+  [calibration table](docs/match-engine.md#calibration), and only in a retune issue.
+- **Watch a game.** Aggregates hid every rules bug the audit found. When a play-by-play
+  printer exists (issue H4), read one full game before and after any engine change.
 - **The whimsy goes in the world, not the engine.** Trait names, news voice, and draft
   storylines are playful. The physics never winks and no outcome is authored.
 - **Check `design-decisions.md` before assuming.** Most decisions are settled; the ones
   that are not are listed under *Open questions* at the end. If your work depends on an
-  open one, ask.
+  open one, ask. Decisions the audit reopened are marked there with the issue that
+  reopens them.
 - **Grill before you build.** Anything substantial starts with the questions, not the
   code. Surface the design choices, name what each one trades away, give a
   recommendation on every one, and *wait*. "Anything else we should settle before we
   begin?" is the expected opening for a new system, not a courtesy — and it is wanted
   even when the request sounds like a straightforward instruction. Small judgment calls
-  inside work already agreed: just make them.
+  inside work already agreed: just make them. **When you are executing a backlog issue,
+  the questions were asked when the issue was written**: do not reopen them, but stop and
+  report the moment the plan proves wrong rather than guessing past it.
 - **A recommendation, not a survey.** Lay out the real alternatives with the one you
   would pick and why. An exhaustive list with no opinion is not help; neither is a
   decision made silently because the options seemed obvious.
 - **Say plainly what you did not check.** Distinguish measured from assumed, every
   time. "All fifteen calibration rows land" and "it builds" are different claims, and
   so are "the test passes" and "I ran it four times and it passed four times".
+- **Every number printed gets a target or a reason it has none.** The harness printed
+  eighteen ties in four hundred games on every run for a week. Nobody had written down
+  that the real number is two.
+
+## Current work: the audit backlog
+
+The tracker is **#1**. Issues carry `track:` and `wave:` labels and a `status:`
+label that is the state machine. Wave 0 runs in parallel; every wave after it changes
+engine behaviour and therefore the golden constants, so those issues run one at a time in
+wave order and rebase.
+
+- Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
+- Before you push: all four suites green, `swift test -c release` for FMRandom,
+  `swift format lint` clean, `playsize` builds.
+- Goldens regenerated in the same commit as the behaviour change, with the change
+  described. Never to make a red test pass.
+- No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after;
+  paste the rows that moved into the PR body with one line on why.
+- The PR body names the issue it closes, what was measured versus assumed, and the
+  harness rows before and after. No model identifiers in commit or PR text beyond the
+  attribution trailer the tooling appends.
+- A test that encodes a bug is rewritten, not deleted, and the PR says so.
+- If the issue's plan is wrong or something is unknown, stop and report on the issue.
+  Do not guess.
 
 ## Commands
 
@@ -166,7 +239,10 @@ cd Tools/simharness && swift run simharness --games 400 --seed 7
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 
-# Planned — not yet available
+# Planned — land with the backlog
+scripts/lint-sim.sh                                       # banned primitives, no Foundation (H2)
+scripts/test-census.sh                                    # test kinds per package (I6)
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11   # play-by-play (H4)
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
