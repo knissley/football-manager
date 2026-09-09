@@ -49,7 +49,7 @@ struct SpecialTeamsTests {
     @Test("Ball security reduces fumbles and a big hitter causes them")
     func fumbleSigns() {
         func rate(carrying: UInt8, hitPower: UInt8) -> Double {
-            var personnel = Personnel()
+            var personnel = Lineup()
             personnel.place(PlayerID(1), position: .runningBack, at: 1)
             personnel.place(PlayerID(2), position: .linebacker, at: 15)
 

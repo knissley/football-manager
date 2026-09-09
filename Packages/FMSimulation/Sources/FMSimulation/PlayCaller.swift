@@ -48,6 +48,20 @@ public protocol PlayCaller: Sendable {
     /// Note the frame: the *kicking* team has possession on a kickoff, so a negative
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
+
+    /// Who the offence sends out, which it declares by substituting before the snap.
+    ///
+    /// This is the first half of the sport's oldest chess match: personnel is public
+    /// information, and the defence answers it.
+    func personnel(
+        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        random: inout SplittableRandom
+    ) -> PersonnelGroup
+
+    /// What the defence answers with, having seen `situation.offensePersonnel`.
+    func package(
+        for situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> DefensivePackage
 }
 
 extension PlayCaller {
@@ -77,6 +91,86 @@ extension PlayCaller {
         }
         return classified.time.isEndgame && situation.scoreDifferential < 0
             && situation.scoreDifferential >= -10
+    }
+
+    /// The conventional groupings, by what the play is asking for.
+    public func personnel(
+        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        random: inout SplittableRandom
+    ) -> PersonnelGroup {
+        // Short yardage and the goal line are where the extra bodies go — though the
+        // modern game runs plenty of it from an ordinary grouping too.
+        if classified.downAndDistance.isShortYardage || situation.ballOn <= 3 {
+            switch random.next(upperBound: 100) {
+            case ..<32: return .twentyTwo
+            case ..<70: return .twelve
+            default: return .eleven
+            }
+        }
+        // Two minutes down by a score, everybody who can run a route is on the field.
+        if classified.isMustPass && classified.time.isTwoMinute {
+            switch random.next(upperBound: 100) {
+            case ..<18: return .empty
+            case ..<45: return .ten
+            default: return .eleven
+            }
+        }
+        if classified.isMustPass {
+            return random.nextBool(probability: 0.11) ? .ten : .eleven
+        }
+        if classified.isClockBurn {
+            switch random.next(upperBound: 100) {
+            case ..<30: return .twentyOne
+            case ..<62: return .twelve
+            default: return .eleven
+            }
+        }
+        // Otherwise the modern default, with a heavier look mixed in — about two thirds
+        // of the sport's snaps are eleven personnel.
+        switch random.next(upperBound: 100) {
+        case ..<74: return .eleven
+        case ..<89: return .twelve
+        case ..<96: return .twentyOne
+        default: return .ten
+        }
+    }
+
+    /// The answer, which is mostly a matter of counting receivers.
+    ///
+    /// A defence substitutes to match: three receivers get a nickel back, four get a
+    /// dime. Guessing wrong is the cost of guessing, and the offence declaring first is
+    /// what makes it a decision at all.
+    public func package(
+        for situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> DefensivePackage {
+        if situation.ballOn <= 3 && !classified.isMustPass { return .goalLine }
+        if classified.time == .twoMinuteGame && classified.score.isLeading
+            && situation.ballOn > 60
+        {
+            return .prevent
+        }
+
+        switch situation.offensePersonnel.wideReceivers {
+        case 5: return .quarter
+        case 4: return .dime
+        case 3:
+            // Against three receivers, nickel is the default answer — but a defence that
+            // matches personnel every single time is a defence nobody can ever catch out,
+            // and the count mismatch is where the chess match pays. Real defences stay in
+            // their base front against eleven personnel about a quarter of the time,
+            // betting on the run, and wear the extra receiver when they are wrong.
+            if classified.downAndDistance.isShortYardage {
+                return random.nextBool(probability: 0.55) ? .base : .nickel
+            }
+            if classified.isMustPass {
+                return random.nextBool(probability: 0.15) ? .dime : .nickel
+            }
+            return random.nextBool(probability: 0.24) ? .base : .nickel
+        default:
+            // Two or fewer: heavy personnel, and a base defence unless the down says
+            // otherwise.
+            return classified.isMustPass ? .nickel : .base
+        }
     }
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {

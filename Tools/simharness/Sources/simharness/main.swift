@@ -531,6 +531,52 @@ for (source, value) in pointsBySource.sorted(by: { $0.value > $1.value }) {
 }
 
 print("")
+print("  Who is on the field")
+var groups: [UInt8: Int] = [:]
+var packages: [DefensivePackage: Int] = [:]
+for play in scrimmage {
+    groups[play.situation.offensePersonnel.code, default: 0] += 1
+    packages[play.situation.defensePackage, default: 0] += 1
+}
+let snaps = Double(max(1, scrimmage.count))
+print("    offensive personnel")
+for (code, count) in groups.sorted(by: { $0.value > $1.value }).prefix(6) {
+    print(
+        "      \(pad(code < 10 ? "0\(code)" : "\(code)", 28))\(oneDecimal(Double(count) / snaps * 100))%"
+    )
+}
+print("    defensive package")
+for (package, count) in packages.sorted(by: { $0.value > $1.value }) {
+    print("      \(pad("\(package)", 28))\(oneDecimal(Double(count) / snaps * 100))%")
+}
+
+// The matchup, which is the point of having personnel at all. A run into a light box
+// should go further than one into a stacked one, and if it does not then the substitution
+// is decoration.
+// The mechanism, rather than the box count on its own: a run works when the offence has
+// more men at the point of attack than the defence, and a bare box count conflates that
+// with the down-and-distance the package was called on.
+// First and ten only. Across all downs this row is unreadable: heavy personnel is called
+// in short yardage and at the goal line, where a carry is short by construction, so the
+// grouping that wins the count also runs in the situations that cap the gain.
+print("    yards per carry by count advantage, first and ten")
+func countAdvantage(_ play: PlayRecord) -> Int {
+    let group = play.situation.offensePersonnel
+    let blockers = 5 + Int(group.tightEnds) + max(0, Int(group.runningBacks) - 1)
+    return blockers - (11 - Int(play.situation.defensePackage.defensiveBacks))
+}
+for advantage in [-2, -1, 0, 1, 2] {
+    let matching = carries.filter {
+        countAdvantage($0) == advantage && $0.situation.down == .first
+            && $0.situation.distance == 10
+    }
+    guard matching.count > 200 else { continue }
+    let yards = Double(matching.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(matching.count)
+    let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
+    print("      \(pad(label, 28))\(pad(oneDecimal(yards), 8))\(matching.count) carries")
+}
+
+print("")
 print("  The shape of a carry")
 // A mean is not a distribution. Real carries are mostly modest with a fat tail, and an
 // engine can hit 4.3 a carry by giving everyone four and a half yards every time, which

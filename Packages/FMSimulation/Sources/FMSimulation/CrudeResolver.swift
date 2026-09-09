@@ -23,7 +23,8 @@ public struct CrudeResolver: PlayResolver {
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        let personnel = Personnel.onField(context, family: family, random: &random)
+        let personnel = Lineup.onField(
+            context, family: family, situation: situation, random: &random)
 
         // A flag before the snap means the play never happened, whatever was called.
         // A punt team false-starts and a field goal team gets called for delay like
@@ -86,7 +87,7 @@ public struct CrudeResolver: PlayResolver {
     /// the tackle on a completed pass because the man who made it was already credited
     /// with the coverage. One rule, in one place, is the fix.
     private func credit(
-        _ slot: PlayerSlot, _ role: PlayRole, _ personnel: Personnel,
+        _ slot: PlayerSlot, _ role: PlayRole, _ personnel: Lineup,
         into participants: inout [Participation]
     ) {
         guard let id = personnel[slot], let position = personnel.position(at: slot) else { return }
@@ -107,7 +108,7 @@ public struct CrudeResolver: PlayResolver {
     /// is a defensive touchdown.
     private func looseBall(
         carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int,
-        personnel: Personnel, context: PlayContext,
+        personnel: Lineup, context: PlayContext,
         participants: inout [Participation], random: inout SplittableRandom
     ) -> (ending: PlayEnding, finalSpot: UInt8)? {
         guard let tackler,
@@ -125,7 +126,7 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func participation(
-        for slot: PlayerSlot, _ personnel: Personnel, role: PlayRole
+        for slot: PlayerSlot, _ personnel: Lineup, role: PlayRole
     ) -> [Participation] {
         guard let id = personnel[slot], let position = personnel.position(at: slot) else {
             return []
@@ -134,7 +135,7 @@ public struct CrudeResolver: PlayResolver {
     }
 
     /// The quarterback, for plays only he takes part in.
-    private func quarterbackOnly(_ role: PlayRole, _ personnel: Personnel) -> [Participation] {
+    private func quarterbackOnly(_ role: PlayRole, _ personnel: Lineup) -> [Participation] {
         guard let id = personnel[SlotLayout.quarterback],
             let position = personnel.position(at: SlotLayout.quarterback)
         else { return [] }
@@ -146,7 +147,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Ratings
 
     private func rating(
-        _ key: RatingKey, _ slot: PlayerSlot, _ personnel: Personnel, _ context: PlayContext
+        _ key: RatingKey, _ slot: PlayerSlot, _ personnel: Lineup, _ context: PlayContext
     ) -> Double {
         context.effective(key, for: personnel[slot], onOffense: slot.isOffense)
     }
@@ -180,7 +181,7 @@ public struct CrudeResolver: PlayResolver {
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
-        _ personnel: Personnel,
+        _ personnel: Lineup,
         _ random: inout SplittableRandom,
         isTry: Bool = false
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
@@ -197,12 +198,20 @@ public struct CrudeResolver: PlayResolver {
 
         // 1. The pocket. Each rusher works a blocker, and the first one home sets the
         //    clock everything else runs against.
-        let rushers = Array(SlotLayout.rushers.prefix(Int(defense.rush.rushers)))
+        // Who rushes comes from the package: four in nickel, three in a prevent shell,
+        // five off the goal line. It used to be four defensive linemen whatever the
+        // defence had actually sent out.
+        let front = personnel.front
+        let rushers = Array(front.prefix(max(1, min(front.count, Int(defense.rush.rushers)))))
+        // Protection is the line, plus a back or tight end kept in when there is one to
+        // spare. An empty set has nobody helping, which is the trade the grouping makes.
+        let protection = personnel.blockers(includingEligibles: false)
         var pressureAt: Int? = nil
         var pressureBy = PlayerSlot.none
 
         for (index, rusher) in rushers.enumerated() {
-            let blocker = SlotLayout.blockers[min(index, SlotLayout.blockers.count - 1)]
+            guard !protection.isEmpty else { break }
+            let blocker = protection[min(index, protection.count - 1)]
             // A matchup needs two players. If injuries have emptied a spot, there is no
             // rep to resolve — and recording one would name a slot nobody is standing in,
             // which is a decision point pointing at an uncredited player.
@@ -210,7 +219,7 @@ public struct CrudeResolver: PlayResolver {
             let rush = rating(.powerMove, rusher, personnel, context)
             let block = rating(.passBlock, blocker, personnel, context)
             // A blitz means somebody is unblocked by construction.
-            let edge = defense.rush.isBlitz && index >= SlotLayout.blockers.count ? 0.35 : 0
+            let edge = defense.rush.isBlitz && index >= protection.count ? 0.35 : 0
             // Scaled down rather than capped. Four rushers each winning a coin flip
             // means somebody is home on every snap, which is a 24% sack rate and not
             // football — but clipping the top at a fixed ceiling made a 99 rusher no
@@ -277,8 +286,11 @@ public struct CrudeResolver: PlayResolver {
         // the tight end silently — he stood on the field on every snap of every game
         // without ever running a route, being thrown to, or being credited with
         // anything.
-        for (index, receiver) in SlotLayout.receivers.prefix(4).enumerated() {
-            let defender = SlotLayout.coverage[min(index, SlotLayout.coverage.count - 1)]
+        let running = personnel.routeRunners()
+        let covering = personnel.coverageDefenders
+        for (index, receiver) in running.prefix(4).enumerated() {
+            guard !covering.isEmpty else { break }
+            let defender = covering[min(index, covering.count - 1)]
             guard personnel[receiver] != nil, personnel[defender] != nil else { continue }
             let route = rating(.routeRunning, receiver, personnel, context)
             let cover = rating(
@@ -521,7 +533,7 @@ public struct CrudeResolver: PlayResolver {
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
-        _ personnel: Personnel,
+        _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var decisions: [DecisionPoint] = []
@@ -537,8 +549,14 @@ public struct CrudeResolver: PlayResolver {
         // The hole is the sum of the blocks in front of it, against a front committed to
         // stopping the run or not.
         var blockScore = 0.0
-        for (index, blocker) in SlotLayout.blockers.enumerated() {
-            let defender = SlotLayout.rushers[min(index, SlotLayout.rushers.count - 1)]
+        // The line, plus every tight end and fullback on the field. This is what a heavy
+        // personnel grouping *is* — more bodies at the point of attack — and with a fixed
+        // five-man list an extra tight end did nothing at all.
+        let blocking = personnel.blockers(includingEligibles: true)
+        let box = personnel.boxDefenders
+        for (index, blocker) in blocking.enumerated() {
+            guard index < box.count else { break }
+            let defender = box[index]
             guard personnel[blocker] != nil, personnel[defender] != nil else { continue }
             let block = rating(.runBlock, blocker, personnel, context)
             let shed = rating(.blockShedding, defender, personnel, context)
@@ -570,7 +588,16 @@ public struct CrudeResolver: PlayResolver {
             }
         }
 
-        let quality = Int16(blockScore * 12) + Int16(random.next(upperBound: 30)) - 15
+        // The count, which is what a run is about before anybody blocks anybody. A
+        // defender nobody can block is a free hitter in the hole; a blocker with nobody
+        // left to take is a double team. The engine could not see either, because every
+        // defence had the same six men in the box and the offence always had the same six
+        // blockers.
+        let unblocked = max(0, box.count - blocking.count)
+        let spare = max(0, blocking.count - box.count)
+        let quality =
+            Int16(blockScore * 12) + Int16(random.next(upperBound: 30)) - 15
+            - Int16(unblocked * 12) + Int16(spare * 6)
         decisions.append(
             .init(
                 tick: 10, kind: .holeQuality, primary: SlotLayout.back,
@@ -654,7 +681,7 @@ public struct CrudeResolver: PlayResolver {
     /// kick was ever returned, a kicker's leg was irrelevant on the one play it most
     /// obviously matters, and every drive after a score started on the same yard line.
     private func kickoff(
-        _ situation: Situation, _ context: PlayContext, _ personnel: Personnel,
+        _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
@@ -704,7 +731,7 @@ public struct CrudeResolver: PlayResolver {
     /// absence meant the last two minutes of a two-score game had no football left in
     /// them.
     private func onsideKick(
-        _ context: PlayContext, _ personnel: Personnel, _ random: inout SplittableRandom
+        _ context: PlayContext, _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
 
@@ -742,7 +769,7 @@ public struct CrudeResolver: PlayResolver {
     /// his own goal line, and the result is the yard line he reaches in the same frame.
     private func returnRun(
         from start: Int, average: Int, breakawayChance: Double,
-        personnel: Personnel, context: PlayContext,
+        personnel: Lineup, context: PlayContext,
         participants: inout [Participation], decisions: inout [DecisionPoint],
         random: inout SplittableRandom
     ) -> (spot: Int, scores: Bool) {
@@ -780,7 +807,7 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func punt(
-        _ situation: Situation, _ context: PlayContext, _ personnel: Personnel,
+        _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let power =
@@ -863,7 +890,7 @@ public struct CrudeResolver: PlayResolver {
 
     private func kick(
         _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
-        _ personnel: Personnel, _ random: inout SplittableRandom
+        _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let length = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
@@ -982,7 +1009,7 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func yardsAfterCatch(
-        carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Personnel, context: PlayContext,
+        carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Lineup, context: PlayContext,
         separation: Int,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
@@ -1028,7 +1055,7 @@ public struct CrudeResolver: PlayResolver {
     /// The tackler credited here is the one the outcome names. Nothing else can be, and
     /// that is asserted rather than assumed.
     private func tackleSequence(
-        carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Personnel,
+        carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Lineup,
         context: PlayContext,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom

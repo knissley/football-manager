@@ -28,6 +28,11 @@ extension GameSimulator {
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
         var previousBehavior: ClockBehavior = .stopsUntilSnap
+        /// Who is on the field for this snap. The offence declares by substituting and
+        /// the defence answers, so these are set in that order before the snap and are
+        /// part of the situation both callers and the resolver read.
+        var offensePersonnel: PersonnelGroup = .eleven
+        var defensePackage: DefensivePackage = .base
 
         var plays: [PlayRecord] = []
         var injuries: [InjuryEvent] = []
@@ -81,6 +86,8 @@ extension GameSimulator {
                 scoreDifferential: scoreDifferential,
                 offenseTimeouts: possession == setup.home.id ? homeTimeouts : awayTimeouts,
                 defenseTimeouts: possession == setup.home.id ? awayTimeouts : homeTimeouts,
+                offensePersonnel: offensePersonnel,
+                defensePackage: defensePackage,
                 weather: setup.weather)
         }
 

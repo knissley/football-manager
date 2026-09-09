@@ -35,7 +35,7 @@ enum Penalties {
         situation: Situation,
         calls: Calls,
         context: PlayContext,
-        personnel: Personnel,
+        personnel: Lineup,
         random: inout SplittableRandom
     ) -> PenaltyRecord? {
         let noise = context.offenseIsHome ? 0.0 : Double(context.crowdNoise)
@@ -99,7 +99,7 @@ enum Penalties {
     /// Conditional on losing, so it is never drawn for a lineman who won. A bad line
     /// holds more without anybody tuning a holding rate.
     static func whenBeatenBlocking(
-        blocker: PlayerSlot, personnel: Personnel, context: PlayContext,
+        blocker: PlayerSlot, personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> PenaltyRecord? {
         let discipline = context.effective(.discipline, for: personnel[blocker], onOffense: true)
@@ -122,7 +122,7 @@ enum Penalties {
     /// who won — and the deep ones, where the spot foul hurts most.
     static func whenBeatenInCoverage(
         defender: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
-        personnel: Personnel, context: PlayContext, random: inout SplittableRandom
+        personnel: Lineup, context: PlayContext, random: inout SplittableRandom
     ) -> PenaltyRecord? {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
@@ -145,7 +145,7 @@ enum Penalties {
 
     /// Contact fouls, drawn where the contact actually happened.
     static func onContact(
-        tackler: PlayerSlot, isQuarterback: Bool, personnel: Personnel, context: PlayContext,
+        tackler: PlayerSlot, isQuarterback: Bool, personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> PenaltyRecord? {
         let discipline = context.effective(.discipline, for: personnel[tackler], onOffense: false)
@@ -164,7 +164,7 @@ enum Penalties {
     // MARK: - Building the record
 
     private static func averageDiscipline(
-        _ slots: [PlayerSlot], _ personnel: Personnel, _ context: PlayContext, onOffense: Bool
+        _ slots: [PlayerSlot], _ personnel: Lineup, _ context: PlayContext, onOffense: Bool
     ) -> Double {
         let values = slots.compactMap { slot -> Double? in
             guard personnel[slot] != nil else { return nil }
@@ -176,7 +176,7 @@ enum Penalties {
 
     /// Charge the foul to somebody, weighted so the least disciplined man is likeliest.
     private static func record(
-        _ foul: Foul, by slots: [PlayerSlot], _ personnel: Personnel, _ context: PlayContext,
+        _ foul: Foul, by slots: [PlayerSlot], _ personnel: Lineup, _ context: PlayContext,
         _ random: inout SplittableRandom, offense: Bool
     ) -> PenaltyRecord? {
         let candidates = slots.filter { personnel[$0] != nil }

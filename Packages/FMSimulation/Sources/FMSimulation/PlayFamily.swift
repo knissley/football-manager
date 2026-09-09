@@ -52,23 +52,23 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     ///
     /// A kick is not eleven starters plus a placeholder for the ball: it is a different
     /// eleven, and the crude engine had only ever fielded the one.
-    var offenseLayout: [(Position, Int)] {
+    func offenseLayout(_ group: PersonnelGroup) -> [(Position, Int)] {
         switch self {
         case .punt: return SlotLayout.puntUnit
         case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
         case .kickoff, .onsideKick: return SlotLayout.kickoffUnit
-        default: return SlotLayout.offense
+        default: return SlotLayout.offense(group)
         }
     }
 
     /// The return side. A crude engine does not model a return, but the men who have to
     /// be out there still take the snap — a punt is a play eleven of them were on the
     /// field for, and their snap counts should say so.
-    var defenseLayout: [(Position, Int)] {
+    func defenseLayout(_ package: DefensivePackage) -> [(Position, Int)] {
         switch self {
         case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick:
             return SlotLayout.returnUnit
-        default: return SlotLayout.defense
+        default: return SlotLayout.defense(package)
         }
     }
 

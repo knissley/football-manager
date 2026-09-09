@@ -42,7 +42,7 @@ enum Fumbles {
     /// who falls on it is a skill this engine models.
     static func drawn(
         carrier: PlayerSlot, tackler: PlayerSlot, isSack: Bool,
-        personnel: Personnel, context: PlayContext, random: inout SplittableRandom
+        personnel: Lineup, context: PlayContext, random: inout SplittableRandom
     ) -> Loose? {
         guard personnel[carrier] != nil, personnel[tackler] != nil else { return nil }
 

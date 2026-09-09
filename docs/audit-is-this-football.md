@@ -94,7 +94,7 @@ What remains: **90.2% of drives still start in the offence's own half** against 
 still too tight, and the rest of it is the fourth-down conservatism in S4 and the blocked
 kicks in S6 rather than anything left in the return game.
 
-## S3 — One personnel grouping, one defensive package, all game
+## S3 — One personnel grouping, one defensive package, all game — **fixed**
 
 Every snap of every game is `11` personnel against `base` defence. `PersonnelGroup` and
 `DefensivePackage` are complete, tested `FMCore` types that the engine never sets: nothing
@@ -108,6 +108,41 @@ in `FMSimulation` writes `Situation.offensePersonnel` or `.defensePackage`.
 - The kicking units field **eight men, not eleven**.
 - `DepthChart.unmannedPositions`, written to report a group with nobody left to play it,
   is called by nothing. A depleted group silently plays a man short.
+
+**Fixed.** Substitution happens in the order the sport does it: the offence picks a play,
+sends out the grouping that runs it — which is public information — and the defence
+answers what it sees. Both land on the situation the snap is recorded with, so the stream
+can now be asked what a team runs from twelve personnel against nickel.
+
+The slot layout became a function of the grouping rather than a table. Slots stay stable
+and the *positions* filling them vary, which is what lets the rest of the engine go on
+talking about "the receivers" and "the blockers" while the personnel underneath changes.
+Note what the old fixed defensive layout actually was: two edges, two tackles, **two**
+linebackers and **three** corners. That is nickel. The engine played nickel on every snap
+of every game and called it base.
+
+It is a real matchup rather than a label. An extra tight end is an extra blocker; an empty
+set has five men running routes and nobody helping the line. Corners cover receivers now,
+where the old fixed list put whoever sat in slot 17 on the number one — a linebacker, in a
+base defence. And the run is a count: a defender nobody can block is a free hitter, a
+blocker with nobody left to take is a double team. On first and ten it is worth **5.0
+yards a carry with an even count against 3.4 when the offence is outnumbered**.
+
+Usage lands where the sport does: 11 personnel 69%, 12 at 13%, 21 and 22 around 4% each;
+nickel 54%, base 30%, dime 12%. The defence deliberately does *not* match personnel every
+time — it stays in its base front against eleven personnel about a quarter of the time,
+betting on the run, because a defence that always matches is one nobody can ever catch
+out.
+
+Two smaller things fell out. `RotationProfile` had said all along that the third
+linebacker plays "a little under half the time, about a third base and two thirds nickel"
+— a rotation curve written for a substitution system that did not exist, so that
+linebacker had never played a snap. And `Player.secondaryPositions` was generated for
+every player and read by nothing; it is now the fallback when a package asks for a body a
+depleted group cannot supply, which is what stops a team silently fielding ten men.
+
+The kicking units field eleven rather than eight. Every position a team carries now takes
+a snap, and the coverage suite's register of unreachable positions is empty.
 
 ## S4 — Fourth down and the endgame are too tame — **fixed**
 
@@ -237,3 +272,44 @@ The calibration table needs rows for the game and not only the play: where drive
 how they end, the split of points by source, kick accuracy by distance, and the shape of a
 final score. Those rows are now in the harness under **Is this football?** and should move
 into [`match-engine.md`](match-engine.md#calibration) as targets rather than observations.
+
+
+## S8 — The simulation is not deterministic
+
+Found while finishing S3, and **pre-existing**: it reproduces on the engine as it was
+before any of this audit's work.
+
+Two calls to `simulate` with the same setup and seed, in the same process, on the same
+thread, intermittently produce different games. Roughly one full-suite run in three or
+four goes red on either `The same seed resolves identically` or `The same seed produces
+the same injuries`.
+
+This is the most expensive rule in the project to have broken.
+[ADR-0003](adr/0003-deterministic-seeded-simulation.md) makes replay depend on it, and the
+tuple `(initialState, seed, sliderConfig, decisionLog)` is how most games are *stored* —
+so this does not merely fail a test, it means a saved season cannot be trusted to replay
+as the season that was played.
+
+What the divergence looks like: identical players in identical slots, identical outcome,
+and one recorded `separation` value differing by exactly one — 158 against 159. A
+one-in-the-last-place difference in a `Double`, truncated by `Int(...)` into an integer
+that differs, which later flips a threshold and changes the game. In the injury case the
+two runs agree for five injuries and then one run has a sixth at play 158.
+
+Ruled out so far:
+
+- **Generation.** Rosters, colleges and depth charts from the same seed compare equal.
+- **Forbidden primitives.** No `Int.random`, `Double.random`, `.shuffled()`,
+  `.randomElement()`, `UUID()`, `Date()` or `SystemRandomNumberGenerator` anywhere in
+  `FMCore`, `FMGeneration` or `FMSimulation`.
+- **Shared mutable state.** No `static var`, no reference types, no `@unchecked Sendable`
+  in any of the three modules' sources.
+- **Concurrency in the engine.** No `async`, `Task`, `DispatchQueue` or task groups.
+- **Unordered iteration.** `Ratings` is a flat array with a bitset, `DepthChart.positions`
+  sorts by raw value, `Form.table` sorts its keys.
+- **Test parallelism.** It fails with `--no-parallel` too, so it is not tests interfering.
+
+Not yet explained. The next step is to bisect the play stream: capture the two runs' full
+`PlayRecord` streams for a failing seed and find the first snap whose *inputs* differ
+rather than its output, which will say whether the divergence starts in the resolver, the
+rules loop or the clock.

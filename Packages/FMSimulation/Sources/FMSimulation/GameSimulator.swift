@@ -164,31 +164,51 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                     situation: provisional, classified: SituationClass(provisional)))
         }
 
-        let situation = state.situation()
         let context = state.context()
+
+        // Substitution, in the order the sport does it: the offence picks a play, sends
+        // out the grouping that runs it — which is public information — and the defence
+        // answers what it sees. Both end up on the situation the snap is recorded with,
+        // so a tendency report can ask what a team runs from twelve personnel against
+        // nickel, a question the stream could not answer at all while every snap of every
+        // game was eleven against base.
+        var declared: OffensiveCall?
+        if !state.pendingKickoff && !state.pendingTry {
+            let before = state.situation()
+            let call = caller.offensiveCall(
+                for: before, classified: SituationClass(before), context: context,
+                random: &random)
+            state.offensePersonnel = caller.personnel(
+                for: CrudePlaybook.family(of: call.design) ?? .insideRun,
+                situation: before, classified: SituationClass(before), random: &random)
+
+            let showing = state.situation()
+            state.defensePackage = caller.package(
+                for: showing, classified: SituationClass(showing), random: &random)
+            declared = call
+        }
+
+        let situation = state.situation()
         let classified = SituationClass(situation)
 
-        let calls =
-            state.pendingKickoff
-            ? Calls(
-                offense: CrudePlaybook.call(
-                    caller.kicksOnside(situation: situation, classified: classified)
-                        ? .onsideKick : .kickoff),
+        let calls: Calls
+        if state.pendingKickoff {
+            let onside = caller.kicksOnside(situation: situation, classified: classified)
+            calls = Calls(
+                offense: CrudePlaybook.call(onside ? .onsideKick : .kickoff),
                 defense: .preventShell,
-                offensiveCaller: caller.kicksOnside(situation: situation, classified: classified)
-                    ? .coordinator(PersonnelID(1)) : .automatic,
+                offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
-            : state.pendingTry
-                ? tryCalls(situation: situation, classified: classified, random: &random)
-                : Calls(
-                    offense: caller.offensiveCall(
-                        for: situation, classified: classified, context: context,
-                        random: &random),
-                    defense: caller.defensiveCall(
-                        for: situation, classified: classified, context: context,
-                        random: &random),
-                    offensiveCaller: .coordinator(PersonnelID(1)),
-                    defensiveCaller: .coordinator(PersonnelID(2)))
+        } else if state.pendingTry {
+            calls = tryCalls(situation: situation, classified: classified, random: &random)
+        } else {
+            calls = Calls(
+                offense: declared ?? CrudePlaybook.call(.insideRun),
+                defense: caller.defensiveCall(
+                    for: situation, classified: classified, context: context, random: &random),
+                offensiveCaller: .coordinator(PersonnelID(1)),
+                defensiveCaller: .coordinator(PersonnelID(2)))
+        }
 
         let resolved = resolver.resolve(
             situation: situation, calls: calls, context: context, random: &random)

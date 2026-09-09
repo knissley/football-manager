@@ -150,11 +150,11 @@ struct VocabularyCoverageTests {
     /// no bearing on whether it made kicks.
     @Test("Every position on a roster gets on the field")
     func everyPositionPlays() {
-        let unreachable: [Position: String] = [
-            // Fullbacks are on rosters but the crude engine fields one back, and it is
-            // the halfback. The formation layer at M5 is what puts him on the field.
-            .fullback: "M5 — the crude engine fields a single back."
-        ]
+        // Nothing. Every position a team carries takes a snap: the specialists on kicks,
+        // the fullback in a heavy grouping and on the coverage units, the third
+        // linebacker when the defence is in base. It was three positions short of this
+        // before the kicking game and personnel substitution were wired in.
+        let unreachable: [Position: String] = [:]
         let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.position))
         for position in Position.allCases where unreachable[position] == nil {
             #expect(seen.contains(position), "no \(position) took a snap in ninety games")

@@ -358,6 +358,11 @@ football?**:
 | Two-point attempts per team per game | 0.15–0.30 |
 | Drives per team per game | 10.5–12.0 |
 | Three-and-out rate | 20–27% |
+| Snaps in 11 personnel | 60–72% |
+| Snaps against nickel | 50–65% |
+| Snaps against base | 22–32% |
+| Yards per carry, even count, first and ten | 4.6–5.4 |
+| Yards per carry, outnumbered by one | 3.0–4.0 |
 
 A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
 and a half yards every time, and that would be nothing like the sport — which is why the
