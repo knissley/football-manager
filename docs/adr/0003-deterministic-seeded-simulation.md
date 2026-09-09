@@ -82,10 +82,12 @@ range — which is most regressions.
 without constraining the engine. Rejected: the engine is where the bugs are, and it's
 where players notice inconsistency.
 
-## What it took to break it, in practice
+## Amendment 2026-09-09 — what it took to break it, in practice
 
 Recorded after the guarantee was broken and fixed, because the shape of the failure is
-not the shape the banned list guards against.
+not the shape the banned list guards against. The decision above is unchanged; this
+section is an amendment under the rule in [README.md](README.md), and the body it amends
+was not edited to match.
 
 `SchemeFit.effectiveOverall` blends a position's rating weights with a scheme's
 adjustments, and it summed them **while iterating a dictionary**. No banned call, no

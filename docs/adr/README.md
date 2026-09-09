@@ -21,14 +21,32 @@ change on a whim.
 Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` with the next number.
 Or ask Claude: `/adr <the decision>`.
 
-ADRs are immutable once accepted. To change a decision, write a new ADR that supersedes
-the old one and update the old one's status line to point at it.
+## Amending, and reversing
+
+The **body** of an accepted ADR is immutable. Context, decision, consequences and
+alternatives record what was decided and what it was weighed against; rewriting them to
+match what we now know destroys the only record of the reasoning.
+
+Two edits are permitted:
+
+- **A dated `Amendment` section, appended at the end**, one per amendment. Use it when
+  practice taught something the original could not have known — a way the decision got
+  broken, a case it did not cover, a consequence that landed differently. Head each one
+  `## Amendment YYYY-MM-DD`, optionally with a short title after an em dash, and say what
+  it adds. Never edit the body to match it.
+  [ADR-0003](0003-deterministic-seeded-simulation.md) is the worked example, and
+  [ADR-0001](0001-record-architecture-decisions.md) is amended by this rule itself.
+- **The status line**, to point at a superseding ADR.
+
+**A reversal is a new ADR, not an amendment.** If the decision itself changes, write a new
+ADR whose context explains what changed, set the old one's status to
+`Superseded by [ADR-NNNN](NNNN-....md)`, and update both rows in the index.
 
 **One exception, already spent:** ADRs 0002–0005 were drafted on 2026-09-08 as a
 strawman, before the game's design existed. They were revised once later the same day
 to reflect the decisions actually made in scoping (see
-[design-decisions.md](../design-decisions.md)). From that point they are immutable like
-any other.
+[design-decisions.md](../design-decisions.md)). From that point their bodies are
+immutable like any other's.
 
 ## Index
 
