@@ -634,6 +634,19 @@ let firstDownsEarned = allPlays.filter { play in
 print(
     "    \(pad("first downs per team-game", 26))\(pad(oneDecimal(Double(firstDownsEarned) / teamGames), 9))18.5-22.0"
 )
+// A mean hides the shape here too. Real football has a fat spike of quick failures and a
+// long tail of sustained drives; a league whose drives are all six plays long has neither.
+for (label, low, high, test) in [
+    ("drives of 3 plays or fewer", 26.0, 34.0, { (n: Int) in n <= 3 }),
+    ("drives of 4 to 7", 32.0, 42.0, { (n: Int) in n >= 4 && n <= 7 }),
+    ("drives of 8 or more", 26.0, 36.0, { (n: Int) in n >= 8 }),
+] as [(String, Double, Double, (Int) -> Bool)] {
+    let share = Double(drivePlays.filter(test).count) / Double(max(1, drivePlays.count)) * 100
+    print(
+        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))"
+            + "\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))"
+            + (share < low || share > high ? "OFF" : "ok"))
+}
 print(
     "    \(pad("three and out", 26))\(pad(oneDecimal(Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100) + "%", 9))20.0-27.0"
 )
