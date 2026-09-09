@@ -130,10 +130,21 @@ in the commit message. If you didn't mean to change behavior, you found a bug.
   [calibration table](docs/match-engine.md#calibration).
 - **The whimsy goes in the world, not the engine.** Trait names, news voice, and draft
   storylines are playful. The physics never winks and no outcome is authored.
-- **Check `design-decisions.md` before assuming.** Twenty decisions are settled; six
-  questions are explicitly open. If your work depends on an open one, ask.
-- **Ask when a decision is load-bearing.** Small judgment calls: just make them.
-  Anything that would earn an ADR: ask first.
+- **Check `design-decisions.md` before assuming.** Most decisions are settled; the ones
+  that are not are listed under *Open questions* at the end. If your work depends on an
+  open one, ask.
+- **Grill before you build.** Anything substantial starts with the questions, not the
+  code. Surface the design choices, name what each one trades away, give a
+  recommendation on every one, and *wait*. "Anything else we should settle before we
+  begin?" is the expected opening for a new system, not a courtesy — and it is wanted
+  even when the request sounds like a straightforward instruction. Small judgment calls
+  inside work already agreed: just make them.
+- **A recommendation, not a survey.** Lay out the real alternatives with the one you
+  would pick and why. An exhaustive list with no opinion is not help; neither is a
+  decision made silently because the options seemed obvious.
+- **Say plainly what you did not check.** Distinguish measured from assumed, every
+  time. "All fifteen calibration rows land" and "it builds" are different claims, and
+  so are "the test passes" and "I ran it four times and it passed four times".
 
 ## Commands
 
@@ -144,15 +155,18 @@ swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
+swift test  --package-path Packages/FMSimulation          # ~45s; the engine's own suite
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content
                                                           # see docs/tools.md for recipes
+cd Tools/simharness && swift run simharness --games 400 --seed 7
+                                                          # the calibration harness. Weather
+                                                          # and rare-event rows need --games 1000
 swift format lint --recursive --parallel Packages/ Tools/ # run before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 
 # Planned — not yet available
-swift run   --package-path Tools/simharness -- --seasons 1000 --out calibration.json
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 

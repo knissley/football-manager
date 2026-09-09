@@ -437,13 +437,20 @@ before picking the work up.
 These are not regressions to hunt. They are the price of two fixes that were both correct,
 and the bands they miss were set before either landed.
 
-| row | reads | band | why |
-| --- | --- | --- | --- |
-| third-down conversion | 35.9 | 36–43 | S3 gave the defence real sub packages and S6 gave it a realistic penalty load. Third down got harder twice, independently. |
-| yards per carry | 3.9–4.0 | 4.0–4.8 | Same cause: more offensive fouls, and a box count that now decides runs. |
-| fourth-down conversion | 58.9% | 45–58 | Correcting the first-half desperation bug removed a pool of low-percentage fourth-and-longs from the offence's own end, so what remains converts better. |
-| first downs per team-game | 18.1 | 18.5–22 | Follows from the first two. |
-| three-and-out rate | 18.8% | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that punt count here. |
+Measured at `--games 400`, seeds 7 and 11. Where the two seeds disagree, both are given —
+that disagreement is itself the point: these rows sit *on* their limits rather than
+comfortably outside them.
+
+| row | seed 7 | seed 11 | band | why |
+| --- | --- | --- | --- | --- |
+| third-down conversion | 35.9 **OFF** | 36.0 ok | 36–43 | S3 gave the defence real sub packages and S6 a realistic penalty load. Third down got harder twice, independently. |
+| yards per carry | 4.5 ok | 3.9 **OFF** | 4.0–4.8 | Same cause, plus a box count that now decides runs. Swings a whole band-width between seeds, which says the run is noisier than the band assumes. |
+| fourth-down conversion | 58.9% | — | 45–58 | Correcting the first-half desperation bug removed a pool of low-percentage fourth-and-longs from the offence's own end, so what remains converts better. |
+| first downs per team-game | 17.9 | — | 18.5–22 | Follows from the first two. |
+| three-and-out rate | 18.8% | — | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that *punt* count here. |
+
+Fourteen of the fifteen headline calibration rows land on seed 7; third-down conversion is
+the single one that does not.
 
 **The engine-wide retune is the next piece of work**, and its brief is that one sentence:
 the calibration bands were established against a defence that never substituted and a
