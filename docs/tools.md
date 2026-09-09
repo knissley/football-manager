@@ -7,6 +7,10 @@ for a command and read the output.
 **Everything is reproducible from a seed.** The same seed prints the same world
 every time, so anything surprising can be re-run exactly.
 
+**Every tool builds its world the same way.** `WorldGenerator.generate(seed:shape:season:)`
+in `FMGeneration` is the single entry point, so `worldgen --seed 7` and
+`simharness --seed 7` are looking at the same league, and so are the engine's tests.
+
 ## worldgen — look at generated content
 
 ```bash
@@ -17,7 +21,7 @@ cd Tools/worldgen && swift run worldgen --help
 | --- | --- |
 | `swift run worldgen --show roster --team 3` | A full 53-man roster |
 | `swift run worldgen --show starters --team 7` | Projected starting lineup |
-| `swift run worldgen --show league --teams 32` | Talent summary for every team |
+| `swift run worldgen --show league --teams 32` | Talent summary and strength offset for every team |
 | `swift run worldgen --show teams --teams 32` | Cities, colours, stadiums, divisions |
 | `swift run worldgen --show class` | This year's draft class, top prospects and shape |
 | `swift run worldgen --show pipeline` | All three visible classes at a glance |
@@ -25,6 +29,12 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
+
+`--teams` is rounded down to the nearest legal shape — two conferences of divisions of
+four — so it is really a multiple of eight, and the header prints what was built. The
+`STR` column in `--show league` is the strength offset the team was drawn at, in overall
+points either side of the league's middle; it sums to zero across the league by
+construction, so a run whose column is flat is a bug and not a quiet season.
 
 Useful invocations:
 
@@ -84,6 +94,12 @@ swift run --package-path Tools/simharness -- --games 60
 Simulates games headless and prints the [calibration table](match-engine.md#calibration)
 with each row marked `ok` or `OFF`. **Tuning is done against this and never by playing
 the app.**
+
+Games are played between teams of drawn strength, from the same generator `worldgen`
+prints — the header names the spread the league was drawn at. Before that, every
+calibration game was between two clubs of exactly league-average strength, which is not a
+matchup that occurs in the sport and made every row that depends on one team being better
+than the other meaningless.
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than

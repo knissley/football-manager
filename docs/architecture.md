@@ -31,6 +31,7 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │
     ├── FMGeneration      World generation. → FMCore, FMRandom
     │                     Names, franchises, rosters, draft classes, seeded rivalries.
+    │                     One entry point: WorldGenerator.generate(seed:shape:season:).
     │
     ├── FMSimulation      Match engine + season engine. → FMCore, FMRandom
     │                     `GameSimulator` drives the sport's rules and asks a
@@ -84,6 +85,11 @@ down — while an AI team has to get there the hard way, under a cap, from noisy
 estimates, through choices it can get wrong. An AI that reused generation's
 heuristics would be handing itself outcomes instead of earning them, and every
 trade and draft it made would be theatre.
+
+There is exactly one way in: `WorldGenerator.generate(seed:shape:season:)` returns the
+league, its teams, their rosters and depth charts, the colleges, the draft pipeline and
+the rivalries. Every tool and every game-building test calls it, so the league the harness
+calibrates against is the league the tool prints and the league the tests play in.
 
 So they share a *target* — `RosterShape`, which lives in `FMCore` — and no
 mechanism at all. If AI roster management ever needs a function from
