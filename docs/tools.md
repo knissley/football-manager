@@ -91,6 +91,51 @@ emergent properties. Rows that depend on the *shape* of the yardage distribution
 than its mean are harder, and the spread of team win totals is not measurable at all
 until a schedule exists in M3.
 
+## gamelog — watch a game
+
+```bash
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11
+```
+
+Simulates one game out of the same world `simharness` plays and prints it as a broadcast
+log. One line per play: quarter and clock, the offence, down and distance, field position
+in own or opponent terms, the concept, what happened and who did it, the personnel
+matchup, any flag and how it was enforced, and the score after anything that scored. A
+drive summary at each change of possession and a scoreboard at the end of each period.
+
+Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
+
+`--home` and `--away` are indices into the generated league, so `worldgen --show teams`
+names them. `--week` is what the weather is drawn from: week 1 in a warm city is not the
+same game as week 17 in a cold one.
+
+Everything printed is a **query over the `PlayRecord` stream** — the score, the drive
+boundaries and the period boundaries are folded out of the emitted plays using the same
+`Rules` arithmetic the state machine used. The tool ends by comparing its own total
+against the score the engine reported, and says so loudly if they disagree.
+
+**Read one game end to end before and after any engine change.** This is the recipe:
+
+```bash
+# Before the change, and again after it. Read both; diff them if the change was meant
+# to be behaviour-preserving.
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11 > /tmp/before.txt
+
+# The same game in bad weather, which is a different game.
+swift run gamelog --seed 7 --home 3 --away 11 --week 17
+
+# A different matchup out of the same world, for a second opinion.
+swift run gamelog --seed 7 --home 12 --away 5
+```
+
+Watch for the things a table of means cannot show: who kicks off after a safety, whether
+a touchdown gets its try, whether a tie plays overtime, how much clock burns between the
+last snap of one possession and the first of the next, whether the same quarterback takes
+every snap of a drive, and whether a penalty leaves the ball where the rule puts it.
+
+Aggregates hid every rules bug the September audit found. Each of them is obvious in
+thirty seconds of this output, which is why it exists.
+
 ## Tests
 
 ```bash
