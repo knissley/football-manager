@@ -5,8 +5,16 @@ A deliberate pass over the engine asking one question — *does this behave like
 asks whether designed systems are wired in. This one assumes they are and asks whether
 what comes out is a football game.
 
-Findings in severity order. Every number is from `simharness --games 400 --seed 7`, whose
-output now carries the rows that produced them.
+S1 through S8 are that pass, in severity order, and every number in them is from
+`simharness --games 400 --seed 7`, whose output now carries the rows that produced them.
+S9 through S15 were added by the September 2026 external audit and are appended after S8,
+in the backlog's order rather than severity order; their numbers come from the issue that
+closes each unless the text says they were measured here.
+
+**Nothing below is fixed unless its heading says so**, and
+[Where this leaves the engine](#where-this-leaves-the-engine) carries the status of all
+fifteen. The live state of each is the backlog in
+[#1](https://github.com/knissley/football-manager/issues/1).
 
 ## Why the audit found so much
 
@@ -347,7 +355,8 @@ and this engine produces exactly zero of them, because S2 is unfixed. It also pl
 drives per team-game against a real 11.4, and the missing possessions are mostly the
 missing fumbles. The honest position is that **the points row cannot legitimately close
 until S2 lands**, and closing it by making the offence more efficient would be the exact
-failure this audit exists to name.
+failure this audit exists to name. (S2 has since landed and the row closed on its own:
+points read 22.5 at `--games 400 --seed 7`.)
 
 ## What this changes about how we calibrate
 
@@ -427,10 +436,146 @@ where an unordered collection's iteration order reaches an output: the generator
 are over arrays or explicitly sorted, and `SchemeFit.combined` accumulates each key in
 array order. This was the only one.
 
+## S9 — There is no overtime in the regular season — **open**
+
+`GameState.checkForEnd` ends any tied regulation game when ties are allowed
+(`mayEndInATie`, in `GameState.swift`), so overtime exists only in the postseason and
+`Rules.regularSeasonOvertimeLength` is dead. The harness prints **25 ties in 400 games, at
+seed 7 and at seed 11 alike**, with no target beside the row; the real rate is about 0.4%.
+
+A test asserts the bug: `A tied game ends level in the regular season and goes on in the
+postseason`, in `GameSimulatorTests.swift`, is green and wrong.
+
+The tie counts above are measured, at `--games 400` on seeds 7 and 11. The rest
+reproduces as [A1 · #15](https://github.com/knissley/football-manager/issues/15)
+describes, which is the issue that closes it.
+
+## S10 — A touchdown at the end of a half gets no try — **open**
+
+The half restart in `GameState.checkForEnd` sets `pendingTry = false` along with the fresh
+timeouts, so a touchdown as the second quarter expires never gets its extra point. The end
+of regulation checks the score *before* the try exists, so a team down seven that scores on
+the final play loses by one having never been allowed to kick.
+
+Reproduces as the issue describes: a scripted resolver, final 6–7 in each case. Closed by
+[A2 · #31](https://github.com/knissley/football-manager/issues/31).
+
+## S11 — The team that scored the safety kicks off — **open**
+
+`Rules.advance` returns `possessionChanged: true` for a safety at `Advancement.swift:158`.
+Under the engine's convention the possessing team kicks, so the team that just *scored*
+free-kicks from its own 20 and the team that conceded receives at its 30 — both halves of
+it backwards. What the issue asks for is `possessionChanged: false`: the team scored upon
+keeps the ball to free-kick with, and the kick flips possession as every kickoff does.
+
+Two tests cover it and neither catches it: `AdvancementTests.safety` asserts
+`possessionChanged` with a comment warning against exactly this outcome, and
+`GameSimulatorTests.safetyPaysTheDefence` checks only the points.
+
+Reproduces as the issue describes. Closed by
+[A3 · #16](https://github.com/knissley/football-manager/issues/16).
+
+## S12 — The clock runs through a change of possession, and there is no runoff — **open**
+
+`Rules.clockBehavior(after:)` reads only the ending. A fourth-down stop and a returned punt
+both end `.tackled`, which `GameClock.swift:39` treats as a live ball, so the team taking
+over burns its huddle off the game clock. Reproduced in the issue: **37 seconds elapse
+after a turnover on downs, against 6 for the play itself.**
+
+The ten-second runoff does not exist at all. Both
+[`match-engine.md`](match-engine.md) and
+[ADR-0012](adr/0012-play-resolver-seam.md) name it as a rule the shared layer has to get
+right — it is the example both use — and nothing implements it. A pre-snap foul also
+charges a phantom 6 seconds of play time, because `runClock` substitutes 6 for a zero
+`clockRunoff`.
+
+Closed by [A4 · #17](https://github.com/knissley/football-manager/issues/17) and
+[A5 · #32](https://github.com/knissley/football-manager/issues/32).
+
+## S13 — Live-ball fouls are enforced from the previous spot — **open**
+
+`Rules.enforcedAdvancement` measures every foul from `situation.ballOn`, the previous spot.
+A facemask at the end of a 20-yard run therefore offers the offence 15 yards from the old
+line against a 20-yard gain, so the engine declines it; the sport gives 35 yards and a
+first down. Roughing the passer on a completion loses the completion. Horse collar and
+illegal use of the helmet, added in `35e12ce`, inherit the same path.
+
+Decision 119's claim that every foul has real enforcement is therefore false for the whole
+contact family, and `defensivePassInterference` smuggles its spot through the `yards` field
+because there is nowhere else to put it.
+
+This is S6's sequel. S6 made all thirty-three fouls *occur*; whether the yardage that
+follows is football is a separate question, and for the contact fouls the answer is no.
+Reproduces as the issue describes. Closed by
+[A6 · #18](https://github.com/knissley/football-manager/issues/18).
+
+## S14 — The completion-percentage row is a false pass — **open**
+
+`PlayEnding` cannot express a completed pass: a catch for a loss ends `.tackled`, exactly
+like a run. The harness therefore counts a completion as `yards > 0 || touchdown`, so every
+ball caught for no gain or a loss is scored an incompletion.
+
+Measured at `--games 400`: the row reads **62.8 against a 61.0–68.0 band on seed 7 and
+64.5 on seed 11, marked `ok` both times**. The rate the catch decisions actually describe
+is **68.4**, from the issue below. The row is not imprecise, it is several points low and
+green — the same shape as S1's points row, and the reason that row was believed for as
+long as it was.
+
+`Outcome.pointsScored` is the other half of it: the field is on every record and nothing
+ever assigns it, so it is always zero, the scoreboard cannot be a sum over the stream, and
+anything that wants the score has to re-run the rules. Checked here rather than taken from
+the issue: across every package, test suite and tool the only occurrences of
+`pointsScored` are its declaration, its default of `0`, and the assignment of that
+default.
+
+Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22), which makes a
+completion a fact in the record, and
+[E2 · #42](https://github.com/knissley/football-manager/issues/42), which makes the harness
+read that fact instead of inferring one.
+
+## S15 — A flag on a try is recorded and never enforced — **open**
+
+`GameSimulator.step` calls `moveToTrySpot` on every step while a try is pending, so the
+enforcement spot from a pre-snap flag is overwritten with the standard 15 or 2 before the
+replay. In 40 games: **13 flags before a try, and 13 tries re-snapped from the standard
+spot.**
+
+This is the far side of S6's second structural fix. S6 stopped a pre-snap flag cancelling
+the try, which is what allowed flags on tries at all; nothing then applies them. A false
+start on an extra point should make it a 37-yard kick, and does not.
+
+Reproduces as the issue describes. Closed by
+[A7 · #19](https://github.com/knissley/football-manager/issues/19).
+
 ## Where this leaves the engine
 
-All eight findings are fixed. What follows is what a fresh pair of eyes needs to know
-before picking the work up.
+**Fifteen findings: eight fixed, seven open.** S1 through S8 are the original pass and are
+fixed. S9 through S15 were added by the September 2026 external audit, are open, and are
+why the rules layer does not yet finish a game correctly. The backlog in
+[#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
+table is a snapshot.
+
+| finding | status | closed by |
+| --- | --- | --- |
+| S1 The scoreboard does not play football | fixed | — |
+| S2 Field position is a dead variable | fixed | — |
+| S3 One personnel grouping, one defensive package, all game | fixed | — |
+| S4 Fourth down and the endgame are too tame | fixed | — |
+| S5 The kicking curve is wrong in the middle | fixed | — |
+| S6 21 of 33 fouls never occur | fixed | — |
+| S7 Calibration runs in conditions no game is played in | fixed | — |
+| S8 The simulation is not deterministic | fixed | — |
+| S9 There is no overtime in the regular season | **open** | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
+| S10 A touchdown at the end of a half gets no try | **open** | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
+| S11 The team that scored the safety kicks off | **open** | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
+| S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
+| S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
+| S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
+| S15 A flag on a try is recorded and never enforced | **open** | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
+
+These fifteen are not the whole backlog. The engine findings that did not earn a section of
+their own are one line each under *What to trust* below, with the issue that closes them.
+What follows is what a fresh pair of eyes needs to know before picking the work up.
 
 ### Rows that are out of band, and why
 
@@ -449,8 +594,10 @@ comfortably outside them.
 | first downs per team-game | 17.9 | — | 18.5–22 | Follows from the first two. |
 | three-and-out rate | 18.8% | — | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that *punt* count here. |
 
-Fourteen of the fifteen headline calibration rows land on seed 7; third-down conversion is
-the single one that does not.
+Fourteen of the fifteen headline calibration rows land on seed 7 and third-down conversion
+is the one that does not — but one of the fourteen is not a pass at all. Completion
+percentage sits inside its 61.0–68.0 band only because the harness cannot see a completion
+that gained nothing (S14). Thirteen rows land honestly.
 
 **The engine-wide retune is the next piece of work**, and its brief is that one sentence:
 the calibration bands were established against a defence that never substituted and a
@@ -478,6 +625,85 @@ chase individual rows.
   never appear in one — see [ADR-0003](adr/0003-deterministic-seeded-simulation.md).
 - **Weather rows need `--games 1000`.** At 400 there are twenty-odd heavy-rain games and the
   row is noise. This nearly caused a mis-tune.
+- **`pressureAllowed` does not mean pressure.** It is emitted whenever a rusher wins his
+  rep, whether or not he arrives before the ball is out, so it fires on 74% of dropbacks
+  against a real rate near a third. Anything that reads it as pressure will explain three
+  of every four stalled drives the same way.
+  ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
+- **Interference is drawn before the throw.** Both kinds are drawn per read in the coverage
+  loop, so in 40 games 4 of 58 defensive flags were on sacks and 26 on receivers nobody
+  threw to. Interference requires a pass toward that receiver.
+  ([C2 · #38](https://github.com/knissley/football-manager/issues/38))
+- **A blitz rushes four.** Rushers come from `Lineup.front`, which holds four men in
+  nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the
+  five linemen. A blitz in this engine changes the label and not the count.
+  ([C5 · #45](https://github.com/knissley/football-manager/issues/45))
+- **The backup quarterback takes about 4% of dropbacks, at random.** `Lineup.fill` draws
+  every slot per snap against rotation shares, so the quarterback changed 125 times between
+  consecutive dropbacks in 40 games with nobody hurt. Any per-player number off this engine
+  is measured on a team that substitutes mid-drive for no reason.
+  ([C6 · #27](https://github.com/knissley/football-manager/issues/27))
+- **ADR-0013's rating premise is inverted.** It assumes `overall(at:)` penalises a player
+  for the ratings he lacks; `PositionWeights.overall` drops the missing weight and
+  renormalises, so absence is a bonus. The issue's measurement at seed 7: receivers average
+  59.7 at receiver and 64.8 at quarterback, and a kicker rates a 67 quarterback. Do not
+  trust an out-of-position overall until this lands.
+  ([F1 · #25](https://github.com/knissley/football-manager/issues/25))
+
+#### The open engine findings that have no section above
+
+One line each, with the issue that closes it. None has been re-measured here; each is as
+its issue describes.
+
+- **A8** — half and overtime boundaries are hardcoded quarter literals, and
+  `Situation.isValid` rejects a sixth period, which a postseason game can reach.
+  ([#20](https://github.com/knissley/football-manager/issues/20))
+- **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
+  so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
+  snap count is not a query the record can answer.
+  ([#21](https://github.com/knissley/football-manager/issues/21))
+- **B3** — the record carries no schema version, and `OffensiveCall.design` points into a
+  fake identifier space built from `PlayFamily.rawValue + 1` that will dangle the day a real
+  playbook exists. ([#33](https://github.com/knissley/football-manager/issues/33))
+- **B4** — the weather is copied onto every play, about 150 times a game, although it is a
+  fact about the afternoon. ([#23](https://github.com/knissley/football-manager/issues/23))
+- **B5** — nothing fails when a decision-detail case becomes unreachable. The engine
+  produces 3 of 5 `ThrowDecision` cases, 2 of 5 `TackleResult`, 2 of 5 `BlockResult` and 2
+  of 6 `CoverageTechnique`, and the coverage suite does not look at
+  `DecisionPoint.detail`. ([#24](https://github.com/knissley/football-manager/issues/24))
+- **C3** — the quarterback always throws to the best-separated receiver on the field. He
+  never locks onto his first read, never checks down, never throws it away, and never
+  attempts a throw he cannot make.
+  ([#44](https://github.com/knissley/football-manager/issues/44))
+- **C4** — `tackleAttempt` emits only `madeTackle` and `broken`, `blockResult` only `won`
+  and `lost`, `coverageAssignment` only `offMan` and `zoneDeep`. `forcedFumble` is never
+  emitted even on a play where a fumble was forced.
+  ([#39](https://github.com/knissley/football-manager/issues/39))
+- **C7** — every two-point try is a pass, and the defensive call's package disagrees with
+  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable.
+  ([#40](https://github.com/knissley/football-manager/issues/40))
+- **C8** — a tackle ends out of bounds 14% of the time, flat, whatever the play and
+  whatever the clock is doing.
+  ([#28](https://github.com/knissley/football-manager/issues/28))
+- **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
+  it, `afterThePlay` is called from the run path only, and roughing the kicker on a made
+  field goal erases the three points.
+  ([#48](https://github.com/knissley/football-manager/issues/48))
+- **C10** — the baseline caller reads `DownAndDistanceClass` as law rather than
+  description: `isPassingDown` includes second and 8 and third and 4, and the caller never
+  runs on them. ([#37](https://github.com/knissley/football-manager/issues/37))
+- **C11** — a punt is always hit at full distance, so from inside the opponent's 45 it is a
+  touchback 78 to 86% of the time and no punter's touch decides anything.
+  ([#26](https://github.com/knissley/football-manager/issues/26))
+- **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside
+  kicks are fourth quarter only, and nothing records which season the defaults describe.
+  ([#41](https://github.com/knissley/football-manager/issues/41))
+- **D2** — the kickoff is a touchback coin flip that ignores where the kick is taken from,
+  so a penalty on the kicking team changes nothing about the kick.
+  ([#46](https://github.com/knissley/football-manager/issues/46))
+- **F2** — `PlayContext.effective` substitutes `player.overall` for any rating the player
+  lacks, so a running back's route running is his overall.
+  ([#34](https://github.com/knissley/football-manager/issues/34))
 
 ### Still deferred, deliberately
 
