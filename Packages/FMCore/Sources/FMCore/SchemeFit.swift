@@ -289,9 +289,22 @@ public enum SchemeFit {
             weights[key, default: 0] += delta
         }
 
+        // **Sorted, and it matters.** Floating-point addition is not associative, so a sum
+        // taken in dictionary order is a sum whose last bits depend on the hash seed —
+        // which Swift randomises per process. Divided and rounded to a whole overall
+        // point, a player sitting near a boundary then came out a point better in one
+        // process and a point worse in the next, his scheme fit moved with him, and the
+        // same seed produced a different season.
+        //
+        // That is the determinism rule
+        // ([ADR-0003](../../../../docs/adr/0003-deterministic-seeded-simulation.md)) and
+        // it is the expensive one: the replay tuple is how games are *stored*, so a save
+        // reloaded in a fresh process replayed as a different game. Never let iteration
+        // order over an unordered collection reach the output.
         var weighted = 0.0
         var applied = 0.0
-        for (key, weight) in weights where weight > 0 {
+        for key in weights.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
+            guard let weight = weights[key], weight > 0 else { continue }
             guard let value = ratings[key] else { continue }
             weighted += Double(value) * weight
             applied += weight

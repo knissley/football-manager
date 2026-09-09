@@ -81,3 +81,33 @@ range — which is most regressions.
 **Determinism only in generation, not in games.** Would give reproducible worlds
 without constraining the engine. Rejected: the engine is where the bugs are, and it's
 where players notice inconsistency.
+
+## What it took to break it, in practice
+
+Recorded after the guarantee was broken and fixed, because the shape of the failure is
+not the shape the banned list guards against.
+
+`SchemeFit.effectiveOverall` blends a position's rating weights with a scheme's
+adjustments, and it summed them **while iterating a dictionary**. No banned call, no
+unseeded randomness, no clock read. But floating-point addition is not associative, so the
+sum's last bits depended on Swift's hash seed — which is randomised **per process** — and
+the result was divided and rounded to a whole overall point. A player sitting near a
+rounding boundary was a point better in one process and a point worse in the next. His
+scheme fit moved with him, that fed his effective rating, and the same seed produced a
+different season.
+
+Two lessons worth more than the fix:
+
+**"Never let iteration order reach the output" includes arithmetic.** The rule reads as
+though it is about *which* element you pick — a `first`, a `max`, an allocation order. It
+is also about the order you *add doubles in*. Any float sum over an unordered collection
+is a determinism bug whether or not anything downstream looks order-sensitive.
+
+**Every determinism test we had was blind to it.** They all compared two runs *inside one
+process*, which share a hash seed, so they agreed with each other and disagreed with
+yesterday's run. The bug surfaced only as intermittent flakiness that looked like
+infrastructure noise. A determinism test has to be a **checked-in golden constant**, and
+its checksum must not use `Hasher` — that is per-process seeded too, and a golden test
+built on it cannot detect the thing it exists to detect. `FMSimulation`'s
+`GoldenSeedTests` and `FMGeneration`'s `GoldenWorldTests` are that check; both use FNV-1a
+over the values that matter.

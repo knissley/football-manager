@@ -274,7 +274,7 @@ final score. Those rows are now in the harness under **Is this football?** and s
 into [`match-engine.md`](match-engine.md#calibration) as targets rather than observations.
 
 
-## S8 — The simulation is not deterministic
+## S8 — The simulation is not deterministic — **fixed**
 
 Found while finishing S3, and **pre-existing**: it reproduces on the engine as it was
 before any of this audit's work.
@@ -309,7 +309,37 @@ Ruled out so far:
   sorts by raw value, `Form.table` sorts its keys.
 - **Test parallelism.** It fails with `--no-parallel` too, so it is not tests interfering.
 
-Not yet explained. The next step is to bisect the play stream: capture the two runs' full
-`PlayRecord` streams for a failing seed and find the first snap whose *inputs* differ
-rather than its output, which will say whether the divergence starts in the resolver, the
-rules loop or the clock.
+**Found and fixed.** `SchemeFit.effectiveOverall` summed its rating weights **while
+iterating a dictionary**. Floating-point addition is not associative, so the sum's last
+bits depended on Swift's hash seed — randomised per process — and the result was divided
+and rounded to a whole overall point. A player near a rounding boundary came out a point
+better in one process and a point worse in the next; his scheme fit moved with him, that
+fed his effective rating, and the same seed produced a different season.
+
+The clue that cracked it was magnitude. The divergence showed a recorded `separation` of
+158 against 159 — not a last-place difference in a `Double` but a whole unit, which needed
+a rating to move by about a quarter of a point. `schemeFit` is scaled by 0.35 in
+`PlayContext.effective`, so a `schemeFit` off by one is worth 0.35: the right size.
+Everything before that had been chasing a one-in-the-last-place difference that could
+never have been large enough.
+
+Proved by controlled experiment rather than argument. With the fix, three golden seeds
+match across eight separate processes. With the bug put back, three of those eight
+processes disagree.
+
+Two things this says about how the guarantee was being tested, now written into
+[ADR-0003](adr/0003-deterministic-seeded-simulation.md):
+
+- **"Never let iteration order reach the output" includes arithmetic.** The rule reads as
+  though it is about which element you pick. It is also about the order you add doubles
+  in.
+- **Every determinism test we had was blind to it**, because they all compared two runs
+  inside one process — which share a hash seed, so they agree with each other and disagree
+  with yesterday. A determinism test has to be a checked-in constant, and its checksum must
+  not use `Hasher`, which is per-process seeded as well. `GoldenSeedTests` and
+  `GoldenWorldTests` are that check.
+
+A sweep of the rest of `FMCore`, `FMGeneration` and `FMSimulation` found no other place
+where an unordered collection's iteration order reaches an output: the generators' loops
+are over arrays or explicitly sorted, and `SchemeFit.combined` accumulates each key in
+array order. This was the only one.
