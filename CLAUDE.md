@@ -14,13 +14,21 @@ Rationale lives in [`docs/adr/`](docs/adr/).
 
 ## Project status
 
-Pre-alpha, milestone M0. **No Swift code exists yet** — the repo is docs and tooling
-config. Don't assume a file exists because a doc describes it; check first. The docs
-describe the intended design, not the current state.
+Pre-alpha, late in milestone M1. Four packages exist and are green: `FMRandom`,
+`FMCore`, `FMGeneration` and `FMSimulation`, with three tools — `playsize`, `worldgen`
+and `simharness`. **No app target, no SwiftUI, no SwiftData yet**; that is M4. Don't
+assume a file exists because a doc describes it; check first, because several docs still
+describe intent rather than what is built.
 
-Next up is M1: the `PlayRecord` event stream shape, `FMCore`, `FMRandom`, world
-generation, and a deliberately crude engine behind the real event contract. See the
-[roadmap](docs/roadmap.md).
+What works today: world and roster generation, a crude but complete game engine behind
+the real `PlayRecord` contract — clock, downs, scoring, penalties, personnel
+substitution, the kicking game, fumbles, returns and injuries — and a calibration harness
+that measures it against the sport.
+
+**Read [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching
+the engine.** It is the record of eight findings from asking whether the simulation
+behaves like football rather than whether its units pass, all of them now fixed, and its
+closing section says what is still open.
 
 ## The rules that matter
 

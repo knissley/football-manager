@@ -426,3 +426,55 @@ A sweep of the rest of `FMCore`, `FMGeneration` and `FMSimulation` found no othe
 where an unordered collection's iteration order reaches an output: the generators' loops
 are over arrays or explicitly sorted, and `SchemeFit.combined` accumulates each key in
 array order. This was the only one.
+
+## Where this leaves the engine
+
+All eight findings are fixed. What follows is what a fresh pair of eyes needs to know
+before picking the work up.
+
+### Rows that are out of band, and why
+
+These are not regressions to hunt. They are the price of two fixes that were both correct,
+and the bands they miss were set before either landed.
+
+| row | reads | band | why |
+| --- | --- | --- | --- |
+| third-down conversion | 35.9 | 36–43 | S3 gave the defence real sub packages and S6 gave it a realistic penalty load. Third down got harder twice, independently. |
+| yards per carry | 3.9–4.0 | 4.0–4.8 | Same cause: more offensive fouls, and a box count that now decides runs. |
+| fourth-down conversion | 58.9% | 45–58 | Correcting the first-half desperation bug removed a pool of low-percentage fourth-and-longs from the offence's own end, so what remains converts better. |
+| first downs per team-game | 18.1 | 18.5–22 | Follows from the first two. |
+| three-and-out rate | 18.8% | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that punt count here. |
+
+**The engine-wide retune is the next piece of work**, and its brief is that one sentence:
+the calibration bands were established against a defence that never substituted and a
+league that threw ten fouls a game, and neither is true any more. Re-baseline rather than
+chase individual rows.
+
+### What to trust, and what to be careful of
+
+- **The harness is the instrument, and it has been wrong more often than the engine.** Four
+  separate findings in this audit were measurement bugs, not engine bugs: the first-down
+  row counted kickoffs, the drive chart called returned punts turnovers on downs, the
+  home-field counter was computed and never printed, and a pre-snap foul filter excluded
+  the only plays that carry pre-snap fouls. Check the row before believing what it says
+  about the engine.
+- **A mean is not a distribution.** The carry, dropback and drive-length rows exist because
+  yards per carry was correct while the shape underneath it was not. Any new row that
+  reports an average should probably report a shape instead.
+- **Watch for a value computed and then dropped.** It has happened five times now — the
+  sack credit, the scheme fit, the run-play holding, the home-field counter, and the
+  fourth-down decision that never reached the situation. It is the most common bug shape
+  in this codebase by some distance.
+- **Golden tests are checked-in constants, and they must stay that way.** Regenerating one
+  to make a red test pass is forbidden; regenerating it in the same commit as a deliberate
+  behaviour change, with the change described, is the intended workflow. `Hasher` must
+  never appear in one — see [ADR-0003](adr/0003-deterministic-seeded-simulation.md).
+- **Weather rows need `--games 1000`.** At 400 there are twenty-odd heavy-rain games and the
+  row is noise. This nearly caused a mis-tune.
+
+### Still deferred, deliberately
+
+Home-field advantage measures about a point against a real two, because the engine models
+the crowd and the rest of it is travel and rest — which cannot exist before there is a
+schedule, at M3. `CallVulnerability`, `SchemeExperience`, coordinator quality and stamina
+are registered in [the roadmap](roadmap.md) as designed and not yet consulted.
