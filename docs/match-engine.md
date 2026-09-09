@@ -215,6 +215,34 @@ a day does not. Ordinary days stay within a few rating points so talent still de
 season; a rare day well outside that is what lets a generational player in the right
 situation chase a number nobody should reach.
 
+Form sits on a different timescale from everything else that moves a player, and the
+three should never be confused:
+
+| | Timescale | Reverts | Answers |
+| --- | --- | --- | --- |
+| **Trait** | A career | No | What kind of player is he |
+| **Development** | Season to season | No | Who is he becoming |
+| **Form** | One game | Completely | Who was he on Sunday |
+
+Two things it deliberately is not. It is **not a hot hand**: form is drawn before kickoff
+and never reacts to what happens in the game, because a model that noticed a player was
+having a good day and made him better would be the engine authoring a narrative. And it is
+variance in *capability*, not in *outcomes* — every play still resolves through identical
+physics, and form only changes what a player brings to it.
+
+**Form is visible after the fact, never before.** The analysis layer can say *he was off
+all day* as an observation drawn from the stream, the same way it reports pressure or
+separation, because a performance nobody can account for is exactly what the interrogation
+hook promises not to produce. It is not visible before kickoff, where it would become a
+lineup cheat and tell the player the answer before asking the question.
+
+**Teams have days too, and they have reasons.** Part of each player's day comes from a
+team-wide component, so a squad can be collectively flat or collectively electric — which
+is real, and is a direct lever on the spread of team win totals, the row the calibration
+table calls the most important number. That component is driven by things with causes:
+travel, a short week, a hostile crowd, the game before. A shared draw with no reason
+behind it would be indistinguishable from an excuse.
+
 **Explosive plays.** A receiver who beats every defender with an angle on him is in open
 field, not three yards further on. The run game had a burst through the hole from the
 start and the passing game had no equivalent, which is precisely why one had a tail and

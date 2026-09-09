@@ -86,6 +86,42 @@ App target, `FMUI`, `FMPersistence`. The first build that is a game.
 *Exit:* install on a phone, start a career, play a season, background and resume without
 loss.
 
+## Designed but not yet in the engine
+
+An audit of the crude resolver found it reads `runFit` and the weather on a kick, and
+nothing else. These are systems that exist, are designed and in several cases fully
+tested, and that the engine has never consulted. Recorded here so they are deferred
+deliberately rather than forgotten.
+
+**Landing before M2**, because M2's analysis and narrative are built on this stream and
+would otherwise be built against a league missing them:
+
+- Endgame clock — spikes, kneels and timeouts. The clock rules underneath are already
+  correct and tested; the caller has never learned to use them, so a two-minute drill
+  cannot currently be played properly.
+- Penalties. Enforcement and accept/decline are built and tested; **zero are ever drawn**.
+  Unlocks a calibration row, the `discipline` rating, crowd noise as the home-field
+  mechanism [penalties.md](penalties.md) describes, and a category of news.
+- Injury availability, already agreed for M1.
+- Kick and punt returns. Every kickoff is a touchback and every punt a fair catch.
+- Traits, as engine hooks rather than cosmetic modifiers.
+- Crowd noise and stadium; weather beyond the kicking game.
+
+**Deferred to M5, and still needed** — these want the spatial engine to be meaningful, not
+merely to be wired up:
+
+- `CallVulnerability`. Every defensive call is designed to give something up, and the
+  resolver never asks what. Without geometry there is no honest way to make a soft spot
+  actually soft.
+- `SchemeExperience`. Coordinator familiarity decaying and rebuilding is a season-scale
+  mechanic that needs a season loop to mean anything.
+- Coordinator quality. Both callers are currently the same hardcoded pair of identifiers,
+  so every team in the league calls plays identically. The real caller and its
+  benchmark are [play-calling.md](play-calling.md)'s work.
+- Personnel groups and defensive packages. The resolver fields the same eleven regardless
+  of what the situation says is on the field.
+- Stamina and fatigue within a game.
+
 ## M5 — The spatial engine
 
 The big technical risk, taken once the contract and everything above it are proven.
