@@ -363,6 +363,16 @@ football?**:
 | Snaps against base | 22–32% |
 | Yards per carry, even count, first and ten | 4.6–5.4 |
 | Yards per carry, outnumbered by one | 3.0–4.0 |
+| Pre-snap fouls, road vs home | 1.15–1.35× |
+| Combined points, heavy rain vs dry | 2–4 lower |
+
+Home win rate and the home scoring edge are printed **without** a target. Real home-field
+advantage is about two points and 56%, and most of it is travel, rest and short weeks —
+none of which exists before there is a schedule to travel on (M3). What the engine models
+is the crowd, so the mechanism gets the target and the aggregate gets a note.
+
+The weather rows need a large sample: at 400 games there are only twenty-odd heavy-rain
+games and the row is noise. Run `--games 1000` before reading them.
 
 A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
 and a half yards every time, and that would be nothing like the sport — which is why the

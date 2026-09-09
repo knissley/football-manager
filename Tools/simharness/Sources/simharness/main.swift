@@ -91,12 +91,22 @@ for team in world.teams {
 
 let simulator = GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
 var results: [GameResult] = []
+var conditions: [(home: TeamID, setup: GameSetup)] = []
 let teams = world.teams
 
 for index in 0..<games {
     let home = teams[index % teams.count]
     let away = teams[(index + 1 + index / teams.count) % teams.count]
     guard home.id != away.id else { continue }
+
+    // Played at a real ground, in real weather. Every calibration run before this one
+    // was at "Neutral Field" with crowd noise 50 and clear skies — so home-field
+    // advantage and weather were mechanisms the engine had, and that had never once been
+    // measured.
+    let week = index % 18 + 1
+    var weatherRandom = SplittableRandom(seed: seed &+ UInt64(index) &* 104_729)
+    let weather = WeatherGenerator.forGame(
+        stadium: home.stadium, week: week, using: &weatherRandom)
 
     let setup = GameSetup(
         game: GameID(UInt64(index + 1)),
@@ -105,8 +115,11 @@ for index in 0..<games {
         away: GameTeam(
             id: away.id, depthChart: charts[away.id] ?? DepthChart(), scheme: away.scheme),
         players: players,
+        stadium: home.stadium,
+        weather: weather,
         seed: seed &+ UInt64(index) &* 7919)
     results.append(simulator.simulate(setup))
+    conditions.append((home: home.id, setup: setup))
 }
 
 // MARK: - Query the stream
@@ -332,25 +345,6 @@ for result in results {
         }
     }
 }
-// Home field has to be a *mechanism*: noise, pre-snap penalties, drives stalling. If the
-// road team does not commit measurably more procedural fouls, it is not modelled.
-var homePreSnap = 0
-var awayPreSnap = 0
-for result in results {
-    for play in result.plays {
-        for flag in play.outcome.penalties where flag.foul.isPreSnap && flag.wasAccepted {
-            if flag.offendingTeam == play.situation.possession {
-                // The offence committed it; was the offence at home?
-                if play.situation.possession == result.plays.first?.situation.possession {
-                    homePreSnap += 1
-                } else {
-                    awayPreSnap += 1
-                }
-            }
-        }
-    }
-}
-
 print("")
 print("  Flags")
 var byFoul: [String: Int] = [:]
@@ -800,6 +794,93 @@ print(
 let deepSacks = deep.filter { $0.outcome.kind == .sack }
 print(
     "    \(pad("sacks taken inside own 10", 26))\(deepSacks.count) in \(Int(teamGames)) team-games")
+
+print("")
+print("  Home field and weather")
+// Both are mechanisms the engine already had. Neither had ever been measured, because
+// every calibration game was played at a neutral field in still air.
+var homeWins = 0, awayWins = 0, drawn = 0
+var homePoints = 0, awayPoints = 0
+for result in results {
+    if result.homeScore > result.awayScore {
+        homeWins += 1
+    } else if result.awayScore > result.homeScore {
+        awayWins += 1
+    } else {
+        drawn += 1
+    }
+    homePoints += Int(result.homeScore)
+    awayPoints += Int(result.awayScore)
+}
+let decided = Double(max(1, homeWins + awayWins))
+// No target on these two. Real home-field advantage is about two points and 56%, and
+// most of it is travel, rest and short weeks — none of which can exist before there is a
+// schedule to travel on (M3). What this engine models is the crowd, and the crowd alone
+// is worth roughly half a point, which is about what the research attributes to it.
+print(
+    "    \(pad("home win rate", 30))\(pad(oneDecimal(Double(homeWins) / decided * 100) + "%", 9))crowd only, see M3"
+)
+print(
+    "    \(pad("home scoring edge (points)", 30))\(pad(oneDecimal(Double(homePoints - awayPoints) / Double(max(1, results.count))), 9))crowd only, see M3"
+)
+
+// The mechanism itself, rather than the outcome: crowd noise raises the *visiting*
+// offence's pre-snap penalties, and the advantage is supposed to fall out of that. The
+// harness has always counted this and never printed it — computed and dropped, which is
+// exactly why home field went unexamined for so long.
+var homePreSnap = 0, awayPreSnap = 0
+var homeSnaps = 0, awaySnaps = 0
+for (index, entry) in conditions.enumerated() where index < results.count {
+    // Including the flag-only snaps, which are *the plays that carry a pre-snap foul* —
+    // filtering to `isScrimmagePlay` excluded every one of them and reported zero.
+    for play in results[index].plays
+    where play.outcome.kind.isScrimmagePlay || play.outcome.kind == .penaltyOnly {
+        let offenceIsHome = play.situation.possession == entry.home
+        if offenceIsHome { homeSnaps += 1 } else { awaySnaps += 1 }
+        for flag in play.outcome.penalties
+        where flag.foul.isPreSnap && flag.offendingTeam == play.situation.possession {
+            if offenceIsHome { homePreSnap += 1 } else { awayPreSnap += 1 }
+        }
+    }
+}
+func per100(_ count: Int, _ snaps: Int) -> Double { Double(count) / Double(max(1, snaps)) * 100 }
+// This one *is* the mechanism, and it has a real number attached: a road offence commits
+// something like a fifth more pre-snap fouls than a home one.
+let ratio = per100(awayPreSnap, awaySnaps) / max(0.01, per100(homePreSnap, homeSnaps))
+print(
+    "    \(pad("pre-snap fouls, road vs home", 30))"
+        + "\(pad(oneDecimal(ratio) + "x", 9))1.15-1.35  "
+        + (ratio < 1.15 || ratio > 1.35 ? "OFF" : "ok"))
+print(
+    "    \(pad("  per 100 snaps", 30))"
+        + "home \(oneDecimal(per100(homePreSnap, homeSnaps)))  road \(oneDecimal(per100(awayPreSnap, awaySnaps)))"
+)
+
+// Weather: how often it turns up, and whether it changes anything.
+var byPrecipitation: [Precipitation: (games: Int, points: Int)] = [:]
+var indoorGames = 0
+var windy = 0
+for (index, entry) in conditions.enumerated() where index < results.count {
+    let w = entry.setup.weather
+    if w.isIndoors { indoorGames += 1 }
+    if w.windSpeed >= 18 { windy += 1 }
+    let total = Int(results[index].homeScore + results[index].awayScore)
+    byPrecipitation[w.precipitation, default: (0, 0)].games += 1
+    byPrecipitation[w.precipitation, default: (0, 0)].points += total
+}
+print(
+    "    \(pad("games indoors", 30))\(oneDecimal(Double(indoorGames) / Double(max(1, results.count)) * 100))%"
+)
+print(
+    "    \(pad("games with wind 18mph+", 30))\(oneDecimal(Double(windy) / Double(max(1, results.count)) * 100))%"
+)
+for kind in [Precipitation.none, .rain, .heavyRain, .snow] {
+    guard let bucket = byPrecipitation[kind], bucket.games > 20 else { continue }
+    print(
+        "    \(pad("  \(kind): combined points", 30))"
+            + "\(pad(oneDecimal(Double(bucket.points) / Double(bucket.games)), 9))\(bucket.games) games"
+    )
+}
 
 print("")
 print("  Scoreboard")

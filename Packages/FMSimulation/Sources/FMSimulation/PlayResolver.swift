@@ -23,6 +23,12 @@ public struct PlayContext: Sendable {
     /// visiting offence's pre-snap penalties, drives stall, and the advantage falls out
     /// ([penalties.md](../../../../docs/penalties.md)).
     public let crowdNoise: UInt8
+    /// Thin air carries a kick. Generated for every stadium since the world existed, and
+    /// until now it reached no game.
+    public let altitudeFeet: Int16
+    /// The conditions. On the context as well as the situation because facts about the
+    /// afternoon belong to the game, not to the down.
+    public let weather: WeatherState
     public let offenseIsHome: Bool
     /// Whether the clock is running into this snap.
     ///
@@ -46,12 +52,16 @@ public struct PlayContext: Sendable {
         offenseScheme: TeamScheme,
         defenseScheme: TeamScheme,
         crowdNoise: UInt8 = 50,
+        altitudeFeet: Int16 = 0,
+        weather: WeatherState = .clear,
         offenseIsHome: Bool = true,
         clockIsRunning: Bool = false,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
         self.crowdNoise = crowdNoise
+        self.altitudeFeet = altitudeFeet
+        self.weather = weather
         self.offenseIsHome = offenseIsHome
         self.clockIsRunning = clockIsRunning
         self.form = form

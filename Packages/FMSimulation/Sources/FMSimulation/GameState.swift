@@ -105,6 +105,8 @@ extension GameSimulator {
                 offenseScheme: offense.scheme,
                 defenseScheme: defense.scheme,
                 crowdNoise: setup.stadium.noise,
+                altitudeFeet: setup.stadium.altitudeFeet,
+                weather: setup.weather,
                 offenseIsHome: possession == setup.home.id,
                 clockIsRunning: previousBehavior == .keepsRunning,
                 form: form,

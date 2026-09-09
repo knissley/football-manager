@@ -45,7 +45,10 @@ enum Penalties {
         let lineSlots = SlotLayout.blockers
         let offenseDiscipline = averageDiscipline(lineSlots, personnel, context, onOffense: true)
         var falseStart = 0.027 + (62 - offenseDiscipline) * 0.0011
-        falseStart += noise * 0.00022
+        // Softer than it was. A road team commits measurably more of these, but the real
+        // gap is about a fifth more, not double — which is what a coefficient tuned
+        // against a neutral field with nobody in it had produced.
+        falseStart += noise * 0.000036
         if calls.offense.tempo == .hurryUp { falseStart += 0.004 }
 
         if random.nextBool(probability: max(0.002, falseStart)) {
@@ -54,7 +57,11 @@ enum Penalties {
 
         // Delay of game is the other end of the same problem: too slow rather than too
         // eager, and worse when the offence cannot hear itself.
-        var delay = 0.006 + noise * 0.0001
+        // Noise moves this far less than it moves a false start: the play clock is the
+        // coach's problem, not the crowd's. At a tenth of a point per unit of noise it was
+        // doubling the road team's delay-of-game rate and quietly supplying most of the
+        // road/home penalty gap.
+        var delay = 0.006 + noise * 0.00003
         if calls.offense.tempo == .bleedClock { delay += 0.004 }
         if random.nextBool(probability: delay) {
             return record(

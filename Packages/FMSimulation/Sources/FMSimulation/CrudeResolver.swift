@@ -217,7 +217,14 @@ public struct CrudeResolver: PlayResolver {
             // which is a decision point pointing at an uncredited player.
             guard personnel[rusher] != nil, personnel[blocker] != nil else { continue }
             let rush = rating(.powerMove, rusher, personnel, context)
-            let block = rating(.passBlock, blocker, personnel, context)
+            var block = rating(.passBlock, blocker, personnel, context)
+            // A silent count costs a fraction of a beat off the snap. This is the other
+            // half of home field: the road offence loses a little protection in a loud
+            // stadium, which is why hostile grounds show up in sack rates and not only in
+            // false starts.
+            if !context.offenseIsHome {
+                block -= Double(context.crowdNoise) * 0.045
+            }
             // A blitz means somebody is unblocked by construction.
             let edge = defense.rush.isBlitz && index >= protection.count ? 0.35 : 0
             // Scaled down rather than capped. Four rushers each winning a coin flip
@@ -437,7 +444,10 @@ public struct CrudeResolver: PlayResolver {
         // makes target share, catch rate and drop rate unanswerable from the stream.
         credit(target.receiver, .target)
         let accuracy = rating(depth.accuracyKey, SlotLayout.quarterback, personnel, context)
-        let placement = placement(accuracy: accuracy, pressured: pressured, random: &random)
+        let placement = placement(
+            accuracy: accuracy, pressured: pressured,
+            conditions: Conditions.throwing(situation.weather, depthYards: depth.yards),
+            random: &random)
         let throwTick = UInt16(timeNeeded / 100)
         let arrivalTick = throwTick + UInt16(depth.flightTicks)
         decisions.append(
@@ -455,7 +465,8 @@ public struct CrudeResolver: PlayResolver {
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
-            contested: isTry, random: &random)
+            contested: isTry, conditions: Conditions.handling(situation.weather),
+            random: &random)
         decisions.append(
             .init(
                 tick: arrivalTick + 1, kind: .catchAttempt,
@@ -892,7 +903,7 @@ public struct CrudeResolver: PlayResolver {
         _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let length = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
+        let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
         // The league-average kicker's curve, in two segments: near-automatic inside
@@ -901,6 +912,11 @@ public struct CrudeResolver: PlayResolver {
         // steep in the middle — it made forty-somethings 69% against a real 82%, and it
         // ran the extra point through the same slope, so kicks were missed at 15% when
         // the sport misses them at 5%.
+        // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
+        // these modules link without libm, and `Tools/playsize` is the guard that proves it.
+        let carry = Conditions.kickingAdjustment(
+            situation.weather, altitudeFeet: context.altitudeFeet)
+        let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
         var chance: Double
         if length <= 30 {
             chance = 0.95
@@ -917,8 +933,7 @@ public struct CrudeResolver: PlayResolver {
         // Centred on an average leg, so the curve above *is* the league average rather
         // than a floor everybody beats.
         chance += (accuracy - 68) * 0.004
-        if situation.weather.windSpeed > 15 { chance -= 0.06 }
-        if situation.weather.precipitation != .none { chance -= 0.04 }
+        if situation.weather.precipitation != .none { chance -= 0.03 }
 
         let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
         return (
@@ -964,10 +979,12 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func placement(
-        accuracy: Double, pressured: Bool, random: inout SplittableRandom
+        accuracy: Double, pressured: Bool, conditions: Double = 0,
+        random: inout SplittableRandom
     ) -> BallPlacement {
         var onTarget = 0.34 + (accuracy - 60) * 0.008
         if pressured { onTarget -= 0.16 }
+        onTarget -= conditions
         let roll = random.nextDouble()
         if roll < max(0.1, onTarget) { return .onTarget }
         if roll < max(0.1, onTarget) + 0.34 { return .slightlyOff }
@@ -977,7 +994,7 @@ public struct CrudeResolver: PlayResolver {
 
     private func catchOutcome(
         placement: BallPlacement, separation: Int, hands: Double, ballHawk: Double,
-        contested: Bool = false, random: inout SplittableRandom
+        contested: Bool = false, conditions: Double = 0, random: inout SplittableRandom
     ) -> CatchResult {
         if placement == .uncatchable { return .uncatchable }
 
@@ -993,6 +1010,7 @@ public struct CrudeResolver: PlayResolver {
         // A throw into the end zone on a conversion has a back line behind it and every
         // defender in a phone booth. Caught less, and picked more.
         if contested { catchChance -= 0.10 }
+        catchChance -= conditions * 0.055
 
         if random.nextBool(probability: min(0.97, max(0.05, catchChance))) {
             return separation < 90 ? .contestedCatch : .caught

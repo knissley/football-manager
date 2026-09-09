@@ -49,8 +49,10 @@ enum Fumbles {
         let security = context.effective(.carrying, for: personnel[carrier], onOffense: true)
         let punch = context.effective(.hitPower, for: personnel[tackler], onOffense: false)
 
+        // A wet or frozen ball is the other half of why it comes loose.
         let base = isSack ? onSack : onContact
-        let chance = base * (1.0 + (punch - security) * 0.014)
+        let weather = 1.0 + Conditions.handling(context.weather) * 0.22
+        let chance = base * weather * (1.0 + (punch - security) * 0.014)
         guard random.nextBool(probability: min(base * 2.5, max(base * 0.25, chance))) else {
             return nil
         }

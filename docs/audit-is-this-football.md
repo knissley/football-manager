@@ -229,12 +229,51 @@ kicker**, running into the kicker, illegal touching, unsportsmanlike conduct, ta
 Special teams draw no flags at all: `Penalties.preSnap` runs only on run and pass
 families, so there is no false start on a field goal and no offside on a punt.
 
-## S7 — Calibration runs in conditions no game is played in
+## S7 — Calibration runs in conditions no game is played in — **fixed**
 
 The harness passes no stadium and no weather, so every calibration game is at "Neutral
 Field" with crowd noise 50 and clear skies. **Home-field advantage and weather are
 mechanisms with no evidence behind them** — they have never been measured, because the
 measurement has never included a home field or a forecast.
+
+**Fixed, and it was worse than the finding said.** There was no weather *generator* at
+all: `WeatherState` and `Climate` had existed since the world was first generated and
+nothing had ever produced one. `WeatherGenerator` now builds a day from the stadium's
+climate, the week and the seed — colder and wetter as the season turns, snow late in cold
+cities, still and seventy under a roof — and the harness plays each game at the home
+team's real ground.
+
+Measuring it immediately showed the second half of the problem: **only the kicking game
+read the weather**, so a game in driving snow threw and caught the ball exactly like a
+game in a dome, and the first run that included weather at all found scoring *higher* in
+the rain than in the dry. `Conditions` now turns the forecast into three scalars — how
+hard the ball is to handle, how much accuracy a throw loses (scaled by how far it has to
+travel, because that is how wind behaves), and how many yards a kick gains or loses — and
+those reach catching, ball security, throwing and kicking. Scoring now falls a couple of
+points in the wet, which is the sport's number.
+
+`Stadium.altitudeFeet` was generated for every ground and read by nothing; a kick a mile up
+now carries.
+
+**Home-field advantage is the honest part.** It measures about half a point and a hair
+over 50%, against a real two points and 56% — and that gap should not be closed by turning
+up the crowd. Most of real home advantage is travel, rest and short weeks, none of which
+can exist before there is a schedule to travel on (M3). What this engine models is the
+crowd, and the crowd alone is worth roughly what the research attributes to it. So the
+harness now targets the **mechanism** — a road offence commits 1.15–1.35× the pre-snap
+fouls of a home one — and prints the aggregate without a target and with a note saying
+why.
+
+Two things had to be corrected to get there. The noise coefficient was tuned against a
+neutral field with nobody in it, and against real crowds it made road teams commit
+*twice* the pre-snap fouls rather than about a fifth more. And a second mechanism was
+missing: a silent count costs a road line a fraction of a beat, which is why hostile
+grounds show up in sack rates and not only in false starts.
+
+Worth recording separately: **the harness had been counting home and road pre-snap fouls
+for a long time and never printing them.** Computed and dropped — the same bug shape as the
+sack credit, the scheme fit and the run-play holding. The measurement that would have
+caught all of this existed; its answer was thrown away.
 
 ## The retune that followed S1
 
