@@ -441,7 +441,9 @@ struct TradeTests {
             signingBonus: .millions(25),
             baseSalaries: [.millions(2), .millions(6), .millions(9), .millions(12), .millions(15)]
         )
-        #expect(contract.tradeAcceleration(before: seasonZero + 2) == .millions(15))
+        let accelerated = contract.tradeAcceleration(before: seasonZero + 2)
+        #expect(accelerated.currentSeason == .millions(15))
+        #expect(accelerated.followingSeason == .zero)
     }
 
     @Test("Guaranteed salary travels with the player rather than accelerating")
@@ -451,9 +453,36 @@ struct TradeTests {
             baseSalaries: [.millions(5), .millions(5)],
             guarantees: [.millions(5), .millions(5)]
         )
-        #expect(contract.tradeAcceleration(before: seasonZero + 1) == .millions(5))
+        #expect(contract.tradeAcceleration(before: seasonZero + 1).total == .millions(5))
         // A release, by contrast, keeps the guarantee on the original team.
         #expect(contract.deadMoney(releasedBefore: seasonZero + 1).total == .millions(10))
+    }
+
+    /// A trade accelerates proration exactly as a release does, so it splits
+    /// exactly as a release does: after June 1 the current season keeps only
+    /// this season's share and everything later lands the following season.
+    /// The relief is real but delayed, and the total never changes.
+    ///
+    /// Source: `football-domain` skill, `references/salary-cap.md`, "Dead money"
+    /// (the post-June-1 split) and "Player movement" (a trade accelerates
+    /// proration onto the trading team).
+    @Test("football · A post-June-1 trade splits acceleration across two seasons")
+    func postJune1Trade() {
+        // 25 of signing bonus over five years is 5 a season; two are charged by
+        // the time of the trade, so 15 is unamortised.
+        let contract = makeContract(
+            signingBonus: .millions(25),
+            baseSalaries: [.millions(2), .millions(6), .millions(9), .millions(12), .millions(15)],
+            guarantees: [.millions(2), .millions(6), .millions(9), .zero, .zero]
+        )
+        let split = contract.tradeAcceleration(before: seasonZero + 2, postJune1: true)
+
+        #expect(split.currentSeason == .millions(5))
+        #expect(split.followingSeason == .millions(10))
+        // Guaranteed salary travels with the player either way, so none of the
+        // 9 guaranteed in this season shows up on the trading team.
+        #expect(split.total == .millions(15))
+        #expect(split.total == contract.tradeAcceleration(before: seasonZero + 2).total)
     }
 }
 

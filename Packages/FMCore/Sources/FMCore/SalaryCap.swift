@@ -98,9 +98,22 @@ extension Contract {
     /// is *sending* him, exactly as a release would — which is why large
     /// signing bonuses make contracts hard to move.
     ///
+    /// Because it accelerates exactly as a release does, it splits exactly as a
+    /// release does: with `postJune1`, the current season keeps only this
+    /// season's proration share and every later share lands the following
+    /// season. The total is the same either way.
+    ///
     /// Guaranteed salary, by contrast, travels with the player to the acquiring
     /// team, so it is excluded here.
-    public func tradeAcceleration(before season: Int) -> Money {
-        remainingProration(from: season)
+    public func tradeAcceleration(before season: Int, postJune1: Bool = false) -> DeadMoney {
+        guard postJune1 else {
+            return DeadMoney(season: season, currentSeason: remainingProration(from: season))
+        }
+
+        return DeadMoney(
+            season: season,
+            currentSeason: prorationCharge(in: season),
+            followingSeason: remainingProration(from: season + 1)
+        )
     }
 }
