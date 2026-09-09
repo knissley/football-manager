@@ -298,96 +298,203 @@ settings only**.
 ## Calibration
 
 Tuned against `Tools/simharness` — never by playing the app. The harness sims N games
-headless and prints each metric against its target range, marking the row `ok` or `OFF`.
+headless and prints every row below with its measured value, its band, and a verdict.
+The bands are `Tools/simharness/Sources/simharness/Targets.swift`; this table is
+generated from that array (`swift run simharness --targets-markdown`) and the package's
+test fails if the two disagree, so the doc cannot describe a target the harness does not
+check.
 
 CI runs it at 400 games on seed 7 on both architectures, uploads the output as an
 artifact and puts the table in the job summary — but the job **reports, it does not
-gate**: an `OFF` row is a finding to read, not a red build. *Intent, not yet built:* the
-ranges live in the harness source rather than a checked-in target file, and no row fails
-CI yet. Making a row gating is a per-row decision, taken in a retune issue.
+gate**: an `OFF` row is a finding to read, not a red build. The `Gate` column below is
+what a gating step would read when one exists; making a row gating is a per-row decision,
+taken in a retune issue, and no row fails CI yet.
 
-| Metric (per team per season) | Target range |
-| --- | --- |
-| Points per game | 20–26 |
-| Passing yards per game | 200–260 |
-| Rushing yards per game | 95–140 |
-| Yards per carry | 4.0–4.8 |
-| Completion percentage | 61–68% |
-| Sack rate (per dropback) | 5.5–8.0% |
-| Interception rate (per attempt) | 1.8–2.8% |
-| Third-down conversion rate | 36–43% |
-| Red zone TD rate | 52–62% |
-| Penalties per game (both teams) | 10–14 |
-| Turnovers per game (both teams) | 2.2–3.2 |
-| Player-games lost to injury | 40–90 |
-| **Spread of team win totals (σ)** | **2.6–3.2** |
+**Every band names the real-league season it was derived from and the source it came
+from.** Nothing in the table is remembered. The sourced rows were computed by
+`scripts/calibration-sources.py` from the nflverse play-by-play data set (built from the
+league's official play-by-play feed) and, for personnel, box counts and pressure, the
+nflverse participation data from Next Gen Stats; the script prints each row's value in
+every season alongside the band, so a number that cannot be reproduced from it is wrong.
+A row nobody has cited keeps its old band, prints `unsourced`, and is never `ok`.
 
-The last row is the one that encodes "upsets happen and dominant teams dominate." Too
-low and the league feels random; too high and every season is decided in August. It is
-the single most important number in this table.
+The band policy is the script's and is stated once, there: a row's band spans the sourced
+seasons' values, widened on each side by the larger of 5% of the mean and twice the
+standard error of a 400-game harness run, measured by resampling whole games — so rare
+events (ties, return touchdowns) get the width their rarity demands. Regular-season games
+only. Sliders at default.
 
-### The shape of a game, not only of a play
+**A target measured under one rulebook can be wrong under another.** Per-play and
+per-drive rates move slowly and come from 2023 and 2024. A row that depends on a rule the
+2025 rulebook changed — the kickoff (touchback to the 35), the onside kick (permitted
+whenever trailing), overtime (both teams possess in the regular season) — is sourced from
+2025 alone, and its 2024 row is kept beside it so `simharness --rulebook 2024` can check
+the mechanism against the season it was played in. The harness compares each row's season
+against the rulebook of the run and prints, at startup, every row that is `stale`: sourced
+under rules the run is not playing. A stale row is never `ok`. Until D1 (#41) lands,
+`Rules.standard` still carries 2024 kickoff values while the target rulebook is 2025, so
+the default run lists the 2024-sourced kickoff rows as stale by design; D2 (#46) is what
+makes the 2025 rows land.
 
-Everything above measures the passing and running game. None of it measures *football*,
-and the [is-this-football audit](audit-is-this-football.md) is what that omission cost:
-the engine hit "points per game" for months while paying three points for an extra point,
-because no row asked where the points came from.
+Columns: **Season** is the real-league season(s) the band was derived from; **Sensitive
+to** lists the rule areas the row depends on, which is what decides staleness when the
+rulebook moves; **Gate** is whether a miss counts as a failure — `no` for rows the harness
+cannot measure yet or whose sample is too thin to fail on.
 
-These rows are what a game is made of, and they are checked in the harness under **Is this
-football?**:
+<!-- calibration-targets:begin -->
+| Row | Target | Season | Sensitive to | Source | Gate | Definition and notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| points | 20.6-24.1 | 2023-24 | — | S1 | yes | — |
+| passing yards | 221.7-248.1 | 2023-24 | — | S1 | yes | Gross: yards on completions, sacks not deducted, which is what the harness sums. |
+| rushing yards | 94.7-110.4 | 2023-24 | — | S1 | yes | Designed runs only, as the harness counts them; the league's figure adds scrambles and kneels. |
+| yards per carry | 3.9-4.6 | 2023-24 | — | S1 | yes | Designed runs only. |
+| completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts. The harness still counts a completion only when it gains, so it reads about three points low; the gap is the zero-or-fewer row (2023–24 positive-only rate: 61.1–62.4). |
+| sack rate per dropback | 6.1-7.2 | 2023-24 | — | S1 | yes | — |
+| interception rate | 1.9-2.6 | 2023-24 | — | S1 | yes | Per pass attempt. |
+| third down conversion | 36.7-41.7 | 2023-24 | — | S1 | yes | — |
+| plays from scrimmage | 59.0-66.3 | 2023-24 | — | S1 | yes | Rushes, passes, sacks, scrambles, kneels and spikes. |
+| penalties (both teams) | 10.8-13.5 | 2023-24 | — | S1 | yes | Accepted fouls per game. |
+| average third down distance | 6.6-7.4 | 2023-24 | — | S1 | yes | — |
+| yards gained on first down | 5.1-5.8 | 2023-24 | — | S1 | yes | Scrimmage plays on first down. |
+| yards per pass attempt | 6.6-7.5 | 2023-24 | — | S1 | yes | Gross. |
+| yards per play | 5.0-5.8 | 2023-24 | — | S1 | yes | The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7. |
+| yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | — |
+| plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
+| ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the upper bound is the rule of three. |
+| games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |
+| seconds played per overtime | 355-463 | 2025 | overtime | S1 | yes | Game clock used by the last snap of the period. Both teams possessing lengthened it from about 345 in 2023–24. |
+| player-games lost per season | 40.0-90.0 | unsourced | — | — | no | Nobody has cited this band; it is not in the play-by-play. |
+| scrambles per game | 3.5-4.2 | 2023-24 | — | S1 | yes | — |
+| kneels per game | 1.3-1.8 | 2023-24 | — | S1 | yes | — |
+| spikes per game | 0.1-0.4 | 2023-24 | — | S1 | yes | — |
+| timeouts spent per game | 7.1-8.2 | 2023-24 | — | S1 | yes | Team timeouts, both teams. |
+| spread of team win totals (σ) | 2.5-3.8 | 2023-24 | — | S1 | no | Standard deviation of regular-season wins across the 32 teams, ties as a half. Not measurable before a schedule exists (M3). |
+| share of points from touchdowns | 62.6-70.1% | 2023-24 | — | S1 | yes | Six per touchdown; tries counted separately. |
+| share of points from field goals | 21.1-24.6% | 2023-24 | — | S1 | yes | — |
+| snaps in 11 personnel | 62.3-71.9% | 2023-24 | — | S2 | yes | — |
+| snaps against nickel | 61.6-69.2% | 2023-24 | — | S2 | yes | Five defensive backs on the field. |
+| snaps against base | 20.2-25.0% | 2023-24 | — | S2 | yes | Four defensive backs on the field. |
+| yards per carry, even count | 4.3-5.0 | 2023-24 | — | S2 | yes | First and ten, designed runs; blockers are five linemen plus tight ends plus extra backs, the box is eleven less the defensive backs, as the harness counts it. By defenders actually in the box the figure was 4.5–4.7. |
+| yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. |
+| carries stuffed (0 or fewer) | 17.5-19.9% | 2023-24 | — | S1 | yes | — |
+| carries of 2 or fewer | 40.6-46.5% | 2023-24 | — | S1 | yes | — |
+| carries of 10 or more | 9.6-11.2% | 2023-24 | — | S1 | yes | — |
+| carries of 20 or more | 2.0-2.5% | 2023-24 | — | S1 | yes | — |
+| dropbacks losing yards | 7.2-8.6% | 2023-24 | — | S1 | yes | Sacks and completions or scrambles behind the line. |
+| dropbacks with no gain | 30.3-34.6% | 2023-24 | — | S1 | yes | Almost all incompletions. |
+| dropbacks of 10 or more | 23.8-27.8% | 2023-24 | — | S1 | yes | — |
+| dropbacks of 20 or more | 7.7-8.6% | 2023-24 | — | S1 | yes | — |
+| dropbacks of 40 or more | 1.0-1.5% | 2023-24 | — | S1 | yes | — |
+| pressure rate per dropback | 27.8-32.3% | 2023-24 | — | S2 | yes | Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback on which a blocker lost. |
+| completions for 0 or fewer yards | 4.0-5.6% | 2023-24 | — | S1 | yes | Share of all completions. |
+| drives ending in a punt | 32.8-39.0% | 2023-24 | — | S1 | yes | — |
+| drives ending in a touchdown | 19.2-23.8% | 2023-24 | — | S1 | yes | — |
+| drives ending on downs | 4.7-6.3% | 2023-24 | — | S1 | yes | — |
+| drives per team-game | 10.2-11.7 | 2023-24 | — | S1 | yes | — |
+| plays per drive | 5.3-6.1 | 2023-24 | — | S1 | yes | Offensive plays; the punt or kick that ends a drive is not one. |
+| first downs per team-game | 16.6-18.9 | 2023-24 | — | S1 | yes | By rush or pass, as the harness counts; with penalty first downs the league had 17.8–18.3. |
+| drives of 3 plays or fewer | 33.3-39.0% | 2023-24 | — | S1 | yes | — |
+| drives of 4 to 7 | 33.7-38.4% | 2023-24 | — | S1 | yes | — |
+| drives of 8 or more | 25.9-29.7% | 2023-24 | — | S1 | yes | — |
+| three and out | 19.1-22.5% | 2023-24 | — | S1 | yes | Drives of three offensive plays or fewer that end in a punt, over all drives. |
+| red zone touchdown rate | 51.1-59.1% | 2023-24 | — | S1 | yes | Drives with a snap inside the 20 that end in the offence's touchdown. |
+| average start (own yard) | 29.1-32.3 | 2025 | kickoff | S1 | yes | First snap of each drive. The 2025 touchback at the 35 moved this half a yard from 2024. |
+| average start (own yard) | 28.6-31.7 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| drives starting in own half | 85.2-94.2% | 2025 | kickoff | S1 | yes | Strictly inside the drive's own half; midfield is not. |
+| drives starting in own half | 85.6-94.7% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| punts per team-game | 3.5-4.4 | 2023-24 | — | S1 | yes | — |
+| net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20. The harness spots a punt touchback at the goal line, so its figure reads high on touchbacks; a harness fix, not a retune. |
+| two-point tries per team-game | 0.19-0.29 | 2023-24 | tryAttempt | S1 | yes | — |
+| two-point conversion rate | 33.6-62.3% | 2023-24 | tryAttempt | S1 | yes | Wide because the sport itself swung from 55% to 41% on about 130 tries a season. |
+| kickoff touchbacks | 18.9-22.4% | 2025 | kickoff | S1 | yes | Share of all kickoffs, onside kicks included in the denominator. |
+| kickoff touchbacks | 61.1-67.6% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| field goals per team-game | 1.8-2.2 | 2023-24 | — | S1 | yes | Attempts. |
+| field goals made, under 30 | 92.1-100.0% | 2023-24 | — | S1 | yes | — |
+| field goals made, 30-39 | 89.5-99.3% | 2023-24 | — | S1 | yes | — |
+| field goals made, 40-49 | 72.4-84.0% | 2023-24 | — | S1 | yes | — |
+| field goals made, 50+ | 63.7-74.9% | 2023-24 | — | S1 | yes | — |
+| attempts under 30, share | 19.1-25.3% | 2023-24 | — | S1 | yes | Share of field goal attempts by distance. |
+| attempts 30-39, share | 24.1-31.9% | 2023-24 | — | S1 | yes | — |
+| attempts 40-49, share | 23.8-29.1% | 2023-24 | — | S1 | yes | — |
+| attempts 50+, share | 19.2-27.6% | 2023-24 | — | S1 | yes | — |
+| extra points made | 91.0-100.0% | 2023-24 | tryAttempt | S1 | yes | — |
+| fourth downs punted | 50.7-58.6% | 2023-24 | — | S1 | yes | Of fourth downs that ended in a punt, a field goal or a play. |
+| fourth downs kicked | 23.1-27.9% | 2023-24 | — | S1 | yes | — |
+| fourth downs gone for | 18.4-21.3% | 2023-24 | — | S1 | yes | Rising: 23.3% in 2025. |
+| fourth down attempts per team-game | 1.3-1.6 | 2023-24 | — | S1 | yes | — |
+| fourth down conversion rate | 48.3-60.0% | 2023-24 | — | S1 | yes | — |
+| 4th and 1: went for it | 62.8-74.2% | 2023-24 | — | S1 | yes | Rising: 76.3% in 2025. |
+| fumbles lost per team-game | 0.38-0.55 | 2023-24 | — | S1 | yes | On any play, kicks included. |
+| fumbles kept per team-game | 0.46-0.63 | 2023-24 | — | S1 | yes | Fumbles the fumbling team recovered. |
+| turnovers per team-game | 1.06-1.37 | 2023-24 | — | S1 | yes | Interceptions and fumbles lost; not downs. |
+| touchdowns not by the offence | 0.09-0.15 | 2025 | kickoff | S1 | yes | Every return touchdown per team-game. |
+| touchdowns not by the offence | 0.08-0.14 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| interception and fumble return TDs | 0.05-0.14 | 2023-24 | — | S1 | yes | Per team-game. |
+| kickoff and punt return TDs | 0.02-0.06 | 2025 | kickoff | S1 | yes | Per team-game; 21 in 2025 against 14 in 2024. |
+| kickoff and punt return TDs | 0.01-0.04 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| onside kicks per game | 0.15-0.24 | 2025 | onsideKick | S1 | yes | Kicks described as onside in the official play description. |
+| onside kicks per game | 0.13-0.23 | 2024 | onsideKick | S1 | yes | Kept for --rulebook 2024. |
+| onside kicks recovered | 2.8-16.4% | 2025 | onsideKick | S1 | no | Five of 52 in 2025; too few kicks a season to fail on. |
+| onside kicks recovered | 0.5-11.5% | 2024 | onsideKick | S1 | no | Kept for --rulebook 2024. |
+| kickoffs returned | 72.3-80.0% | 2025 | kickoff | S1 | yes | Share of all kickoffs. |
+| kickoffs returned | 30.9-35.9% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| punts returned | 40.5-45.3% | 2023-24 | — | S1 | yes | Share of punts fielded and run back; fair catches, downed and touchbacks are not. |
+| snaps inside own 10 | 1.55-1.84 | 2023-24 | — | S1 | yes | Scrimmage plays per team-game. |
+| safeties per team-game | 0.01-0.05 | 2023-24 | — | S1 | yes | — |
+| pre-snap fouls, road vs home | 0.94-1.19x | 2023-24 | — | S1 | yes | The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 2–3 points, most of which is not the crowd. |
+| combined points, heavy rain vs dry | 2.0-4.0 | unsourced | — | — | no | Points lower in heavy rain. The play-by-play does not grade rain, so nobody has cited this; needs --games 1000. |
+| games within 3 | 19.6-29.3% | 2023-24 | — | S1 | yes | — |
+| games within 7 | 44.5-57.0% | 2023-24 | — | S1 | yes | — |
+| offensive holding per game | 1.89-2.68 | 2023-24 | — | S1 | yes | — |
+| false start per game | 2.10-2.66 | 2023-24 | — | S1 | yes | — |
+| defensive pass interference per game | 0.88-1.24 | 2023-24 | passInterference | S1 | yes | — |
+| defensive holding per game | 0.55-0.74 | 2023-24 | — | S1 | yes | — |
+| unnecessary roughness per game | 0.51-0.73 | 2023-24 | — | S1 | yes | — |
+| delay of game per game | 0.48-0.71 | 2023-24 | — | S1 | yes | — |
+| defensive offside per game | 0.46-0.66 | 2023-24 | — | S1 | yes | — |
+| illegal formation per game | 0.13-0.55 | 2023-24 | — | S1 | yes | Wide because 2024 called it twice as often as 2023. |
+| roughing the passer per game | 0.27-0.43 | 2023-24 | — | S1 | yes | — |
+| neutral zone infraction per game | 0.27-0.41 | 2023-24 | — | S1 | yes | — |
 
-| Metric | Target |
-| --- | --- |
-| Share of points from touchdowns | 60–68% |
-| Share of points from field goals | 20–26% |
-| Drives per team per game | 10.5–12.0 |
-| Drives ending in a punt | 36–42% |
-| Drives ending in a touchdown | 19–24% |
-| Drives ending on downs | 4–7% |
-| Average drive start (own yard line) | 27–30 |
-| Drives starting in own half | 75–82% |
-| Carries stuffed (0 yards or fewer) | 17–22% |
-| Carries of 10+ yards | 9–13% |
-| Carries of 20+ yards | 2–4% |
-| Field goals made, 30–39 yards | 89–93% |
-| Field goals made, 40–49 yards | 79–85% |
-| Field goals made, 50+ yards | 60–70% |
-| Extra points made | 93–97% |
-| Games decided by 3 or fewer | 25–31% |
-| Fumbles lost per team per game | 0.5–0.8 |
-| Turnovers per team per game | 1.1–1.6 |
-| Touchdowns not scored by the offence | 0.15–0.28 |
-| Kickoffs returned | 30–40% |
-| Punts returned | 33–42% |
-| Yards per pass attempt | 6.6–7.6 |
-| Yards per play | 5.2–5.9 |
-| Dropbacks gaining 20+ | 8–12% |
-| Dropbacks gaining 40+ | 1.5–3.0% |
-| Fourth downs gone for | 12–20% |
-| Fourth-and-ones gone for | 55–75% |
-| Fourth-down conversion rate | 45–58% |
-| Two-point attempts per team per game | 0.15–0.30 |
-| Drives per team per game | 10.5–12.0 |
-| Three-and-out rate | 20–27% |
-| Snaps in 11 personnel | 60–72% |
-| Snaps against nickel | 50–65% |
-| Snaps against base | 22–32% |
-| Yards per carry, even count, first and ten | 4.6–5.4 |
-| Yards per carry, outnumbered by one | 3.0–4.0 |
-| Pre-snap fouls, road vs home | 1.15–1.35× |
-| Combined points, heavy rain vs dry | 2–4 lower |
+- **S1** — nflverse play-by-play data, regular-season games
+- **S2** — nflverse participation data from Next Gen Stats, regular-season games
+<!-- calibration-targets:end -->
 
-Home win rate and the home scoring edge are printed **without** a target. Real home-field
-advantage is about two points and 56%, and most of it is travel, rest and short weeks —
-none of which exists before there is a schedule to travel on (M3). What the engine models
-is the crowd, so the mechanism gets the target and the aggregate gets a note.
+### Reading the table
+
+The spread of team win totals is the row that encodes "upsets happen and dominant teams
+dominate." Too low and the league feels random; too high and every season is decided in
+August. It is the single most important number in this table and the harness cannot
+measure it until there is a schedule (M3), which is why it carries no gate.
+
+Everything in the first block measures the passing and running game. None of it measures
+*football*, and the [is-this-football audit](audit-is-this-football.md) is what that
+omission cost: the engine hit "points per game" for months while paying three points for
+an extra point, because no row asked where the points came from. The rest of the table is
+what a game is made of — where points come from, how drives end, where they start, the
+shape of a carry and a dropback rather than their means — and it is checked in the harness
+under **Is this football?**.
+
+Some rows the sport itself corrected. Drives start in their own half about 90% of the time,
+not 75–82%; dropbacks of forty or more are 1.2–1.3% of dropbacks, not 1.5–3%; a road
+offence commits about 6% more pre-snap fouls than a home one, not a fifth more; teams go
+for it on a fifth of fourth downs, not an eighth. Every one of those was a band written
+from memory, and every one of them read `ok` against an engine that was wrong.
+
+Three harness measurements do not yet match the source's definition, and the notes column
+says so rather than bending the band to the measurement: completion percentage counts only
+completions that gained (the zero-or-fewer row is the gap), net punt spots a touchback at
+the goal line, and yards per play leaves scramble yards out of the numerator. Those are
+harness fixes, not retunes, and they move measured values, so they are not made here.
+
+Home win rate and the home scoring edge are printed **without** a target. In 2023–24 the
+home side won 53–56% of decided games and outscored the visitor by two to three points,
+and most of that is travel, rest and short weeks — none of which exists before there is a
+schedule to travel on (M3). What the engine models is the crowd, so the mechanism (the
+pre-snap foul ratio) gets the target and the aggregate gets a note.
 
 The weather rows need a large sample: at 400 games there are only twenty-odd heavy-rain
 games and the row is noise. Run `--games 1000` before reading them.
-
-A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
-and a half yards every time, and that would be nothing like the sport — which is why the
-carry rows measure the shape and not the average.
 
 Also checked: the best players lead the league most seasons, and no scheme dominates —
 equal-talent rosters built differently should win the same number of games within noise.
