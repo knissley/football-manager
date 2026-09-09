@@ -32,9 +32,11 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     ├── FMGeneration      World generation. → FMCore, FMRandom
     │                     Names, franchises, rosters, draft classes, seeded rivalries.
     │
-    ├── FMSimulation      Spatial match engine + season engine. → FMCore, FMRandom
-    │                     Tick loop, play resolution, schedules, playoffs, progression,
-    │                     and the AI play-caller (see docs/play-calling.md).
+    ├── FMSimulation      Match engine + season engine. → FMCore, FMRandom
+    │                     `GameSimulator` drives the sport's rules and asks a
+    │                     `PlayResolver` what happened on each snap (ADR-0012).
+    │                     Schedules, playoffs, progression, and the AI play-caller
+    │                     on both sides (see docs/play-calling.md).
     │
     ├── FMAnalysis        The interrogation layer. → FMCore
     │                     Win probability, leverage, player grades, situational splits,
