@@ -9,9 +9,24 @@ The game models modern American professional football. Rules are **data**, not
 hardcoded — the world's `Rules` object carries them so we can test variants — but
 these are the defaults, and the vocabulary here is the vocabulary the code should use.
 
+**The rulebook we model is the 2025 season.** Every rule statement in
+[`references/game-rules.md`](references/game-rules.md) carries a rule number and that
+season, in our own words. A claim about the sport that cannot cite one does not go in a
+doc, a test name or a PR.
+
 Deeper references:
 - [`references/game-rules.md`](references/game-rules.md) — clock, scoring, penalties, overtime
 - [`references/salary-cap.md`](references/salary-cap.md) — contracts, proration, dead money, tags
+
+The sections of the rules reference that other work cites:
+[the ten-second runoff](references/game-rules.md#the-ten-second-runoff),
+[the try](references/game-rules.md#the-try),
+[overtime](references/game-rules.md#overtime),
+[kickoffs](references/game-rules.md#kickoffs),
+[onside kicks](references/game-rules.md#onside-kicks),
+[what changed since 2024](references/game-rules.md#changes-since-2024), and
+[what the code carries today](references/game-rules.md#what-the-code-carries-today) — the
+2024 values and rules gaps still in the tree, each with its issue.
 
 ## Getting the vocabulary right
 
