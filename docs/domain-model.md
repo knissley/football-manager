@@ -7,6 +7,12 @@ Identifiers are typed wrappers over a stable `UInt64` (`PlayerID`, `TeamID`, …
 allocated by a counter in the world, **not** `UUID` — UUIDs are non-deterministic and
 banned in the sim ([ADR-0003](adr/0003-deterministic-seeded-simulation.md)).
 
+
+> **Positions are not fixed.** A player has a *personnel position* — what he is paid and
+> traded as — and a *lineup position*, which is where he plays and which decides how he
+> performs. Overall is position-relative: "a 99 receiver" means 99 as a receiver. See
+> [ADR-0013](adr/0013-fluid-positions.md).
+
 ## World and league structure
 
 ```

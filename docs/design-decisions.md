@@ -380,6 +380,19 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 
 Not yet decided. Each needs an answer before the system it touches is built.
 
+- **How an AI coach spots a positional move.** [ADR-0013](adr/0013-fluid-positions.md)
+  gives every team the freedom to play a safety at linebacker or a receiver at tight end,
+  and says the AI must have it too — a capability only the user has is a permanent edge
+  rather than a feature. Searching every player against every position is cheap at roster
+  size, but "rates higher there" is not "worth doing": it has to weigh what he leaves
+  behind and what the scheme still needs to field. Until this is answered the AI clause is
+  intent rather than a built thing.
+- **Whether a development path and the position actually played compound or compete.**
+  [ADR-0013](adr/0013-fluid-positions.md) has development follow the snaps a player took
+  *and* an adjustable path the user sets. A receiver playing tight end all season on a
+  route-running path is being pulled two ways, and which wins — or whether they simply
+  add — decides how much the path is worth.
+
 - **What the development currency actually buys.** Deferred, but its sink is now
   narrower: diagnosis accrues from staff quality rather than being purchased, so the
   currency needs a different job. Trait acquisition and attribute honing remain the

@@ -46,3 +46,4 @@ any other.
 | [0010](0010-plays-designs-and-calls.md) | Distinguish play designs, calls, and plays | Accepted |
 | [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted |
 | [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted |
+| [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted |
