@@ -315,6 +315,39 @@ The last row is the one that encodes "upsets happen and dominant teams dominate.
 low and the league feels random; too high and every season is decided in August. It is
 the single most important number in this table.
 
+### The shape of a game, not only of a play
+
+Everything above measures the passing and running game. None of it measures *football*,
+and the [is-this-football audit](audit-is-this-football.md) is what that omission cost:
+the engine hit "points per game" for months while paying three points for an extra point,
+because no row asked where the points came from.
+
+These rows are what a game is made of, and they are checked in the harness under **Is this
+football?**:
+
+| Metric | Target |
+| --- | --- |
+| Share of points from touchdowns | 60–68% |
+| Share of points from field goals | 20–26% |
+| Drives per team per game | 10.5–12.0 |
+| Drives ending in a punt | 36–42% |
+| Drives ending in a touchdown | 19–24% |
+| Drives ending on downs | 4–7% |
+| Average drive start (own yard line) | 27–30 |
+| Drives starting in own half | 75–82% |
+| Carries stuffed (0 yards or fewer) | 17–22% |
+| Carries of 10+ yards | 9–13% |
+| Carries of 20+ yards | 2–4% |
+| Field goals made, 30–39 yards | 89–93% |
+| Field goals made, 40–49 yards | 79–85% |
+| Field goals made, 50+ yards | 60–70% |
+| Extra points made | 93–97% |
+| Games decided by 3 or fewer | 25–31% |
+
+A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
+and a half yards every time, and that would be nothing like the sport — which is why the
+carry rows measure the shape and not the average.
+
 Also checked: the best players lead the league most seasons, and no scheme dominates —
 equal-talent rosters built differently should win the same number of games within noise.
 

@@ -1,0 +1,137 @@
+import Testing
+
+@testable import FMCore
+
+/// What a try is worth, and where a touchback puts the ball.
+///
+/// Both were wrong for a long time, in the same way and for the same reason:
+/// `Rules.advance` switched on `PlayEnding` alone and never asked what kind of play it
+/// was. A made extra point paid three points as a field goal, a two-point conversion paid
+/// six as a touchdown, and a kickoff into the end zone was spotted like a punt's.
+///
+/// None of it was caught, because none of it was ever asserted. Two hundred and
+/// seventy-eight tests, and not one asked what an extra point is worth. These are the
+/// rules a player can check against the scoreboard in his first game, which is exactly
+/// the class of thing that gets exhaustive tests.
+@Suite("Tries and touchbacks")
+struct TryAndTouchbackTests {
+
+    private let rules = Rules.standard
+
+    private func tryFrom(_ ballOn: UInt8) -> Situation {
+        Situation(
+            quarter: 3, clockRemaining: 500, down: .first, distance: max(1, ballOn),
+            ballOn: ballOn, possession: TeamID(1))
+    }
+
+    @Test("A made extra point is worth one point")
+    func extraPointIsOnePoint() {
+        let advancement = rules.advance(
+            from: tryFrom(rules.extraPointSnapYard),
+            outcome: Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood))
+
+        #expect(advancement.points == 1)
+        #expect(advancement.scoring == .extraPoint)
+        #expect(advancement.requiresKickoff)
+        #expect(advancement.requiresTry == false, "a try does not owe another try")
+        #expect(advancement.possessionChanged == false, "the scoring team kicks off")
+    }
+
+    @Test("A missed extra point scores nothing and still ends in a kickoff")
+    func missedExtraPoint() {
+        let advancement = rules.advance(
+            from: tryFrom(rules.extraPointSnapYard),
+            outcome: Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalMissed))
+
+        #expect(advancement.points == 0)
+        #expect(advancement.scoring == nil)
+        #expect(advancement.requiresKickoff)
+    }
+
+    @Test("A converted two-point try is worth two points")
+    func twoPointIsTwoPoints() {
+        let advancement = rules.advance(
+            from: tryFrom(rules.twoPointSnapYard),
+            outcome: Outcome(kind: .twoPointConversion, yards: 2, endedIn: .touchdown))
+
+        #expect(advancement.points == 2)
+        #expect(advancement.scoring == .twoPointConversion)
+        #expect(advancement.requiresKickoff)
+        #expect(advancement.requiresTry == false)
+    }
+
+    /// Every way of failing pays nothing and ends the try. A conversion is a pass, so it
+    /// can be intercepted, and that must not hand the defence a first down.
+    @Test(
+        "A failed two-point try scores nothing, however it failed",
+        arguments: [
+            PlayEnding.incomplete, .tackled, .intercepted, .fumbleLost,
+        ])
+    func failedTwoPoint(ending: PlayEnding) {
+        let advancement = rules.advance(
+            from: tryFrom(rules.twoPointSnapYard),
+            outcome: Outcome(kind: .twoPointConversion, yards: 0, endedIn: ending))
+
+        #expect(advancement.points == 0)
+        #expect(advancement.scoring == nil)
+        #expect(advancement.requiresKickoff)
+        #expect(advancement.possessionChanged == false)
+    }
+
+    /// The touchdown itself is still worth six and still owes a try — the fix to the try
+    /// must not have moved the thing that was right.
+    @Test("A touchdown is six points and owes a try")
+    func touchdownUnchanged() {
+        let situation = Situation(
+            quarter: 1, clockRemaining: 800, down: .second, distance: 4, ballOn: 4,
+            possession: TeamID(1))
+        let advancement = rules.advance(
+            from: situation, outcome: Outcome(kind: .rush, yards: 4, endedIn: .touchdown))
+
+        #expect(advancement.points == 6)
+        #expect(advancement.scoring == .touchdown)
+        #expect(advancement.requiresTry)
+    }
+
+    /// A kickoff into the end zone comes out further than a punt into it. Both used the
+    /// punt's spot, which quietly cost the receiving team ten yards on every possession
+    /// that followed a score.
+    @Test("A kickoff touchback and a punt touchback are spotted differently")
+    func touchbacksDiffer() {
+        let situation = Situation(
+            quarter: 1, clockRemaining: 900, down: .first, distance: 10,
+            ballOn: rules.ballOnFromOwnYard(rules.kickoffFromOwnYard), possession: TeamID(1))
+
+        let kickoff = rules.advance(
+            from: situation, outcome: Outcome(kind: .kickoff, yards: 0, endedIn: .touchback))
+        let punt = rules.advance(
+            from: situation, outcome: Outcome(kind: .punt, yards: 0, endedIn: .touchback))
+
+        #expect(kickoff.ballOn == rules.kickoffTouchbackSpot)
+        #expect(punt.ballOn == rules.puntTouchbackSpot)
+        #expect(kickoff.ballOn < punt.ballOn, "the kickoff comes out further")
+        #expect(kickoff.possessionChanged && punt.possessionChanged)
+    }
+
+    /// The arithmetic a scoreboard is actually made of. A drive chart that adds up is the
+    /// cheapest possible check that the scoring rules are the sport's.
+    @Test("A touchdown and the kick are worth seven, and two field goals are six")
+    func scoreboardArithmetic() {
+        let touchdown = rules.advance(
+            from: Situation(
+                quarter: 1, clockRemaining: 800, down: .first, distance: 3, ballOn: 3,
+                possession: TeamID(1)),
+            outcome: Outcome(kind: .pass, yards: 3, endedIn: .touchdown))
+        let kick = rules.advance(
+            from: tryFrom(rules.extraPointSnapYard),
+            outcome: Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood))
+        #expect(touchdown.points + kick.points == 7)
+
+        let fieldGoal = rules.advance(
+            from: Situation(
+                quarter: 2, clockRemaining: 400, down: .fourth, distance: 8, ballOn: 20,
+                possession: TeamID(1)),
+            outcome: Outcome(kind: .fieldGoal, yards: 0, endedIn: .fieldGoalGood))
+        #expect(fieldGoal.points * 2 == 6)
+    }
+}

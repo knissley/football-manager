@@ -66,8 +66,36 @@ extension Rules {
         (.first, min(yardsToGain, max(1, ballOn)))
     }
 
+    /// A try — the kick or the play after a touchdown.
+    ///
+    /// It is neither a field goal nor a touchdown, however it ends, and treating it as
+    /// one was worth two extra points every time a team kicked: `advance` used to switch
+    /// on the ending alone, so a made extra point paid three as a field goal and a
+    /// successful conversion paid six as a touchdown. Nothing follows a try but a
+    /// kickoff, whether it was good or not.
+    private func advanceTry(_ outcome: Outcome) -> Advancement {
+        let good =
+            outcome.kind == .extraPoint
+            ? outcome.endedIn == .fieldGoalGood
+            : outcome.endedIn == .touchdown
+        let isKick = outcome.kind == .extraPoint
+
+        return Advancement(
+            ballOn: ballOnFromOwnYard(kickoffFromOwnYard), down: .first, distance: yardsToGain,
+            scoring: good ? (isKick ? .extraPoint : .twoPointConversion) : nil,
+            points: good ? (isKick ? extraPoint : twoPointConversion) : 0,
+            requiresKickoff: true)
+    }
+
     /// Where the ball goes next, and who has it.
     public func advance(from situation: Situation, outcome: Outcome) -> Advancement {
+        // What kind of play this was decides the rules that apply to it, and asking only
+        // how it *ended* is why a try was scored as a field goal and a kickoff touchback
+        // was spotted like a punt's.
+        if outcome.kind == .extraPoint || outcome.kind == .twoPointConversion {
+            return advanceTry(outcome)
+        }
+
         // The offence's frame throughout: yards gained bring the ball closer to the
         // opponent's goal line, so a gain *reduces* `ballOn`.
         let restingSpot =
@@ -107,9 +135,14 @@ extension Rules {
                 possessionChanged: true)
 
         case .touchback:
-            let downs = freshDowns(at: puntTouchbackSpot)
+            // A kickoff into the end zone and a punt into it are not spotted alike: the
+            // kickoff comes out to the thirty and the punt to the twenty. Both used the
+            // punt's spot, which cost the receiving team ten yards on every possession
+            // after a score.
+            let spot = outcome.kind == .kickoff ? kickoffTouchbackSpot : puntTouchbackSpot
+            let downs = freshDowns(at: spot)
             return Advancement(
-                ballOn: puntTouchbackSpot, down: downs.down, distance: downs.distance,
+                ballOn: spot, down: downs.down, distance: downs.distance,
                 possessionChanged: true)
 
         case .intercepted, .fumbleLost, .blocked, .fairCatch, .downed:

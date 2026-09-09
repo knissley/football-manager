@@ -160,7 +160,10 @@ let thirdDownDistance =
     : Double(thirdDowns.reduce(0) { $0 + Int($1.situation.distance) }) / Double(thirdDowns.count)
 row("average third down distance", thirdDownDistance, 6.8, 8.2)
 
-let firstDowns = allPlays.filter { $0.situation.down == .first }
+// Scrimmage plays only. A kickoff and an extra point are both first-down snaps that
+// gain nothing by definition, and counting them dragged this row a yard and a half below
+// its target — the row was measuring the wrong thing, not the engine failing to hit it.
+let firstDowns = scrimmage.filter { $0.situation.down == .first }
 let firstDownGain =
     firstDowns.isEmpty
     ? 0 : Double(firstDowns.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(firstDowns.count)
@@ -490,6 +493,25 @@ for (source, value) in pointsBySource.sorted(by: { $0.value > $1.value }) {
     let share = Double(value) / Double(max(1, totalPoints)) * 100
     print(
         "    \(pad(source, 26))\(pad(oneDecimal(Double(value) / teamGames), 7))\(oneDecimal(share))%"
+    )
+}
+
+print("")
+print("  The shape of a carry")
+// A mean is not a distribution. Real carries are mostly modest with a fat tail, and an
+// engine can hit 4.3 a carry by giving everyone four and a half yards every time, which
+// would be nothing like the sport.
+let carryYards = carries.map { Int($0.outcome.yards) }
+for (label, test, low, high) in [
+    ("stuffed (0 or fewer)", { (y: Int) in y <= 0 }, 17.0, 22.0),
+    ("2 yards or fewer", { (y: Int) in y <= 2 }, 40.0, 48.0),
+    ("10 or more", { (y: Int) in y >= 10 }, 9.0, 13.0),
+    ("20 or more", { (y: Int) in y >= 20 }, 2.0, 4.0),
+] as [(String, (Int) -> Bool, Double, Double)] {
+    let share = Double(carryYards.filter(test).count) / Double(max(1, carryYards.count)) * 100
+    let flag = share < low || share > high ? "OFF" : "ok"
+    print(
+        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
     )
 }
 

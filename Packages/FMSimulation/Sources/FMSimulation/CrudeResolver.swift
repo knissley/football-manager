@@ -492,7 +492,16 @@ public struct CrudeResolver: PlayResolver {
         var yards = Int(Double(quality) * 0.075 + (vision - 60) * 0.04 + 1.3)
         yards += Int(random.next(upperBound: 5)) - 2
         if quality > 30 {
-            yards += Int(random.next(upperBound: UInt64(quality / 3)))
+            // A hole that opens gets him to the second level. It does not by itself make
+            // a long run — what does is beating the man waiting there, which the tackle
+            // sequence below already decides. Paying the whole bonus here put 19% of
+            // carries past ten yards against a real 11%, all of it in the ten-to-twenty
+            // band: the blocking was doing work that belongs to the back.
+            let crease = Int(quality) / 3
+            yards +=
+                random.nextBool(probability: 0.36)
+                ? Int(random.next(upperBound: UInt64(max(1, crease * 8 / 5))))
+                : Int(random.next(upperBound: UInt64(max(1, crease / 5))))
         }
 
         let tackle = tackleSequence(
@@ -562,10 +571,28 @@ public struct CrudeResolver: PlayResolver {
         let length = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
-        // Near certainty inside thirty, falling away steeply past fifty. Weather and a
-        // strong leg move the curve; the shape is the same either way.
-        var chance = 0.99 - Double(max(0, length - 25)) * 0.017
-        chance += (accuracy - 60) * 0.004
+        // The league-average kicker's curve, in two segments: near-automatic inside
+        // thirty, a gentle slope through the range teams actually kick from, and a
+        // steeper fall past the mid-forties. A single line from twenty-five was too
+        // steep in the middle — it made forty-somethings 69% against a real 82%, and it
+        // ran the extra point through the same slope, so kicks were missed at 15% when
+        // the sport misses them at 5%.
+        var chance: Double
+        if length <= 30 {
+            chance = 0.95
+        } else if length <= 45 {
+            chance = 0.95 - Double(length - 30) * 0.010
+        } else {
+            chance = 0.80 - Double(length - 45) * 0.017
+        }
+        // A try is kicked from the middle of the field by a kicker nobody is trying very
+        // hard to block, and the sport converts it at a better rate than a field goal of
+        // the same length. Running it through the field-goal curve unmodified is what
+        // made extra points a coin-flip-adjacent 85%.
+        if family == .extraPoint { chance += 0.025 }
+        // Centred on an average leg, so the curve above *is* the league average rather
+        // than a floor everybody beats.
+        chance += (accuracy - 68) * 0.004
         if situation.weather.windSpeed > 15 { chance -= 0.06 }
         if situation.weather.precipitation != .none { chance -= 0.04 }
 

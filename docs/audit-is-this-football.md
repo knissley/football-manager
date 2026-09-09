@@ -19,7 +19,7 @@ everything the rows did not cover drifted unchecked.
 Every finding below is visible in one page of harness output. Nobody had printed that
 page.
 
-## S1 — The scoreboard does not play football
+## S1 — The scoreboard does not play football — **fixed**
 
 `Rules.advance(from:outcome:)` switches on `PlayEnding` alone and never looks at
 `PlayKind`. A try is therefore not modelled as a try:
@@ -40,6 +40,11 @@ is worth nine and a field goal is worth three.
 **The `points 20.0–26.0` calibration row is a false pass.** Corrected, the engine scores
 19.3 and is under target. Every tuning decision made to keep that row green was made
 against a broken number.
+
+**Fixed.** `Rules.advance` now asks what kind of play it was before deciding what it was
+worth, and the two-point decision is made before the situation is built so the try is
+snapped from the two. The same root cause was behind the kickoff touchback spot in S2,
+which is fixed with it. Scores now look like the sport's: 20-10, 24-20, 23-20, 24-17.
 
 ## S2 — Field position is a dead variable
 
@@ -85,7 +90,7 @@ in `FMSimulation` writes `Situation.offensePersonnel` or `.defensePackage`.
 - Two-point tries happen 0.1 times per team-game and have never succeeded (see S1).
 - **9.8 drives per team-game** against a real 11.3–11.7.
 
-## S5 — The kicking curve is wrong in the middle
+## S5 — The kicking curve is wrong in the middle — **fixed**
 
 | distance | engine | real |
 | --- | --- | --- |
@@ -97,6 +102,11 @@ in `FMSimulation` writes `Situation.offensePersonnel` or `.defensePackage`.
 The ends land and the middle sags by thirteen points. The extra point runs through the
 same curve as a 32-yard field goal, which is why it is made 85% of the time against a real
 94–96%.
+
+**Fixed.** The curve is two segments centred on an average leg rather than one line from
+twenty-five, and a try carries a small bonus over a field goal of the same length — it is
+kicked from the middle of the field against a rush nobody means. Now 93.1% / 83.0% /
+64.3% by bucket, against a real 91 / 82 / 66.
 
 Nothing about a kickoff depends on the kicker: the outcome is a constant, so leg strength
 is irrelevant on the one play it most obviously matters.
@@ -118,6 +128,36 @@ The harness passes no stadium and no weather, so every calibration game is at "N
 Field" with crowd noise 50 and clear skies. **Home-field advantage and weather are
 mechanisms with no evidence behind them** — they have never been measured, because the
 measurement has never included a home field or a forecast.
+
+## The retune that followed S1
+
+Correcting the try dropped scoring from a false 23.0 to a true 19.3, so the table had to
+be re-established against honest numbers. Three things came out of it.
+
+**One row was never an engine problem at all.** "Yards gained on first down" had sat at 4.2
+against a 4.6–5.8 target, and the metric was counting every kickoff and every extra point
+as a zero-yard first-down snap — about six of them per team-game against twenty-four real
+ones. Filtered to plays from scrimmage the same engine reads 5.1. The row was measuring
+the wrong thing, which is the audit's own thesis arriving on schedule.
+
+**Yards per carry was genuinely 15% high, and the mean said nothing about why.** The new
+carry-shape rows located it exactly: the stuff rate (19.8%), the short carries (44.3%) and
+the 20+ tail (3.2%) were all correct, and the whole excess sat in ten-to-nineteen-yard
+runs, at 19.4% against a real 11%. The cause was a big-hole bonus that fired on ~19% of
+carries — the same 19% — and reliably paid ten yards. Scaling it down killed the 20+ tail
+with it, because the same clause was producing that too. What works is making it rarer and
+larger: a hole that opens gets the back to the second level, and beating the man waiting
+there is what makes it a long run, which the tackle sequence already decides. All four
+carry-shape rows now land, at 4.3 a carry.
+
+**What remains is structural, and should not be tuned away.** Scoring sits at 19.8 against
+a 20.0 floor and a real 22.5. Real football takes roughly 1.7 points per team-game from
+touchdowns the offence did not score — pick sixes, fumble returns, kick and punt returns —
+and this engine produces exactly zero of them, because S2 is unfixed. It also plays 10.1
+drives per team-game against a real 11.4, and the missing possessions are mostly the
+missing fumbles. The honest position is that **the points row cannot legitimately close
+until S2 lands**, and closing it by making the offence more efficient would be the exact
+failure this audit exists to name.
 
 ## What this changes about how we calibrate
 

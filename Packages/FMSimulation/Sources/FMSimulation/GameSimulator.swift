@@ -152,6 +152,18 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             }
         }
 
+        // A try is snapped from a different yard line depending on which one it is, so
+        // the decision has to be made before the situation is built rather than after.
+        // It used to be made after, which left every conversion attempt starting from
+        // the fifteen and needing fifteen yards: across eight hundred team-games not one
+        // of them was ever converted.
+        if state.pendingTry {
+            let provisional = state.situation()
+            state.moveToTrySpot(
+                goingForTwo: Self.goesForTwo(
+                    situation: provisional, classified: SituationClass(provisional)))
+        }
+
         let situation = state.situation()
         let context = state.context()
         let classified = SituationClass(situation)
@@ -189,12 +201,19 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     }
 
     /// A try is a decision, not a formality: down eight late, you go for two.
+    ///
+    /// The score here is *before* the touchdown has its try, so trailing by two after
+    /// scoring means the conversion ties it, and trailing by five means it cuts the lead
+    /// to a field goal. Those are the ones worth taking.
+    static func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
+        classified.time.isEndgame && situation.scoreDifferential < 0
+            && situation.scoreDifferential >= -10
+    }
+
     private func tryCalls(
         situation: Situation, classified: SituationClass, random: inout SplittableRandom
     ) -> Calls {
-        let goesForTwo =
-            classified.time.isEndgame && situation.scoreDifferential < 0
-            && situation.scoreDifferential >= -10
+        let goesForTwo = Self.goesForTwo(situation: situation, classified: classified)
         return Calls(
             offense: CrudePlaybook.call(goesForTwo ? .twoPointConversion : .extraPoint),
             defense: .goalLineStop,

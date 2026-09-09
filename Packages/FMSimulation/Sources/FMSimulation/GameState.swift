@@ -122,6 +122,13 @@ extension GameSimulator {
             previousBehavior = .stopsUntilSnap
         }
 
+        /// Put the ball where this try is actually snapped from.
+        mutating func moveToTrySpot(goingForTwo: Bool) {
+            ballOn = goingForTwo ? setup.rules.twoPointSnapYard : setup.rules.extraPointSnapYard
+            down = .first
+            distance = max(1, ballOn)
+        }
+
         // MARK: - Applying a play
 
         mutating func apply(_ outcome: Outcome, calls: Calls, decisions: [DecisionPoint]) {
