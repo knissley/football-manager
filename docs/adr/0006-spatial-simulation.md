@@ -46,7 +46,9 @@ simulation, opt-in trajectory capture.
   deadline, and because the alternatives don't deliver the hook.
 - Performance stops being a later concern. A naive implementation — classes, per-tick
   object churn, dictionaries, logging strings — is roughly 100× too slow, and fixing it
-  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark.
+  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark —
+  *not yet true: the Linux workflow runs the suites and the lints, and has no benchmark
+  step, so nothing measures the budget today.*
 - Floating-point determinism across architectures becomes a real risk rather than a
   theoretical one, because errors compound over thousands of ticks. Golden tests run on
   both arm64 and x86_64.

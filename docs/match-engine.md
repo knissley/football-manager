@@ -63,10 +63,16 @@ sixteen games each week keep a box score and their replay tuple; ask to watch on
 it re-simulates identically. Storage stays bounded across a decade-long career, and
 determinism stops being a testing convenience and becomes a player-facing feature.
 
-**Banned in `FMSimulation` and `FMGeneration`** (CI-enforced): `Int.random`,
-`Double.random`, `SystemRandomNumberGenerator`, `.shuffled()`, `.randomElement()`,
-`UUID()`, `Date()`, and any clock or environment read. Iteration order over unordered
-collections must never reach output — sort by a stable ID first.
+**Banned in `FMSimulation` and `FMGeneration`**: `Int.random`, `Double.random`,
+`SystemRandomNumberGenerator`, `.shuffled()`, `.randomElement()`, `UUID()`, `Date()`, and
+any clock or environment read. Iteration order over unordered collections must never
+reach output — sort by a stable ID first.
+
+The list is enforced by [`scripts/lint-sim.sh`](../scripts/lint-sim.sh), across the
+`Sources/` tree of every `FM*` package, and CI runs it as a hard-failing step — "Banned
+primitives in the sim" in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — on
+every push and pull request. The iteration-order rule is the one part no lint checks:
+nothing mechanically catches a dictionary walk reaching output.
 
 Floating-point determinism across architectures is a real risk here in a way it wasn't
 for an abstract engine. Golden tests run on both arm64 and x86_64 in CI, and hot paths
@@ -291,9 +297,14 @@ settings only**.
 
 ## Calibration
 
-Tuned against `Tools/simharness` — never by playing the app. The harness sims N seasons
-headless and emits distributions as JSON; a checked-in target file defines acceptable
-ranges and CI fails on drift.
+Tuned against `Tools/simharness` — never by playing the app. The harness sims N games
+headless and prints each metric against its target range, marking the row `ok` or `OFF`.
+
+CI runs it at 400 games on seed 7 on both architectures, uploads the output as an
+artifact and puts the table in the job summary — but the job **reports, it does not
+gate**: an `OFF` row is a finding to read, not a red build. *Intent, not yet built:* the
+ranges live in the harness source rather than a checked-in target file, and no row fails
+CI yet. Making a row gating is a per-row decision, taken in a retune issue.
 
 | Metric (per team per season) | Target range |
 | --- | --- |
