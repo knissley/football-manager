@@ -109,13 +109,58 @@ in `FMSimulation` writes `Situation.offensePersonnel` or `.defensePackage`.
 - `DepthChart.unmannedPositions`, written to report a group with nobody left to play it,
   is called by nothing. A depleted group silently plays a man short.
 
-## S4 — Fourth down and the endgame are too tame
+## S4 — Fourth down and the endgame are too tame — **fixed**
 
 - **Drives end on downs 1.5% of the time**; real is 5–6%. `BaselineCaller` punts or kicks
   in nearly every fourth-down situation, so the most-discussed decision in the modern game
   barely occurs.
 - Two-point tries happen 0.1 times per team-game and have never succeeded (see S1).
 - **9.8 drives per team-game** against a real 11.3–11.7.
+
+**Fixed.** `fourthDown` took any kick inside the maximum *before* asking whether to go, so
+a fifty-five yarder from the opponent's thirty-eight beat a fourth-and-one attempt, and
+going for it at all required fourth and three or less in a six-yard strip of the field.
+It is a chart now — distance first, then field position and the scoreboard — and a long
+kick is an endgame option rather than a routine one. Fourth-and-one attempts run 70%
+against a real two-thirds; drives end on downs 4.4% of the time against a real 5–6%.
+
+The two-point chart gained the deficits where the second point changes what you need next
+(down two, five, ten) and the leads where it makes a one-score game unanswerable. And a
+conversion is no longer an ordinary four-yard route that happens to start closer: from the
+two there is no grass behind the defence, so it is a one-yard throw into a contested end
+zone. Attempts run 0.19 per team-game and convert at 48%, against a real 0.22 and 48%.
+
+### What chasing the drive count actually found
+
+The drive shortfall turned out not to be a fourth-down problem at all. Plays per game,
+first downs per game, third-down rate and yards per carry were all correct; the difference
+was that the same first downs were packed into fewer, longer drives — series taking 2.18
+plays against a real 1.99.
+
+Raising offensive efficiency made it *worse*, which is the tell: a more reliable offence
+has fewer three-and-outs and therefore fewer drives. Real football has both a higher yards
+per play **and** more three-and-outs, which is only possible with a wider distribution.
+
+Measuring the dropback the way the carry rows measure a carry found it immediately:
+**forty-yard pass plays were 0.0% of dropbacks, against a real 1.5–3%.** Two causes, both
+structural rather than a wrong constant:
+
+- **Route depth had no variance at all.** A `mediumPass` was ten yards, always. Completions
+  piled into the ten-to-fourteen band and nothing could reach forty. A concept has a
+  depth; a route run against a particular coverage does not.
+- **The only path to a long gain was breaking three tackles in a row** at nine percent
+  each — a one-in-fifteen-hundred event. A long completion in the sport comes from a blown
+  coverage or a receiver faster than the man on him, which is an independent draw, not the
+  tail of three coin flips.
+
+With both fixed the dropback distribution lands in full — incompletions, ten-plus,
+twenty-plus and forty-plus — and yards after the catch rose from about three to a realistic
+five, with `elusiveness` finally deciding some of it. Drives went from 9.6 to 10.3 per
+team-game and three-and-outs from 17.8% to 18.9%.
+
+Both are still short of the target band (10.5–12.0 and 20–27%), along with plays per drive
+at 6.1 and first downs at 18.3. All four are the same remaining fact and they are close;
+the rest of it is variance the crude resolver does not have and the spatial engine will.
 
 ## S5 — The kicking curve is wrong in the middle — **fixed**
 

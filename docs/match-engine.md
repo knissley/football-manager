@@ -348,6 +348,16 @@ football?**:
 | Touchdowns not scored by the offence | 0.15–0.28 |
 | Kickoffs returned | 30–40% |
 | Punts returned | 33–42% |
+| Yards per pass attempt | 6.6–7.6 |
+| Yards per play | 5.2–5.9 |
+| Dropbacks gaining 20+ | 8–12% |
+| Dropbacks gaining 40+ | 1.5–3.0% |
+| Fourth downs gone for | 12–20% |
+| Fourth-and-ones gone for | 55–75% |
+| Fourth-down conversion rate | 45–58% |
+| Two-point attempts per team per game | 0.15–0.30 |
+| Drives per team per game | 10.5–12.0 |
+| Three-and-out rate | 20–27% |
 
 A mean is not a distribution. An engine can hit 4.3 yards a carry by giving everybody four
 and a half yards every time, and that would be nothing like the sport — which is why the

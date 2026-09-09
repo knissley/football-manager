@@ -249,7 +249,27 @@ public struct CrudeResolver: PlayResolver {
         }
 
         // 2. Coverage, and the read. Separation is what the quarterback is looking at.
-        let depth = routeDepth(family)
+        //
+        // A conversion from the two is not a quick pass that happens to start closer. It
+        // is a throw into a phone booth with no grass behind the defence, and a man who
+        // catches it a yard short has to get in on his own. Running it as an ordinary
+        // four-yard route made every completion a conversion, so the try converted at the
+        // completion rate — 66% against a real 48%.
+        var depth =
+            isTry
+            ? RouteDepth(
+                yards: 1, timeMillis: 1_500, flightTicks: 3, accuracyKey: .throwAccuracyShort)
+            : routeDepth(family)
+
+        // Where the ball is actually caught. Every route of a kind used to be exactly the
+        // same length — a `mediumPass` was ten yards, always — and that is most of why
+        // the passing game had no tail: completions piled up in the ten-to-fourteen band
+        // and nothing reached forty. A concept has a depth; a route run against a
+        // particular coverage, by a particular receiver, does not.
+        if !isTry {
+            let spread = max(2, abs(depth.yards) / 2 + 2)
+            depth.yards += Int(random.next(upperBound: UInt64(spread * 2 + 1))) - spread
+        }
         var reads: [(receiver: PlayerSlot, defender: PlayerSlot, separation: Int)] = []
 
         // Four route runners: the three receivers and the tight end, which is what `11`
@@ -265,7 +285,12 @@ public struct CrudeResolver: PlayResolver {
                 defense.coverage.isMan ? .manCoverage : .zoneCoverage, defender, personnel, context)
             let open = contest(route, cover)
             // Centimetres. Wide open is a couple of metres; blanketed is inside one.
-            let separation = Int(30 + open * 190 + Double(random.next(upperBound: 60)) - 30)
+            var separation = Int(30 + open * 190 + Double(random.next(upperBound: 60)) - 30)
+            // From the two, there is no field to run to and no space behind the defence.
+            // Running a conversion through the ordinary passing game converted it at 66%
+            // against a real 48%: the throw was easy because the model had not noticed
+            // the end zone was the only place to put it.
+            if isTry { separation = separation * 3 / 5 }
 
             credit(receiver, .receiver)
             credit(defender, .coverage)
@@ -418,7 +443,7 @@ public struct CrudeResolver: PlayResolver {
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
-            random: &random)
+            contested: isTry, random: &random)
         decisions.append(
             .init(
                 tick: arrivalTick + 1, kind: .catchAttempt,
@@ -882,7 +907,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Shared pieces
 
     private struct RouteDepth {
-        let yards: Int
+        var yards: Int
         let timeMillis: Int
         let flightTicks: Int
         let accuracyKey: RatingKey
@@ -901,10 +926,10 @@ public struct CrudeResolver: PlayResolver {
                 yards: 10, timeMillis: 2_600, flightTicks: 7, accuracyKey: .throwAccuracyMedium)
         case .playAction:
             return RouteDepth(
-                yards: 13, timeMillis: 3_000, flightTicks: 8, accuracyKey: .throwAccuracyMedium)
+                yards: 12, timeMillis: 3_000, flightTicks: 8, accuracyKey: .throwAccuracyMedium)
         case .deepPass:
             return RouteDepth(
-                yards: 21, timeMillis: 3_400, flightTicks: 12, accuracyKey: .throwAccuracyDeep)
+                yards: 20, timeMillis: 3_400, flightTicks: 12, accuracyKey: .throwAccuracyDeep)
         default:
             return RouteDepth(
                 yards: 8, timeMillis: 2_200, flightTicks: 5, accuracyKey: .throwAccuracyMedium)
@@ -925,7 +950,7 @@ public struct CrudeResolver: PlayResolver {
 
     private func catchOutcome(
         placement: BallPlacement, separation: Int, hands: Double, ballHawk: Double,
-        random: inout SplittableRandom
+        contested: Bool = false, random: inout SplittableRandom
     ) -> CatchResult {
         if placement == .uncatchable { return .uncatchable }
 
@@ -938,6 +963,9 @@ public struct CrudeResolver: PlayResolver {
         }
         catchChance += (hands - 60) * 0.004
         catchChance += Double(separation - 130) * 0.0007
+        // A throw into the end zone on a conversion has a back line behind it and every
+        // defender in a phone booth. Caught less, and picked more.
+        if contested { catchChance -= 0.10 }
 
         if random.nextBool(probability: min(0.97, max(0.05, catchChance))) {
             return separation < 90 ? .contestedCatch : .caught
@@ -945,7 +973,7 @@ public struct CrudeResolver: PlayResolver {
 
         // A bad ball into tight coverage is where interceptions come from — not from a
         // flat per-attempt rate.
-        var pickChance = placement == .poor ? 0.17 : 0.05
+        var pickChance = (placement == .poor ? 0.17 : 0.05) + (contested ? 0.02 : 0)
         pickChance += (ballHawk - 60) * 0.002
         pickChance -= Double(separation - 130) * 0.0006
         if random.nextBool(probability: min(0.5, max(0.005, pickChance))) { return .intercepted }
@@ -959,6 +987,24 @@ public struct CrudeResolver: PlayResolver {
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (yards: Int, ending: PlayEnding) {
+        // Wide open with grass in front of him. This is how a long completion actually
+        // happens — a blown coverage, or a receiver simply faster than the man on him —
+        // and it has to be drawn on its own. The engine's only route to a long gain was
+        // breaking three tackles in a row at nine percent each, a one-in-fifteen-hundred
+        // event, and the passing game produced no forty-yard plays at all.
+        let speed = context.effective(.speed, for: personnel[carrier], onOffense: true)
+        let gone =
+            0.046 + max(0, Double(separation - 150)) * 0.00040 + max(0, (speed - 80)) * 0.0030
+        if random.nextBool(probability: min(0.10, gone)) {
+            credit(coveredBy, .other, personnel, into: &participants)
+            decisions.append(
+                .init(
+                    tick: startTick, kind: .holeQuality, primary: carrier, detail: 3,
+                    value: Int16(separation)))
+            let burst = 14 + Int((speed - 55) * 0.45) + Int(random.next(upperBound: 38))
+            return (max(0, burst), .tackled)
+        }
+
         // The man who was covering him has the first shot, and the help arrives behind.
         let pursuit = [(coveredBy, 5.0)] + SlotLayout.catchPursuit.filter { $0.0 != coveredBy }
         let tackle = tackleSequence(
@@ -968,9 +1014,13 @@ public struct CrudeResolver: PlayResolver {
         // A receiver who caught it in stride is already past somebody. Separation earned
         // before the catch is worth yards after it.
         let inStride = max(0, separation - 140) / 45
-        return (
-            max(0, Int(random.next(upperBound: 3)) + inStride + tackle.extraYards), tackle.ending
-        )
+        // What he does with it once it is in his hands. This was a flat draw of nought to
+        // two, so yards after the catch averaged about three against a real five, and
+        // `elusiveness` did nothing for a receiver — the whole difference between a
+        // possession target and one who turns a slant into forty was invisible.
+        let openField = context.effective(.elusiveness, for: personnel[carrier], onOffense: true)
+        let loose = Int(random.next(upperBound: 3)) + Int((openField - 68) * 0.04)
+        return (max(0, loose + inStride + tackle.extraYards), tackle.ending)
     }
 
     /// Who brought him down, and whether he broke one first.

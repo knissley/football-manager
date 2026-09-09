@@ -57,17 +57,21 @@ struct VocabularyCoverageTests {
                     players: players, seed: seed))
     }
 
-    /// Enough games that a rare-but-reachable case is not a coin flip. A safety turns up
-    /// about once in fifteen games, so forty is the floor rather than a round number.
-    private static func plays(seeds: ClosedRange<UInt64> = 1...40) -> [PlayRecord] {
-        seeds.flatMap { result(seed: $0).plays }
-    }
+    /// Enough games that a rare-but-reachable case is not a coin flip.
+    ///
+    /// A safety happens about three times in a hundred team-games, so forty games left
+    /// roughly a one-in-eleven chance of seeing none — and this suite duly went red for
+    /// it once field position improved enough to make being backed up rare. Simulated
+    /// once and shared, because six assertions over one stream costs what one used to.
+    private static let sampled: [PlayRecord] = (UInt64(1)...90).flatMap { result(seed: $0).plays }
+
+    private static func plays() -> [PlayRecord] { sampled }
 
     @Test("Every play kind the engine claims to model actually occurs")
     func everyKindIsReachable() {
         let seen = Set(Self.plays().map(\.outcome.kind))
         for kind in PlayKind.allCases where Self.unreachableKinds[kind] == nil {
-            #expect(seen.contains(kind), "no snap in forty games was a \(kind)")
+            #expect(seen.contains(kind), "no snap in ninety games was a \(kind)")
         }
     }
 
@@ -75,7 +79,7 @@ struct VocabularyCoverageTests {
     func everyEndingIsReachable() {
         let seen = Set(Self.plays().map(\.outcome.endedIn))
         for ending in PlayEnding.allCases where Self.unreachableEndings[ending] == nil {
-            #expect(seen.contains(ending), "no play in forty games ended in \(ending)")
+            #expect(seen.contains(ending), "no play in ninety games ended in \(ending)")
         }
     }
 
@@ -149,15 +153,11 @@ struct VocabularyCoverageTests {
         let unreachable: [Position: String] = [
             // Fullbacks are on rosters but the crude engine fields one back, and it is
             // the halfback. The formation layer at M5 is what puts him on the field.
-            .fullback: "M5 — the crude engine fields a single back.",
-            // He is on the field for every kick; a clean snap is simply not an event.
-            // The cost is that he cannot be hurt, because injuries are drawn from the
-            // participants, and that is what M2's kicking game has to fix.
-            .longSnapper: "M2 — nothing a long snapper does well is recordable yet.",
+            .fullback: "M5 — the crude engine fields a single back."
         ]
         let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.position))
         for position in Position.allCases where unreachable[position] == nil {
-            #expect(seen.contains(position), "no \(position) took a snap in forty games")
+            #expect(seen.contains(position), "no \(position) took a snap in ninety games")
         }
         for (position, reason) in unreachable {
             #expect(
@@ -175,7 +175,7 @@ struct VocabularyCoverageTests {
         ]
         let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.role))
         for role in PlayRole.allCases where unreachable[role] == nil {
-            #expect(seen.contains(role), "nobody in forty games was credited as \(role)")
+            #expect(seen.contains(role), "nobody in ninety games was credited as \(role)")
         }
         for (role, reason) in unreachable {
             #expect(

@@ -56,7 +56,26 @@ extension PlayCaller {
     /// gameplan overrides these; one without still has to answer the question, because a
     /// team that never goes for two and never kicks onside cannot come back from ten.
     public func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
-        classified.time.isEndgame && situation.scoreDifferential < 0
+        // The score here is read *before* the try, so trailing by two means the
+        // conversion ties it and trailing by five means it turns a two-score deficit into
+        // a field goal. Those two are on the chart from the second half onwards, not only
+        // in the last minutes — a coach who waits for the endgame to consult it has
+        // already kicked the point that made the arithmetic wrong.
+        // The chart, on the trailing side: the deficits where the second point changes
+        // what you need next. Down two the conversion ties it; down five it turns two
+        // scores into a field goal; down ten it turns a two-score game into a touchdown
+        // and a conversion.
+        if situation.quarter >= 3,
+            [-2, -5, -10].contains(situation.scoreDifferential)
+        {
+            return true
+        }
+        // And on the leading side, where the second point turns a one-score lead into
+        // one they cannot answer with a single possession.
+        if situation.quarter >= 4, [1, 4, 5].contains(situation.scoreDifferential) {
+            return true
+        }
+        return classified.time.isEndgame && situation.scoreDifferential < 0
             && situation.scoreDifferential >= -10
     }
 
@@ -91,6 +110,15 @@ public struct BaselineCaller: PlayCaller {
     /// this by.
     public static let maximumFieldGoal = 55
 
+    /// The longest kick worth attempting when a punt is still a sensible alternative.
+    ///
+    /// A fifty-five yarder is a real option at the end of a half, when the choice is
+    /// between a long kick and nothing. On a first-quarter fourth down it is a bad trade
+    /// against forty yards of field position, and treating every kick inside the maximum
+    /// as automatic is what made this caller attempt a fifty-five yarder on fourth and
+    /// one from the opponent's thirty-eight.
+    public static let routineFieldGoal = 51
+
     public func offensiveCall(
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
@@ -118,21 +146,56 @@ public struct BaselineCaller: PlayCaller {
     ) -> PlayFamily? {
         let kickLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
 
-        // Behind late, a punt is a surrender. Go, wherever you are.
-        if classified.isDesperation && kickLength > Self.maximumFieldGoal { return nil }
+        // A long kick is worth attempting when the alternative is nothing — the end of a
+        // half, or a game that is decided here. Otherwise it is a bad trade against the
+        // field position a punt buys.
+        let stretching = classified.time.isEndgame || classified.time == .twoMinuteFirstHalf
+        let inRange = kickLength <= (stretching ? Self.maximumFieldGoal : Self.routineFieldGoal)
 
-        if kickLength <= Self.maximumFieldGoal {
-            // Inside a yard of the marker near the goal line, points are not the only
-            // option — but the baseline takes the points and lets a better caller
-            // out-think it.
-            if classified.downAndDistance == .goalToGo && situation.distance <= 1 { return nil }
-            return .fieldGoal
+        // Behind, late: a punt is a surrender, and a kick is only worth taking if it ties
+        // the game or wins it.
+        if classified.isDesperation {
+            return inRange && situation.scoreDifferential >= -3 ? .fieldGoal : nil
         }
 
-        // Short of the marker but a long way from a kick: go only where a stop would
-        // not hand over the game.
-        if classified.downAndDistance == .fourthShort && situation.ballOn < 45 { return nil }
-        return .punt
+        if goesForIt(situation, classified, inRange: inRange) { return nil }
+        return inRange ? .fieldGoal : .punt
+    }
+
+    /// Whether to keep the offence on the field.
+    ///
+    /// The old answer was almost never: any kick inside the maximum was taken before the
+    /// question was asked, and going for it needed fourth and three or less between the
+    /// opponent's thirty-nine and forty-five. That produced a team going for it on 13% of
+    /// its fourth-and-ones, in a sport where the figure is nearer two-thirds.
+    ///
+    /// Deliberately a chart rather than a win-probability model. It is the floor a real
+    /// caller is measured against, and fourth-down aggression is one of the dials that
+    /// makes hiring a coordinator matter.
+    private func goesForIt(
+        _ situation: Situation, _ classified: SituationClass, inRange: Bool
+    ) -> Bool {
+        let ballOn = Int(situation.ballOn)
+
+        // Backed up inside your own thirty, a stop is worth more to them than the down is
+        // to you, whatever the distance.
+        if ballOn > 70 { return false }
+
+        switch situation.distance {
+        case ...1:
+            // Protecting a lead late with a kick available, take the points.
+            if inRange && classified.isClockBurn { return false }
+            // Past midfield as a matter of course, and from further back when you are
+            // chasing the game.
+            return ballOn <= 52 || (classified.score.isTrailing && ballOn <= 64)
+        case 2...3:
+            // No-man's land: too far to kick, too close for a punt to buy much.
+            return !inRange && (ballOn <= 50 || (classified.score.isTrailing && ballOn <= 60))
+        case 4...6:
+            return !inRange && classified.score.isTrailing && ballOn <= 48
+        default:
+            return false
+        }
     }
 
     private func family(

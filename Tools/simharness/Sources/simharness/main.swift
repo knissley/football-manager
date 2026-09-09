@@ -176,6 +176,17 @@ let firstDownGain =
     ? 0 : Double(firstDowns.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(firstDowns.count)
 row("yards gained on first down", firstDownGain, 4.6, 5.8)
 
+// Yards per attempt is the passing game's real efficiency number — completion rate says
+// nothing about whether the completions are worth anything.
+let attemptYards = Double(attempts.reduce(0) { $0 + Int(max(0, $1.outcome.yards)) })
+row("yards per pass attempt", attemptYards / Double(max(1, attempts.count)), 6.6, 7.6)
+let scrimmageYards =
+    attemptYards + rushYards
+    + Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
+row("yards per play", scrimmageYards / Double(max(1, scrimmage.count)), 5.2, 5.9)
+let receptionYards = attemptYards / Double(max(1, completions.count))
+row("yards per completion", receptionYards, 10.5, 12.5)
+
 print("")
 print("  Shape of the stream")
 print("    plays per game              \(allPlays.count / max(1, results.count))")
@@ -420,13 +431,19 @@ var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
 
 var twoPointTries = 0
 var twoPointGood = 0
+var drivePlays: [Int] = []
+var threeAndOuts = 0
 
 for result in results {
     // A drive is a run of consecutive snaps by one team. Classified by how its last
     // snap ended, so a drive killed by the clock is counted rather than dropped.
-    var current: (team: TeamID, start: Int, last: PlayRecord)?
+    var current: (team: TeamID, start: Int, last: PlayRecord, plays: Int)?
 
-    func closeDrive(_ drive: (team: TeamID, start: Int, last: PlayRecord)) {
+    func closeDrive(_ drive: (team: TeamID, start: Int, last: PlayRecord, plays: Int)) {
+        // Offensive plays only. Counting the punt that ends a three-and-out as a fourth
+        // play is how that row read 33% against a real 22%.
+        drivePlays.append(drive.plays)
+        if drive.plays <= 3, drive.last.outcome.kind == .punt { threeAndOuts += 1 }
         startingSpots.append(drive.start)
         let play = drive.last
         let label: String
@@ -494,10 +511,12 @@ for result in results {
             closeDrive(drive)
             current = nil
         }
+        let counts = outcome.kind.isScrimmagePlay
         if current == nil {
-            current = (play.situation.possession, Int(play.situation.ballOn), play)
+            current = (play.situation.possession, Int(play.situation.ballOn), play, counts ? 1 : 0)
         } else {
             current?.last = play
+            if counts { current?.plays += 1 }
         }
     }
     if let drive = current { closeDrive(drive) }
@@ -531,6 +550,26 @@ for (label, test, low, high) in [
 }
 
 print("")
+print("  The shape of a dropback")
+// The same question as the carry rows. A passing game with the right mean and no tail
+// produces drives that neither die quickly nor break open, which is what leaves a game
+// with too few possessions in it.
+let dropbackYards = dropbacks.map { Int($0.outcome.yards) }
+for (label, test, low, high) in [
+    ("lost yards or sacked", { (y: Int) in y < 0 }, 5.0, 9.0),
+    ("no gain (incomplete)", { (y: Int) in y == 0 }, 30.0, 38.0),
+    ("10 or more", { (y: Int) in y >= 10 }, 22.0, 29.0),
+    ("20 or more", { (y: Int) in y >= 20 }, 8.0, 12.0),
+    ("40 or more", { (y: Int) in y >= 40 }, 1.5, 3.0),
+] as [(String, (Int) -> Bool, Double, Double)] {
+    let share = Double(dropbackYards.filter(test).count) / Double(max(1, dropbackYards.count)) * 100
+    let flag = share < low || share > high ? "OFF" : "ok"
+    print(
+        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
+    )
+}
+
+print("")
 print("  How drives end")
 let totalDrives = driveEnds.values.reduce(0, +)
 for (end, count) in driveEnds.sorted(by: { $0.value > $1.value }) {
@@ -538,7 +577,26 @@ for (end, count) in driveEnds.sorted(by: { $0.value > $1.value }) {
     print(
         "    \(pad(end, 26))\(pad(oneDecimal(Double(count) / teamGames), 7))\(oneDecimal(share))%")
 }
-print("    \(pad("drives per team-game", 26))\(oneDecimal(Double(totalDrives) / teamGames))")
+print(
+    "    \(pad("drives per team-game", 26))\(pad(oneDecimal(Double(totalDrives) / teamGames), 9))10.5-12.0"
+)
+print(
+    "    \(pad("plays per drive", 26))\(pad(oneDecimal(Double(drivePlays.reduce(0, +)) / Double(max(1, drivePlays.count))), 9))5.3-6.0"
+)
+// First downs are the currency of a drive: how many a team earns decides how long its
+// drives last, and it is the row that separates "converts third downs at the right rate"
+// from "never reaches third down".
+let firstDownsEarned = allPlays.filter { play in
+    guard play.outcome.kind.isScrimmagePlay else { return false }
+    return play.outcome.yards >= Int16(play.situation.distance)
+        || play.outcome.endedIn == .touchdown
+}.count
+print(
+    "    \(pad("first downs per team-game", 26))\(pad(oneDecimal(Double(firstDownsEarned) / teamGames), 9))18.5-22.0"
+)
+print(
+    "    \(pad("three and out", 26))\(pad(oneDecimal(Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100) + "%", 9))20.0-27.0"
+)
 
 print("")
 print("  Field position")
@@ -553,7 +611,11 @@ print("    \(pad("punts per team-game", 30))\(oneDecimal(Double(puntSpots.count)
 print("    \(pad("net punt (yards)", 30))\(oneDecimal(averagePunt))")
 print(
     "    \(pad("two-point tries per team-game", 30))"
-        + "\(oneDecimal(Double(twoPointTries) / teamGames)) (\(twoPointGood) good)")
+        + "\(pad(twoDecimals(Double(twoPointTries) / teamGames), 8))0.15-0.30")
+print(
+    "    \(pad("  converted", 30))"
+        + "\(pad(oneDecimal(Double(twoPointGood) / Double(max(1, twoPointTries)) * 100) + "%", 8))44-54%"
+)
 
 print("")
 print("  Kicking")
@@ -577,6 +639,41 @@ for bucket in [(0, 29), (30, 39), (40, 49), (50, 70)] {
             + "\(pad(String(inBucket.count), 7))\(oneDecimal(Double(made) / Double(inBucket.count) * 100))%"
     )
 }
+
+print("")
+print("  Fourth down")
+// The most-discussed decision in the modern game, and the one a conservative caller
+// makes invisible. Real teams go for it about 1.1 times a game and convert about half.
+let fourthDowns = allPlays.filter {
+    $0.situation.down == .fourth && $0.outcome.kind != .kickoff && $0.outcome.kind != .extraPoint
+        && $0.outcome.kind != .twoPointConversion && $0.outcome.kind != .penaltyOnly
+}
+func fourthShare(_ name: String, _ test: (PlayRecord) -> Bool, _ low: Double, _ high: Double) {
+    let matching = fourthDowns.filter(test)
+    let share = Double(matching.count) / Double(max(1, fourthDowns.count)) * 100
+    let flag = share < low || share > high ? "OFF" : "ok"
+    print(
+        "    \(pad(name, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
+    )
+}
+fourthShare("punted", { $0.outcome.kind == .punt }, 55.0, 68.0)
+fourthShare("kicked", { $0.outcome.kind == .fieldGoal }, 20.0, 30.0)
+fourthShare("went for it", { $0.outcome.kind.isScrimmagePlay }, 12.0, 20.0)
+let goes = fourthDowns.filter { $0.outcome.kind.isScrimmagePlay }
+let converted = goes.filter {
+    $0.outcome.yards >= Int16($0.situation.distance) || $0.outcome.endedIn == .touchdown
+}
+print(
+    "    \(pad("attempts per team-game", 26))\(pad(oneDecimal(Double(goes.count) / teamGames), 9))0.9-1.4"
+)
+print(
+    "    \(pad("conversion rate", 26))\(pad(oneDecimal(Double(converted.count) / Double(max(1, goes.count)) * 100) + "%", 9))45.0-58.0"
+)
+let shortGoes = fourthDowns.filter { $0.situation.distance <= 1 }
+let shortWent = shortGoes.filter { $0.outcome.kind.isScrimmagePlay }
+print(
+    "    \(pad("4th and 1: went for it", 26))\(pad(oneDecimal(Double(shortWent.count) / Double(max(1, shortGoes.count)) * 100) + "%", 9))55.0-75.0"
+)
 
 print("")
 print("  Turnovers and the return game")
@@ -643,6 +740,20 @@ let puntsReturned = allPlays.filter { $0.outcome.kind == .punt && $0.outcome.end
 print(
     "    \(pad("punts returned", 30))\(puntsReturned) of \(allPlays.filter { $0.outcome.kind == .punt }.count)"
 )
+
+print("")
+print("  Backed up")
+let deep = scrimmage.filter { $0.situation.ballOn >= 90 }
+print(
+    "    \(pad("snaps inside own 10", 26))\(pad(twoDecimals(Double(deep.count) / teamGames), 9))1.5-2.5"
+)
+let safeties = allPlays.filter { $0.outcome.endedIn == .safety }
+print(
+    "    \(pad("safeties per team-game", 26))\(pad(twoDecimals(Double(safeties.count) / teamGames), 9))0.03-0.08"
+)
+let deepSacks = deep.filter { $0.outcome.kind == .sack }
+print(
+    "    \(pad("sacks taken inside own 10", 26))\(deepSacks.count) in \(Int(teamGames)) team-games")
 
 print("")
 print("  Scoreboard")
