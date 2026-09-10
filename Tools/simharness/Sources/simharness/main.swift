@@ -978,15 +978,28 @@ if touchLadder.count >= 3 {
         guard !nets.isEmpty else { return "—" }
         return oneDecimal(Double(nets.reduce(0, +)) / Double(nets.count))
     }
-    let bottom = byTouch.filter { $0.touch < lower }.map(\.play)
-    let middle = byTouch.filter { $0.touch >= lower && $0.touch < upper }.map(\.play)
-    let top = byTouch.filter { $0.touch >= upper }.map(\.play)
-    print("    net punt by the punter's touch   (a touchback spotted at the 20)")
-    print(
-        "      \(pad("touch under \(lower)", 32))\(net(bottom))   \(bottom.count) punts")
-    print(
-        "      \(pad("touch \(lower) to \(upper - 1)", 32))\(net(middle))   \(middle.count) punts")
-    print("      \(pad("touch \(upper) and up", 32))\(net(top))   \(top.count) punts")
+    func tier(_ test: (Int) -> Bool, kickedFrom inRange: (UInt8) -> Bool) -> [PlayRecord] {
+        byTouch.filter { test($0.touch) && inRange($0.play.situation.ballOn) }.map(\.play)
+    }
+    // Two ladders, because they answer different questions. Over all punts a punter's
+    // touch is swamped by his leg and by where he is kicking from — most punts are from
+    // a team's own end, where there is nothing to aim at and distance is the whole play.
+    // From inside the opponent's 45 placement *is* the play, and that is where the rating
+    // has to show.
+    let ranges: [(String, (UInt8) -> Bool)] = [
+        ("all punts", { _ in true }), ("from inside their 45", { $0 <= 45 }),
+    ]
+    for (title, inRange) in ranges {
+        print("    net punt by the punter's touch, \(title)   (a touchback spotted at the 20)")
+        let bottom = tier({ $0 < lower }, kickedFrom: inRange)
+        let middle = tier({ $0 >= lower && $0 < upper }, kickedFrom: inRange)
+        let top = tier({ $0 >= upper }, kickedFrom: inRange)
+        print("      \(pad("touch under \(lower)", 32))\(net(bottom))   \(bottom.count) punts")
+        print(
+            "      \(pad("touch \(lower) to \(upper - 1)", 32))\(net(middle))"
+                + "   \(middle.count) punts")
+        print("      \(pad("touch \(upper) and up", 32))\(net(top))   \(top.count) punts")
+    }
 }
 
 print("")
