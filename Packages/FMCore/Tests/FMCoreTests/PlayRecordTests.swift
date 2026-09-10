@@ -89,6 +89,16 @@ struct SituationTests {
         #expect(situation(quarter: 7, clock: 400).isValid)
     }
 
+    /// A situation is the down and not the afternoon. The weather is a fact about the
+    /// game, carried once on `GameResult` and read by the resolver from its context;
+    /// carrying it on every one of a hundred and fifty situations a game cost six bytes a
+    /// play for a field nothing that reads a situation ever looked at. The figure here is
+    /// the one the sizing table in docs/play-record.md quotes.
+    @Test("A situation is twenty-three bytes: the down, not the afternoon", .tags(.contract))
+    func situationSize() {
+        #expect(MemoryLayout<Situation>.size == 23)
+    }
+
     @Test("Downs advance and run out", .tags(.unit))
     func downs() {
         #expect(Down.first.next == .second)
