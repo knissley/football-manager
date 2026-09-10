@@ -689,6 +689,39 @@ public enum RulesScenarios {
         injuryInsideTwoMinutes(by: 7, outOfTimeouts: true, opening: leadBySeven)
     }
 
+    // MARK: The kickoff that opens a half
+
+    /// A first half that ends between downs, on an excess injury timeout's runoff, and
+    /// the kickoff that opens the second. Both sides spend their first-half timeouts on
+    /// offence early in the second quarter, so whichever side has the ball after the
+    /// warning has none; its first snap after the warning is stretched to end at 0:08
+    /// with the clock running, and one of its players is hurt on that play. Level, the
+    /// defence takes the ten seconds (4-5-4 Note 3), which is more than remain, so the
+    /// half ends on the runoff (4-5-4 Note 4). What the second-half kickoff produces is
+    /// `kick`.
+    static func injuryRunoffEndsTheFirstHalf(kick: Outcome) -> ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(timeoutDecision: { situation, isOffense in
+                isOffense && situation.quarter == 2 && situation.clockRemaining > 160
+                    && situation.offenseTimeouts > 0
+            }),
+            injury: { snap, outcome in
+                // The stretched play is the one longer than a plod.
+                snap.quarter == 2 && snap.isScrimmage && outcome.kind == .rush
+                    && outcome.endedIn == .tackled && outcome.clockRunoff > 6 ? .offense : nil
+            }
+        ) { snap in
+            if snap.quarter == 3, snap.isKickoff { return kick }
+            guard snap.isScrimmage, snap.quarter == 2, snap.clock < 120, snap.down != .fourth,
+                let huddle = snap.huddle
+            else { return snap.neutral }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            let target = 8
+            guard snapped > target, snapped - target <= 130 else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - target))
+        }
+    }
+
     // MARK: Tries, kicks and enforcement
 
     static var falseStartOnATry: ScriptedGame {

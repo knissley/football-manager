@@ -120,6 +120,12 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case injuryInsideTwoMinutesAgainstATrailingDefense =
         "injury-inside-two-minutes-against-a-trailing-defense"
 
+    // The kickoff that opens a half
+    case secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf =
+        "second-half-kickoff-after-an-injury-runoff-ends-the-first-half"
+    case secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf =
+        "second-half-kickoff-returned-after-an-injury-runoff-ends-the-first-half"
+
     // Tries, kicks and enforcement
     case falseStartOnATry = "false-start-on-a-try"
     case missedFieldGoalFromTheTen = "missed-field-goal-from-the-ten"
@@ -263,6 +269,12 @@ extension RulesScenario {
             return RulesScenarios.injuryInsideTwoMinutesWithNoTimeoutsLeft
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return RulesScenarios.injuryInsideTwoMinutesAgainstATrailingDefense
+
+        case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
+            return RulesScenarios.injuryRunoffEndsTheFirstHalf(kick: .kickoffTouchback)
+        case .secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf:
+            return RulesScenarios.injuryRunoffEndsTheFirstHalf(
+                kick: .kickoffReturn(toOwn: 25, seconds: 8))
 
         case .falseStartOnATry: return RulesScenarios.falseStartOnATry
         case .missedFieldGoalFromTheTen: return RulesScenarios.missedFieldGoal(from: 10)
@@ -570,6 +582,15 @@ extension RulesScenario {
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return [
                 "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap"
+            ]
+
+        case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
+            return [
+                "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 11-6-2, 11-6-3 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a touchback is the receiving team's ball, and it snaps next at its own restart spot"
+            ]
+        case .secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf:
+            return [
+                "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 7-6-1 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a returned kick is the receiving team's ball where the return ended, and it snaps next from there"
             ]
 
         case .falseStartOnATry:

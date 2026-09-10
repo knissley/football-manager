@@ -1563,6 +1563,85 @@ struct RulesConformanceTests {
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
     }
 
+    // MARK: The kickoff that opens a half
+
+    /// The play that ended the first half between downs: the one somebody was hurt on,
+    /// carrying the election that ran the clock out.
+    private func injuryEndingTheFirstHalf(in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard let hurt = trace.result.injuries.first,
+            let play = trace[Int(hurt.occurredOn.index)]
+        else {
+            Issue.record("the scenario never hurt anybody")
+            return nil
+        }
+        let index = Int(hurt.occurredOn.index)
+        #expect(
+            play.situation.quarter == 2 && play.situation.clockRemaining < 120,
+            "the scenario meant the injury after the first half's warning")
+        #expect(
+            play.situation.offenseTimeouts == 0, "the scenario meant the offence out of timeouts")
+        #expect(
+            play.decisions.contains { $0.clockElectionValue == .injuryRunoff },
+            "the record says the defence took the runoff")
+        #expect(trace[index + 1]?.situation.quarter == 3, "the runoff ran the half out")
+        return (index, play)
+    }
+
+    /// A half can end on the runoff (4-5-4 Note 4), between downs, and the kickoff that
+    /// puts the ball in play at the start of the second half (6-1-1-a) follows it as it
+    /// follows a half that ended on a play. A free kick ends when a team possesses the
+    /// ball, and a running play begins when the receiving team does (6-1-7); a kick dead
+    /// in the receivers' possession in their end zone is a touchback (11-6-2), after
+    /// which they snap next at their restart spot (11-6-3). The spot is the rules'
+    /// kickoff touchback spot, which still carries a 2024 value.
+    @Test(
+        "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 11-6-2, 11-6-3 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a touchback is the receiving team's ball, and it snaps next at its own restart spot",
+        .tags(.football)
+    )
+    func secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf() {
+        let trace = RulesScenario.secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf.run()
+        guard let hurt = injuryEndingTheFirstHalf(in: trace), let opening = trace[0] else {
+            return
+        }
+        let openingKicker = opening.situation.possession
+        trace.expectPlay(0, kind: .kickoff, "the game opened with a kickoff")
+        trace.expectPlay(
+            hurt.index + 1, kind: .kickoff, endedIn: .touchback,
+            possession: trace.opponent(of: openingKicker), quarter: 3, clock: 900, ballOn: 65,
+            "the second half opens with a kickoff from the 35, by the side that received the opening one"
+        )
+        trace.expectPlay(
+            hurt.index + 2, possession: openingKicker, quarter: 3, clock: 900, down: .first,
+            distance: 10, ballOn: Rules.standard.kickoffTouchbackSpot,
+            "the touchback is the receivers' ball at their restart spot, with no time gone")
+    }
+
+    /// The same half, and the kick is returned: the receiving team established possession
+    /// (6-1-7) and the ball is next put in play where that down ended (7-6-1), the
+    /// return's seconds off the clock.
+    @Test(
+        "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 7-6-1 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a returned kick is the receiving team's ball where the return ended, and it snaps next from there",
+        .tags(.football)
+    )
+    func secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf() {
+        let trace = RulesScenario.secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf
+            .run()
+        guard let hurt = injuryEndingTheFirstHalf(in: trace), let opening = trace[0] else {
+            return
+        }
+        let openingKicker = opening.situation.possession
+        trace.expectPlay(
+            hurt.index + 1, kind: .kickoff, endedIn: .tackled,
+            possession: trace.opponent(of: openingKicker), quarter: 3, clock: 900, ballOn: 65,
+            "the second half opens with a kickoff from the 35, by the side that received the opening one"
+        )
+        trace.expectPlay(
+            hurt.index + 2, possession: openingKicker, quarter: 3, clock: 892, down: .first,
+            distance: 10, ballOn: 75,
+            "the return is the receivers' ball where it ended, at their 25, and its eight seconds came off"
+        )
+    }
+
     // MARK: The play clock
 
     /// The play clock a flag play was taken against, as the record carries it.
