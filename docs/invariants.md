@@ -273,7 +273,13 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `[2025 · 4-4-e, 4-4-g, 4-3-2-e, 4-3-2-e-1, 4-3-2-e-2]` —
     `test:falseStartInTheThirdQuarterCostsNoTime`,
     `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
-    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`
+    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`; **modelling**: only the
+    accepted branch is read. 4-4-e stops the clock for a foul during a down whether or not
+    the penalty is taken, and 4-3-2-e restarts it once the penalty is settled either way,
+    but `State.runClock` gates the whole restart on `penalty.wasAccepted`, so a foul the
+    non-offending side turns down leaves the clock as the play's ending left it. That is
+    not a rare corner: `row:penalty.declined` is 12.3% at seed 7 and 12.7% at seed 11.
+    [#102](https://github.com/knissley/football-manager/issues/102) owns it
 48. An offensive foul that stops the clock before the snap anywhere in the fourth period
     restarts it on the snap, and e-3 reaches no further than that: an offensive foul during
     a fourth-quarter down stops the clock at the end of the down rather than before a snap,
@@ -281,7 +287,7 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
     `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 49. A foul before the snap charges no play time, because no play happened.
-    `[2025 · 4-4-e]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
+    `[2025 · 4-4-g]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
 50. Three charged timeouts per team per half, they do not carry over, and they never go
     negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`
