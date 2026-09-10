@@ -106,9 +106,9 @@ the untagged-test problem this issue set out to fix.
 **Generation makes almost no claim about the sport, and mostly should not.** A generated
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
-FMGeneration's largest share after `.unit`, and the highest anywhere: 38.2% in the census
-above, and 44.2% — 87 of 197 — as this paragraph is written. Nearly `0.0%` football is
-the right answer there, not a gap.
+FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
+the census above, and 44.2% — 87 of 197 — as this paragraph is written. Nearly `0.0%`
+football is the right answer there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be
 made up like a real one.** [#67](https://github.com/knissley/football-manager/issues/67)

@@ -2,8 +2,8 @@
 
 **Status: built.** Every row below exists in
 `Tools/simharness/Sources/simharness/Targets.swift` today, and
-`InvariantsTraceabilityTests` fails if one named here does not. The exception is the last
-section, [bands the harness cannot measure](#bands-the-harness-cannot-measure): those are
+`InvariantsTraceabilityTests` fails if one named here does not. The exception is the
+section on [bands the harness cannot measure](#bands-the-harness-cannot-measure): those are
 not rows and have no verdict in a harness run, so each names the `test:` that checks it
 instead.
 
@@ -331,8 +331,9 @@ A generated league's is 3.29 to 3.37 across those four seeds, straddling the top
 range; before #67 it was 3.57 to 3.71, entirely above it. That pair of moves is the argument
 for flooring a reserve's age centre two seasons above the entry age rather than truncating
 the old centres alone. Truncating alone was measured at the same four seeds: mean 26.06, at
-the bottom of the real range, spread 3.31 to 3.42, still above its top, and a first-season
-share of 0.19 — outside the band above.
+the bottom of the real range, spread 3.31 to 3.42, at its top and above, and a first-season
+share of 0.19 — 0.186 pooled over the eight seeds the test reads, against 0.154 for what
+landed, and outside the band above either way.
 
 **When a first-season player arrives.** They were about a seventh twenty-one, a quarter to a
 third twenty-two, about a third twenty-three and a seventh to a quarter twenty-four;
