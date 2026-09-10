@@ -99,7 +99,8 @@ Which rules must be true of a game, and what checks each, is
   `test:timeoutsStayLegal`
 - **4-5-3**, **4-5-4-a**, **4-5-4-b**, **4-5-4 Note 1** — Before the two-minute warning an
   injury timeout leaves the clock as it would have been. After it, the injured player's
-  team is charged a team timeout if it has one, and the clock then starts on the snap;
+  team is charged a team timeout if it has one, and the clock then starts on the snap as
+  after any charged timeout (4-3-2);
   with none left the Referee calls an excess timeout, after which the clock starts on the
   ready unless the opponent chooses the snap, and the play clock resets to 40 when the
   excess timeout is the defence's. None of it applies when the injury came of a foul by

@@ -512,7 +512,7 @@ extension RulesScenario {
 
         case .injuryInsideTwoMinutesWithATimeoutLeft:
             return [
-                "football · Rule 4-5-4-a, 4-5-3 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap"
+                "football · Rule 4-5-4-a, 4-3-2 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap"
             ]
         case .injuryInsideTwoMinutesWithNoTimeoutsLeft:
             return [

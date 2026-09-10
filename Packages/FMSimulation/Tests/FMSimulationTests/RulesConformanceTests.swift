@@ -1502,9 +1502,9 @@ struct RulesConformanceTests {
 
     /// After the two-minute warning the injured player's team is
     /// charged a team timeout if it has one (4-5-4-a), and a charged timeout has the
-    /// clock start on the snap (4-5-3, 4-4-j). The record says which it was.
+    /// clock start on the snap (4-4-j, 4-3-2). The record says which it was.
     @Test(
-        "football · Rule 4-5-4-a, 4-5-3 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap",
+        "football · Rule 4-5-4-a, 4-3-2 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap",
         .tags(.football)
     )
     func injuryTimeoutAfterTheWarningIsCharged() {

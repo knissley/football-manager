@@ -249,8 +249,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     offence's tempo is how much of whatever clock is in force it means to leave itself,
     and how often it overruns that slack is a draw that halves with every eight seconds
     of it — the delay-of-game rate is derived from the clock rather than tuned as a flat
-    roll, and `row:penalty.delayOfGame` is what measures it. `test:tempoOrdering` and
-    `test:tempoScalesToTheClock` pin the tempo table
+    roll, and `row:penalty.delayOfGame` is what measures it. `test:tempoOrdering` pins
+    the tempo table, and that a tempo keeps its share of slack on a shorter clock is a
+    further **modelling** choice, pinned by `test:tempoScalesToTheClock`
 
 ## The ten-second runoff
 
@@ -301,7 +302,7 @@ season is what checks one. A band is evidence about a rate and never about a rul
     left it is an excess timeout, and one against the team in possession that stopped a
     running clock carries a ten-second runoff at the defence's choice, after which the
     clock starts on the ready — or, declined, waits for the snap.
-    `[2025 · 4-5-3, 4-5-4-a, 4-5-4-b, 4-5-4 Note 1, 4-5-4 Note 3, 4-5-4 Note 4]` —
+    `[2025 · 4-5-4-a, 4-3-2, 4-5-4-b, 4-5-4 Note 1, 4-5-4 Note 3, 4-5-4 Note 4, 4-5-3]` —
     `test:injuryTimeoutAfterTheWarningIsCharged`,
     `test:excessInjuryTimeoutAfterTheWarningCarriesTheRunoff`,
     `test:injuryRunoffDeclinedByATrailingDefense`; the runoff is the defence's choice, a

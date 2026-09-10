@@ -509,10 +509,12 @@ struct PlayClockTests {
                 == PlayClock(seconds: 40, startsOnTheReady: true))
     }
 
-    /// Modelling, not a rule: the tempo table is written against the forty, and against
-    /// a shorter clock the offence keeps the same share of slack.
+    /// Not a rule: the tempo table is written against the forty, and the engine scales
+    /// its slack to a shorter clock rather than carrying a second table. This pins that
+    /// choice so that it changes on purpose.
     @Test(
-        "Tempo keeps its slack on a shorter play clock, and never less than a second", .tags(.unit))
+        "pin · a tempo keeps the same share of slack on a shorter play clock, never less than a second, because the tempo table is written against the forty and the engine scales it rather than carrying a second table (a modelling choice, not a rule)",
+        .tags(.pin))
     func tempoScalesToTheClock() {
         let forty = rules.playClockAfterAPlay
         for tempo in Tempo.allCases {
