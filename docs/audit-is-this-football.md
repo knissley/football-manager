@@ -540,14 +540,23 @@ clock does not start on a touchback, on a kick the kicking team recovers first, 
 fair catch (4-3-1-a to 4-3-1-c). The ten-second runoff exists: `Rules.tenSecondRunoff`,
 with the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2; regular-season overtime
 included, 16-1-3-e), the offence's timeout and the defence's decline as `PlayCaller`
-decisions with baseline defaults, and a half that can end on it (4-5-4 Note 4). Article
-3, the defensive foul in the last forty seconds, is not modelled and the `Rules` doc
-comment says so. The postseason overtime clock cases (16-1-4-h) landed with the
-overtime two-minute warning in
-[A11 · #74](https://github.com/knissley/football-manager/issues/74): every clock case
+decisions with baseline defaults, and a half that can end on it (4-5-4 Note 4). The
+postseason overtime clock cases (16-1-4-h) landed with the overtime two-minute warning
+in [A11 · #74](https://github.com/knissley/football-manager/issues/74): every clock case
 reads `Rules.periodTiming`, which pairs postseason overtime periods into halves. Twenty
 clock scenarios in `RulesConformanceTests` cover the three, and nine more the overtime
-clock.
+clock. The four timing rules the invariants list found unenforced landed with
+[A12 · #76](https://github.com/knissley/football-manager/issues/76): the play clock is
+counted in the rules layer — forty from the end of a play, twenty-five from the whistle
+after an administrative stoppage, thirty after a runoff (4-6-1, 4-6-2, 4-6-3) — and a
+delay of game is that clock expiring rather than a flat rate, with the clock in force
+written into every play's record; a defensive act that conserves time in the last forty
+seconds ends the half at the offence's election (4-7-3); and an injury timeout after the
+two-minute warning is charged as a team timeout or, with none left, is an excess timeout
+whose runoff is the defence's to take (4-5-4 Note 3). Eight more scenarios cover them,
+and every election a side makes about the clock is in the play's decision log. Article
+4, the runoff after a replay reversal, stays a labelled exclusion until there is a
+replay system to reverse anything.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -640,7 +649,9 @@ the engine — by wave 2's record track. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
-two-minute warning and postseason overtime timing), since landed;
+two-minute warning and postseason overtime timing), since landed, as has
+[A12 · #76](https://github.com/knissley/football-manager/issues/76) (the play clock, the
+last forty seconds and the injury timeout, which the invariants list had found unenforced);
 [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
 possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
 [C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a

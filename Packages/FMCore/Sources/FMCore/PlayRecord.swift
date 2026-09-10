@@ -68,6 +68,52 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case holeQuality = 8
     /// A defender's assignment. `detail` is a `CoverageTechnique`.
     case coverageAssignment = 9
+    /// The play clock the snap was taken against (2025 rulebook, 4-6). `detail` is the
+    /// seconds the clock started with — 40 after a play, 25 after an administrative
+    /// stoppage, 30 after a runoff — and `value` is what it read at the snap. Zero means
+    /// it expired with the ball not snapped, which is a delay of game (4-6-1, 4-6-4).
+    /// The rules layer writes this one, not the resolver: which clock was in force is a
+    /// rule, and a reader should not have to infer it from the play before.
+    case playClock = 10
+    /// A choice the rules put to one side about the clock between downs, as the referee
+    /// announces it — the runoff and its alternatives (4-7-1), the last forty seconds
+    /// (4-7-3), an injury timeout after the two-minute warning (4-5-4). `detail` is a
+    /// `ClockElection`. The rules layer's as well.
+    case clockElection = 11
+}
+
+/// A choice the rules put to one side about the clock between downs (2025 rulebook,
+/// Rule 4), recorded so that the stream explains a clock that lost ten seconds, waited
+/// for a snap, or ran out with the ball dead — instead of leaving it to be inferred from
+/// two consecutive situations.
+public enum ClockElection: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// The offence's act conserved time and ten seconds came off (4-7-1 Item 1).
+    case runoff = 0
+    /// The offence spent a charged timeout instead of the runoff (4-7-1 Item 1).
+    case timeoutInsteadOfRunoff = 1
+    /// The defence declined the runoff and kept the yardage (4-7-1 Item 1).
+    case runoffDeclined = 2
+    /// After the defence's act, the offence had the clock wait for the snap rather than
+    /// start on the ready-for-play signal (4-7-1 Item 2, 4-5-4 Note 1).
+    case clockStartsOnTheSnap = 3
+    /// After the defence's act, the offence let the clock start on the ready-for-play
+    /// signal (4-7-1 Item 2, 4-5-4 Note 1).
+    case clockStartsOnTheReady = 4
+    /// In the last forty seconds of a half, the offence ended the half (4-7-3).
+    case halfEnded = 5
+    /// In the last forty seconds of a half, the offence chose to play on (4-7-3).
+    case playedOn = 6
+    /// An injury timeout after the two-minute warning was charged to the injured
+    /// player's team as a team timeout (4-5-4-a).
+    case injuryTimeoutCharged = 7
+    /// An injury timeout after the two-minute warning for a team with none left: an
+    /// excess timeout, with no runoff in question (4-5-4-b, 4-5-4 Note 1).
+    case excessInjuryTimeout = 8
+    /// An excess injury timeout against the team in possession, and the defence had ten
+    /// seconds run off (4-5-4 Note 3).
+    case injuryRunoff = 9
+    /// The same, and the defence declined it (4-5-4 Note 3).
+    case injuryRunoffDeclined = 10
 }
 
 public enum ThrowDecision: UInt8, CaseIterable, Sendable, Hashable, Codable {
@@ -230,8 +276,30 @@ extension DecisionPoint {
             detail: technique.rawValue)
     }
 
+    /// The play clock this snap was taken against, and what it read at the snap — zero
+    /// when it expired with the ball not snapped. Written by the rules layer on every
+    /// play; there is no player to name, so the slots are empty.
+    public static func playClock(seconds: UInt8, remaining: UInt8) -> DecisionPoint {
+        DecisionPoint(
+            tick: 0, kind: .playClock, primary: .none, detail: seconds, value: Int16(remaining))
+    }
+
+    /// A choice one side made about the clock between downs, as the rules put it.
+    public static func clockElection(_ election: ClockElection) -> DecisionPoint {
+        DecisionPoint(tick: 0, kind: .clockElection, primary: .none, detail: election.rawValue)
+    }
+
     // Typed reads. Each returns `nil` when the point is not of that kind, so a
     // mis-typed query is caught rather than silently reinterpreting a byte.
+
+    /// The play clock in force and what it read at the snap, for a `.playClock` point.
+    public var playClockReading: (seconds: UInt8, remaining: UInt8)? {
+        guard kind == .playClock, value >= 0, value <= Int16(UInt8.max) else { return nil }
+        return (detail, UInt8(value))
+    }
+    public var clockElectionValue: ClockElection? {
+        kind == .clockElection ? ClockElection(rawValue: detail) : nil
+    }
 
     public var throwDecisionValue: ThrowDecision? {
         kind == .throwDecision ? ThrowDecision(rawValue: detail) : nil

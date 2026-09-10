@@ -37,6 +37,13 @@ public struct PlayContext: Sendable {
     /// distance is a different problem depending on whether the huddle is free. It is
     /// what separates spiking the ball from simply running the next play.
     public let clockIsRunning: Bool
+    /// The play clock in force before this snap (2025 rulebook, 4-6).
+    ///
+    /// Which clock it is — forty from the end of the play, twenty-five from the whistle
+    /// after a change of possession — is a rule, so the rules layer supplies it. A
+    /// resolver that lets it expire is then reporting a fact about the clock, not
+    /// drawing a rate.
+    public let playClock: PlayClock
     /// Each player's day, in rating points, fixed for the whole game.
     ///
     /// A game-level fact, so it is computed once and read here rather than drawn per
@@ -57,6 +64,7 @@ public struct PlayContext: Sendable {
         weather: WeatherState = .clear,
         offenseIsHome: Bool = true,
         clockIsRunning: Bool = false,
+        playClock: PlayClock? = nil,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
@@ -65,6 +73,7 @@ public struct PlayContext: Sendable {
         self.weather = weather
         self.offenseIsHome = offenseIsHome
         self.clockIsRunning = clockIsRunning
+        self.playClock = playClock ?? rules.playClockAfterAPlay
         self.form = form
         self.offense = offense
         self.defense = defense

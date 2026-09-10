@@ -129,9 +129,27 @@ struct GoldenSeedTests {
             // record — the identifier was its raw value plus one — so this is the same
             // fact hashed under a different name, and nothing a play produced changed;
             // `Tools/gamelog` prints the same game before and after.
-            (UInt64(1), UInt64(1_449_257_930_156_826_948)),
-            (UInt64(5), UInt64(5_680_793_347_881_614_824)),
-            (UInt64(12), UInt64(11_800_324_472_582_984_274)),
+            //
+            // And moved by the play clock, this time by the engine. Every play now records
+            // the play clock it was snapped against (2025 rulebook, 4-6) as a decision
+            // point, and the checksum mixes every decision point, so every checksum moves
+            // for that reason alone. The football moved less: a delay of game is now the
+            // play clock expiring — drawn against the slack the tempo leaves on the clock
+            // in force rather than at a flat rate — so a snap on the twenty-five after a
+            // change of possession is a little likelier to be one, a flag that flies costs
+            // the whole play clock rather than the huddle, and a huddle after a runoff or a
+            // penalty enforcement is charged against the thirty or the twenty-five it was
+            // really taken against.
+            //
+            // The play clock and the record changes met in a merge, and the constants
+            // below are the union: the play clock's games, hashed with the record's
+            // schema version, concept, presence, pass result and points mixed in. Neither
+            // side's constants could survive, because each was computed without the
+            // other's mechanism; `Tools/gamelog` prints the play clock's game before and
+            // after the merge.
+            (UInt64(1), UInt64(9_070_778_498_208_478_976)),
+            (UInt64(5), UInt64(5_356_532_570_081_515_809)),
+            (UInt64(12), UInt64(3_069_529_540_596_400_208)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

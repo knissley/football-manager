@@ -510,6 +510,117 @@ public enum RulesScenarios {
         }
     }
 
+    // MARK: The play clock
+
+    /// The offence lets the play clock run out on a third-quarter snap with the game
+    /// clock running. The flag flies when the play clock expires — forty seconds after
+    /// the previous play ended (4-6-1) — and not when the huddle would have ended.
+    static var delayOfGameOnARunningClock: ScriptedGame {
+        lateFlag(.delayOfGame, quarter: 3, window: 160...400)
+    }
+
+    /// The first snap after the ball changes hands on downs in the first quarter, with
+    /// the game clock stopped, is a delay of game: the play clock in force is the short
+    /// one that follows an administrative stoppage (4-6-2-a), and no game clock ran.
+    static var delayOfGameAfterATurnoverOnDowns: ScriptedGame {
+        ScriptedGame { snap in
+            guard snap.isScrimmage, snap.quarter == 1, snap.down == .first,
+                (700...800).contains(snap.clock),
+                let previous = snap.previous, previous.outcome.kind == .rush,
+                previous.situation.down == .fourth,
+                previous.situation.possession != snap.possession
+            else { return snap.neutral }
+            return snap.preSnapFoul(.delayOfGame)
+        }
+    }
+
+    // MARK: The last forty seconds of a half
+
+    /// Every side burns its second-half timeouts while on defence in the fourth quarter,
+    /// well before the closing minutes, so that whoever is on defence at the end has
+    /// none left to save the half with.
+    static let defenseBurnsItsTimeouts = ScriptedCaller(timeoutDecision: { situation, isOffense in
+        !isOffense && situation.quarter == 4 && situation.clockRemaining <= 800
+            && situation.clockRemaining > 160 && situation.defenseTimeouts > 0
+    })
+
+    /// The defence jumps at 0:30 of the fourth quarter with the clock running, against
+    /// an offence leading by seven from a first-snap touchdown, and with no timeouts
+    /// left to save the half with.
+    static var neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading: ScriptedGame {
+        lateFlag(
+            .neutralZoneInfraction, window: 41...119, by: 7, flagAt: 30, opening: leadBySeven,
+            caller: defenseBurnsItsTimeouts)
+    }
+
+    /// The same flag at 0:30 with the game level and the defence out of timeouts.
+    static var neutralZoneInfractionInTheLastFortySecondsLevel: ScriptedGame {
+        lateFlag(
+            .neutralZoneInfraction, window: 41...119, flagAt: 30, caller: defenseBurnsItsTimeouts)
+    }
+
+    /// The same flag at 0:30 against a leading offence, with the defence's timeouts
+    /// intact.
+    static var neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft: ScriptedGame {
+        lateFlag(.neutralZoneInfraction, window: 41...119, by: 7, flagAt: 30, opening: leadBySeven)
+    }
+
+    // MARK: An injury after the two-minute warning
+
+    /// A walk to the fourth quarter's closing two minutes in which the side whose score
+    /// reads `differential` has the ball — the other side throws an interception when
+    /// it has it there — and its first snap after the warning is stretched so that the
+    /// play ends at 1:00 with the clock running. One of its players is hurt on that
+    /// play. With `outOfTimeouts`, that side spent its second-half timeouts on offence
+    /// earlier in the quarter, so the injury timeout has nothing to be charged to.
+    static func injuryInsideTwoMinutes(
+        by differential: Int16 = 0, outOfTimeouts: Bool,
+        opening: @escaping @Sendable (Snap) -> Outcome? = { _ in nil }
+    ) -> ScriptedGame {
+        let caller =
+            outOfTimeouts
+            ? ScriptedCaller(timeoutDecision: { situation, isOffense in
+                isOffense && situation.quarter == 4 && situation.scoreDifferential == differential
+                    && situation.clockRemaining > 160 && situation.offenseTimeouts > 0
+            })
+            : ScriptedCaller()
+        return ScriptedGame(
+            caller: caller,
+            injury: { snap, outcome in
+                // The stretched play is the one longer than a plod.
+                snap.quarter == 4 && snap.isScrimmage && outcome.kind == .rush
+                    && outcome.endedIn == .tackled && outcome.clockRunoff > 6 ? .offense : nil
+            }
+        ) { snap in
+            if let staged = opening(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4, snap.clock <= 150 else {
+                return snap.neutral
+            }
+            guard snap.differential == differential else { return .interception(to: 50) }
+            guard snap.clock < 120, snap.down != .fourth, let huddle = snap.huddle else {
+                return snap.neutral
+            }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            let target = 60
+            guard snapped > target, snapped - target <= 130 else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - target))
+        }
+    }
+
+    static var injuryInsideTwoMinutesWithATimeoutLeft: ScriptedGame {
+        injuryInsideTwoMinutes(outOfTimeouts: false)
+    }
+
+    static var injuryInsideTwoMinutesWithNoTimeoutsLeft: ScriptedGame {
+        injuryInsideTwoMinutes(outOfTimeouts: true)
+    }
+
+    /// The injured side leads by seven and has no timeouts, so the defence that is
+    /// offered the runoff is the trailing one.
+    static var injuryInsideTwoMinutesAgainstATrailingDefense: ScriptedGame {
+        injuryInsideTwoMinutes(by: 7, outOfTimeouts: true, opening: leadBySeven)
+    }
+
     // MARK: Tries, kicks and enforcement
 
     static var falseStartOnATry: ScriptedGame {
