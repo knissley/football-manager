@@ -954,6 +954,90 @@ struct RulesConformanceTests {
             "the next snap costs only the play's own six seconds")
     }
 
+    /// The fourth quarter's own window: inside the last five minutes of the second
+    /// half a runner out of bounds stops the clock until the snap (4-3-2-a-3), here on a
+    /// play that begins and ends inside them, so that nothing turns on where the window
+    /// is judged.
+    @Test(
+        "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds on a play snapped inside the last five minutes of the fourth quarter stops the clock until the snap",
+        .tags(.football)
+    )
+    func outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter.run()
+        guard let out = outOfBounds(in: trace, quarter: 4) else { return }
+        let before = out.play.situation
+        #expect(
+            before.clockRemaining <= 300, "the scenario meant the runner out inside five minutes")
+        trace.expectPlay(
+            out.index + 1, quarter: 4, clock: before.clockRemaining - out.huddle - 6,
+            clockRunning: false,
+            "the huddle and the play came off, and the clock is dead until the snap")
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 4, clock: next.situation.clockRemaining - 6,
+            "the next snap costs only the play's own six seconds")
+    }
+
+    /// Where the window is judged. The article's words are "inside the last five
+    /// minutes of the second half" (4-3-2-a-3), and a runner is inside them when he
+    /// steps out at 4:50 on a play snapped at 5:07: the clock is read where the ball
+    /// became dead. Read where the play *before* ended — up to a huddle and a play
+    /// earlier — the same runner is outside the window, and the clock restarts on the
+    /// ready when the book has it wait for the snap.
+    @Test(
+        "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds inside the last five minutes of the fourth quarter, on a play snapped with more than five minutes left, stops the clock until the snap: the window is judged where the ball became dead",
+        .tags(.football)
+    )
+    func outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter.run()
+        guard let out = outOfBounds(in: trace, quarter: 4) else { return }
+        let before = out.play.situation
+        let running = trace.clockRunning(into: out.index) == true
+        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let dead = snapped - Int(out.play.outcome.clockRunoff)
+        #expect(
+            snapped > 300, "the scenario meant the play snapped with more than five minutes left")
+        #expect(dead < 300 && dead > 120, "and the runner out of bounds inside them")
+        trace.expectPlay(
+            out.index + 1, quarter: 4, clock: UInt16(dead), clockRunning: false,
+            "the runner went out inside five minutes: the clock is dead until the snap")
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 4,
+            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
+            "the next snap costs only the play's own seconds, and no huddle")
+    }
+
+    /// The first half's window is "after the two-minute warning" (4-3-2-a-2), and the
+    /// warning is taken at the conclusion of the last down snapped before 2:00 (3-41).
+    /// A runner who steps out at 1:50 on a play snapped at 2:07 concludes that down: the
+    /// warning stops the clock there (4-4-h), and the snap restarts it — the same answer
+    /// the window gives when it is judged where the ball became dead.
+    @Test(
+        "football · Rule 4-3-2-a-2, 3-41, 4-4-h · a runner out of bounds after the two-minute warning of the second quarter, on a play snapped before it, stops the clock until the snap: the warning is taken as that down ends",
+        .tags(.football)
+    )
+    func outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter
+            .run()
+        guard let out = outOfBounds(in: trace, quarter: 2) else { return }
+        let before = out.play.situation
+        let running = trace.clockRunning(into: out.index) == true
+        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let dead = snapped - Int(out.play.outcome.clockRunoff)
+        #expect(snapped > 120, "the scenario meant the play snapped before the warning")
+        #expect(dead < 120, "and the runner out of bounds after it")
+        trace.expectPlay(
+            out.index + 1, quarter: 2, clock: UInt16(dead), clockRunning: false,
+            "the down that crossed 2:00 is over, the warning is taken, and the clock is dead until the snap"
+        )
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 2,
+            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
+            "the next snap costs only the play's own seconds, and no huddle")
+    }
+
     // MARK: The ten-second runoff
 
     /// Inside two minutes with the clock running, a false start costs the offence ten

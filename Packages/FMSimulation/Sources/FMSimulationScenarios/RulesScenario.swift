@@ -72,6 +72,12 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "runner-out-of-bounds-inside-five-minutes-of-a-second-postseason-overtime-period"
     case runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod =
         "runner-out-of-bounds-inside-five-minutes-of-a-fourth-postseason-overtime-period"
+    case runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter =
+        "runner-out-of-bounds-inside-five-minutes-of-the-fourth-quarter"
+    case runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter =
+        "runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter"
+    case runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter =
+        "runner-out-of-bounds-across-the-two-minute-warning-of-the-second-quarter"
 
     // Fouls before the snap late in a half
     case falseStartInsideTwoMinutes = "false-start-inside-two-minutes"
@@ -180,6 +186,14 @@ extension RulesScenario {
         case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
             return RulesScenarios.runnerOutOfBounds(
                 quarter: 8, window: 226...300, postseasonDecidedIn: 9)
+        case .runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.runnerOutOfBounds(quarter: 4, window: 226...300)
+        case .runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.playStretchedToEnd(
+                quarter: 4, at: 290, endedIn: .outOfBounds, snappedAfter: 300)
+        case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
+            return RulesScenarios.playStretchedToEnd(
+                quarter: 2, at: 110, endedIn: .outOfBounds, snappedAfter: 120)
 
         case .falseStartInsideTwoMinutes: return RulesScenarios.falseStartInsideTwoMinutes
         case .falseStartInTheThirdQuarter: return RulesScenarios.falseStartInTheThirdQuarter
@@ -394,6 +408,18 @@ extension RulesScenario {
         case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
             return [
                 "football · Rule 16-1-4-h, 4-3-2-a · a fourth postseason overtime period carries the fourth period's five-minute window, so a runner out of bounds inside its last five minutes stops the clock until the snap"
+            ]
+        case .runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds on a play snapped inside the last five minutes of the fourth quarter stops the clock until the snap"
+            ]
+        case .runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds inside the last five minutes of the fourth quarter, on a play snapped with more than five minutes left, stops the clock until the snap: the window is judged where the ball became dead"
+            ]
+        case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
+            return [
+                "football · Rule 4-3-2-a-2, 3-41, 4-4-h · a runner out of bounds after the two-minute warning of the second quarter, on a play snapped before it, stops the clock until the snap: the warning is taken as that down ends"
             ]
 
         case .falseStartInsideTwoMinutes:

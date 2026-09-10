@@ -314,22 +314,30 @@ public enum RulesScenarios {
     }
 
     /// A walk down `quarter` in which the first play that can be is stretched to end at
-    /// `second` with the clock running, and everything else is a yard at a time.
+    /// `second` — tackled in bounds with the clock running, unless `endedIn` says the
+    /// runner stepped out — and everything else is a yard at a time.
+    ///
+    /// With `snappedAfter` set, the play stretched is the first one snapped with more
+    /// than that on the clock, so that it can be made to straddle a boundary: snapped
+    /// outside a window and dead inside it, which is the one shape a play kept inside a
+    /// window (`runnerOutOfBounds`) can never take.
     ///
     /// A postseason walk needs an end: a postseason game level at the end of a period
     /// plays another (16-1-4-d), so a scoreless one never finishes. With `decidedIn` set
     /// the game is the postseason's, and the side with the ball in that period kicks a
     /// field goal on its first fourth down, which in sudden death wins it.
     static func playStretchedToEnd(
-        quarter: UInt8, at second: UInt16, postseasonDecidedIn decidedIn: UInt8? = nil
+        quarter: UInt8, at second: UInt16, endedIn: PlayEnding = .tackled,
+        snappedAfter floor: UInt16 = 0, postseasonDecidedIn decidedIn: UInt8? = nil
     ) -> ScriptedGame {
         ScriptedGame(isPostseason: decidedIn != nil, caller: decider(decidedIn)) { snap in
             guard snap.isScrimmage, snap.quarter == quarter, snap.down != .fourth,
                 let huddle = snap.huddle
             else { return snap.neutral }
             let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
-            guard snapped > Int(second), snapped - Int(second) <= 130 else { return snap.neutral }
-            return .rush(1, seconds: UInt16(snapped - Int(second)))
+            guard snapped > Int(second), snapped > Int(floor), snapped - Int(second) <= 130
+            else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - Int(second)), endedIn: endedIn)
         }
     }
 
@@ -340,10 +348,11 @@ public enum RulesScenarios {
     /// `playStretchedToEnd`.
     ///
     /// The window is on the clock as the play's situation records it — the end of the
-    /// play before — and a scenario about a clock window keeps the whole play inside
-    /// it: the huddle and the six seconds of the play come off that reading, so the
-    /// runner is out of bounds inside the window whether it is judged at the snap or
-    /// where the ball died.
+    /// play before — and this scenario keeps the whole play inside it: the huddle and
+    /// the six seconds of the play come off that reading, so the runner is out of bounds
+    /// inside the window however the window is judged. The play that straddles a
+    /// window's edge, snapped outside it and dead inside it, is `playStretchedToEnd`
+    /// with `snappedAfter`.
     static func runnerOutOfBounds(
         quarter: UInt8, window: ClosedRange<UInt16>, postseasonDecidedIn decidedIn: UInt8? = nil
     ) -> ScriptedGame {
