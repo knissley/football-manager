@@ -130,11 +130,12 @@ drive summary at each change of possession and a scoreboard at the end of each p
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
 
-`--home` and `--away` are indices into `gamelog`'s own league, and the header names the
-two teams it picked. **They do not agree with `worldgen`**, which draws a larger college
-pool before its league and so builds a different world from the same seed; the indices
-mean something across `gamelog` and `simharness` and nothing outside them. G1 (#3) is the
-one world generator that makes all three agree.
+`--home` and `--away` are indices into the league at that seed, in identifier order, and
+the header names the two teams it picked. They agree with `worldgen` and `simharness`:
+all three call `WorldGenerator.generate(seed:shape:season:)`, and every stage of it draws
+from its own labelled substream, so `worldgen`'s larger college pool no longer shifts the
+league behind it. At seed 7, `--home 3` and `worldgen --seed 7 --show roster --team 3` are
+the same club.
 
 `--week` is what the weather is drawn from: week 1 in a warm city is not the same game as
 week 17 in a cold one.
