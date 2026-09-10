@@ -99,7 +99,10 @@ sport — in a doc, a test name, a PR — cites a rule number and rulebook seaso
 real-league season and the source the number came from. A claim about the engine's
 behaviour cites a harness row or a scenario test. The reference the engine was first
 written from was memory, and the code carried its errors for weeks while a table in the
-football-domain skill said the opposite and nothing connected the two.
+football-domain skill said the opposite and nothing connected the two. The reference is
+[`docs/reference/`](docs/reference/) — the rules by article number, and where every
+calibration band came from — and what must be true of a game is
+[`docs/invariants.md`](docs/invariants.md), where each line names the test that checks it.
 
 **11. Football tests come first, and every test says what kind it is.** A change to the
 rules layer, the resolver, or a caller lands with at least one football test it turned

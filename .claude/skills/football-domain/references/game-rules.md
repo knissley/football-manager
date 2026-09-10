@@ -24,6 +24,14 @@ rule — a modelling convention, a calibration band, a fact about our engine —
 is instead and cites that. Anything still marked `(unverified: cite on next pass)` is a
 line nobody has checked; grep for that phrase before trusting a number.
 
+The tables carry a second half to the cite column: **what checks the row**.
+`test:<function name>` names a test function in one of the packages' test targets, and
+`row:<row id>` a calibration row in `Tools/simharness/Sources/simharness/Targets.swift`.
+`InvariantsTraceabilityTests` in the FMSimulation test target fails if a name here does not
+exist, so a row cannot claim a check it has not got. The rules that no table covers are
+indexed by article number in `docs/reference/playing-rules.md`, and what must be true of a
+game — including the rules the engine does not enforce yet — is `docs/invariants.md`.
+
 ## Field and structure
 
 - The field is 360 feet by 160 feet, with goal lines 10 yards in from each end line: 100
@@ -55,19 +63,19 @@ line nobody has checked; grep for that phrase before trusting a number.
 This is where accuracy matters most. Any of these kills the clock as the down closes, and
 the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 
-| Event | Restarts on | Cite |
+| Event | Restarts on | Cite · checked by |
 | --- | --- | --- |
-| Incomplete pass | Snap | `4-4-f`, `4-3-2` |
-| Ball dead on or behind a goal line | Snap | `4-4-d` |
-| Free kick or fair catch kick down | Legal touching in the field of play — not on a touchback, a kick the kicking team recovers before any other legal touching, or a fair catch; the down over, the clock waits for the snap | `4-4-a`, `4-3-1-a` to `4-3-1-c`, `4-3-2` |
-| Charged timeout | Snap | `4-4-j`, `4-3-2` |
-| **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` |
-| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e` |
-| Two-minute warning | Snap | `4-4-h` |
-| Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` |
-| After a 10-second runoff | Ready for play | `4-3-2-g` |
-| During the Try | The Try is untimed | `4-3-2-h`, `11-3-1` |
-| First down gained | Does not stop the clock | — |
+| Incomplete pass | Snap | `4-4-f`, `4-3-2` · `test:spikeStopsTheClock` |
+| Ball dead on or behind a goal line | Snap | `4-4-d` · `test:touchbackConsumesNoTime` |
+| Free kick or fair catch kick down | Legal touching in the field of play — not on a touchback, a kick the kicking team recovers before any other legal touching, or a fair catch; the down over, the clock waits for the snap | `4-4-a`, `4-3-1-a` to `4-3-1-c`, `4-3-2` · `test:returnedKickoffAdvancesTheClock`, `test:fairCaughtKickoffStartsNoClock`, `test:kickoffRecoveredByTheKickersStartsNoClock` |
+| Charged timeout | Snap | `4-4-j`, `4-3-2` · `test:timeoutsAreSpentAndVisible` |
+| **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` · `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`, `test:puntReturnedAndTackledStopsTheClock` |
+| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e` · `test:falseStartInTheThirdQuarterCostsNoTime`, `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap` |
+| Two-minute warning | Snap | `4-4-h` · `test:twoMinuteWarningStopsAtTwoMinutes` |
+| Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` · `test:outOfBoundsEarly`, `test:outOfBoundsLate` |
+| After a 10-second runoff | Ready for play | `4-3-2-g` · `test:falseStartInsideTwoMinutesCostsTenSeconds` |
+| During the Try | The Try is untimed | `4-3-2-h`, `11-3-1` · `test:touchdownAsTheSecondQuarterExpires` |
+| First down gained | Does not stop the clock | not in `4-4` · `test:firstDownDoesNotStop` |
 
 The out-of-bounds rule is the one most often modeled wrong, and it's exactly the rule
 that governs whether a two-minute drill works.
@@ -108,13 +116,13 @@ one. In our own words:
 
 ## Scoring
 
-| Play | Points | Cite |
+| Play | Points | Cite · checked by |
 | --- | --- | --- |
-| Touchdown | 6 | `[2025 · 11-1-2-a]` |
-| Field goal | 3 | `[2025 · 11-1-2-b]` |
-| Safety | 2 | `[2025 · 11-1-2-c]` |
-| Try by kick | 1 | `[2025 · 11-1-2-d]` |
-| Try by pass or run | 2 | `[2025 · 11-1-2-d]` |
+| Touchdown | 6 | `[2025 · 11-1-2-a]` · `test:touchdown` |
+| Field goal | 3 | `[2025 · 11-1-2-b]` · `test:fieldGoal` |
+| Safety | 2 | `[2025 · 11-1-2-c]` · `test:safetyPaysTheDefence` |
+| Try by kick | 1 | `[2025 · 11-1-2-d]` · `test:extraPointIsOnePoint` |
+| Try by pass or run | 2 | `[2025 · 11-1-2-d]` · `test:twoPointIsTwoPoints` |
 
 A field goal has to be place-kicked or drop-kicked, struck at or behind the line, and it
 must reach the goal without grazing the turf or one of the kicker's own men.
@@ -191,24 +199,24 @@ still owed its turn. `[2025 · A.R. 16.1]`
 
 Common ones, with what the book says they cost.
 
-| Penalty | Yards | Notes | Cite |
+| Penalty | Yards | Notes | Cite · checked by |
 | --- | --- | --- | --- |
-| False start | 5 | Enforced before the snap | `7-4-2` |
-| Encroachment | 5 | Pre-snap, defense | `7-4-3` |
-| Offside | 5 | The offense may get a free play | `7-4-5` |
-| Delay of game | 5 | Play clock expired, and the other listed delays | `4-6` |
-| Illegal formation (offense) | 5 | | `7-5-1` |
-| Illegal motion | 5 | | `7-4-8` |
-| Holding (offense) | 10 | Replay the down | `12-1-3-c` |
-| Illegal use of hands (offense) | 10 | | `12-1-3-a` |
-| Illegal block in the back | 10 | | `12-1-3-b` |
-| Holding (defense) | 5 | Automatic first down | `8-4-6`, `12-1-6` |
-| Illegal contact | 5 | Automatic first down | `8-4-4` |
-| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-4` |
-| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-4` |
-| Roughing the passer | 15 | Automatic first down | `12-2-11` |
-| Unnecessary roughness | 15 | Automatic first down if by the defense | `12-2-8` |
-| Facemask | 15 | Automatic first down if by the defense | `12-2-15` |
+| False start | 5 | Enforced before the snap | `7-4-2` · `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `row:penalty.falseStart` |
+| Encroachment | 5 | Pre-snap, defense | `7-4-3` · `test:everyFoulIsCalled` |
+| Offside | 5 | The offense may get a free play | `7-4-5` · `test:offsideOnTheConversionMovesItIn`, `row:penalty.offside` |
+| Delay of game | 5 | Play clock expired, and the other listed delays | `4-6` · `row:penalty.delayOfGame` |
+| Illegal formation (offense) | 5 | | `7-5-1` · `row:penalty.illegalFormation` |
+| Illegal motion | 5 | | `7-4-8` · `test:everyFoulIsCalled` |
+| Holding (offense) | 10 | Replay the down | `12-1-3-c` · `test:holdingOnAGain`, `row:penalty.offensiveHolding` |
+| Illegal use of hands (offense) | 10 | | `12-1-3-a` · `test:everyFoulIsCalled` |
+| Illegal block in the back | 10 | | `12-1-3-b` · `test:blockInTheBackDuringARun` |
+| Holding (defense) | 5 | Automatic first down | `8-4-6`, `12-1-6` · `test:defensiveHoldingAtTheThreeIsHalfTheDistance`, `row:penalty.defensiveHolding` |
+| Illegal contact | 5 | Automatic first down | `8-4-4` · `test:everyFoulIsCalled` |
+| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-4` · `test:interferenceInTheEndZoneSpotsAtTheOne`, `test:interferenceInTheEndZoneFromInsideTheTwo`, `row:penalty.defensivePassInterference` |
+| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-4` · `test:offensiveInterference` |
+| Roughing the passer | 15 | Automatic first down | `12-2-11` · `test:roughingOnACompletion`, `row:penalty.roughingThePasser` |
+| Unnecessary roughness | 15 | Automatic first down if by the defense | `12-2-8` · `row:penalty.unnecessaryRoughness` |
+| Facemask | 15 | Automatic first down if by the defense | `12-2-15` · `test:facemaskAtTheEndOfARun` |
 
 All cites are the 2025 book.
 
@@ -224,16 +232,15 @@ its season and source belong to issue #2.
 
 - The spots a penalty can be enforced from are the previous spot (where the ball was last
   put in play), the spot of the foul, the spot of a backward pass or fumble, the dead-ball
-  spot, the succeeding spot (where the ball will next be put in play), the other try
-  spot, and the spot of a change of possession. `[2025 · 14-3-4]`
+  spot, the succeeding spot (where the next down will start), the other try spot, and the
+  spot of a change of possession. `[2025 · 14-3-4]`
 - **Half the distance to the goal is measured from the spot of enforcement**, whichever
   spot that is. `[2025 · 14-2-1]`
 - A foul before the snap is enforced from the succeeding spot and the down stays; a foul
   at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]`
-- **The basic spot.** For a foul during a run that is not followed by a change of
-  possession, the basic spot is the dead-ball spot; when the run is followed by a change
-  of possession, it is the spot where possession was lost; during a backward pass or
-  fumble, the spot of the pass or the fumble. `[2025 · 14-3-5]`
+- **The basic spot.** A run with no change of possession in it takes the dead-ball spot;
+  a run that ends in one takes the spot where possession went; a backward pass or a fumble
+  takes the spot of the pass or the fumble. `[2025 · 14-3-5]`
 - **The three-and-one method.** A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
@@ -253,14 +260,14 @@ its season and source belong to issue #2.
   penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
   engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
   the flag is recorded declined.
-- **The passing game.** A foul by either team from the snap until a forward pass thrown
-  from behind the line ends is enforced from the previous spot, and the pass play ends
-  and a running play begins at the instant of the catch. `[2025 · 8-6-1]` Interference by
-  the defence is enforced from the spot of the foul; in the end zone it is first down at
-  the 1, or half the distance from the previous spot when that was inside the 2.
-  `[2025 · 8-6-1-b]` A personal foul by the defence before a completion is enforced from
-  the previous spot or the dead-ball spot, whichever is better for the offence; if the
-  play scores, on the try. `[2025 · 8-6-1-d]`
+- **The passing game.** Between the snap and the moment a forward pass from behind the
+  line is over, a foul by either team is enforced from the previous spot; the catch is the
+  boundary, and with the ball in a receiver's hands the down has become a run.
+  `[2025 · 8-6-1]` Interference by the defence is enforced from the spot of the foul; in
+  the end zone it is first down at the 1, or half the distance from the previous spot when
+  that was inside the 2. `[2025 · 8-6-1-b]` A personal foul by the defence before a
+  completion is enforced from the dead-ball spot or the previous spot, whichever favours
+  the offence; if the play scores, on the try. `[2025 · 8-6-1-d]`
 - Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
   automatic first down when it is the defence's. `[2025 · 12-3-1]`
 - Horse-collar tackle: fifteen yards and an automatic first down. `[2025 · 12-2-16]`
