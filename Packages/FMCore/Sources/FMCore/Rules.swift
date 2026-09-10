@@ -106,10 +106,11 @@ public struct Rules: Sendable, Hashable, Codable {
     public var fieldGoalSnapDepth: UInt8
     /// Yards from the kicking team's own goal line.
     public var kickoffFromOwnYard: UInt8
-    /// Where a free kick that reaches the end zone **without first touching the ground or
-    /// a player in the landing zone** is spotted, from the receiving team's own goal
-    /// (2025 rulebook, 6-1-5-b, 6-1-5-c, 6-1-5-d): downed there, out of bounds behind the
-    /// goal line, or off the goal post or uprights. It was the 30 in the 2024 book.
+    /// Where a free kick that reaches the end zone is spotted, from the receiving team's
+    /// own goal (2025 rulebook, 6-1-5-b, 6-1-5-c, 6-1-5-d), when it got there **having
+    /// neither come down in the landing zone nor been handled by anybody standing in
+    /// it**: downed there, out of bounds behind the goal line, or off the goal post or
+    /// uprights. It was the 30 in the 2024 book.
     ///
     /// The book's other touchback — a kick that comes down in the landing zone first and
     /// is then dead in the end zone, which is spotted at the 20 (6-1-5-a) — is not a
