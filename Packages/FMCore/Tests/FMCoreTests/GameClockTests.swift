@@ -83,11 +83,38 @@ struct ClockStoppageTests {
     }
 
     /// The ball stayed live, so the clock did too.
-    @Test("A live ball keeps the clock running")
+    ///
+    /// Rewritten for A4 (#17): the `.downed` row asserted that a downed punt keeps the
+    /// clock running. A downed kick has changed hands, and a change of possession stops
+    /// the clock until the snap.
+    @Test(
+        "football · Rule 4-4, 4-4-i · a tackle in bounds and a fumble the offence falls on keep the clock running; a downed kick has changed hands and stops it"
+    )
     func liveBallRuns() {
         #expect(behavior(.tackled) == .keepsRunning)
         #expect(behavior(.fumbleRecovered) == .keepsRunning)
-        #expect(behavior(.downed) == .keepsRunning)
+        #expect(behavior(.downed) == .stopsUntilSnap, "a downed kick is a change of possession")
+    }
+
+    /// The ending alone cannot tell a fourth-down stop from a first-down tackle, or a
+    /// returned punt from a run: both end `.tackled`. The change of possession is what
+    /// stops the clock, whatever the ending.
+    @Test(
+        "football · Rule 4-4-i, 4-3-2-a-1 · a change of possession stops the clock until the snap, whatever the ending"
+    )
+    func changeOfPossessionStops() {
+        for ending in PlayEnding.allCases {
+            #expect(
+                rules.clockBehavior(
+                    after: ending, possessionChanged: true, quarter: 1, clockRemaining: 600)
+                    == .stopsUntilSnap,
+                "\(ending)")
+        }
+        #expect(
+            rules.clockBehavior(
+                after: .tackled, possessionChanged: false, quarter: 1, clockRemaining: 600)
+                == .keepsRunning,
+            "without a change of possession the ending decides")
     }
 
     /// **The rule most often modelled wrong**, and the one that decides whether a
@@ -179,27 +206,48 @@ struct GameClockTests {
         #expect(clock.isExpired)
     }
 
-    /// The clock stops *at* two minutes, not past it. Letting a play run through the
-    /// warning is how a half quietly loses a snap.
-    @Test("A play crossing two minutes stops exactly on the warning")
-    func stopsOnTheWarning() {
+    /// Rewritten for A4 (#17). The old test pinned `run` clamping the whole interval —
+    /// huddle and play together — at 2:00, which swallowed a play snapped just before
+    /// the warning and truncated a down under way at 2:00. The warning is a stoppage
+    /// between downs: when the clock reaches 2:00 in the huddle it stops there, the snap
+    /// restarts it, and the play then runs from 2:00.
+    @Test(
+        "football · Rule 3-41, 4-4-h · the warning stops a running clock at 2:00 between downs, and the play then runs from there"
+    )
+    func warningBetweenDowns() {
         var clock = GameClock(quarter: 4, secondsRemaining: 128)
-        let taken = clock.run(20, rules: rules)
+        let taken = clock.run(GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules)
 
         #expect(taken)
-        #expect(clock.secondsRemaining == 120)
+        #expect(clock.secondsRemaining == 114, "the huddle was cut at 2:00; the play ran six")
+        #expect(clock.twoMinuteWarningTaken)
+    }
+
+    /// A down under way when the clock passes 2:00 finishes; only then is the clock
+    /// dead, at whatever it reads.
+    @Test(
+        "football · Rule 3-41 · a down under way when the clock passes 2:00 finishes, and the clock is dead after it"
+    )
+    func warningDuringADown() {
+        var clock = GameClock(quarter: 4, secondsRemaining: 128)
+        let taken = clock.run(GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules)
+
+        #expect(taken, "the warning is taken as the down ends")
+        #expect(clock.secondsRemaining == 108, "the down finished")
         #expect(clock.twoMinuteWarningTaken)
     }
 
     @Test("The warning is taken once per half, not once per play")
     func warningTakenOnce() {
         var clock = GameClock(quarter: 2, secondsRemaining: 130)
-        let firstCrossing = clock.run(15, rules: rules)
+        let firstCrossing = clock.run(
+            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules)
         #expect(firstCrossing)
         #expect(clock.secondsRemaining == 120)
 
         // The next play runs through freely.
-        let secondCrossing = clock.run(15, rules: rules)
+        let secondCrossing = clock.run(
+            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules)
         #expect(secondCrossing == false)
         #expect(clock.secondsRemaining == 105)
     }
@@ -254,7 +302,7 @@ struct GameClockTests {
             while !clock.isExpired && snaps < 40 {
                 let elapsed = GameClock.elapsed(
                     playDuration: 6, tempo: .hurryUp, previousBehavior: previous)
-                _ = clock.run(elapsed.total, rules: rules)
+                _ = clock.run(elapsed, rules: rules)
                 snaps += 1
                 previous =
                     alwaysStopping
