@@ -1,0 +1,35 @@
+# What scripts/test-census.sh --self-test must find in this directory, as
+# `path:line: kind`. A difference in either direction fails: a test that quietly stops
+# being counted is caught as loudly as one counted twice.
+#
+# Blank lines and lines starting with # are ignored. Adding a shape to a fixture means
+# adding its line here.
+
+# Tagged.swift — one of each kind, then the shapes the scan has to get right.
+scripts/test-census-fixtures/Tagged.swift:15: football
+scripts/test-census-fixtures/Tagged.swift:18: contract
+scripts/test-census-fixtures/Tagged.swift:21: unit
+scripts/test-census-fixtures/Tagged.swift:24: pin
+
+# An attribute spread over several lines, and a parameterised test: one each.
+scripts/test-census-fixtures/Tagged.swift:30: football
+scripts/test-census-fixtures/Tagged.swift:37: unit
+
+# A doc comment naming `@Test`, and a multi-line string whose own line begins with the
+# attribute. Each of these is one test, not two: the prose is not counted.
+scripts/test-census-fixtures/Tagged.swift:44: unit
+scripts/test-census-fixtures/Tagged.swift:47: unit
+
+# A struct with no @Suite attribute. Its absence from this list would mean the tests of
+# an unannotated struct were being dropped.
+scripts/test-census-fixtures/Tagged.swift:65: unit
+
+# The tag on the @Suite at line 13, and the test inside the block comment at line 58, are
+# deliberately absent: neither is a test.
+
+# Untagged.swift — the four ways a test can fail to say what kind it is: no traits, no
+# parentheses at all, a trait that is not a kind, and two kinds at once.
+scripts/test-census-fixtures/Untagged.swift:9: untagged
+scripts/test-census-fixtures/Untagged.swift:13: untagged
+scripts/test-census-fixtures/Untagged.swift:17: untagged
+scripts/test-census-fixtures/Untagged.swift:21: multiple

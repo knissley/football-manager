@@ -25,14 +25,16 @@ struct HarnessWorldTests {
     /// checked-in constant — applied to the world the games are played in, and nothing
     /// else. A private copy here would drift from the golden silently and take the reach
     /// script with it.
-    @Test("contract: the header's number is FMGeneration's checksum of the world played in")
+    @Test(
+        "contract: the header's number is FMGeneration's checksum of the world played in",
+        .tags(.contract))
     func theLineCarriesTheSharedChecksum() throws {
         let world = try HarnessWorld.generate(seed: 7).get()
         let expected = WorldChecksum.hex(WorldChecksum.of(world))
         #expect(hexDigits(of: HarnessWorld.checksumLine(for: world)) == expected[...])
     }
 
-    @Test("contract: the line is the shape scripts/harness-reach.sh parses")
+    @Test("contract: the line is the shape scripts/harness-reach.sh parses", .tags(.contract))
     func theLineIsParseable() throws {
         let world = try HarnessWorld.generate(seed: 7).get()
         let line = HarnessWorld.checksumLine(for: world)
@@ -45,7 +47,9 @@ struct HarnessWorldTests {
         #expect(line.split(separator: " ").count == 3)
     }
 
-    @Test("contract: a seed names one league, and two seeds do not name the same one")
+    @Test(
+        "contract: a seed names one league, and two seeds do not name the same one",
+        .tags(.contract))
     func seedsAreDistinguished() throws {
         let seven = try HarnessWorld.generate(seed: 7).get()
         let sevenAgain = try HarnessWorld.generate(seed: 7).get()
@@ -57,7 +61,7 @@ struct HarnessWorldTests {
     /// The case the reach script exists for. Rivalry generation was a hundred lines that
     /// no calibration row could see (#64), and the reason it could not is here: the
     /// harness never generates one.
-    @Test("contract: the harness world holds no draft pipeline and no rivalries")
+    @Test("contract: the harness world holds no draft pipeline and no rivalries", .tags(.contract))
     func optionalPartsAreAbsent() throws {
         let world = try HarnessWorld.generate(seed: 7).get()
         #expect(world.draftPipeline.isEmpty)

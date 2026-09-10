@@ -37,14 +37,14 @@ struct LeagueTests {
             conferences: conferences)
     }
 
-    @Test("A league built to its shape is well formed")
+    @Test("A league built to its shape is well formed", .tags(.unit))
     func wellFormed() {
         #expect(league().isWellFormed)
         #expect(league(shape: .standard).isWellFormed)
         #expect(league(shape: .minimal).isWellFormed)
     }
 
-    @Test("Membership rolls up from divisions")
+    @Test("Membership rolls up from divisions", .tags(.unit))
     func membership() {
         let compact = league(shape: .compact)
         #expect(compact.teams.count == LeagueShape.compact.totalTeams)
@@ -55,7 +55,7 @@ struct LeagueTests {
             })
     }
 
-    @Test("A team's division and conference are found from the structure")
+    @Test("A team's division and conference are found from the structure", .tags(.unit))
     func lookup() {
         let compact = league()
         let first = compact.teams[0]
@@ -66,7 +66,7 @@ struct LeagueTests {
 
     /// Divisional opponents play twice a year and share a bracket. Rivalry generation
     /// keys off this, so it has to be exactly the teams in the same division.
-    @Test("Division rivals are the other teams in the division, and never yourself")
+    @Test("Division rivals are the other teams in the division, and never yourself", .tags(.unit))
     func divisionRivals() {
         let compact = league()
         guard let division = compact.divisions.first, division.teams.count >= 2 else {
@@ -88,7 +88,7 @@ struct LeagueTests {
 
     /// A valid shape filled in wrongly breaks the schedule just as thoroughly as an
     /// impossible shape, and fails much later and less legibly. Hence two validators.
-    @Test("A short division is caught even though the shape is legal")
+    @Test("A short division is caught even though the shape is legal", .tags(.unit))
     func shortDivision() {
         var broken = league()
         broken.conferences[0].divisions[0].teams.removeLast()
@@ -104,7 +104,7 @@ struct LeagueTests {
         }
     }
 
-    @Test("A missing conference is reported against the shape")
+    @Test("A missing conference is reported against the shape", .tags(.unit))
     func missingConference() {
         var broken = league()
         broken.conferences.removeLast()
@@ -115,7 +115,7 @@ struct LeagueTests {
             })
     }
 
-    @Test("A missing division is named by its conference")
+    @Test("A missing division is named by its conference", .tags(.unit))
     func missingDivision() {
         var broken = league()
         broken.conferences[0].divisions.removeLast()
@@ -130,7 +130,7 @@ struct LeagueTests {
 
     /// A duplicated team plays itself and inflates a division. It is the one structural
     /// error the counts alone would miss.
-    @Test("A team in two divisions is caught")
+    @Test("A team in two divisions is caught", .tags(.unit))
     func duplicatedTeam() {
         var broken = league()
         let stolen = broken.conferences[0].divisions[0].teams[0]
@@ -141,7 +141,7 @@ struct LeagueTests {
 
     /// An impossible shape is reported once, as a shape problem, rather than as the
     /// dozen structural symptoms it produces.
-    @Test("An invalid shape short-circuits structural checks")
+    @Test("An invalid shape short-circuits structural checks", .tags(.unit))
     func invalidShapeShortCircuits() {
         let oneConference = LeagueShape(
             conferences: 1, divisionsPerConference: 2, teamsPerDivision: 4,
@@ -159,7 +159,7 @@ struct LeagueTests {
     }
 
     /// Written for the player, not the log — the same standard `LeagueShape` holds to.
-    @Test("Structural failures explain themselves in plain language")
+    @Test("Structural failures explain themselves in plain language", .tags(.unit))
     func explanations() {
         var broken = league()
         broken.conferences[0].divisions[0].teams.removeLast()

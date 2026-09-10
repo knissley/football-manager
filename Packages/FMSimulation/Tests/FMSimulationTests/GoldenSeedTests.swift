@@ -81,7 +81,7 @@ struct GoldenSeedTests {
     /// described in the message. If it did not, the engine is non-deterministic and that
     /// is the bug.
     @Test(
-        "A seed produces the same game in every process",
+        "A seed produces the same game in every process", .tags(.contract),
         arguments: [
             (UInt64(1), UInt64(12_324_255_037_165_177_066)),
             (UInt64(5), UInt64(5_395_087_517_990_643_814)),

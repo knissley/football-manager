@@ -143,7 +143,7 @@ struct GameSimulatorTests {
 
     // MARK: - The stream
 
-    @Test("A game produces an ordered, contiguous play stream")
+    @Test("A game produces an ordered, contiguous play stream", .tags(.contract))
     func streamIsOrdered() {
         let result = simulate(StalemateResolver())
         #expect(result.plays.isEmpty == false)
@@ -154,7 +154,7 @@ struct GameSimulatorTests {
 
     /// Rule 2: a game is a pure function of its setup and seed, and that tuple is how
     /// most games are *stored*.
-    @Test("The same setup and seed replay identically")
+    @Test("The same setup and seed replay identically", .tags(.contract))
     func deterministic() {
         let first = simulate(StalemateResolver())
         let second = simulate(StalemateResolver())
@@ -164,7 +164,7 @@ struct GameSimulatorTests {
         #expect(first.plays.map(\.calls) == second.plays.map(\.calls))
     }
 
-    @Test("Different seeds produce different games")
+    @Test("Different seeds produce different games", .tags(.contract))
     func seedsDiverge() {
         let a = simulate(StalemateResolver(), setup(seed: 1))
         let b = simulate(StalemateResolver(), setup(seed: 2))
@@ -173,7 +173,7 @@ struct GameSimulatorTests {
 
     /// A resolver bug that never advances the ball must fail at the end of a test
     /// rather than hang a season.
-    @Test("A game always terminates")
+    @Test("A game always terminates", .tags(.contract))
     func terminates() {
         let result = simulate(StalemateResolver())
         #expect(result.plays.count < 400, "the game hit the play limit")
@@ -181,7 +181,7 @@ struct GameSimulatorTests {
 
     // MARK: - Clock and periods
 
-    @Test("A game runs through all four quarters")
+    @Test("A game runs through all four quarters", .tags(.contract))
     func quarters() {
         let result = simulate(StalemateResolver())
         let quarters = Set(result.plays.map(\.situation.quarter))
@@ -191,7 +191,7 @@ struct GameSimulatorTests {
 
     /// The clock only ever runs down within a quarter. A rise means a period boundary
     /// was mishandled.
-    @Test("The clock is monotonic within each quarter")
+    @Test("The clock is monotonic within each quarter", .tags(.contract))
     func clockIsMonotonic() {
         let result = simulate(StalemateResolver())
         var previous: (quarter: UInt8, clock: UInt16)?
@@ -207,7 +207,7 @@ struct GameSimulatorTests {
         }
     }
 
-    @Test("Possession changes hands at halftime")
+    @Test("Possession changes hands at halftime", .tags(.unit))
     func halftimePossession() {
         let result = simulate(StalemateResolver())
         let firstPlay = result.plays.first { $0.situation.quarter == 1 }
@@ -217,7 +217,7 @@ struct GameSimulatorTests {
 
     // MARK: - Scoring
 
-    @Test("A touchdown scores six, then a try, then a kickoff")
+    @Test("A touchdown scores six, then a try, then a kickoff", .tags(.unit))
     func touchdownSequence() {
         let script = [
             Outcome(kind: .kickoff, yards: 0, endedIn: .touchback),
@@ -240,7 +240,8 @@ struct GameSimulatorTests {
     /// scripted kick is a touchback; that spot is `Rules.kickoffTouchbackOwnYard`, the
     /// 30 until D1 (#41) moves it.
     @Test(
-        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety pays the defence, the team scored upon free-kicks from its own 20, and the team that scored takes over"
+        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety pays the defence, the team scored upon free-kicks from its own 20, and the team that scored takes over",
+        .tags(.football)
     )
     func safetyPaysTheDefence() {
         let script = [
@@ -281,7 +282,7 @@ struct GameSimulatorTests {
     }
 
     /// Points and the play log cannot disagree: the box score *is* the play log, summed.
-    @Test("The final score equals the scoring plays in the stream")
+    @Test("The final score equals the scoring plays in the stream", .tags(.contract))
     func scoreMatchesTheStream() {
         let result = simulate(StalemateResolver())
         let rules = Rules.standard
@@ -313,7 +314,7 @@ struct GameSimulatorTests {
 
     /// Every situation the simulator hands a resolver has to be a legal one. A bad
     /// situation surfaces deep in the engine as strange behaviour rather than a failure.
-    @Test("Every situation in the stream is valid")
+    @Test("Every situation in the stream is valid", .tags(.contract))
     func situationsAreValid() {
         for seed in UInt64(1)...5 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
@@ -327,7 +328,7 @@ struct GameSimulatorTests {
 
     /// Recording who called it is what lets the gameplan layer measure plan against
     /// execution, and what makes a game the player called reproducible.
-    @Test("Both callers are recorded on every scrimmage play")
+    @Test("Both callers are recorded on every scrimmage play", .tags(.contract))
     func callersAreRecorded() {
         let result = simulate(StalemateResolver())
         let scrimmage = result.plays.filter { $0.outcome.kind.isScrimmagePlay }
@@ -340,7 +341,7 @@ struct GameSimulatorTests {
 
     /// A resolver that returns a rush when a kickoff was called is lying in exactly the
     /// way a fabricated causal chain would. The kind has to match the call.
-    @Test("Every outcome's kind matches the play that was called")
+    @Test("Every outcome's kind matches the play that was called", .tags(.contract))
     func outcomeMatchesTheCall() {
         for seed in UInt64(1)...4 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
@@ -358,7 +359,7 @@ struct GameSimulatorTests {
 
     /// A caller that never punts is not a football caller. This was missing entirely
     /// until an outcome-matches-the-call test surfaced it.
-    @Test("The caller punts, kicks and goes for it in the right places")
+    @Test("The caller punts, kicks and goes for it in the right places", .tags(.unit))
     func fourthDownDecisions() {
         var families: Set<PlayFamily> = []
         for seed in UInt64(1)...8 {
@@ -375,7 +376,7 @@ struct GameSimulatorTests {
 
     /// Nobody kicks a seventy-yarder. The baseline's range is flat and generous; a real
     /// caller reads its kicker and should beat this.
-    @Test("Field goals are only attempted from a plausible distance")
+    @Test("Field goals are only attempted from a plausible distance", .tags(.unit))
     func kicksAreInRange() {
         let rules = Rules.standard
         for seed in UInt64(1)...8 {
@@ -393,7 +394,7 @@ struct GameSimulatorTests {
     /// The situational vocabulary is shared, so a caller and a tendency table mean the
     /// same thing by "must pass". If the caller ran on those downs it would be reading
     /// something else.
-    @Test("The caller throws when the situation says it must")
+    @Test("The caller throws when the situation says it must", .tags(.unit))
     func mustPassIsHonoured() {
         var passes = 0
         var runs = 0
@@ -419,7 +420,8 @@ struct GameSimulatorTests {
     /// rules-conformance scenario "a postseason game level after the fifth period plays
     /// a sixth"; a resolver that never scores cannot end a postseason game at all.
     @Test(
-        "football · Rule 4-1-1, 16-1-3, 16-1-3-d · a regular-season game level after four periods plays one ten-minute overtime period, and level at the end of it is a tie"
+        "football · Rule 4-1-1, 16-1-3, 16-1-3-d · a regular-season game level after four periods plays one ten-minute overtime period, and level at the end of it is a tie",
+        .tags(.football)
     )
     func ties() {
         let regular = simulate(StalemateResolver(), setup(seed: 9))

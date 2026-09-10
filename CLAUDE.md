@@ -153,8 +153,7 @@ outcome they cannot cite. Details under Conventions → Tests.
   is the only acceptable test for a rules change; a unit test on the helper alone is not.
 - Balance is measured, not hoped for. `scripts/test-census.sh` counts tags per package
   and CI prints it. A football share that falls in the rules layer or the resolver between
-  milestones is a finding. (The script and tags land with issue I6; until then, tag new
-  tests by kind in the test name.)
+  milestones is a finding.
 - Cap math, clock rules, and schedule generation get exhaustive unit tests. They're
   rule-based, player-visible, and easy to get subtly wrong.
 - Engine changes need both a golden-seed test and a statistical check.
@@ -260,9 +259,12 @@ scripts/lint-sim.sh                                       # banned primitives, n
                                                           # see docs/tools.md
 scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
                                                           # when you change it or add a rule
+scripts/test-census.sh                                    # test kinds per target and per suite;
+                                                          # fails on a @Test with no kind tag.
+                                                          # docs/testing.md reads the shares
+scripts/test-census.sh --self-test                        # the census's own fixture test
 
 # Planned — land with the backlog
-scripts/test-census.sh                                    # test kinds per package (I6)
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 

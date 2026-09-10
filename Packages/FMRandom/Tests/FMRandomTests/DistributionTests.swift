@@ -8,7 +8,7 @@ import Testing
 @Suite("Bounded integers")
 struct BoundedIntegerTests {
 
-    @Test("Draws stay inside the bound")
+    @Test("Draws stay inside the bound", .tags(.unit))
     func withinBounds() {
         var random = SplittableRandom(seed: 1)
         for bound in [1, 2, 3, 7, 32, 53, 1000] as [UInt64] {
@@ -18,7 +18,7 @@ struct BoundedIntegerTests {
         }
     }
 
-    @Test("A bound of one is always zero")
+    @Test("A bound of one is always zero", .tags(.unit))
     func degenerateBound() {
         var random = SplittableRandom(seed: 2)
         for _ in 0..<100 {
@@ -28,7 +28,7 @@ struct BoundedIntegerTests {
 
     /// A bound that does not divide 2^64 is where modulo bias would show up.
     /// 53 is deliberately awkward, and happens to be a roster size.
-    @Test("An awkward bound stays close to uniform")
+    @Test("An awkward bound stays close to uniform", .tags(.unit))
     func noModuloBias() {
         var random = SplittableRandom(seed: 3)
         let bound: UInt64 = 53
@@ -47,7 +47,7 @@ struct BoundedIntegerTests {
         #expect(chiSquare < 93.0, "chi-square \(chiSquare) suggests bias")
     }
 
-    @Test("Closed and half-open ranges respect their bounds")
+    @Test("Closed and half-open ranges respect their bounds", .tags(.unit))
     func integerRanges() {
         var random = SplittableRandom(seed: 4)
         var sawLower = false
@@ -64,7 +64,7 @@ struct BoundedIntegerTests {
         #expect(sawLower && sawUpper, "closed range must be able to hit both ends")
     }
 
-    @Test("A single-value closed range is constant")
+    @Test("A single-value closed range is constant", .tags(.unit))
     func singletonRange() {
         var random = SplittableRandom(seed: 5)
         for _ in 0..<50 {
@@ -76,7 +76,7 @@ struct BoundedIntegerTests {
 @Suite("Doubles")
 struct DoubleTests {
 
-    @Test("Doubles land in [0, 1)")
+    @Test("Doubles land in [0, 1)", .tags(.unit))
     func unitInterval() {
         var random = SplittableRandom(seed: 6)
         for _ in 0..<100_000 {
@@ -85,7 +85,7 @@ struct DoubleTests {
         }
     }
 
-    @Test("Doubles are roughly uniform across the interval")
+    @Test("Doubles are roughly uniform across the interval", .tags(.unit))
     func uniformity() {
         var random = SplittableRandom(seed: 7)
         var buckets = [Int](repeating: 0, count: 10)
@@ -98,7 +98,7 @@ struct DoubleTests {
         }
     }
 
-    @Test("Ranged doubles respect their bounds")
+    @Test("Ranged doubles respect their bounds", .tags(.unit))
     func rangedDoubles() {
         var random = SplittableRandom(seed: 8)
         for _ in 0..<10_000 {
@@ -107,7 +107,7 @@ struct DoubleTests {
         }
     }
 
-    @Test("Probabilities behave at and between the extremes")
+    @Test("Probabilities behave at and between the extremes", .tags(.unit))
     func booleans() {
         var random = SplittableRandom(seed: 9)
         for _ in 0..<100 {
@@ -129,7 +129,7 @@ struct DoubleTests {
 @Suite("Normal distribution")
 struct GaussianTests {
 
-    @Test("Mean and standard deviation come out right")
+    @Test("Mean and standard deviation come out right", .tags(.unit))
     func moments() {
         var random = SplittableRandom(seed: 10)
         let draws = 200_000
@@ -147,7 +147,7 @@ struct GaussianTests {
         #expect(abs(variance - 1.0) < 0.02, "variance was \(variance)")
     }
 
-    @Test("Scaled draws match the requested mean and spread")
+    @Test("Scaled draws match the requested mean and spread", .tags(.unit))
     func scaled() {
         var random = SplittableRandom(seed: 11)
         let draws = 100_000
@@ -160,7 +160,7 @@ struct GaussianTests {
 
     /// Documented consequence of the Irwin–Hall construction. Asserted so that
     /// swapping in another algorithm has to confront the change deliberately.
-    @Test("Draws are bounded to plus or minus six")
+    @Test("Draws are bounded to plus or minus six", .tags(.unit))
     func boundedTails() {
         var random = SplittableRandom(seed: 12)
         for _ in 0..<200_000 {
@@ -169,7 +169,7 @@ struct GaussianTests {
         }
     }
 
-    @Test("The bulk of the distribution has the right shape")
+    @Test("The bulk of the distribution has the right shape", .tags(.unit))
     func shape() {
         var random = SplittableRandom(seed: 13)
         let draws = 200_000
@@ -188,7 +188,7 @@ struct GaussianTests {
 @Suite("Collections")
 struct CollectionTests {
 
-    @Test("Shuffling permutes without losing or duplicating elements")
+    @Test("Shuffling permutes without losing or duplicating elements", .tags(.unit))
     func shufflePermutes() {
         var random = SplittableRandom(seed: 14)
         for _ in 0..<200 {
@@ -198,14 +198,14 @@ struct CollectionTests {
         }
     }
 
-    @Test("Shuffling is reproducible from a seed")
+    @Test("Shuffling is reproducible from a seed", .tags(.contract))
     func shuffleIsDeterministic() {
         var a = SplittableRandom(seed: 15)
         var b = SplittableRandom(seed: 15)
         #expect(a.shuffled(Array(0..<100)) == b.shuffled(Array(0..<100)))
     }
 
-    @Test("Shuffling actually reorders")
+    @Test("Shuffling actually reorders", .tags(.unit))
     func shuffleReorders() {
         var random = SplittableRandom(seed: 16)
         let original = Array(0..<50)
@@ -216,7 +216,7 @@ struct CollectionTests {
         #expect(unchanged == 0)
     }
 
-    @Test("Empty and single-element collections are handled")
+    @Test("Empty and single-element collections are handled", .tags(.unit))
     func degenerateCollections() {
         var random = SplittableRandom(seed: 17)
 
@@ -232,7 +232,7 @@ struct CollectionTests {
         #expect(random.pick(from: [9]) == 9)
     }
 
-    @Test("Picking covers every element")
+    @Test("Picking covers every element", .tags(.unit))
     func pickIsUniform() {
         var random = SplittableRandom(seed: 18)
         let elements = Array(0..<11)
@@ -249,7 +249,7 @@ struct CollectionTests {
         }
     }
 
-    @Test("Weighted choice follows its weights")
+    @Test("Weighted choice follows its weights", .tags(.unit))
     func weightedChoice() {
         var random = SplittableRandom(seed: 19)
         let weights = [0.5, 0.3, 0.2]
@@ -268,7 +268,7 @@ struct CollectionTests {
         }
     }
 
-    @Test("Zero-weight options are never chosen")
+    @Test("Zero-weight options are never chosen", .tags(.unit))
     func zeroWeightsExcluded() {
         var random = SplittableRandom(seed: 20)
         for _ in 0..<10_000 {
@@ -276,7 +276,7 @@ struct CollectionTests {
         }
     }
 
-    @Test("Degenerate weights fall back rather than trapping")
+    @Test("Degenerate weights fall back rather than trapping", .tags(.unit))
     func degenerateWeights() {
         var random = SplittableRandom(seed: 21)
         #expect(random.weightedIndex([]) == nil)

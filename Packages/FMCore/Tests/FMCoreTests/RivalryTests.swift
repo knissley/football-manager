@@ -19,7 +19,7 @@ struct RivalryTests {
 
     /// Storing a rivalry twice under two orderings surfaces as a grudge only one side
     /// has heard of.
-    @Test("A pair is the same however it is written")
+    @Test("A pair is the same however it is written", .tags(.unit))
     func pairIsUnordered() {
         #expect(TeamPair(TeamID(3), TeamID(7)) == TeamPair(TeamID(7), TeamID(3)))
         #expect(TeamPair(TeamID(7), TeamID(3)).lower == TeamID(3))
@@ -30,7 +30,7 @@ struct RivalryTests {
         #expect(set.count == 1)
     }
 
-    @Test("A pair knows its members and the other one")
+    @Test("A pair knows its members and the other one", .tags(.unit))
     func pairMembership() {
         #expect(pair.contains(TeamID(3)))
         #expect(pair.contains(TeamID(9)) == false)
@@ -43,7 +43,7 @@ struct RivalryTests {
 
     /// Two teams in a division care a little on principle; two who met once in January
     /// and never again should not.
-    @Test("Origin sets a floor, and the floors are ordered correctly")
+    @Test("Origin sets a floor, and the floors are ordered correctly", .tags(.unit))
     func baseIntensity() {
         #expect(
             rivalry(origin: .divisional).baseIntensity > rivalry(origin: .regional).baseIntensity)
@@ -54,7 +54,7 @@ struct RivalryTests {
 
     /// Without decay, intensity is a running total that only rises, and after twenty
     /// seasons every pairing in the league is a blood feud.
-    @Test("A rivalry nobody feeds goes quiet")
+    @Test("A rivalry nobody feeds goes quiet", .tags(.unit))
     func intensityDecays() {
         let feud = rivalry(origin: .divisional, [(2020, .playoffElimination)])
         let atTheTime = feud.intensity(in: 2020)
@@ -65,7 +65,7 @@ struct RivalryTests {
         #expect(aDecadeLater < feud.baseIntensity + 4, "a decade should mostly erase it")
     }
 
-    @Test("Recent events count for more than old ones")
+    @Test("Recent events count for more than old ones", .tags(.unit))
     func recencyDominates() {
         let recent = rivalry(origin: .divisional, [(2029, .controversialFinish)])
         let old = rivalry(origin: .divisional, [(2015, .controversialFinish)])
@@ -74,7 +74,7 @@ struct RivalryTests {
 
     /// A blowout is a bad night; a playoff elimination is a decade. Without that spread,
     /// intensity is a win-loss record with a different name.
-    @Test("Event weights are spread widely enough to matter")
+    @Test("Event weights are spread widely enough to matter", .tags(.unit))
     func weightsAreSpread() {
         let blowout = rivalry(origin: .divisional, [(2030, .blowout)])
         let elimination = rivalry(origin: .divisional, [(2030, .playoffElimination)])
@@ -83,14 +83,14 @@ struct RivalryTests {
 
     /// The future has not happened yet. A projection asked about 2025 must not read
     /// events from 2029.
-    @Test("Events after the season asked about are not counted")
+    @Test("Events after the season asked about are not counted", .tags(.contract))
     func futureEventsAreIgnored() {
         let feud = rivalry(origin: .divisional, [(2029, .titleGame)])
         #expect(feud.intensity(in: 2025) == feud.baseIntensity)
         #expect(feud.intensity(in: 2029) > feud.baseIntensity)
     }
 
-    @Test("Intensity is capped, so a long feud stays on the scale")
+    @Test("Intensity is capped, so a long feud stays on the scale", .tags(.unit))
     func intensityIsCapped() {
         let events = (2020...2030).flatMap { season in
             [(season, RivalryEventKind.titleGame), (season, .playoffElimination)]
@@ -98,7 +98,7 @@ struct RivalryTests {
         #expect(rivalry(origin: .divisional, events).intensity(in: 2030) <= 100)
     }
 
-    @Test("Heat bands follow intensity")
+    @Test("Heat bands follow intensity", .tags(.unit))
     func heat() {
         #expect(RivalryHeat(intensity: 5) == .cold)
         #expect(RivalryHeat(intensity: 30) == .simmering)
@@ -111,7 +111,7 @@ struct RivalryTests {
 
     /// The reason seeded history is an event log and not a number: a write-up has to be
     /// able to name what happened, and the most recent heavy thing is what it names.
-    @Test("Live history surfaces the recent and the heavy")
+    @Test("Live history surfaces the recent and the heavy", .tags(.unit))
     func liveHistory() {
         let feud = rivalry(
             origin: .divisional,
@@ -127,7 +127,7 @@ struct RivalryTests {
         #expect(cited[0].kind == .playoffElimination, "the heavier 2029 event should lead")
     }
 
-    @Test("An aggrieved team is recorded where the event has one")
+    @Test("An aggrieved team is recorded where the event has one", .tags(.unit))
     func aggrievedTeam() {
         let event = RivalryEvent(
             pair: pair, season: 2029, kind: .playoffElimination, aggrievedTeam: TeamID(3))

@@ -122,6 +122,40 @@ jobs:
         # fails on any difference from the expected hit list (issue #53).
         run: ./scripts/lint-sim.sh --self-test
 
+      - name: Test census
+        # Rule 11: every test says what kind it is. This fails on a @Test with no kind
+        # tag, and writes the shares into the job summary so they are in front of
+        # whoever opens the run rather than in a script nobody remembers to call (#43).
+        # See docs/testing.md. The census reads source, not behaviour, so both legs
+        # print the same table; that is the cost of not giving it a job of its own.
+        run: |
+          census="${RUNNER_TEMP:-/tmp}/test-census.txt"
+          # The exit code is what gates, and it is captured rather than allowed to end
+          # the step, so the table reaches the summary on a failing run too — which is
+          # the run where somebody wants to read it.
+          status=0
+          ./scripts/test-census.sh > "$census" 2>&1 || status=$?
+          cat "$census"
+          {
+            echo "## Test census — ${{ matrix.runner }}"
+            echo
+            echo "Every \`@Test\` carries one kind tag — \`.football\`, \`.contract\`,"
+            echo "\`.unit\` or \`.pin\`. A test with none fails this step. What the shares"
+            echo "mean is in \`docs/testing.md\`."
+            echo
+            echo '```text'
+            cat "$census"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Test census self-test
+        # The scan is the subtle part — a multi-line attribute, a parameterised test, a
+        # @Test written inside a comment or a string. This censuses
+        # scripts/test-census-fixtures/, never compiled and never part of a package, and
+        # fails on any difference from the expected list.
+        run: ./scripts/test-census.sh --self-test
+
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom
 

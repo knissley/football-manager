@@ -22,7 +22,9 @@ struct BudgetTests {
             .appendingPathComponent("docs/match-engine.md")
     }
 
-    @Test("unit: ms per game and the season equivalent are the elapsed time over the games")
+    @Test(
+        "unit: ms per game and the season equivalent are the elapsed time over the games",
+        .tags(.unit))
     func perGameAndPerSeason() {
         // 400 games in 8 s is 20 ms a game, and 272 of those is 5.44 s.
         let budget = Budget(games: 400, seconds: 8)
@@ -31,7 +33,8 @@ struct BudgetTests {
         #expect(abs(budget.ratioToBudget - 20.0 / 220.0) < 0.000_001)
     }
 
-    @Test("unit: a run that simulated nothing reports zero rather than dividing by it")
+    @Test(
+        "unit: a run that simulated nothing reports zero rather than dividing by it", .tags(.unit))
     func noGames() {
         let budget = Budget(games: 0, seconds: 0)
         #expect(budget.millisecondsPerGame == 0)
@@ -39,7 +42,9 @@ struct BudgetTests {
         #expect(budget.ratioToBudget == 0)
     }
 
-    @Test("contract: the block is one section, four lines of prose and five labelled numbers")
+    @Test(
+        "contract: the block is one section, four lines of prose and five labelled numbers",
+        .tags(.contract))
     func blockShape() {
         let lines = Budget(games: 400, seconds: 8).lines
         #expect(lines.first == "  Budget")
@@ -54,7 +59,9 @@ struct BudgetTests {
         #expect(lines.contains { $0.contains("400 games in 8.00 s") })
     }
 
-    @Test("contract: the printed budget is the one match-engine.md derives from 272 games in 60 s")
+    @Test(
+        "contract: the printed budget is the one match-engine.md derives from 272 games in 60 s",
+        .tags(.contract))
     func budgetAgreesWithTheDocument() throws {
         #expect(Budget.seasonGames == 272)
         #expect(Budget.seasonSeconds == 60)

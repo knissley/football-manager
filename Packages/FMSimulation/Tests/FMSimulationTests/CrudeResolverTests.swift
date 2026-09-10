@@ -25,7 +25,7 @@ struct CrudeResolverTests {
 
     /// Every slot a decision point names must be a player who was credited. A decision
     /// referencing somebody who was not on the play is a reason attached to nobody.
-    @Test("Every slot named in a decision is a credited participant")
+    @Test("Every slot named in a decision is a credited participant", .tags(.contract))
     func decisionsNameRealPlayers() {
         for seed in UInt64(1)...4 {
             for play in game(seed: seed).plays where !play.decisions.isEmpty {
@@ -47,7 +47,7 @@ struct CrudeResolverTests {
 
     /// A sack must have a rusher who actually got there, and it must be *that* rusher.
     /// This is the example ADR-0012 uses, so it is the one to hold hardest.
-    @Test("A sack is credited to the rusher whose pressure caused it")
+    @Test("A sack is credited to the rusher whose pressure caused it", .tags(.contract))
     func sacksNameTheRusherWhoGotThere() {
         var sacks = 0
         for seed in UInt64(1)...6 {
@@ -83,7 +83,7 @@ struct CrudeResolverTests {
 
     /// Every sack belongs to exactly one player. A sack nobody is credited with does
     /// not appear in a stat line, an award race, or a Hall of Fame case.
-    @Test("Every sack is attributable to exactly one player")
+    @Test("Every sack is attributable to exactly one player", .tags(.contract))
     func sacksAreAttributable() {
         for seed in UInt64(1)...6 {
             for play in game(seed: seed).plays where play.outcome.kind == .sack {
@@ -96,7 +96,7 @@ struct CrudeResolverTests {
 
     /// An interception has to name the defender who took it, and the ending has to agree
     /// with the catch decision.
-    @Test("An interception agrees with its catch decision")
+    @Test("An interception agrees with its catch decision", .tags(.contract))
     func interceptionsAgree() {
         var picks = 0
         for seed in UInt64(1)...8 {
@@ -113,7 +113,7 @@ struct CrudeResolverTests {
     }
 
     /// A completion names a receiver, and that receiver is the one the throw went to.
-    @Test("A completion's target is the receiver the quarterback read to")
+    @Test("A completion's target is the receiver the quarterback read to", .tags(.contract))
     func completionsNameTheirTarget() {
         for seed in UInt64(1)...4 {
             for play in game(seed: seed).plays
@@ -136,7 +136,7 @@ struct CrudeResolverTests {
 
     /// Decisions happen in order. A ball arriving before it was thrown is a causal chain
     /// nobody can read.
-    @Test("Decisions are ordered in time")
+    @Test("Decisions are ordered in time", .tags(.contract))
     func decisionsAreOrdered() {
         for seed in UInt64(1)...4 {
             for play in game(seed: seed).plays {
@@ -157,7 +157,7 @@ struct CrudeResolverTests {
 
     /// Every snap credits real players, which is what M2's grades and awards have to
     /// work with.
-    @Test("Every scrimmage play credits real players from the roster")
+    @Test("Every scrimmage play credits real players from the roster", .tags(.contract))
     func participantsAreRealPlayers() {
         let (setup, players) = world()
         let result = GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
@@ -182,7 +182,7 @@ struct CrudeResolverTests {
     /// the kicking team has possession, so the man carrying the ball is on the
     /// *defensive* side and the men chasing him are on the offensive one. Getting this
     /// backwards would put a punt return on the punting team's stat line.
-    @Test("Participants sit on the correct side of the slot convention")
+    @Test("Participants sit on the correct side of the slot convention", .tags(.contract))
     func slotsMatchSides() {
         for play in game().plays {
             let kick = play.outcome.kind == .kickoff || play.outcome.kind == .punt
@@ -207,7 +207,7 @@ struct CrudeResolverTests {
 
     /// Rotation means backups play. If the same eleven took every snap, depth on a
     /// roster would be invisible.
-    @Test("More than a starting eleven appears over a game")
+    @Test("More than a starting eleven appears over a game", .tags(.contract))
     func rotationReachesBackups() {
         let result = game()
         let appeared = Set(result.plays.flatMap { $0.outcome.participants.map(\.player) })
@@ -216,7 +216,7 @@ struct CrudeResolverTests {
 
     // MARK: - Determinism
 
-    @Test("The same seed resolves identically")
+    @Test("The same seed resolves identically", .tags(.contract))
     func deterministic() {
         let first = game(seed: 12)
         let second = game(seed: 12)
@@ -235,14 +235,14 @@ struct ContestCurveTests {
 
     private let resolver = CrudeResolver()
 
-    @Test("Equal players split their reps")
+    @Test("Equal players split their reps", .tags(.unit))
     func parityIsEven() {
         #expect(resolver.contest(80, 80) == 0.5)
         #expect(resolver.contest(45, 45) == 0.5)
     }
 
     /// A point of overall is a nudge, not a verdict.
-    @Test("A one-point edge is a nudge")
+    @Test("A one-point edge is a nudge", .tags(.unit))
     func smallEdgesAreSmall() {
         let edge = resolver.contest(81, 80)
         #expect(edge > 0.5)
@@ -251,7 +251,7 @@ struct ContestCurveTests {
 
     /// The property that failed: a ceiling made a ninety-nine no better than an
     /// eighty-one against the same man.
-    @Test("Better is always better, all the way up")
+    @Test("Better is always better, all the way up", .tags(.unit))
     func strictlyMonotonic() {
         let ladder = [60.0, 70.0, 75.0, 81.0, 86.0, 90.0, 95.0, 99.0]
         let odds = ladder.map { resolver.contest($0, 70) }
@@ -264,7 +264,7 @@ struct ContestCurveTests {
 
     /// Nobody is ever certain. The best pass rusher in the league is happy with two
     /// sacks in a game, not one every snap against a weaker tackle.
-    @Test("Nobody wins or loses every rep")
+    @Test("Nobody wins or loses every rep", .tags(.unit))
     func neverCertain() {
         #expect(resolver.contest(99, 20) <= 0.93)
         #expect(resolver.contest(99, 20) < 0.9, "even a total mismatch loses reps")
@@ -272,7 +272,7 @@ struct ContestCurveTests {
         #expect(resolver.contest(20, 99) > 0.1, "even a hopeless matchup wins some")
     }
 
-    @Test("The curve is symmetric about parity")
+    @Test("The curve is symmetric about parity", .tags(.unit))
     func symmetric() {
         for (a, b) in [(90.0, 70.0), (99.0, 40.0), (81.0, 80.0)] {
             let forward = resolver.contest(a, b)
@@ -282,7 +282,7 @@ struct ContestCurveTests {
     }
 
     /// A situational edge shifts the whole curve without breaking any of the above.
-    @Test("An edge shifts the curve and keeps it bounded")
+    @Test("An edge shifts the curve and keeps it bounded", .tags(.unit))
     func edgesStayBounded() {
         #expect(resolver.contest(80, 80, edge: 0.35) > 0.5)
         #expect(resolver.contest(80, 80, edge: -0.35) < 0.5)

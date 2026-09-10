@@ -37,14 +37,14 @@ struct PlayerArrivalTests {
 
     private let secondRoundPick = DraftInfo(season: 2030, round: 2, pick: 12, overallPick: 44)
 
-    @Test("unit: a drafted player is a rookie in the season he was drafted")
+    @Test("unit: a drafted player is a rookie in the season he was drafted", .tags(.unit))
     func draftedRookie() {
         let rookie = player(birthSeason: 2008, draft: secondRoundPick, firstSeason: 2030)
         #expect(rookie.isRookie(in: 2030))
         #expect(rookie.experience(in: 2030) == 0)
     }
 
-    @Test("unit: a second-year player is not a rookie")
+    @Test("unit: a second-year player is not a rookie", .tags(.unit))
     func secondYear() {
         let sophomore = player(birthSeason: 2008, draft: secondRoundPick, firstSeason: 2030)
         #expect(!sophomore.isRookie(in: 2031))
@@ -53,7 +53,7 @@ struct PlayerArrivalTests {
         #expect(!sophomore.isRookie(in: 2038))
     }
 
-    @Test("unit: an undrafted player is a rookie in his first season and not after")
+    @Test("unit: an undrafted player is a rookie in his first season and not after", .tags(.unit))
     func undraftedRookie() {
         let undrafted = player(birthSeason: 2007, firstSeason: 2030)
         #expect(undrafted.isRookie(in: 2030))
@@ -63,7 +63,7 @@ struct PlayerArrivalTests {
     /// The old fallback read experience off age — `season - birthSeason - 22` — so a
     /// twenty-six-year-old who signed last spring was a four-year veteran, and a
     /// twenty-three-year-old who had been in the league two years was a rookie.
-    @Test("unit: experience counts from the first season rather than from an age")
+    @Test("unit: experience counts from the first season rather than from an age", .tags(.unit))
     func experienceIsCounted() {
         let lateArrival = player(birthSeason: 2004, firstSeason: 2029)
         #expect(lateArrival.age(in: 2030) == 26)
@@ -76,14 +76,14 @@ struct PlayerArrivalTests {
 
     /// Two sources for one fact is one too many: a drafted player's first season *is* his
     /// draft season, so the type does not let them disagree.
-    @Test("unit: a drafted player's first season is his draft season")
+    @Test("unit: a drafted player's first season is his draft season", .tags(.unit))
     func firstSeasonFollowsTheDraft() {
         let mismatched = player(birthSeason: 2008, draft: secondRoundPick, firstSeason: 2033)
         #expect(mismatched.firstSeason == 2030)
         #expect(mismatched.experience(in: 2032) == 2)
     }
 
-    @Test("unit: nobody has negative experience in a season before he arrived")
+    @Test("unit: nobody has negative experience in a season before he arrived", .tags(.unit))
     func beforeHeArrived() {
         let rookie = player(birthSeason: 2008, draft: secondRoundPick, firstSeason: 2030)
         #expect(rookie.experience(in: 2029) == 0)

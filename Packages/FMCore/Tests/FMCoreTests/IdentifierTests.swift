@@ -5,7 +5,7 @@ import Testing
 @Suite("Identifiers")
 struct IdentifierTests {
 
-    @Test("Identifiers wrap their raw value and compare by it")
+    @Test("Identifiers wrap their raw value and compare by it", .tags(.unit))
     func rawValues() {
         #expect(PlayerID(7).rawValue == 7)
         #expect(PlayerID(1) < PlayerID(2))
@@ -13,19 +13,19 @@ struct IdentifierTests {
         #expect(PlayerID(3) != PlayerID(4))
     }
 
-    @Test("Identifiers of the same raw value hash together")
+    @Test("Identifiers of the same raw value hash together", .tags(.unit))
     func hashing() {
         let ids: Set<PlayerID> = [PlayerID(1), PlayerID(1), PlayerID(2)]
         #expect(ids.count == 2)
     }
 
-    @Test("Sorting is by raw value, which keeps iteration order stable")
+    @Test("Sorting is by raw value, which keeps iteration order stable", .tags(.contract))
     func sorting() {
         let sorted = [TeamID(5), TeamID(1), TeamID(3)].sorted()
         #expect(sorted.map(\.rawValue) == [1, 3, 5])
     }
 
-    @Test("Sequences allocate in order starting at one")
+    @Test("Sequences allocate in order starting at one", .tags(.unit))
     func allocation() {
         var sequence = IdentifierSequence<PlayerSubject>()
         #expect(sequence.allocate() == PlayerID(1))
@@ -34,7 +34,7 @@ struct IdentifierTests {
         #expect(sequence.allocatedCount == 3)
     }
 
-    @Test("Zero is never allocated, so it stays usable as a sentinel")
+    @Test("Zero is never allocated, so it stays usable as a sentinel", .tags(.unit))
     func zeroReserved() {
         var sequence = IdentifierSequence<TeamSubject>()
         for _ in 0..<100 {
@@ -42,7 +42,7 @@ struct IdentifierTests {
         }
     }
 
-    @Test("The same allocation sequence reproduces the same identifiers")
+    @Test("The same allocation sequence reproduces the same identifiers", .tags(.contract))
     func deterministicAllocation() {
         var first = IdentifierSequence<PlayerSubject>()
         var second = IdentifierSequence<PlayerSubject>()
@@ -55,7 +55,7 @@ struct IdentifierTests {
 @Suite("Positions")
 struct PositionTests {
 
-    @Test("Every position has exactly one side")
+    @Test("Every position has exactly one side", .tags(.unit))
     func sides() {
         let offense = Position.allCases.filter { $0.side == .offense }
         let defense = Position.allCases.filter { $0.side == .defense }
@@ -66,18 +66,18 @@ struct PositionTests {
         #expect(special.count == 3)
     }
 
-    @Test("Exactly five positions are offensive line")
+    @Test("Exactly five positions are offensive line", .tags(.unit))
     func offensiveLine() {
         #expect(Position.allCases.filter(\.isOffensiveLine).count == 5)
     }
 
-    @Test("Eligible receivers are the skill positions only")
+    @Test("Eligible receivers are the skill positions only", .tags(.unit))
     func eligibleReceivers() {
         let eligible = Set(Position.allCases.filter(\.isEligibleReceiver))
         #expect(eligible == [.runningBack, .fullback, .wideReceiver, .tightEnd])
     }
 
-    @Test("Every position belongs to exactly one group, and groups round-trip")
+    @Test("Every position belongs to exactly one group, and groups round-trip", .tags(.unit))
     func groups() {
         for position in Position.allCases {
             #expect(position.group.positions.contains(position))
@@ -87,7 +87,7 @@ struct PositionTests {
         #expect(grouped.count == Position.allCases.count)
     }
 
-    @Test("Quarterback is the most valuable position by a distance")
+    @Test("Quarterback is the most valuable position by a distance", .tags(.unit))
     func positionalValue() {
         let others = Position.allCases.filter { $0 != .quarterback }
         for position in others {
@@ -100,7 +100,7 @@ struct PositionTests {
         #expect(Position.wideReceiver.positionalValue > Position.runningBack.positionalValue)
     }
 
-    @Test("Raw values are stable, because saved players index by them")
+    @Test("Raw values are stable, because saved players index by them", .tags(.contract))
     func stableRawValues() {
         #expect(Position.quarterback.rawValue == 0)
         #expect(Position.allCases.count == 18)
