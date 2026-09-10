@@ -282,6 +282,9 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     }
     public var twoPointDecision: @Sendable (Situation) -> Bool = { _ in false }
     public var onsideDecision: @Sendable (Situation) -> Bool = { _ in false }
+    /// The first choice of 4-2-2's privileges, when it is this side's: receive, unless
+    /// the scenario says kick.
+    public var receiveDecision: @Sendable (Situation) -> Bool = { _ in true }
 
     public init(
         offensiveFamily: @escaping @Sendable (Situation) -> PlayFamily = { _ in .insideRun },
@@ -290,13 +293,15 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
             _, _ in false
         },
         twoPointDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
-        onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false }
+        onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
+        receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true }
     ) {
         self.offensiveFamily = offensiveFamily
         self.offensiveTempo = offensiveTempo
         self.timeoutDecision = timeoutDecision
         self.twoPointDecision = twoPointDecision
         self.onsideDecision = onsideDecision
+        self.receiveDecision = receiveDecision
     }
 
     public func offensiveCall(
@@ -326,6 +331,10 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
         onsideDecision(situation)
+    }
+
+    public func electsToReceive(situation: Situation, classified: SituationClass) -> Bool {
+        receiveDecision(situation)
     }
 
     public func personnel(

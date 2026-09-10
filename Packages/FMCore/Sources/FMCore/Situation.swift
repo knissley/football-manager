@@ -183,12 +183,15 @@ public struct Situation: Sendable, Hashable, Codable {
     /// Both halves end with a stoppage at two minutes, and behaviour changes
     /// sharply on either side of it.
     ///
-    /// The half boundaries and the threshold are the rules' (`Rules.quarters`,
-    /// `Rules.twoMinuteWarning`), not literals: a two-period variant has its drill at the
-    /// end of its first period. Overtime counts as the end of the game here, as it did
-    /// when the periods were hard-coded.
-    public func isTwoMinuteDrill(rules: Rules = .standard) -> Bool {
-        (quarter == rules.quarters / 2 || quarter >= rules.quarters)
+    /// Which periods end a half is `Rules.periodTiming`, read through `isEndOfHalf`, so
+    /// this and the clock agree: the second and fourth quarters, regular-season overtime
+    /// (16-1-3-e), and a second or a fourth postseason overtime period (16-1-4-h) — and
+    /// not a first or a third postseason overtime period, which is why the postseason
+    /// has to be said and has no default. The threshold is `Rules.twoMinuteWarning`
+    /// rather than a literal: a two-period variant has its drill at the end of its first
+    /// period.
+    public func isTwoMinuteDrill(rules: Rules = .standard, isPostseason: Bool) -> Bool {
+        rules.isEndOfHalf(quarter: quarter, isPostseason: isPostseason)
             && clockRemaining <= rules.twoMinuteWarning
     }
 

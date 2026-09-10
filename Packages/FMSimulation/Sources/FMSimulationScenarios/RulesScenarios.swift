@@ -283,6 +283,65 @@ public enum RulesScenarios {
         }
     }
 
+    // MARK: Postseason overtime halves
+
+    /// The home side of the scenario world at its default seed, for a script in which one
+    /// side does something the other does not.
+    static var home: TeamID { ScenarioWorld.world(seed: 1).teams[0].id }
+
+    /// A scoreless postseason walk to a third overtime period, decided there by a field
+    /// goal on the first fourth down. The home side spends two timeouts in the first
+    /// overtime period and its last in the second; the away side spends none.
+    static var thirdPostseasonOvertimePeriod: ScriptedGame {
+        let home = home
+        return ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                timeoutDecision: { situation, isOffense in
+                    guard isOffense, situation.possession == home else { return false }
+                    switch situation.quarter {
+                    case 5: return situation.offenseTimeouts > 1
+                    case 6: return situation.offenseTimeouts > 0
+                    default: return false
+                    }
+                }),
+            play: plod)
+    }
+
+    /// The same walk, and the captain with the first choice at the third period elects
+    /// to kick off rather than receive.
+    static var thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff: ScriptedGame {
+        ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                receiveDecision: { $0.quarter != 7 }),
+            play: plod)
+    }
+
+    /// A scoreless postseason walk to a fifth overtime period, decided there. The home
+    /// side spends every timeout it has in every overtime period, so that what it opens
+    /// each half with is the half's own and not a carry-over.
+    static var fifthPostseasonOvertimePeriod: ScriptedGame {
+        let home = home
+        return ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 9 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                timeoutDecision: { situation, isOffense in
+                    isOffense && situation.possession == home && situation.quarter > 4
+                        && situation.offenseTimeouts > 0
+                }),
+            play: plod)
+    }
+
     // MARK: The clock
 
     static var puntReturnedAndTackled: ScriptedGame {
@@ -314,22 +373,30 @@ public enum RulesScenarios {
     }
 
     /// A walk down `quarter` in which the first play that can be is stretched to end at
-    /// `second` with the clock running, and everything else is a yard at a time.
+    /// `second` — tackled in bounds with the clock running, unless `endedIn` says the
+    /// runner stepped out — and everything else is a yard at a time.
+    ///
+    /// With `snappedAfter` set, the play stretched is the first one snapped with more
+    /// than that on the clock, so that it can be made to straddle a boundary: snapped
+    /// outside a window and dead inside it, which is the one shape a play kept inside a
+    /// window (`runnerOutOfBounds`) can never take.
     ///
     /// A postseason walk needs an end: a postseason game level at the end of a period
     /// plays another (16-1-4-d), so a scoreless one never finishes. With `decidedIn` set
     /// the game is the postseason's, and the side with the ball in that period kicks a
     /// field goal on its first fourth down, which in sudden death wins it.
     static func playStretchedToEnd(
-        quarter: UInt8, at second: UInt16, postseasonDecidedIn decidedIn: UInt8? = nil
+        quarter: UInt8, at second: UInt16, endedIn: PlayEnding = .tackled,
+        snappedAfter floor: UInt16 = 0, postseasonDecidedIn decidedIn: UInt8? = nil
     ) -> ScriptedGame {
         ScriptedGame(isPostseason: decidedIn != nil, caller: decider(decidedIn)) { snap in
             guard snap.isScrimmage, snap.quarter == quarter, snap.down != .fourth,
                 let huddle = snap.huddle
             else { return snap.neutral }
             let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
-            guard snapped > Int(second), snapped - Int(second) <= 130 else { return snap.neutral }
-            return .rush(1, seconds: UInt16(snapped - Int(second)))
+            guard snapped > Int(second), snapped > Int(floor), snapped - Int(second) <= 130
+            else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - Int(second)), endedIn: endedIn)
         }
     }
 
@@ -340,10 +407,11 @@ public enum RulesScenarios {
     /// `playStretchedToEnd`.
     ///
     /// The window is on the clock as the play's situation records it — the end of the
-    /// play before — and a scenario about a clock window keeps the whole play inside
-    /// it: the huddle and the six seconds of the play come off that reading, so the
-    /// runner is out of bounds inside the window whether it is judged at the snap or
-    /// where the ball died.
+    /// play before — and this scenario keeps the whole play inside it: the huddle and
+    /// the six seconds of the play come off that reading, so the runner is out of bounds
+    /// inside the window however the window is judged. The play that straddles a
+    /// window's edge, snapped outside it and dead inside it, is `playStretchedToEnd`
+    /// with `snappedAfter`.
     static func runnerOutOfBounds(
         quarter: UInt8, window: ClosedRange<UInt16>, postseasonDecidedIn decidedIn: UInt8? = nil
     ) -> ScriptedGame {
@@ -619,6 +687,39 @@ public enum RulesScenarios {
     /// offered the runoff is the trailing one.
     static var injuryInsideTwoMinutesAgainstATrailingDefense: ScriptedGame {
         injuryInsideTwoMinutes(by: 7, outOfTimeouts: true, opening: leadBySeven)
+    }
+
+    // MARK: The kickoff that opens a half
+
+    /// A first half that ends between downs, on an excess injury timeout's runoff, and
+    /// the kickoff that opens the second. Both sides spend their first-half timeouts on
+    /// offence early in the second quarter, so whichever side has the ball after the
+    /// warning has none; its first snap after the warning is stretched to end at 0:08
+    /// with the clock running, and one of its players is hurt on that play. Level, the
+    /// defence takes the ten seconds (4-5-4 Note 3), which is more than remain, so the
+    /// half ends on the runoff (4-5-4 Note 4). What the second-half kickoff produces is
+    /// `kick`.
+    static func injuryRunoffEndsTheFirstHalf(kick: Outcome) -> ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(timeoutDecision: { situation, isOffense in
+                isOffense && situation.quarter == 2 && situation.clockRemaining > 160
+                    && situation.offenseTimeouts > 0
+            }),
+            injury: { snap, outcome in
+                // The stretched play is the one longer than a plod.
+                snap.quarter == 2 && snap.isScrimmage && outcome.kind == .rush
+                    && outcome.endedIn == .tackled && outcome.clockRunoff > 6 ? .offense : nil
+            }
+        ) { snap in
+            if snap.quarter == 3, snap.isKickoff { return kick }
+            guard snap.isScrimmage, snap.quarter == 2, snap.clock < 120, snap.down != .fourth,
+                let huddle = snap.huddle
+            else { return snap.neutral }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            let target = 8
+            guard snapped > target, snapped - target <= 130 else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - target))
+        }
     }
 
     // MARK: Tries, kicks and enforcement

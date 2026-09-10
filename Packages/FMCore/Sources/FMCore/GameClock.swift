@@ -25,6 +25,10 @@ extension Rules {
     /// Note what is absent: **gaining a first down does not stop the clock.** It runs
     /// while the chains move.
     ///
+    /// `clockRemaining` is the clock where the ball became dead — after the play's own
+    /// time has come off — because the windows are about where the runner stepped out,
+    /// not where the play before him ended. See `isInLateClockWindow`.
+    ///
     /// This reads the ending alone, and the ending alone cannot tell a fourth-down stop
     /// from a first-down tackle: both end `.tackled`. A change of possession stops the
     /// clock whatever the ending (4-4-i), and the overload that takes it is what the
@@ -79,6 +83,11 @@ extension Rules {
     ///
     /// The window is longer in the second half than the first, which is a real asymmetry
     /// and not a mistake.
+    ///
+    /// `clockRemaining` is read where the ball became dead: after the play's time has
+    /// come off, or at the flag. Read from the end of the play before instead, a play
+    /// snapped outside a window and dead inside it is misjudged by a huddle and a play,
+    /// and the clock restarts on the ready where the book has it wait for the snap.
     public func isInLateClockWindow(
         quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> Bool {
