@@ -12,9 +12,11 @@ private func mean(
 ) throws -> Double {
     var random = SplittableRandom(seed: seed)
     var total = 0.0
-    for _ in 0..<count {
+    for index in 0..<count {
+        // A different man each time. His untrained keys are drawn on his identifier,
+        // so two hundred men on one identifier would be one draw two hundred times.
         let player = PlayerGenerator.player(
-            id: PlayerID(1), position: position, targetCeiling: 75, age: 27,
+            id: PlayerID(UInt64(index + 1)), position: position, targetCeiling: 75, age: 27,
             season: season, colleges: [], using: &random)
         total += Double(try #require(player.ratings[key], "\(position) carries no \(key)"))
     }
@@ -93,6 +95,21 @@ struct UntrainedRatingsTests {
         let tackleZone = try mean(of: .zoneCoverage, at: .defensiveTackle, seed: 17)
         let tackleMan = try mean(of: .manCoverage, at: .defensiveTackle, seed: 18)
         #expect(tackleZone > tackleMan + 5, "zone \(tackleZone), man \(tackleMan)")
+    }
+
+    /// The table's own well-formedness: every key a position does not train resolves to a
+    /// row, so the floor in `fillUntrained` is never what a generated player carries.
+    @Test("unit: every untrained key at every position has a row", .tags(.unit))
+    func everyUntrainedKeyHasARow() {
+        for position in Position.allCases {
+            let trained = Set(RatingKey.keys(for: position))
+            for key in RatingKey.allCases where !trained.contains(key) {
+                if [.elusiveness, .pursuit, .hitPower].contains(key) { continue }
+                #expect(
+                    PlayerGenerator.untrainedRow(for: key, at: position) != nil,
+                    "\(position) has no row for \(key)")
+            }
+        }
     }
 
     /// Three untrained keys follow the athlete rather than a table: elusiveness is half

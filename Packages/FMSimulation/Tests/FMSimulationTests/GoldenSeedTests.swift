@@ -104,9 +104,21 @@ struct GoldenSeedTests {
             // ceiling along, so every rating on both rosters moved — an older league is a
             // slightly better one — and a game between two rosters of different players is
             // a different game.
-            (UInt64(1), UInt64(3_162_683_895_152_383_395)),
-            (UInt64(5), UInt64(10_979_753_660_678_002_318)),
-            (UInt64(12), UInt64(2_862_180_237_269_468_990)),
+            //
+            // And moved again when every player came to carry every key — by the world,
+            // and by what the engine reads of it. Nothing in `FMSimulation` changed, but a
+            // rating a position does not train is now present and low rather than absent,
+            // so the resolver's fallback for an absent key — the player's overall — has
+            // nothing left to fall back from. A receiver breaks tackles and holds the ball
+            // on his own breakTackle and carrying instead of his overall, a corner strips
+            // on his own hit power, a back in 21 personnel runs his route on his own route
+            // running, a lineman covering a kick pursues on his own pursuit. Each of those
+            // was a number in the sixties or seventies that is now in the twenties or
+            // thirties, so a game between the same men is a different game. The men
+            // themselves did not move: every trained rating is byte-identical.
+            (UInt64(1), UInt64(2_833_865_463_239_310_610)),
+            (UInt64(5), UInt64(4_758_698_847_398_613_816)),
+            (UInt64(12), UInt64(15_068_482_040_124_649_792)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

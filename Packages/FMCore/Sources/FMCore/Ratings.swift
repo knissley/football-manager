@@ -1,9 +1,12 @@
 /// A single rated attribute.
 ///
-/// Split into general attributes, which every player has, and positional ones,
-/// which only the positions that use them carry. A quarterback has no
-/// `manCoverage` — not a zero, but *nothing*, so that reading the wrong key is
-/// a caught mistake rather than a silently plausible number.
+/// Split into general attributes, which every position trains, and positional
+/// ones, which only some do. **Every player carries every key.** A quarterback's
+/// `manCoverage` is present and low — drawn by generation from an untrained
+/// distribution — rather than absent, because an absent key was a free pass:
+/// `overall(at:)` dropped its weight and renormalised over what was there, so a
+/// receiver evaluated at quarterback was scored on his awareness and speed alone
+/// and came out a better quarterback than a receiver.
 ///
 /// Raw values are stable and must not be renumbered: they index storage, and a
 /// change would silently reinterpret every saved player.
@@ -65,20 +68,22 @@ public enum RatingKey: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case puntPower = 72
     case puntAccuracy = 73
 
-    /// Attributes every player carries regardless of position.
+    /// Attributes every position trains.
     public static let general: [RatingKey] = [
         .awareness, .speed, .acceleration, .agility, .strength,
         .stamina, .toughness, .injuryResistance, .discipline,
     ]
 
-    /// The full set a position uses, general attributes included.
+    /// The keys a position **trains**, general attributes included.
     ///
-    /// Generation fills exactly these and no others, so "absent" stays
-    /// meaningful.
+    /// What generation draws around a player's quality, and what
+    /// `PositionWeights` may weigh. Not the set he carries: he carries every key,
+    /// and the ones outside this list are drawn low.
     public static func keys(for position: Position) -> [RatingKey] {
         general + positional(for: position)
     }
 
+    /// The positional keys a position trains.
     public static func positional(for position: Position) -> [RatingKey] {
         switch position {
         case .quarterback:
@@ -120,16 +125,64 @@ public enum RatingKey: UInt8, CaseIterable, Sendable, Hashable, Codable {
             return [.runBlock]
         }
     }
+
+    /// The families the positional keys fall into: what a rating is *for*.
+    ///
+    /// Generation draws a key a position does not train from a distribution per
+    /// family, so a lineman's four passing ratings are one row of a table rather
+    /// than four constants. The general attributes are their own family.
+    public enum Family: UInt8, CaseIterable, Sendable, Hashable {
+        case general
+        case passing
+        case ballCarrying
+        case receiving
+        case blocking
+        case frontSeven
+        case coverage
+        case kicking
+
+        /// Every key in the family, in raw-value order.
+        public var keys: [RatingKey] {
+            RatingKey.allCases.filter { $0.family == self }
+        }
+    }
+
+    public var family: Family {
+        switch self {
+        case .awareness, .speed, .acceleration, .agility, .strength,
+            .stamina, .toughness, .injuryResistance, .discipline:
+            return .general
+        case .throwPower, .throwAccuracyShort, .throwAccuracyMedium, .throwAccuracyDeep,
+            .underPressure, .playAction:
+            return .passing
+        case .carrying, .vision, .breakTackle, .elusiveness:
+            return .ballCarrying
+        case .catching, .catchInTraffic, .routeRunning, .releaseVsPress:
+            return .receiving
+        case .runBlock, .passBlock, .blockAnchor, .handTechnique:
+            return .blocking
+        case .powerMove, .finesseMove, .blockShedding, .pursuit, .tackling, .hitPower:
+            return .frontSeven
+        case .manCoverage, .zoneCoverage, .ballHawk:
+            return .coverage
+        case .kickPower, .kickAccuracy, .puntPower, .puntAccuracy:
+            return .kicking
+        }
+    }
 }
 
 /// A player's rated attributes, on the genre-standard 0...99 scale.
 ///
 /// Backed by a flat array indexed by `RatingKey.rawValue` plus a presence
-/// bitmap, rather than a dictionary. Lookups are an array read with no hashing,
-/// and "absent" is representable — both of which matter, though not because
-/// `Ratings` is read inside the tick loop. It isn't: the engine copies the
-/// handful of values a play needs into flat entity arrays at snap, and reads
-/// those. This type is the domain representation.
+/// bitmap, rather than a dictionary. Lookups are an array read with no hashing —
+/// which matters, though not because `Ratings` is read inside the tick loop. It
+/// isn't: the engine copies the handful of values a play needs into flat entity
+/// arrays at snap, and reads those. This type is the domain representation.
+///
+/// A generated player carries **every** key (`isComplete`). The bitmap stays
+/// because a hand-built set can still have holes, and the bitmap is how an
+/// overall read from one is caught in debug rather than quietly scored on the
+/// keys that happen to be there.
 public struct Ratings: Sendable, Hashable, Codable {
 
     /// Raw values are gapped so related keys sit together and new ones can be
@@ -144,6 +197,15 @@ public struct Ratings: Sendable, Hashable, Codable {
 
     public static let range: ClosedRange<UInt8> = 0...99
 
+    /// What a reader gets for a key nobody wrote.
+    ///
+    /// Generation writes every key, so this is reached only by a hand-built set,
+    /// and only in a release build: in debug the read is an assertion. The value
+    /// is the untrained centre that most of generation's table shares, so a
+    /// missing rating reads as a man who has never done the thing — never as his
+    /// overall, and never as nothing.
+    public static let untrainedFloor: UInt8 = 25
+
     private var storage: [UInt8]
     private var presentLow: UInt64
     private var presentHigh: UInt64
@@ -153,6 +215,19 @@ public struct Ratings: Sendable, Hashable, Codable {
         storage = [UInt8](repeating: 0, count: Self.maximumKeyCount)
         presentLow = 0
         presentHigh = 0
+    }
+
+    /// Every key at one value.
+    ///
+    /// The starting point for a hand-built player: complete by construction, so
+    /// the keys a test then overrides are the only thing it is saying anything
+    /// about.
+    public static func uniform(_ value: UInt8) -> Ratings {
+        var ratings = Ratings()
+        for key in RatingKey.allCases {
+            ratings[key] = value
+        }
+        return ratings
     }
 
     /// Ratings from a set of key/value pairs, each clamped into 0...99.
@@ -186,10 +261,9 @@ public struct Ratings: Sendable, Hashable, Codable {
 
     /// The value for `key`, or `fallback` when absent.
     ///
-    /// Simulation code should prefer this to force-unwrapping the subscript: a
-    /// missing rating means the play is asking a player to do something his
-    /// position does not do, which is a bug worth surviving rather than
-    /// crashing on.
+    /// A generated player is never absent anything, so a caller that reaches the
+    /// fallback has been handed a hand-built set. Prefer this to force-unwrapping
+    /// the subscript all the same: surviving one is better than crashing on it.
     public func value(_ key: RatingKey, or fallback: UInt8 = 0) -> UInt8 {
         self[key] ?? fallback
     }
@@ -210,13 +284,15 @@ public struct Ratings: Sendable, Hashable, Codable {
         presentLow.nonzeroBitCount + presentHigh.nonzeroBitCount
     }
 
-    /// Whether exactly the keys `position` uses are present — no more, no fewer.
+    /// Whether every key is present.
     ///
-    /// An invariant for generated players. Checked rather than assumed, because
-    /// a missing rating surfaces as odd behaviour deep in the engine rather than
-    /// as an obvious failure.
-    public func matchesKeys(for position: Position) -> Bool {
-        Set(keys) == Set(RatingKey.keys(for: position))
+    /// The invariant for a generated player: a rating his position does not
+    /// train is present and low, never absent. Checked rather than assumed,
+    /// because a missing rating used to surface as a plausible number deep in the
+    /// engine — a mover scored on the keys he happened to have — rather than as
+    /// an obvious failure.
+    public var isComplete: Bool {
+        count == RatingKey.allCases.count
     }
 
     private mutating func setPresence(_ key: RatingKey, to isPresent: Bool) {

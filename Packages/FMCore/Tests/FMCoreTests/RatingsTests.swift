@@ -25,7 +25,7 @@ struct RatingKeyTests {
         #expect(Set(raw).count == raw.count)
     }
 
-    @Test("Every position carries the general attributes", .tags(.unit))
+    @Test("Every position trains the general attributes", .tags(.unit))
     func generalApplyEverywhere() {
         for position in Position.allCases {
             let keys = Set(RatingKey.keys(for: position))
@@ -47,7 +47,7 @@ struct RatingKeyTests {
         }
     }
 
-    @Test("Positions carry the attributes their job actually needs", .tags(.unit))
+    @Test("Positions train the attributes their job actually needs", .tags(.unit))
     func plausibleAssignments() {
         #expect(RatingKey.keys(for: .quarterback).contains(.throwPower))
         #expect(!RatingKey.keys(for: .quarterback).contains(.manCoverage))
@@ -60,6 +60,28 @@ struct RatingKeyTests {
 
         #expect(RatingKey.keys(for: .kicker).contains(.kickPower))
         #expect(!RatingKey.keys(for: .punter).contains(.kickPower))
+    }
+
+    /// Raw values are gapped by tens so related keys sit together, and the family a key
+    /// reports has to agree with the ten it sits in, or the untrained table draws a
+    /// kicking rating from the coverage row.
+    @Test(
+        "Every key is in exactly one family, and the family is the ten it sits in",
+        .tags(.unit))
+    func familiesPartitionTheKeys() {
+        var counted = 0
+        for family in RatingKey.Family.allCases {
+            let keys = family.keys
+            counted += keys.count
+            for key in keys {
+                #expect(key.family == family)
+                #expect(
+                    Int(key.rawValue) / 10 == Int(family.rawValue),
+                    "\(key) sits outside \(family)'s ten")
+            }
+        }
+        #expect(counted == RatingKey.allCases.count)
+        #expect(RatingKey.Family.general.keys == RatingKey.general)
     }
 }
 
@@ -158,22 +180,35 @@ struct RatingsTests {
         #expect(fromLiteral[.speed] == 88)
     }
 
-    @Test("Key-set validation catches missing and surplus ratings", .tags(.unit))
-    func keySetValidation() {
+    @Test("Completeness is every key present, and one missing is enough to lose it", .tags(.unit))
+    func completeness() {
+        #expect(!Ratings().isComplete)
+
         var complete = Ratings()
-        for key in RatingKey.keys(for: .cornerback) {
+        for key in RatingKey.allCases {
             complete[key] = 70
         }
-        #expect(complete.matchesKeys(for: .cornerback))
-        #expect(!complete.matchesKeys(for: .quarterback))
-
-        var surplus = complete
-        surplus[.throwPower] = 70
-        #expect(!surplus.matchesKeys(for: .cornerback))
+        #expect(complete.isComplete)
 
         var missing = complete
         missing[.manCoverage] = nil
-        #expect(!missing.matchesKeys(for: .cornerback))
+        #expect(!missing.isComplete)
+
+        var trainedOnly = Ratings()
+        for key in RatingKey.keys(for: .cornerback) {
+            trainedOnly[key] = 70
+        }
+        #expect(!trainedOnly.isComplete, "a corner's trained keys are not every key")
+    }
+
+    @Test("A uniform set carries every key at that value", .tags(.unit))
+    func uniform() {
+        let flat = Ratings.uniform(63)
+        #expect(flat.isComplete)
+        #expect(flat.count == RatingKey.allCases.count)
+        for key in RatingKey.allCases {
+            #expect(flat[key] == 63, "\(key) is \(String(describing: flat[key]))")
+        }
     }
 
     @Test("Ratings are value types", .tags(.unit))
@@ -199,9 +234,9 @@ struct RatingsTests {
     }
 }
 
-/// A weight on a rating the position does not carry would be dropped by
-/// `overall`, quietly renormalising and dragging every player at that position
-/// off target. Weights that do not sum to one do the same thing less obviously.
+/// A weight on a rating the position does not train would score every player at
+/// that position on a number generation draws low, dragging the whole position off
+/// target. Weights that do not sum to one do the same thing less obviously.
 @Suite("Position weights")
 struct PositionWeightsTests {
 
@@ -213,13 +248,13 @@ struct PositionWeightsTests {
         }
     }
 
-    @Test("Weights only reference ratings the position carries", .tags(.unit))
-    func weightsReferenceCarriedRatings() {
+    @Test("Weights only reference ratings the position trains", .tags(.unit))
+    func weightsReferenceTrainedRatings() {
         for position in Position.allCases {
-            let carried = Set(RatingKey.keys(for: position))
+            let trained = Set(RatingKey.keys(for: position))
             for (key, _) in PositionWeights.weights(for: position) {
                 #expect(
-                    carried.contains(key), "\(position) weights \(key), which it does not carry")
+                    trained.contains(key), "\(position) weights \(key), which it does not train")
             }
         }
     }
@@ -235,11 +270,8 @@ struct PositionWeightsTests {
 
     @Test("A uniform rating produces that overall at every position", .tags(.unit))
     func uniformRatingsRoundTrip() {
+        let ratings = Ratings.uniform(74)
         for position in Position.allCases {
-            var ratings = Ratings()
-            for key in RatingKey.keys(for: position) {
-                ratings[key] = 74
-            }
             #expect(
                 PositionWeights.overall(ratings, at: position) == 74,
                 "\(position) scored \(PositionWeights.overall(ratings, at: position)) for a flat 74"
@@ -249,14 +281,12 @@ struct PositionWeightsTests {
 
     @Test("Overall is driven by the ratings the position values", .tags(.unit))
     func overallFollowsWeights() {
-        var passer = Ratings()
-        for key in RatingKey.keys(for: .quarterback) { passer[key] = 60 }
+        var passer = Ratings.uniform(60)
         passer[.throwAccuracyShort] = 95
         passer[.throwAccuracyMedium] = 95
         passer[.awareness] = 95
 
-        var athlete = Ratings()
-        for key in RatingKey.keys(for: .quarterback) { athlete[key] = 60 }
+        var athlete = Ratings.uniform(60)
         athlete[.speed] = 95
         athlete[.stamina] = 95
         athlete[.toughness] = 95
@@ -264,6 +294,19 @@ struct PositionWeightsTests {
         #expect(
             PositionWeights.overall(passer, at: .quarterback)
                 > PositionWeights.overall(athlete, at: .quarterback))
+    }
+
+    /// The arithmetic the mover tests in generation rest on: a key he carries low counts
+    /// at its weight, so a quarterback with every coverage rating at 20 is scored at
+    /// cornerback on those 20s, whatever his awareness.
+    @Test("A rating carried low counts at its weight away from home", .tags(.unit))
+    func lowKeysCountAwayFromHome() {
+        var passer = Ratings.uniform(75)
+        for key in RatingKey.Family.coverage.keys { passer[key] = 20 }
+        let atCorner = PositionWeights.overall(passer, at: .cornerback)
+        // Coverage is 0.54 of a corner: 0.54 × 20 + 0.46 × 75 = 45.3.
+        #expect(atCorner == 45, "a passer covering at 20 rated \(atCorner) at corner")
+        #expect(PositionWeights.overall(passer, at: .quarterback) == 75)
     }
 
     #if DEBUG

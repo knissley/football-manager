@@ -89,8 +89,13 @@ struct SchemeFitInEngineTests {
     /// everywhere by construction — the scheme's boosts and penalties cancel — so the
     /// design only shows on an uneven profile, which is the right behaviour and the
     /// reason a first version of this test read nothing at all.
-    private func receiver(id: UInt64, ratings: Ratings) -> Player {
-        Player(
+    ///
+    /// Every key he is not given sits at 60: an overall is read from a complete set, and
+    /// a hand-built player has to be one.
+    private func receiver(id: UInt64, ratings given: [RatingKey: UInt8]) -> Player {
+        var ratings = Ratings.uniform(60)
+        for (key, value) in given { ratings[key] = value }
+        return Player(
             id: PlayerID(id),
             name: PersonName(given: "Test", family: "Receiver"),
             birthSeason: 2004,

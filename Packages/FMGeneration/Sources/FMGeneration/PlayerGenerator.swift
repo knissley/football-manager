@@ -11,6 +11,16 @@ public enum PlayerGenerator {
     /// Age at which a player is treated as arriving in the league.
     static let entryAge = 22
 
+    /// Label of the substream a player's untrained ratings are drawn from.
+    ///
+    /// Split on his identifier rather than drawn from the stream above, so that
+    /// giving a man the ratings his position never trained leaves every rating it
+    /// did — and his build, his name and everything else drawn after them —
+    /// exactly where they were. In a world identifiers are unique. A test that
+    /// builds many men on one identifier gives them all the same untrained draws,
+    /// so a test that means to sample the untrained table varies the identifier.
+    static let untrainedStream: UInt64 = 0x0b_1a_4c
+
     /// How far below his ceiling a typical newcomer starts.
     static let typicalRookieGap = 14.0
 
@@ -74,14 +84,19 @@ public enum PlayerGenerator {
     /// correction, noise on individual ratings biases the aggregate and a league
     /// generated to average 72 arrives averaging something else.
     ///
-    /// Ratings a position carries but does not weigh — a quarterback's stamina —
+    /// Ratings a position trains but does not weigh — a quarterback's stamina —
     /// are drawn independently, so a great player is not automatically great at
-    /// everything.
+    /// everything. Ratings it does not train at all are drawn from `untrained`,
+    /// a stream of the player's own, after every trained key and before the
+    /// correction: every key is present when the overall is first read, and the
+    /// trained draws are exactly what they would be if the untrained ones did not
+    /// exist.
     static func ratings(
         position: Position,
         targetOverall: UInt8,
         bias: [RatingKey: Double] = [:],
-        using random: inout SplittableRandom
+        using random: inout SplittableRandom,
+        untrained: inout SplittableRandom
     ) -> Ratings {
         let weighted = Dictionary(
             PositionWeights.weights(for: position), uniquingKeysWith: { first, _ in first })
@@ -117,6 +132,8 @@ public enum PlayerGenerator {
                 Rounding.toNearest(value + (bias[key] ?? 0), clampedTo: 20...99))
         }
 
+        fillUntrained(&ratings, position: position, using: &untrained)
+
         // Correct the weighted ratings so the aggregate lands on target.
         for _ in 0..<4 {
             let actual = Int(PositionWeights.overall(ratings, at: position))
@@ -141,6 +158,143 @@ public enum PlayerGenerator {
                 guard let current = ratings[key], current > 20 else { continue }
                 ratings[key] = current - 1
             }
+        }
+    }
+
+    // MARK: - The untrained keys
+
+    /// Where a rating a position does not train sits.
+    ///
+    /// Every player carries every key. The ones his position trains are drawn
+    /// around his quality above; the rest come from this table, and they are low
+    /// on purpose — a lineman's throw is a lineman's throw. What varies is whether
+    /// the job *sometimes* asks for the skill: a defender carries what he takes
+    /// away, a safety catches what is thrown at him, a receiver is asked to block
+    /// on every run, a kicker has punted. Those rows sit above the ones nobody's
+    /// job asks for, and spread more widely — 8 against 6 — because a thing a man
+    /// has done a little varies more than a thing he has never done.
+    ///
+    /// Rows match first to last, so a row for particular keys or positions comes
+    /// before its family's row for everyone. A key the table does not name for a
+    /// position takes its family's row for everyone, which is the family's lowest
+    /// centre: nobody is assumed to have picked up what the table did not say he
+    /// had. Three keys are not in the table at all — see `fillUntrained`.
+    struct UntrainedRow {
+
+        /// Who a row applies to.
+        enum Positions {
+            case everyone
+            case side(Side)
+            case groups([PositionGroup])
+            case positions([Position])
+
+            func include(_ position: Position) -> Bool {
+                switch self {
+                case .everyone: return true
+                case .side(let side): return position.side == side
+                case .groups(let groups): return groups.contains(position.group)
+                case .positions(let positions): return positions.contains(position)
+                }
+            }
+        }
+
+        let keys: [RatingKey]
+        let positions: Positions
+        let centre: Double
+        let spread: Double
+
+        init(_ keys: [RatingKey], _ positions: Positions, centre: Double, spread: Double) {
+            self.keys = keys
+            self.positions = positions
+            self.centre = centre
+            self.spread = spread
+        }
+
+        init(_ family: RatingKey.Family, _ positions: Positions, centre: Double, spread: Double) {
+            self.init(family.keys, positions, centre: centre, spread: spread)
+        }
+    }
+
+    static let untrainedTable: [UntrainedRow] = [
+        // Passing. Nobody but a quarterback throws.
+        UntrainedRow(.passing, .everyone, centre: 25, spread: 6),
+
+        // Ball carrying. A defender carries what he takes away; a lineman, and anyone
+        // else whose position does not train it, has never carried at all.
+        UntrainedRow(.ballCarrying, .side(.defense), centre: 35, spread: 8),
+        UntrainedRow(.ballCarrying, .everyone, centre: 25, spread: 6),
+
+        // Receiving. A defensive back or a linebacker catches what is thrown at him
+        // and runs no routes; nobody else who does not train it does either.
+        UntrainedRow(
+            [.catching], .groups([.cornerback, .safety, .linebacker]), centre: 40, spread: 8),
+        UntrainedRow(.receiving, .everyone, centre: 25, spread: 6),
+
+        // Blocking. A receiver is asked to block on every run; a quarterback, a
+        // defender and everyone else who does not train it, rarely.
+        UntrainedRow(.blocking, .groups([.receiver]), centre: 35, spread: 8),
+        UntrainedRow(.blocking, .everyone, centre: 30, spread: 8),
+
+        // The front seven. Pursuit and hit power follow the athlete and are not here;
+        // the pass-rush moves, shedding and tackling nobody outside the front trains.
+        UntrainedRow(.frontSeven, .everyone, centre: 25, spread: 6),
+
+        // Coverage. A defensive lineman drops into a zone now and then and into man
+        // never; nobody on offence covers anybody.
+        UntrainedRow([.zoneCoverage], .groups([.edge, .defensiveInterior]), centre: 30, spread: 8),
+        UntrainedRow(.coverage, .everyone, centre: 20, spread: 6),
+
+        // Kicking. A kicker has punted and a punter has kicked; nobody else has done
+        // either.
+        UntrainedRow([.puntPower, .puntAccuracy], .positions([.kicker]), centre: 45, spread: 8),
+        UntrainedRow([.kickPower, .kickAccuracy], .positions([.punter]), centre: 45, spread: 8),
+        UntrainedRow(.kicking, .everyone, centre: 15, spread: 6),
+    ]
+
+    /// The row that governs `key` at `position`: the first that names both.
+    static func untrainedRow(for key: RatingKey, at position: Position) -> UntrainedRow? {
+        untrainedTable.first { $0.keys.contains(key) && $0.positions.include(position) }
+    }
+
+    /// Noise on an untrained key that follows the athlete rather than the table.
+    static let derivedSpread = 6.0
+
+    /// Draw every key `position` does not train.
+    ///
+    /// Three keys follow the athlete rather than the table, for anyone whose
+    /// position does not train them: elusiveness is half his agility with noise on
+    /// top, pursuit half his speed and ten, hit power half his strength. A guard is
+    /// not elusive because nobody at guard is, and a corner does not hit because
+    /// he is not strong — and the general keys those read are drawn before this
+    /// runs. The rest are the table's row for the key and the position, and the
+    /// floor if no row names them, which a test says none lacks.
+    static func fillUntrained(
+        _ ratings: inout Ratings, position: Position, using random: inout SplittableRandom
+    ) {
+        let trained = Set(RatingKey.keys(for: position))
+        let floor = Double(Ratings.untrainedFloor)
+        for key in RatingKey.allCases where !trained.contains(key) {
+            let value: Double
+            switch key {
+            case .elusiveness:
+                value =
+                    Double(ratings.value(.agility, or: Ratings.untrainedFloor)) / 2
+                    + random.nextGaussian() * derivedSpread
+            case .pursuit:
+                value = Double(ratings.value(.speed, or: Ratings.untrainedFloor)) / 2 + 10
+            case .hitPower:
+                value = Double(ratings.value(.strength, or: Ratings.untrainedFloor)) / 2
+            default:
+                if let row = untrainedRow(for: key, at: position) {
+                    value = row.centre + random.nextGaussian() * row.spread
+                } else {
+                    value = floor
+                }
+            }
+            ratings[key] = UInt8(
+                Rounding.toNearest(
+                    value,
+                    clampedTo: Int(Ratings.range.lowerBound)...Int(Ratings.range.upperBound)))
         }
     }
 
@@ -180,8 +334,10 @@ public enum PlayerGenerator {
 
         let bias =
             scheme.map { SchemeIdentity.ratingBias(for: position, in: $0) } ?? [:]
+        var untrained = random.split(untrainedStream, id.rawValue)
         var ratingSet = ratings(
-            position: position, targetOverall: overall, bias: bias, using: &random)
+            position: position, targetOverall: overall, bias: bias, using: &random,
+            untrained: &untrained)
 
         // The correction loop converges on the target, but `overall` is a
         // *rounded* weighted mean, so it can settle a point high. The ceiling is
