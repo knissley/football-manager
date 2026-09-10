@@ -443,8 +443,9 @@ array order. This was the only one.
 
 ## S9 — There is no overtime in the regular season — **open**
 
-`GameState.checkForEnd` ends any tied regulation game when ties are allowed
-(`mayEndInATie`, in `GameState.swift`), so overtime exists only in the postseason and
+`GameSimulator.State.checkForEnd` — the state machine in `GameState.swift` — ends any
+tied regulation game when ties are allowed (`Rules.mayEndInATie`, called from there), so
+overtime exists only in the postseason and
 `Rules.regularSeasonOvertimeLength` is dead. The harness prints **25 ties in 400 games, at
 seed 7 and at seed 11 alike**, with no target beside the row; the real rate is about 0.4%.
 
@@ -457,8 +458,9 @@ describes, which is the issue that closes it.
 
 ## S10 — A touchdown at the end of a half gets no try — **open**
 
-The half restart in `GameState.checkForEnd` sets `pendingTry = false` along with the fresh
-timeouts, so a touchdown as the second quarter expires never gets its extra point. The end
+The half restart in `GameSimulator.State.checkForEnd` sets `pendingTry = false` along
+with the fresh timeouts, so a touchdown as the second quarter expires never gets its
+extra point. The end
 of regulation checks the score *before* the try exists, so a team down seven that scores on
 the final play loses by one having never been allowed to kick.
 

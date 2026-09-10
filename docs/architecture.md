@@ -164,9 +164,11 @@ architectural. In `FMSimulation`'s hot loop:
 - Trajectory capture is opt-in per game.
 
 **Designed, not built.** The hot loop the rules above describe is the M5 tick loop, and
-nothing in the tree runs one. Nor does anything measure the budget: CI
+nothing in the tree runs one. Nor does anything *enforce* the budget: CI
 ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the suites, the two
-lints and the harness, and has no benchmark step.
+lints and the harness, and has no benchmark step that can fail. The harness reports
+milliseconds per game against the budget and CI prints it in the job summary; nothing
+gates on it.
 
 ## Persistence
 

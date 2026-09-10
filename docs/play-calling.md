@@ -35,6 +35,12 @@ PlayCaller
    PlayCall              play + personnel + tempo
 ```
 
+*Designed, not built:* of those five, only the call exists — as `OffensiveCall` and
+`DefensiveCall`, which do carry personnel and tempo. `Gameplan`, `CoordinatorProfile`,
+`OpponentModel` and `GameContext` are none of them types; the sections below say what
+each is waiting on. What runs today is a baseline caller that reads the situation and
+nothing else.
+
 This turns the project's biggest technical risk into a mechanic. A great coordinator
 makes simming ahead safe; a bad one is a reason to take the wheel yourself — and a
 reason to go hire someone better in the offseason.

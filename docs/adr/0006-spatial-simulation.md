@@ -73,15 +73,19 @@ The consequence above says the budget "is enforced by a CI benchmark." It is not
 never has been. This is an amendment under the rule in [README.md](README.md) rather than
 an edit to the body, which is left as it was written.
 
-CI exists — [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the four
-suites, `FMRandom` again in release, the format lint, `scripts/lint-sim.sh`, `playsize`
-and a `worldgen` build on both x86_64 and arm64, and reports the calibration harness
-without gating on it. **None of those steps times anything.** There is no benchmark
-target, and there is nothing yet to benchmark: the tick loop the budget describes is M5
-work and no season loop exists to run in sixty seconds.
+There is **no benchmark target and no CI step that fails on a timing regression**.
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the four suites,
+`FMRandom` again in release, the format lint, `scripts/lint-sim.sh`, `playsize` and a
+`worldgen` build on both x86_64 and arm64, and reports the calibration harness without
+gating on it. Since issue #9, that harness also **reports** milliseconds per game against
+this budget, and CI puts the figure in the job summary — read, never enforced. Nothing
+gates on it.
+
+There is also less to measure than the budget describes: the tick loop is M5 work and no
+season loop exists to run in sixty seconds, so what gets timed is a game at the crude
+resolver's speed rather than a season at the spatial engine's.
 
 The decision is unchanged — the budget is still architectural, and the hot-loop rules
-still bind whoever writes the tick loop. What is corrected is the enforcement: today the
-budget is a rule people follow, not a check that fails. Issue #9 adds a timing row to
-`simharness`, which is the first thing that will measure it; making that row gate a merge
-is a separate, later decision.
+still bind whoever writes the tick loop. What is corrected is the enforcement: the budget
+is a number somebody has to read, not a check that fails. Making it gate a merge is a
+separate, later decision.

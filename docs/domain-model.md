@@ -31,6 +31,11 @@ World
       └── FreeAgentPool
 ```
 
+*Designed, not built:* `League`, `Conference`, `Division`, `Team` and `Rules` exist and
+are what `LeagueShape` validates. **`World`, `Calendar` and `FreeAgentPool` do not** —
+there is no root object holding a league, no calendar (M3) and no free agency (M7).
+Generation returns a league and its rosters; nothing owns them yet.
+
 Structure is data, not hardcoded. A generated world *defaults* to 32 teams in two
 conferences of four divisions, but the generator takes it as configuration so we can
 test smaller leagues quickly.
@@ -109,11 +114,13 @@ handTechnique; powerMove, finesseMove, blockShedding, pursuit, tackling, hitPowe
 manCoverage, zoneCoverage, ballHawk; kickPower, kickAccuracy, puntPower, puntAccuracy.
 
 A rating a position doesn't use is absent, not zero. `Ratings` is a **flat array indexed
-by `RatingKey.rawValue`, plus a two-word presence bitmap** — not a dictionary, which
-would put hashing in the domain type and break the no-dictionary rule the tick loop is
-written to ([ADR-0006](adr/0006-spatial-simulation.md)). Raw values are gapped so a new
-key can be inserted without renumbering, and a test asserts every key fits the array.
-Typed accessors mean adding a rating doesn't touch every player struct.
+by `RatingKey.rawValue`, plus a two-word presence bitmap** rather than a dictionary: a
+lookup is an array read with no hashing, and "absent" is representable. Neither reason is
+about the tick loop — `Ratings` is not read there. The engine copies the handful of
+values a play needs into flat entity arrays at the snap and reads those; this type is the
+domain representation. Raw values are gapped so a new key can be inserted without
+renumbering, and a test asserts every key fits the array. Typed accessors mean adding a
+rating doesn't touch every player struct.
 
 **Hidden attributes** — `HiddenAttributes` carries `ceiling` (a number, 0–99, not a
 band), `developmentTrait` (slow / normal / quick / star), `workEthic` and `durability`.

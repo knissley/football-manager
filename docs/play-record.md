@@ -58,8 +58,14 @@ PlayRecord
   calls         Calls           what each side chose, and who chose it
   decisions     [DecisionPoint] the observable causal chain
   outcome       Outcome         what happened
-  trajectory    TrajectoryRef?  opt-in, usually absent
+  trajectory    TrajectoryRef?  opt-in, usually absent   ← designed, not built
 ```
+
+*Designed, not built:* the record has the first six fields and no `trajectory`. There is
+no `TrajectoryRef` type and nothing to point it at — trajectories are per-tick positions,
+and they arrive with the spatial engine at M5. The sizing section below costs a trajectory
+anyway, because whether records or trajectories dominate storage is a decision that has
+to be made before M5 rather than after.
 
 ```
 Situation

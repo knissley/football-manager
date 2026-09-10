@@ -103,9 +103,11 @@ avoid transcendental functions where a cheaper formulation exists.
 
 ## Performance budget
 
-**Designed, not built.** The budget describes the M5 tick loop, and nothing measures it:
-there is no benchmark, no season loop to time, and CI has no timing step (issue H3, #9,
-adds a timing row to the harness). The rules below are what M5 is written to.
+**Designed, not built.** The budget describes the M5 tick loop, and there is no tick loop
+and no season loop to time. Nothing *enforces* it either: there is no benchmark target and
+no CI step that fails on a timing regression. `simharness` reports milliseconds per game
+against the budget and CI prints that in the job summary (issue H3, #9) — a number to
+read, not a gate. The rules below are what M5 is written to.
 
 **A season simulates in about 60 seconds.** That is the constraint, and it is
 architectural rather than a tuning target.
