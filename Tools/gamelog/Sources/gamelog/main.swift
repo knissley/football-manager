@@ -550,7 +550,7 @@ struct Broadcast {
         // Fourteen, not thirteen: "two-point try" is thirteen characters exactly, and a
         // conversion printed as `two-point tryconversion good` is the one play in the
         // sport whose line nobody could read.
-        line += pad(concept(play.calls), 14)
+        line += pad(concept(play.calls), 15)
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
@@ -720,8 +720,13 @@ struct Broadcast {
         let offender = name(at: penalty.offender, in: play.outcome)
         var text = "        flag: \(foulName(penalty.foul)) on \(offender) "
         text += "(\(abbreviation(penalty.offendingTeam))), "
-        text +=
-            penalty.foul.isSpotFoul ? "spot foul \(penalty.yards) yards" : "\(penalty.yards) yards"
+        if penalty.foul.isSpotFoul, let spot = penalty.enforcementSpot {
+            // A spot foul carries no yardage — the spot *is* the penalty — so printing
+            // its zero said nothing. Where the foul happened is the number a reader wants.
+            text += "spot foul at \(spot == 0 ? "the goal line" : ownOrOpponent(spot))"
+        } else {
+            text += "\(penalty.yards) yards"
+        }
         text += penalty.wasAccepted ? " — accepted" : " — declined"
         if penalty.awardedFirstDown { text += ", automatic first down" }
         return text
@@ -984,7 +989,7 @@ func playByPlayLines(
 ) -> [String] {
     var lines = [
         padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11)
-            + pad("ball", 10) + pad("concept", 14) + "what happened",
+            + pad("ball", 10) + pad("concept", 15) + "what happened",
         "",
     ]
 

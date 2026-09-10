@@ -263,6 +263,8 @@ Simulates one game out of the same world `simharness` plays and prints it as a b
 log. One line per play: quarter and clock, the offence, down and distance, field position
 in own or opponent terms, the concept, what happened and who did it, the personnel
 matchup, any flag and how it was enforced, and the score after anything that scored. A
+spot foul prints the spot it is enforced from rather than a yardage, because it does not
+have one. A
 drive summary at each change of possession and a scoreboard at the end of each period.
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
