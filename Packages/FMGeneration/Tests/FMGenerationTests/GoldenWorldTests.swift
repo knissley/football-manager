@@ -13,9 +13,9 @@ import Testing
 /// checked-in constant can fail that way.
 ///
 /// Checksummed over the *whole* world rather than one roster: the league's structure, its
-/// teams, every roster, the strength each team was drawn at, the draft pipeline and the
-/// rivalries. A determinism bug in any stage of `WorldGenerator` fails here, and a change
-/// in the *order* the stages draw in fails here too.
+/// teams, every roster and its draft history, the strength each team was drawn at, the
+/// draft pipeline and the rivalries. A determinism bug in any stage of `WorldGenerator`
+/// fails here, and a change in the *order* the stages draw in fails here too.
 @Suite("Golden world")
 struct GoldenWorldTests {
 
@@ -103,6 +103,16 @@ struct GoldenWorldTests {
                 for key in RatingKey.allCases {
                     sum.mix(player.ratings[key] ?? 255)
                 }
+                // Draft history is drawn from a substream keyed on the player's
+                // identifier, so nothing above would move if it started drawing from the
+                // wrong stream, or stopped being drawn at all. It is mixed here for the
+                // same reason the depth chart is: a stage the checksum does not read is a
+                // stage the golden cannot speak for.
+                sum.mix(player.firstSeason)
+                sum.mix(player.draft?.season ?? 0)
+                sum.mix(player.draft?.round ?? 0)
+                sum.mix(player.draft?.pick ?? 0)
+                sum.mix(player.draft?.overallPick ?? 0)
                 // Scheme fit is the value that was actually wrong: it is a rounded weighted
                 // average, and the weighting used to be summed in hash order.
                 sum.mix(player.schemeFit(team.scheme))
@@ -146,9 +156,9 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process",
         arguments: [
-            (UInt64(1), UInt64(12_206_648_183_704_183_677)),
-            (UInt64(5), UInt64(10_085_084_855_821_522_147)),
-            (UInt64(7), UInt64(17_159_367_310_507_637_788)),
+            (UInt64(1), UInt64(13_144_663_695_502_856_191)),
+            (UInt64(5), UInt64(4_653_623_164_046_455_189)),
+            (UInt64(7), UInt64(7_479_154_857_784_000_233)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)
