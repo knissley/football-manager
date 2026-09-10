@@ -33,24 +33,31 @@ struct WorldChecksumTests {
     private func rebuilt(
         _ world: WorldGenerator.GeneratedWorld,
         teams: [Team]? = nil,
-        rosters: [TeamID: [Player]]? = nil
+        rosters: [TeamID: [Player]]? = nil,
+        charts: [TeamID: DepthChart]? = nil,
+        players: [PlayerID: Player]? = nil
     ) -> WorldGenerator.GeneratedWorld {
         var strengths: [TeamID: RosterGenerator.Strength] = [:]
         var identities: [TeamID: SchemeIdentity.Identity] = [:]
         var chosenRosters: [TeamID: [Player]] = [:]
-        var charts: [TeamID: DepthChart] = [:]
+        var chosenCharts: [TeamID: DepthChart] = [:]
         for team in world.teams {
             strengths[team.id] = world.strength(of: team.id)
             identities[team.id] = world.identity(of: team.id)
             chosenRosters[team.id] = world.roster(of: team.id)
-            charts[team.id] = world.depthChart(of: team.id)
+            chosenCharts[team.id] = world.depthChart(of: team.id)
         }
         if let rosters { chosenRosters = rosters }
+        if let charts { chosenCharts = charts }
 
-        var players: [PlayerID: Player] = [:]
+        // Derived from the rosters, exactly as `WorldGenerator` derives it — unless the
+        // caller hands over a map of its own, which is the case the engine cares about:
+        // `GameSetup` is given this dictionary, not the rosters.
+        var chosenPlayers: [PlayerID: Player] = [:]
         for id in chosenRosters.keys.sorted() {
-            for player in chosenRosters[id] ?? [] { players[player.id] = player }
+            for player in chosenRosters[id] ?? [] { chosenPlayers[player.id] = player }
         }
+        if let players { chosenPlayers = players }
 
         return WorldGenerator.GeneratedWorld(
             seed: world.seed,
@@ -61,8 +68,8 @@ struct WorldChecksumTests {
             strengths: strengths,
             identities: identities,
             rosters: chosenRosters,
-            charts: charts,
-            players: players,
+            charts: chosenCharts,
+            players: chosenPlayers,
             draftPipeline: world.draftPipeline,
             rivalries: world.rivalries)
     }
@@ -173,6 +180,55 @@ struct WorldChecksumTests {
             hidden: original.hidden, status: original.status)
         #expect(
             checksum(of: world, replacingFirstOf: team, with: better) != WorldChecksum.of(world))
+    }
+
+    /// The map is what the engine is *handed*: `simharness` takes `world.players` and
+    /// gives that dictionary to `GameSetup`, and `GeneratedWorld` stores it beside the
+    /// rosters rather than deriving it on demand. A checksum that walked only the rosters
+    /// would call a league with five points of speed added to a starter the same league
+    /// — and the harness moved by hundreds of lines when that was tried.
+    @Test("contract: the checksum moves when the players map the engine is handed changes")
+    func playersMapIsRead() throws {
+        let world = try generated()
+        let team = world.teams[0].id
+        let original = try #require(world.roster(of: team).first)
+
+        var faster = original
+        faster.ratings[.speed] = min(99, (original.ratings[.speed] ?? 60) + 5)
+        var players = world.players
+        players[original.id] = faster
+
+        // The rosters are untouched: only the dictionary the engine reads has moved.
+        #expect(world.roster(of: team).first == original)
+        #expect(WorldChecksum.of(rebuilt(world, players: players)) != WorldChecksum.of(world))
+    }
+
+    /// A depth chart is a partition of the same men, and the partition is what the lineup
+    /// reads. Concatenating the positions without saying how long each one is makes a
+    /// man moved from the tail of one position to the head of the next invisible: the
+    /// flattened sequence is identical, and the chart is a different chart.
+    @Test("contract: the checksum moves when a depth chart is repartitioned over the same men")
+    func depthChartPartitionIsRead() throws {
+        let world = try generated()
+        let team = world.teams[0].id
+        let original = world.depthChart(of: team)
+
+        let occupied = Position.allCases.filter { !original[$0].isEmpty }
+        try #require(occupied.count > 1)
+        let moved = try #require(original[occupied[0]].last)
+        var chart = original
+        chart[occupied[0]].removeLast()
+        chart[occupied[1]].insert(moved, at: 0)
+
+        // Same men, same order when the positions are laid end to end. Only the
+        // boundaries moved.
+        let flattened = { (one: DepthChart) in Position.allCases.flatMap { one[$0] } }
+        #expect(flattened(chart) == flattened(original))
+
+        var charts: [TeamID: DepthChart] = [:]
+        for one in world.teams { charts[one.id] = world.depthChart(of: one.id) }
+        charts[team] = chart
+        #expect(WorldChecksum.of(rebuilt(world, charts: charts)) != WorldChecksum.of(world))
     }
 
     @Test("unit: hex is sixteen zero-padded digits")
