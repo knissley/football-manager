@@ -64,7 +64,17 @@ struct GoldenWorldTests {
             // Renamed, and nothing else about the identity touched. Every one of the
             // eight is a string the engine never reads — `GoldenSeedTests` did not move
             // — but the world checksum covers the identity, so it did.
-            (UInt64(1), UInt64(9_640_392_912_359_852_668)),
+            //
+            // And all three once more in #82, which finished that identity: the league's
+            // own name was still a per-seed draw from `StructurePools.leagueNames`, so
+            // two careers opened in identically named clubs under differently named
+            // leagues. It is now one line beside the table, `FranchiseSet.leagueName`,
+            // and the checksum mixes `league.name` — so every curated world moved by
+            // exactly that string and nothing else. The randomiser keeps its draw. Like
+            // the renames above, the league's name is a string no snap reads:
+            // `GoldenSeedTests` did not move, and the harness rows below its header are
+            // byte-identical at seeds 7 and 11.
+            (UInt64(1), UInt64(3_350_913_022_119_427_710)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -85,8 +95,8 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(207_628_132_540_486_439)),
-            (UInt64(7), UInt64(2_330_269_064_591_620_310)),
+            (UInt64(5), UInt64(14_267_436_670_061_520_945)),
+            (UInt64(7), UInt64(3_815_737_767_906_619_940)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

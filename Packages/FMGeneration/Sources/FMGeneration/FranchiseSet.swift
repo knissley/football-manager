@@ -127,6 +127,22 @@ public enum FranchiseSource: Sendable, Hashable {
         case .randomised: return []
         }
     }
+
+    /// What the league these franchises play in is called, or `nil` where the source has
+    /// no name of its own and the pools supply one.
+    ///
+    /// Both curated sources answer with the table's name. A hand-written set is a league
+    /// somebody wrote down, and a name that re-rolled with the seed would put back the
+    /// per-seed identity [decision 215](../../../../docs/design-decisions.md) exists to
+    /// take out — a caller with its own clubs and its own name renames `League.name`,
+    /// which is editable like every other name in the world. `.randomised` answers `nil`
+    /// and keeps its draw ([#82](https://github.com/knissley/football-manager/issues/82)).
+    var leagueName: String? {
+        switch self {
+        case .curated, .set: return FranchiseSet.leagueName
+        case .randomised: return nil
+        }
+    }
 }
 
 /// The thirty-two franchises every world starts from.
@@ -154,6 +170,30 @@ public enum FranchiseSource: Sendable, Hashable {
 /// sixty-four team league — takes the rest from the randomiser, with everything here
 /// already in the name ledger so nothing drawn can collide with it.
 public enum FranchiseSet {
+
+    /// The league the thirty-two play in.
+    ///
+    /// Curated for the reason the clubs are: a career opens in the *same league*, not
+    /// merely in the same buildings, and a name that re-rolled with the seed was one
+    /// more piece of identity a calibration run could not hold still
+    /// ([decision 215](../../../../docs/design-decisions.md)). One line beside the
+    /// table, edited by hand like the rest of it. `FranchiseSource.randomised` keeps the
+    /// pool draw.
+    ///
+    /// **Fiction, and reviewed as fiction**
+    /// ([ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md), rule 8):
+    /// the word names the sprawl of a league whose clubs travel from one coast to the
+    /// other, in the same invented register as the cities below. It is no real league's
+    /// name and no real club's, its initials are no real league's either, and it claims
+    /// nothing national, federal or united — this world has no nation for a league to be
+    /// named after. That review is the reason the name is written here rather than drawn
+    /// from `StructurePools.leagueNames`, which is as unrefined as the rest of the pools
+    /// and holds more than one line that would not survive it.
+    ///
+    /// No abbreviation: `League` has no field for one, and inventing one nothing reads
+    /// would be a second name to keep true. If it acquires one, it is written down here
+    /// rather than drawn.
+    public static let leagueName = "Overland Football League"
 
     /// Thirty-two franchises: eight north, eight south, eight east, eight west.
     ///

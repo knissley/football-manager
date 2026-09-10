@@ -41,7 +41,10 @@ Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
 **The clubs are the same every time.** A world starts from the curated thirty-two in
 `FMGeneration.FranchiseSet` ([decision 215](design-decisions.md#world-generation)), so
 `--show teams` prints the same league at every seed — the same cities, nicknames,
-colours and grounds, down to which of them have roofs. What the seed still moves is
+colours and grounds, down to which of them have roofs. The league's own name is curated
+with them, so the header line of `--show teams` reads the same at every seed too
+([#82](https://github.com/knissley/football-manager/issues/82)); under
+`--franchises random` it is drawn from the pools with everything else. What the seed still moves is
 everything a career is played with: rosters, strengths, schemes, the draft pipeline
 and the rivalries. `--franchises random` is the old pool draw, kept as a last resort
 behind the flag and deliberately not refined before M8; it is the only way to see two

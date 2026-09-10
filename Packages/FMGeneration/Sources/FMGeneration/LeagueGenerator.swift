@@ -44,8 +44,9 @@ public enum LeagueGenerator {
     ///
     /// - Parameters:
     ///   - shape: the league's structure.
-    ///   - franchises: where the clubs come from. The curated thirty-two by default;
-    ///     `.randomised` for the pool draw ([decision 215](../../../../docs/design-decisions.md)).
+    ///   - franchises: where the clubs come from, and the league's own name with them.
+    ///     The curated thirty-two by default; `.randomised` for the pool draw
+    ///     ([decision 215](../../../../docs/design-decisions.md)).
     ///   - random: the league's substream.
     /// - Returns: the league and its teams, or the reason the shape is not a league.
     public static func league(
@@ -145,10 +146,20 @@ public enum LeagueGenerator {
                     divisions: divisions))
         }
 
+        // The league's own name comes from the source that supplied the clubs: curated
+        // beside them, so two careers open in one league rather than in two leagues of
+        // identically named clubs, and drawn where the clubs are drawn
+        // ([#82](https://github.com/knissley/football-manager/issues/82)). Nothing draws
+        // from `random` after this, so the curated path skipping the draw moves nothing
+        // else in the world.
+        let leagueName =
+            franchises.leagueName
+            ?? StructurePools.leagueNames[
+                Int(random.next(upperBound: UInt64(StructurePools.leagueNames.count)))]
+
         let league = League(
             id: LeagueID(1),
-            name: StructurePools.leagueNames[
-                Int(random.next(upperBound: UInt64(StructurePools.leagueNames.count)))],
+            name: leagueName,
             shape: shape,
             conferences: conferences)
 

@@ -280,6 +280,7 @@ struct FranchiseSetTests {
 
         #expect(
             names.count == 1, "the curated league's name moved with the seed: \(names.sorted())")
+        #expect(names == [FranchiseSet.leagueName], "the league is not the one the table names")
         for name in names {
             #expect(
                 StructurePools.leagueNames.contains(name) == false,
