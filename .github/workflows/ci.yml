@@ -179,6 +179,11 @@ jobs:
         # Without this step neither runs in CI at all.
         run: swift test --package-path Tools/simharness
 
+      - name: gamelog
+        # Nothing else compiles this tool, and its suite asserts what a drive summary says
+        # about the clock — which is the half of a game an aggregate cannot show at all.
+        run: swift test --package-path Tools/gamelog
+
       - name: Harness determinism
         # The harness's output at a seed is byte-identical between two runs of the same
         # binary, and every before-and-after comparison in the backlog rests on it (#52).

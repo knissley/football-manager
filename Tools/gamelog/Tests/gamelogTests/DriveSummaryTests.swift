@@ -42,16 +42,19 @@ struct DriveSummaryTests {
         return minutes * 60 + rest
     }
 
-    /// Seconds of football played by the time `play` was snapped, from the period lengths
-    /// the game was played under.
+    /// Seconds of football played by the end of `play`, from the period lengths the game
+    /// was played under.
     ///
-    /// The stream records the clock at the snap, so this is what it can say about the
-    /// game's length: everything before this play, and nothing of the play itself.
-    /// Regulation periods are `quarterLength` and overtime periods are
-    /// `overtimeLength(isPostseason:)` — the lengths `GameClock.advancingPeriod` hands
-    /// out, computed here from `Rules` rather than from the tool, so that the two have to
-    /// agree.
-    private func clockPlayed(upTo play: PlayRecord, rules: Rules, isPostseason: Bool) -> Int {
+    /// Every period before it at its own length — `quarterLength` in regulation and
+    /// `overtimeLength(isPostseason:)` after it, the lengths `GameClock.advancingPeriod`
+    /// hands out — plus the clock this period has spent by the time the play was snapped,
+    /// plus the play. Computed from `Rules` and the record rather than from the tool, so
+    /// that the two have to agree.
+    ///
+    /// The interval before a snap is nowhere in a `PlayRecord`, so the play's own seconds
+    /// are all that can be added to the reading it carries; the game cannot have run past
+    /// the end of its last period either way.
+    private func clockPlayed(through play: PlayRecord, rules: Rules, isPostseason: Bool) -> Int {
         func length(ofPeriod period: UInt8) -> Int {
             period <= rules.quarters
                 ? Int(rules.quarterLength) : Int(rules.overtimeLength(isPostseason: isPostseason))
@@ -59,7 +62,9 @@ struct DriveSummaryTests {
         let quarter = play.situation.quarter
         var played = 0
         for period in 1..<quarter { played += length(ofPeriod: period) }
-        return played + length(ofPeriod: quarter) - Int(play.situation.clockRemaining)
+        let periodEnd = played + length(ofPeriod: quarter)
+        let atTheSnap = periodEnd - Int(play.situation.clockRemaining)
+        return min(periodEnd, atTheSnap + Int(play.outcome.clockRunoff))
     }
 
     // MARK: The tests
@@ -99,7 +104,7 @@ struct DriveSummaryTests {
 
         let last = try #require(trace.plays.last)
         #expect(last.situation.quarter == rules.quarters + 2, "this game is decided in a 2OT")
-        let played = clockPlayed(upTo: last, rules: rules, isPostseason: game.isPostseason)
+        let played = clockPlayed(through: last, rules: rules, isPostseason: game.isPostseason)
 
         let summaries = driveSummaries(in: scenarioLines(scenario))
         var total = 0

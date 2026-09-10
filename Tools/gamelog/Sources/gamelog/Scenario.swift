@@ -67,7 +67,8 @@ func scenarioLines(_ scenario: RulesScenario) -> [String] {
     lines.append("")
 
     lines += playByPlayLines(
-        home: home, away: away, players: world.players, rules: game.rules, result: trace.result)
+        home: home, away: away, players: world.players, rules: game.rules,
+        isPostseason: game.isPostseason, result: trace.result)
     return lines
 }
 

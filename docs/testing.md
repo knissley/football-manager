@@ -31,6 +31,7 @@ Packages/FMCore/Tests/FMCoreTests/TestTags.swift
 Packages/FMGeneration/Tests/FMGenerationTests/TestTags.swift
 Packages/FMSimulation/Tests/FMSimulationTests/TestTags.swift
 Tools/simharness/Tests/simharnessTests/TestTags.swift
+Tools/gamelog/Tests/gamelogTests/TestTags.swift
 ```
 
 A tag rather than a naming convention because a tag is a value the toolchain knows about:
@@ -63,6 +64,9 @@ Taken on the merge of wave 1, at 717 tests.
 | FMSimulation | 59 — 33.7% | 50 — 28.6% | 63 — 36.0% | 3 | 175 |
 | simharness | 0 — 0.0% | 9 — 75.0% | 3 — 25.0% | 0 | 12 |
 | **all** | **87 — 12.1%** | **155 — 21.6%** | **471 — 65.7%** | **4** | **717** |
+
+A sixth target has joined the census since: `gamelog`, whose two tests landed with #87
+and are not in the table above, which is left as it was taken.
 
 The estimate this rule was written from was "roughly 85% checking that the code does what
 the code does, about 10% the engine's own contracts, perhaps 5% the sport" — read off the
