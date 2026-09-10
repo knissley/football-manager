@@ -226,20 +226,24 @@ struct ClockStoppageTests {
                 == .stopsUntilReadyForPlay)
     }
 
-    /// 4-3-2-e-3 names its periods — the fourth, and regular-season overtime — and what
-    /// 16-1-4-h lends postseason overtime is a half's closing rules, which for a foul are
-    /// the windows of e-1 and e-2. So in postseason overtime the offence's foul before
-    /// the snap starts the clock on the snap inside a second period's two minutes and a
-    /// fourth period's five, and nowhere else.
+    private func startsOnTheSnap(quarter: UInt8, clock: UInt16, postseason: Bool = true) -> Bool {
+        rules.clockStartsOnTheSnapAfterFoul(
+            byOffense: true, quarter: quarter, isPostseason: postseason, clockRemaining: clock)
+    }
+
+    /// 4-3-2-e-3 names its periods — the fourth, and regular-season overtime — and a
+    /// first, second or third postseason overtime period is none of them, nor is any
+    /// of them timed as a fourth by 16-1-4-h. So in those the offence's foul before the
+    /// snap starts the clock on the snap only inside the two-minute window a second
+    /// overtime period is lent (e-1); inside five minutes of a fourth it does too
+    /// (e-2). What e-3 says of a fourth overtime period outside five minutes the book
+    /// does not settle, and that row is a pin, `offensiveFoulInAFourthPostseason
+    /// OvertimePeriodOutsideFiveMinutes`.
     @Test(
-        "football · Rule 4-3-2-e, 16-1-4-h · after an offensive foul before the snap the clock starts on the snap anywhere in the fourth period or regular-season overtime (e-3), and in postseason overtime only inside the windows a second or a fourth overtime period is lent (e-1, e-2)",
+        "football · Rule 4-3-2-e, 16-1-4-h · after an offensive foul before the snap the clock starts on the snap anywhere in the fourth period or regular-season overtime (e-3); in a first, second or third postseason overtime period, which e-3's words leave out, only inside the two-minute window a second is lent (e-1); and inside five minutes of a fourth (e-2)",
         .tags(.football)
     )
     func offensiveFoulBeforeTheSnapInPostseasonOvertime() {
-        func startsOnTheSnap(quarter: UInt8, clock: UInt16, postseason: Bool = true) -> Bool {
-            rules.clockStartsOnTheSnapAfterFoul(
-                byOffense: true, quarter: quarter, isPostseason: postseason, clockRemaining: clock)
-        }
         #expect(
             startsOnTheSnap(quarter: 4, clock: 600, postseason: false),
             "the fourth period, anywhere in it")
@@ -263,11 +267,24 @@ struct ClockStoppageTests {
             startsOnTheSnap(quarter: 7, clock: 250) == false,
             "a third overtime period is a third period")
         #expect(
-            startsOnTheSnap(quarter: 8, clock: 400) == false,
-            "a fourth overtime period, outside five minutes")
-        #expect(
             startsOnTheSnap(quarter: 8, clock: 250),
             "inside five minutes of a fourth overtime period (e-2)")
+    }
+
+    /// 16-1-4-h times the end of a fourth postseason overtime period as the end of the
+    /// fourth period. Whether that imports 4-3-2-e-3, a rule about the whole fourth
+    /// period rather than its end, the book does not say: e-3's own words name the
+    /// fourth period and regular-season overtime, and 16-1-4-h speaks of a period's
+    /// end. The engine reads e-3 as not reaching it, so outside five minutes — where
+    /// e-2 does not decide the question either way — the clock restarts on the ready.
+    /// Inside five minutes the readings agree, and that row is football above.
+    @Test(
+        "pin · an offensive foul before the snap in a fourth postseason overtime period outside five minutes restarts the clock on the ready, because 4-3-2-e-3 is read as not reaching it — 16-1-4-h lends a fourth overtime period the fourth period's closing rules, and whether that imports a whole-period rule the book does not settle",
+        .tags(.pin)
+    )
+    func offensiveFoulInAFourthPostseasonOvertimePeriodOutsideFiveMinutes() {
+        #expect(startsOnTheSnap(quarter: 8, clock: 400) == false)
+        #expect(startsOnTheSnap(quarter: 8, clock: 301) == false)
     }
 
     /// The clock runs while the chains move. A first down is not a stoppage, and

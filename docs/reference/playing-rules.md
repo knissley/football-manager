@@ -404,7 +404,10 @@ below are what it is held to.
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
   half does and a fourth as the fourth period does, so the warning, the out-of-bounds
   windows and the runoff belong to those two and a first or third overtime period has
-  none of them. — `test:firstPostseasonOvertimePeriodHasNoWarning`,
+  none of them. Whether it carries 4-3-2-e-3, a whole-period rule, into a fourth overtime
+  period outside five minutes is not settled by the book; the engine reads it as not, and
+  `test:offensiveFoulInAFourthPostseasonOvertimePeriodOutsideFiveMinutes` pins that
+  reading. — `test:firstPostseasonOvertimePeriodHasNoWarning`,
   `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`,
   `test:falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriodCostsTenSeconds`,
   `test:outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady`,

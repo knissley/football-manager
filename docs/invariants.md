@@ -89,8 +89,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
     the pairing the same way: a second overtime period ends as the first half does — the
     warning, the two-minute out-of-bounds window and the runoff — and a fourth as the fourth
     period does, with its five-minute window; a first or a third has neither warning nor
-    window. The offence's foul before the snap starts the clock on the snap only inside
-    those windows, because 4-3-2-e-3 names the fourth period and regular-season overtime.
+    window. In a first, second or third overtime period, which 4-3-2-e-3's own words
+    leave out, the offence's foul before the snap starts the clock on the snap only inside
+    those windows; whether 16-1-4-h carries e-3 into a fourth overtime period outside its
+    five-minute window the book does not settle, and the engine's reading — that it does
+    not — is **modelling**, pinned by
+    `test:offensiveFoulInAFourthPostseasonOvertimePeriodOutsideFiveMinutes`.
     `[2025 · 16-1-4-h, 3-41, 4-3-2-a, 4-3-2-e, 4-7-1]` —
     `test:firstPostseasonOvertimePeriodHasNoWarning`,
     `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`,
