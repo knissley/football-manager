@@ -386,20 +386,27 @@ struct GameSimulatorTests {
 
     // MARK: - Overtime
 
-    /// A regular season game may end level; a postseason game may not.
-    @Test("A tied game ends level in the regular season and goes on in the postseason")
+    /// Rewritten for A1 (#15). This test used to assert that a level regular-season
+    /// game ends after four periods, which is the bug the September audit's S9 named:
+    /// the sport plays one ten-minute overtime period first, and only a game still
+    /// level at the end of *that* is a tie. The postseason half of the old test is the
+    /// rules-conformance scenario "a postseason game level after the fifth period plays
+    /// a sixth"; a resolver that never scores cannot end a postseason game at all.
+    @Test(
+        "football · Rule 4-1-1, 16-1-3, 16-1-3-d · a regular-season game level after four periods plays one ten-minute overtime period, and level at the end of it is a tie"
+    )
     func ties() {
         let regular = simulate(StalemateResolver(), setup(seed: 9))
-        if regular.homeScore == regular.awayScore {
-            #expect(regular.isTie)
-            #expect(regular.plays.allSatisfy { $0.situation.quarter <= 4 })
-        }
+        #expect(
+            regular.homeScore == 0 && regular.awayScore == 0,
+            "the stalemate never scores; the game is level throughout")
 
-        let postseason = simulate(StalemateResolver(), setup(seed: 9, isPostseason: true))
-        if postseason.homeScore == postseason.awayScore {
-            #expect(
-                postseason.plays.contains { $0.situation.quarter > 4 },
-                "a tied playoff game must go to overtime")
-        }
+        let overtime = regular.plays.filter { $0.situation.quarter == 5 }
+        #expect(overtime.isEmpty == false, "a level game plays a fifth period")
+        #expect(overtime.first?.situation.clockRemaining == 600, "ten minutes long")
+        #expect(
+            regular.plays.contains { $0.situation.quarter > 5 } == false,
+            "the period is never extended: one, and no more")
+        #expect(regular.isTie, "level at the end of it, the game is a tie")
     }
 }
