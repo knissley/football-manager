@@ -57,6 +57,28 @@ enum TestWorld {
                     weather: weather, isPostseason: isPostseason))
     }
 
+    /// The context a single play resolves against, for the tests that want to run one
+    /// kind of play many times rather than watch a whole game.
+    static func context(
+        seed: UInt64, home homeIndex: Int = 0, away awayIndex: Int = 1,
+        weather: WeatherState = .clear, rules: Rules = .standard
+    ) -> PlayContext {
+        let setup = Self.setup(
+            seed: seed, home: homeIndex, away: awayIndex, weather: weather, rules: rules)
+        return PlayContext(
+            offense: setup.home.id,
+            defense: setup.away.id,
+            offenseRotation: setup.home.rotation(),
+            defenseRotation: setup.away.rotation(),
+            players: setup.players,
+            offenseScheme: setup.home.scheme,
+            defenseScheme: setup.away.scheme,
+            crowdNoise: setup.stadium.noise,
+            altitudeFeet: setup.stadium.altitudeFeet,
+            weather: weather,
+            rules: rules)
+    }
+
     /// One team's roster and depth chart, for the tests that need a rotation rather than
     /// a game.
     static func team(

@@ -117,6 +117,28 @@ public struct Rules: Sendable, Hashable, Codable {
     /// landing zone is returned. See the kickoff in `CrudeResolver`.
     public var kickoffTouchbackOwnYard: UInt8
     public var puntTouchbackOwnYard: UInt8
+    /// The near edge of the landing zone, from the receiving team's own goal: the zone
+    /// runs from its 20 out to its goal line (2025 rulebook, 6-1-2-e). A free kick that
+    /// first touches the ground or a player outside that line has not reached the zone
+    /// (3-20-7), which is the foul 6-2-4 names.
+    ///
+    /// A spot in the kicking team's frame counts from the receiving team's goal line, so
+    /// the receiving team's own yard and the spot are the same number here: the zone is
+    /// spots 1 through `kickoffLandingZoneOwnYard`.
+    public var kickoffLandingZoneOwnYard: UInt8
+    /// What a free kick that goes out of bounds between the goal lines, or first touches
+    /// down short of the landing zone, is worth to the receiving team: the ball this many
+    /// yards from the spot of the kick (2025 rulebook, 6-2-4).
+    ///
+    /// The article offers three spots and the receiving team elects. Two of them are
+    /// never better than a third: the out-of-bounds spot is downfield of this award, and
+    /// the spot the ball came down at beats it only when the kick travelled less than
+    /// this far. So `freeKickAward` is the choice, made as the receiving team would.
+    ///
+    /// A safety kick pays 30 rather than 25 under the same article. The engine does not
+    /// carry that: `advance` is a function of the situation and the outcome, and neither
+    /// says which kind of free kick this is.
+    public var freeKickOutOfBoundsYards: UInt8
     /// Where the team scored upon kicks off after a safety, from its own goal.
     public var safetyKickoffOwnYard: UInt8
     /// The first period in which the kicking team may declare an onside kick.
@@ -161,6 +183,8 @@ public struct Rules: Sendable, Hashable, Codable {
         kickoffFromOwnYard: UInt8 = 35,
         kickoffTouchbackOwnYard: UInt8 = 35,
         puntTouchbackOwnYard: UInt8 = 20,
+        kickoffLandingZoneOwnYard: UInt8 = 20,
+        freeKickOutOfBoundsYards: UInt8 = 25,
         safetyKickoffOwnYard: UInt8 = 20,
         onsideKickEarliestQuarter: UInt8 = 1,
         regularSeasonOvertimeLength: UInt16 = 600,
@@ -194,6 +218,8 @@ public struct Rules: Sendable, Hashable, Codable {
         self.kickoffFromOwnYard = kickoffFromOwnYard
         self.kickoffTouchbackOwnYard = kickoffTouchbackOwnYard
         self.puntTouchbackOwnYard = puntTouchbackOwnYard
+        self.kickoffLandingZoneOwnYard = kickoffLandingZoneOwnYard
+        self.freeKickOutOfBoundsYards = freeKickOutOfBoundsYards
         self.safetyKickoffOwnYard = safetyKickoffOwnYard
         self.onsideKickEarliestQuarter = onsideKickEarliestQuarter
         self.regularSeasonOvertimeLength = regularSeasonOvertimeLength
