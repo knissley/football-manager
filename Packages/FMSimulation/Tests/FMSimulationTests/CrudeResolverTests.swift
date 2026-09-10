@@ -332,16 +332,19 @@ struct OutOfBoundsTests {
         defensePackage: .nickel)
 
     private func resolved(
-        _ family: PlayFamily, _ situation: Situation, count: Int = 3_000, seed: UInt64 = 41
+        _ concept: PlayConcept, _ situation: Situation, count: Int = 3_000, seed: UInt64 = 41
     ) -> [(outcome: Outcome, decisions: [DecisionPoint])] {
         let context = context()
         let calls = Calls(
-            offense: CrudePlaybook.call(family), defense: .nickelTwoMan,
+            offense: OffensiveCall(concept: concept), defense: .nickelTwoMan,
             offensiveCaller: .automatic, defensiveCaller: .automatic)
         var random = SplittableRandom(seed: seed)
         return (0..<count).map { _ in
-            CrudeResolver().resolve(
-                situation: situation, calls: calls, context: context, random: &random)
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
+            return CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
         }
     }
 

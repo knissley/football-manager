@@ -23,6 +23,23 @@ public struct GameTeam: Sendable {
     public func rotation() -> [DepthChart.Rotation] {
         depthChart.rotation(unavailable: unavailable)
     }
+
+    /// Everyone who can take a snap this game, in depth-chart order: every man on the
+    /// chart who is available, each once, at the first position he appears. This is the
+    /// table `PlayRecord.onField` indexes, so its order is part of what the stream means
+    /// and it is fixed before the first kickoff — a man hurt during the game keeps his
+    /// index.
+    ///
+    /// The whole chart and not the rotation, because the rotation is what plays *today*:
+    /// a fourth edge rusher has no snap share until the third is hurt, and the moment he
+    /// is, next man up puts the fourth on the field. A table built from the pre-game
+    /// rotation had no index for him.
+    public var roster: [PlayerID] {
+        var seen: Set<PlayerID> = []
+        return depthChart.positions.flatMap { depthChart[$0] }
+            .filter { !unavailable.contains($0) }
+            .compactMap { seen.insert($0).inserted ? $0 : nil }
+    }
 }
 
 /// Everything a game is a pure function of.
@@ -80,21 +97,37 @@ public struct GameResult: Sendable {
     /// event stream, and the season layer is what turns "out for three" into a player
     /// missing weeks nine through eleven.
     public let injuries: [InjuryEvent]
+    /// Each team's roster for this game, in depth-chart order — the table every play's
+    /// `onField` indexes into. `PlayRecord.player(at:rosters:)` reads it, and it is the
+    /// one thing about a game a play cannot carry for itself without eight bytes a slot.
+    public let rosters: [TeamID: [PlayerID]]
+    /// The conditions the game was played in. A fact about the afternoon rather than
+    /// about any down, so it is here once and on no play; the resolver read it from its
+    /// context, and a consumer of the stream reads it from here.
+    public let weather: WeatherState
     public let homeScore: Int16
     public let awayScore: Int16
     /// `nil` when the game ended level, which a regular season game may.
     public let winner: TeamID?
 
     public init(
-        game: GameID, plays: [PlayRecord], injuries: [InjuryEvent] = [], homeScore: Int16,
-        awayScore: Int16, winner: TeamID?
+        game: GameID, plays: [PlayRecord], injuries: [InjuryEvent] = [],
+        rosters: [TeamID: [PlayerID]] = [:], weather: WeatherState = .clear,
+        homeScore: Int16, awayScore: Int16, winner: TeamID?
     ) {
         self.game = game
         self.plays = plays
         self.injuries = injuries
+        self.rosters = rosters
+        self.weather = weather
         self.homeScore = homeScore
         self.awayScore = awayScore
         self.winner = winner
+    }
+
+    /// How many plays each man was on the field for.
+    public func snapCounts() -> [PlayerID: Int] {
+        plays.snapCounts(rosters: rosters)
     }
 
     public var isTie: Bool { winner == nil }
@@ -188,7 +221,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                         for: before, classified: SituationClass(before), isOffense: isOffense,
                         context: state.context())
                 else { continue }
-                state.spendTimeout(offense: isOffense)
+                state.takeTimeout(offense: isOffense)
             }
         }
 
@@ -224,8 +257,8 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 for: before, classified: SituationClass(before), context: context,
                 random: &random)
             state.offensePersonnel = caller.personnel(
-                for: CrudePlaybook.family(of: call.design) ?? .insideRun,
-                situation: before, classified: SituationClass(before), random: &random)
+                for: call.concept, situation: before, classified: SituationClass(before),
+                random: &random)
 
             let showing = state.situation()
             state.defensePackage = caller.package(
@@ -271,7 +304,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         if state.pendingKickoff {
             let onside = caller.kicksOnside(situation: situation, classified: classified)
             calls = Calls(
-                offense: CrudePlaybook.call(onside ? .onsideKick : .kickoff),
+                offense: OffensiveCall(concept: onside ? .onsideKick : .kickoff),
                 defense: .preventShell,
                 offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
@@ -283,14 +316,23 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 for: situation, classified: classified, context: context, random: &random)
             defense.package = state.defensePackage
             calls = Calls(
-                offense: declared ?? CrudePlaybook.call(.insideRun),
+                offense: declared ?? OffensiveCall(concept: .insideRun),
                 defense: defense,
                 offensiveCaller: .coordinator(PersonnelID(1)),
                 defensiveCaller: .coordinator(PersonnelID(2)))
         }
 
+        // Who stands where, drawn from both rotations against their snap shares. It is
+        // drawn here and not in the resolver because substitution is the game's to
+        // decide and the record's to carry: the resolver is handed the eleven a side.
+        // Drawn immediately before the snap is resolved, so the play's stream is spent
+        // in the same order it was when the resolver drew the lineup itself.
+        let onField = Lineup.onField(
+            context, concept: calls.offense.concept, situation: situation, random: &random)
+
         let resolved = resolver.resolve(
-            situation: situation, calls: calls, context: context, random: &random)
+            situation: situation, calls: calls, onField: onField, context: context,
+            random: &random)
 
         // A flag before the snap puts two questions to the callers — a timeout instead
         // of the runoff, declining the runoff, the clock's restart — and they are asked
@@ -299,7 +341,8 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         let deadBall = deadBallChoices(
             for: resolved.outcome, in: state, tempo: calls.offense.tempo)
         state.apply(
-            resolved.outcome, calls: calls, decisions: resolved.decisions, deadBall: deadBall)
+            resolved.outcome, calls: calls, decisions: resolved.decisions,
+            onField: state.rosterIndices(of: onField), deadBall: deadBall)
 
         // Injuries are drawn from who was involved, after the play is recorded, so the
         // event can point at the snap it happened on. The injury timeout it brings is a
@@ -363,12 +406,12 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     /// The call is built from the decision the state already holds, which is the one
     /// the spot was chosen for; asking the caller a second time here could disagree
     /// with where the ball is. Whether the conversion is thrown or carried is the
-    /// caller's second decision (11-3-1), and the family carries it so the record says
+    /// caller's second decision (11-3-1), and the concept carries it so the record says
     /// which play was called rather than leaving it to be inferred from who was credited.
     private func tryCalls(goesForTwo: Bool, runs: Bool) -> Calls {
-        let family: PlayFamily = goesForTwo ? (runs ? .twoPointRun : .twoPointPass) : .extraPoint
+        let concept: PlayConcept = goesForTwo ? (runs ? .twoPointRun : .twoPointPass) : .extraPoint
         return Calls(
-            offense: CrudePlaybook.call(family),
+            offense: OffensiveCall(concept: concept),
             defense: .goalLineStop,
             offensiveCaller: goesForTwo ? .coordinator(PersonnelID(1)) : .automatic,
             defensiveCaller: .automatic)

@@ -33,6 +33,8 @@ report("PenaltyRecord", MemoryLayout<PenaltyRecord>.stride)
 // blockers and two rushers whose matchups resolved, and the tackler.
 let decisions = 12
 let participants = 10
+// Everyone on the field, credited or not, as a roster index a byte wide.
+let onField = PlayerSlot.count * MemoryLayout<UInt8>.stride
 // Measured rather than hand-counted: the struct's own size already covers the
 // situation, both calls, the game and index, and one pointer per array. Only the
 // heap-allocated elements have to be added.
@@ -40,11 +42,13 @@ let perPlay =
     MemoryLayout<PlayRecord>.size
     + decisions * MemoryLayout<DecisionPoint>.stride
     + participants * MemoryLayout<Participation>.stride
+    + onField
 
 print("")
-print("A realistic play (\(decisions) decisions, \(participants) credited)")
+print("A realistic play (\(decisions) decisions, \(participants) credited, 22 on the field)")
 report("decisions", decisions * MemoryLayout<DecisionPoint>.stride)
 report("participants", participants * MemoryLayout<Participation>.stride)
+report("on the field", onField)
 report("total", perPlay)
 
 let playsPerGame = 150

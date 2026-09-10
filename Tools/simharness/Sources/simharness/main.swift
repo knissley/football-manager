@@ -222,7 +222,16 @@ func rate(_ count: Int) -> Double { Double(count) / teamGames }
 let scrimmage = allPlays.filter { $0.outcome.kind.isScrimmagePlay }
 let dropbacks = allPlays.filter { $0.outcome.kind.isDropback }
 let attempts = allPlays.filter { $0.outcome.kind.isPassAttempt }
-let completions = attempts.filter { $0.outcome.yards > 0 || $0.outcome.endedIn == .touchdown }
+// A completion is what the record says, not what the yards imply: a ball caught for a
+// loss is one. Inferring it from `yards > 0` scored every catch for nothing as an
+// incompletion and read the completion row three points low while showing green.
+let completions = attempts.filter(\.isCompletion)
+// The older inference, kept for the rows whose bands were sourced against it — yards
+// per completion and the catch leaders — until the harness read-out is re-baselined as
+// a whole.
+let completionsThatGained = attempts.filter {
+    $0.outcome.yards > 0 || $0.outcome.endedIn == .touchdown
+}
 let sacks = allPlays.filter { $0.outcome.kind == .sack }
 let carries = allPlays.filter { $0.outcome.kind == .rush }
 let interceptions = allPlays.filter { $0.outcome.endedIn == .intercepted }
@@ -322,7 +331,7 @@ let scrimmageYards =
     attemptYards + rushYards
     + Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
 report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
-let receptionYards = attemptYards / Double(max(1, completions.count))
+let receptionYards = attemptYards / Double(max(1, completionsThatGained.count))
 report("yardsPerCompletion", receptionYards)
 
 print("")
@@ -480,16 +489,19 @@ spread(
 
 let kneels = allPlays.filter { $0.outcome.kind == .kneel }.count
 let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
+// Read off the record rather than inferred from two consecutive situations, which
+// could not see a timeout taken with the ball about to change hands: a charged timeout
+// before a snap is a `.timeout` on that snap, and one the rules charged after a play —
+// the offence's alternative to a runoff, an injury timeout — is a clock election on it.
 var timeoutsSpent = 0
-for result in results {
-    for (previous, next) in zip(result.plays, result.plays.dropFirst())
-    where previous.situation.possession == next.situation.possession {
-        if next.situation.offenseTimeouts < previous.situation.offenseTimeouts {
-            timeoutsSpent += 1
-        }
-        if next.situation.defenseTimeouts < previous.situation.defenseTimeouts {
-            timeoutsSpent += 1
-        }
+var twoMinuteWarnings = 0
+for play in allPlays {
+    let taken = play.timeoutsBeforeTheSnap
+    timeoutsSpent += taken.offense + taken.defense
+    if play.hasTwoMinuteWarningBeforeTheSnap { twoMinuteWarnings += 1 }
+    for election in play.decisions.compactMap(\.clockElectionValue)
+    where election == .timeoutInsteadOfRunoff || election == .injuryTimeoutCharged {
+        timeoutsSpent += 1
     }
 }
 print("")
@@ -562,6 +574,11 @@ report("scramblesPerGame", Double(scrambles.count) / Double(max(1, results.count
 report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
+print(
+    "    \(pad("two-minute warnings per game", 30))"
+        + "\(twoDecimals(Double(twoMinuteWarnings) / Double(max(1, results.count))))"
+        + "   (no target: two a game by rule, 3-41, plus one for each regular-season overtime period that reaches 2:00; a rule, not a rate)"
+)
 
 // Where a play ends laterally, which after the two-minute warning of the first half and
 // inside the last five minutes of the second is a clock decision rather than an accident
@@ -613,7 +630,15 @@ var pointsBySource: [String: Int] = [:]
 var driveEnds: [String: Int] = [:]
 var startingSpots: [Int] = []
 var kickoffEndings: [String: Int] = [:]
-var puntSpots: [Int] = []
+// Every punt's net, gross and return, read off the record: the line, where it was
+// fielded and where it came to rest are all on it, so a returned punt's gross and its
+// return are told apart rather than one inferred from the other, and a touchback is
+// netted to the twenty as the source nets it. A blocked punt has no distance and is in
+// none of these.
+var puntNets: [Int] = []
+var puntGrosses: [Int] = []
+var puntReturnYards: [Int] = []
+var kickoffReturnYards: [Int] = []
 var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
 
 var twoPointTries = 0
@@ -677,15 +702,29 @@ for result in results {
         switch outcome.kind {
         case .kickoff:
             kickoffEndings["\(outcome.endedIn)", default: 0] += 1
+            // A return, as the source counts one: fielded and run, not fair caught,
+            // not out of bounds, and not an onside kick.
+            if play.calls.offense.concept != .onsideKick,
+                outcome.endedIn == .tackled || outcome.endedIn == .touchdown,
+                let back = play.returnYards
+            {
+                kickoffReturnYards.append(back)
+            }
         case .punt:
-            puntSpots.append(Int(play.situation.ballOn) - Int(outcome.finalSpot ?? 0))
+            if let net = play.netPuntDistance(rules: rulesInForce) { puntNets.append(net) }
+            if let gross = play.kickDistance { puntGrosses.append(gross) }
+            if outcome.endedIn == .tackled || outcome.endedIn == .touchdown,
+                let back = play.returnYards
+            {
+                puntReturnYards.append(back)
+            }
         case .fieldGoal:
             fieldGoalsByDistance.append(
                 (Int(play.situation.ballOn) + 17, outcome.endedIn == .fieldGoalGood))
         case .twoPointConversion:
             twoPointTries += 1
             if outcome.endedIn == .touchdown { twoPointGood += 1 }
-            if CrudePlaybook.family(of: play.calls.offense.design) == .twoPointRun {
+            if play.calls.offense.concept == .twoPointRun {
                 twoPointRuns += 1
             }
         default:
@@ -769,6 +808,36 @@ report("personnel11", Double(groups[11] ?? 0) / snaps * 100)
 report("packageNickel", Double(packages[.nickel] ?? 0) / snaps * 100)
 report("packageBase", Double(packages[.base] ?? 0) / snaps * 100)
 
+// Who took the snap, from presence rather than credit. Every play carries the roster
+// index of each of the twenty-two men on the field, so a snap count is a query over the
+// stream, and these rows are player-snaps per team-game by the roster position group of
+// each man — the same construction the source's participation feed allows, and a
+// number the credits alone could never produce: a lineman was credited on three to five
+// snaps in five, and a safety on a sixth of run plays.
+print("    player-snaps by position group, per team-game, plays from scrimmage")
+var snapsByGroup: [PositionGroup: Int] = [:]
+for result in results {
+    for play in result.plays where play.outcome.kind.isScrimmagePlay {
+        for index in 0..<PlayerSlot.count {
+            guard let player = play.player(at: PlayerSlot(index), rosters: result.rosters),
+                let group = players[player]?.position.group
+            else { continue }
+            snapsByGroup[group, default: 0] += 1
+        }
+    }
+}
+@MainActor
+func groupSnaps(_ groups: PositionGroup...) -> Double {
+    Double(groups.reduce(0) { $0 + (snapsByGroup[$1] ?? 0) }) / teamGames
+}
+report("snaps.quarterback", groupSnaps(.quarterback))
+report("snaps.backfield", groupSnaps(.backfield))
+report("snaps.receiver", groupSnaps(.receiver))
+report("snaps.tightEnd", groupSnaps(.tightEnd))
+report("snaps.offensiveLine", groupSnaps(.offensiveLine))
+report("snaps.frontSeven", groupSnaps(.edge, .defensiveInterior, .linebacker))
+report("snaps.defensiveBack", groupSnaps(.cornerback, .safety))
+
 // The matchup, which is the point of having personnel at all. A run into a light box
 // should go further than one into a stacked one, and if it does not then the substitution
 // is decoration.
@@ -831,18 +900,15 @@ report("dropback40plus", dropbackShare { $0 >= 40 })
 // decision point, so pressure is a query and not a counter the resolver keeps.
 let pressured = dropbacks.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
 report("pressureRate", Double(pressured.count) / Double(max(1, dropbacks.count)) * 100)
-// Every caught ball, including the ones that went backwards. The completion percentage
-// row above counts only gains, which is the harness's older definition and is kept there
-// so the measured value does not move under this change; the gap between the two is
-// exactly this row.
-let caught = attempts.filter {
-    $0.outcome.endedIn != .incomplete && $0.outcome.endedIn != .intercepted
-        && $0.outcome.endedIn != .penaltyEnforced
+// Every caught ball, including the ones that went backwards, read from the record's own
+// pass result. This is the gap between the completion row and the older gains-only
+// inference, stated as a share of completions.
+let caughtForNothing = completions.filter {
+    $0.outcome.yards <= 0 && $0.outcome.endedIn != .touchdown
 }
-let caughtForNothing = caught.filter { $0.outcome.yards <= 0 && $0.outcome.endedIn != .touchdown }
 report(
     "completionsZeroOrFewer",
-    Double(caughtForNothing.count) / Double(max(1, caught.count)) * 100)
+    Double(caughtForNothing.count) / Double(max(1, completions.count)) * 100)
 
 print("")
 print("  How drives end")
@@ -899,9 +965,14 @@ let averageStart = Double(startingSpots.reduce(0, +)) / Double(max(1, startingSp
 report("averageStart", 100 - averageStart)
 let ownHalf = startingSpots.filter { $0 > 50 }.count
 report("ownHalfStarts", Double(ownHalf) / Double(max(1, startingSpots.count)) * 100)
-let averagePunt = Double(puntSpots.reduce(0, +)) / Double(max(1, puntSpots.count))
-report("puntsPerTeamGame", Double(puntSpots.count) / teamGames)
-report("netPunt", averagePunt)
+@MainActor
+func mean(_ values: [Int]) -> Double? {
+    values.isEmpty ? nil : Double(values.reduce(0, +)) / Double(values.count)
+}
+report("puntsPerTeamGame", Double(puntNets.count) / teamGames)
+report("netPunt", mean(puntNets))
+report("grossPunt", mean(puntGrosses))
+report("puntReturnYards", mean(puntReturnYards))
 report("twoPointTries", Double(twoPointTries) / teamGames)
 report(
     "twoPointConversion",
@@ -1153,7 +1224,7 @@ var kickoffReturns = 0
 var onside = 0
 var onsideRecovered = 0
 for play in allPlays where play.outcome.kind == .kickoff {
-    if play.calls.offense.design == CrudePlaybook.design(for: .onsideKick) {
+    if play.calls.offense.concept == .onsideKick {
         onside += 1
         if play.outcome.endedIn == .fumbleRecovered { onsideRecovered += 1 }
     } else if play.outcome.endedIn != .touchback {
@@ -1167,6 +1238,7 @@ print(
     "    \(pad("kickoffs returned", 30))\(kickoffReturns) of \(allPlays.filter { $0.outcome.kind == .kickoff }.count)"
 )
 report("kickoffsReturned", Double(kickoffReturns) / Double(max(1, kickoffCount)) * 100)
+report("kickoffReturnYards", mean(kickoffReturnYards))
 let puntsReturned = allPlays.filter { $0.outcome.kind == .punt && $0.outcome.endedIn == .tackled }
     .count
 let puntCount = allPlays.filter { $0.outcome.kind == .punt }.count

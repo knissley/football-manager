@@ -112,6 +112,11 @@ public enum FieldZone: UInt8, CaseIterable, Sendable, Hashable, Codable {
 /// your own 25, 5 means about to score. One representation, used everywhere,
 /// because mixing "yards from own goal" and "yards to go" is a recurring source
 /// of off-by-a-lot bugs. Formatting into "own 25" is a presentation concern.
+///
+/// The down and nothing about the afternoon: the weather is a fact about the game,
+/// carried once on its result and read by the resolver from its context. It sat here
+/// too for a while, copied onto every situation, and nothing that reads a situation —
+/// a caller, the classification, the rules — ever looked at it.
 public struct Situation: Sendable, Hashable, Codable {
 
     public var quarter: UInt8
@@ -129,7 +134,6 @@ public struct Situation: Sendable, Hashable, Codable {
     public var defenseTimeouts: UInt8
     public var offensePersonnel: PersonnelGroup
     public var defensePackage: DefensivePackage
-    public var weather: WeatherState
 
     public init(
         quarter: UInt8,
@@ -142,8 +146,7 @@ public struct Situation: Sendable, Hashable, Codable {
         offenseTimeouts: UInt8 = 3,
         defenseTimeouts: UInt8 = 3,
         offensePersonnel: PersonnelGroup = .eleven,
-        defensePackage: DefensivePackage = .base,
-        weather: WeatherState = .clear
+        defensePackage: DefensivePackage = .base
     ) {
         self.quarter = quarter
         self.clockRemaining = clockRemaining
@@ -156,7 +159,6 @@ public struct Situation: Sendable, Hashable, Codable {
         self.defenseTimeouts = defenseTimeouts
         self.offensePersonnel = offensePersonnel
         self.defensePackage = defensePackage
-        self.weather = weather
     }
 
     public var fieldZone: FieldZone {

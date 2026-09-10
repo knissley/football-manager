@@ -321,6 +321,35 @@ enum SlotLayout {
     static let specialist = PlayerSlot(0)
 }
 
+extension PlayConcept {
+
+    /// The unit the offence sends out for this concept.
+    ///
+    /// A kick is not eleven starters plus a placeholder for the ball: it is a different
+    /// eleven, and the crude engine had only ever fielded the one. Here rather than in
+    /// `FMCore` because the slots are this engine's arrangement, and the spatial engine
+    /// places bodies by formation.
+    func offenseLayout(_ group: PersonnelGroup) -> [(Position, Int)] {
+        switch self {
+        case .punt: return SlotLayout.puntUnit
+        case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
+        case .kickoff, .onsideKick: return SlotLayout.kickoffUnit
+        default: return SlotLayout.offense(group)
+        }
+    }
+
+    /// The return side. A crude engine does not model a return, but the men who have to
+    /// be out there still take the snap — a punt is a play eleven of them were on the
+    /// field for, and their snap counts should say so.
+    func defenseLayout(_ package: DefensivePackage) -> [(Position, Int)] {
+        switch self {
+        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick:
+            return SlotLayout.returnUnit
+        default: return SlotLayout.defense(package)
+        }
+    }
+}
+
 extension Lineup {
 
     /// Fill the field from both rotations.
@@ -329,15 +358,15 @@ extension Lineup {
     /// there and his backup sometimes is. Over a season that is what makes snap counts
     /// and backup statistics real rather than a starter taking everything.
     static func onField(
-        _ context: PlayContext, family: PlayFamily, situation: Situation,
+        _ context: PlayContext, concept: PlayConcept, situation: Situation,
         random: inout SplittableRandom
     ) -> Lineup {
         var personnel = Lineup()
         fill(
-            &personnel, layout: family.offenseLayout(situation.offensePersonnel),
+            &personnel, layout: concept.offenseLayout(situation.offensePersonnel),
             from: context.offenseRotation, players: context.players, random: &random)
         fill(
-            &personnel, layout: family.defenseLayout(situation.defensePackage),
+            &personnel, layout: concept.defenseLayout(situation.defensePackage),
             from: context.defenseRotation, players: context.players, random: &random)
         return personnel
     }

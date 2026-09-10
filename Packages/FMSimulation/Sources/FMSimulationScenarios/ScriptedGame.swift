@@ -55,16 +55,15 @@ public struct Snap: Sendable {
     /// The score from the possessing team's point of view.
     public var differential: Int16 { situation.scoreDifferential }
 
-    public var family: PlayFamily? { CrudePlaybook.family(of: calls.offense.design) }
+    public var concept: PlayConcept { calls.offense.concept }
 
     public var isScrimmage: Bool {
-        guard let family else { return false }
-        return PlayFamily.scrimmage.contains(family) || family == .kneel || family == .spike
+        PlayConcept.scrimmage.contains(concept) || concept == .kneel || concept == .spike
     }
     public var isTry: Bool {
-        family == .extraPoint || family == .twoPointPass || family == .twoPointRun
+        concept == .extraPoint || concept == .twoPointPass || concept == .twoPointRun
     }
-    public var isKickoff: Bool { family == .kickoff || family == .onsideKick }
+    public var isKickoff: Bool { concept == .kickoff || concept == .onsideKick }
 
     /// The seconds the offence takes between the end of one play and the snap of the
     /// next when the clock is running — its tempo — measured from the plays so far rather
@@ -83,7 +82,7 @@ extension Snap {
 
     /// Honours the call and changes nothing worth noticing.
     public var neutral: Outcome {
-        switch family {
+        switch concept {
         case .kickoff: return .kickoffTouchback
         case .onsideKick: return .onsideKick(lostAtOwn: 45)
         case .punt: return .puntTouchback
@@ -95,8 +94,7 @@ extension Snap {
         default:
             // A one-yard gain of whatever kind was called, tackled in bounds: the ball
             // moves, the clock runs, and the down changes hands on downs every four plays.
-            return Outcome(
-                kind: family?.kind ?? .rush, yards: 1, endedIn: .tackled, clockRunoff: 6)
+            return Outcome(kind: concept.kind, yards: 1, endedIn: .tackled, clockRunoff: 6)
         }
     }
 
@@ -132,13 +130,71 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// A run of `yards` with a flag on it, at the end of which the ball comes loose and
+    /// the other side gets it and takes it back to `spot` in the offence's frame.
+    ///
+    /// The fumble is where the run ended, so that is where possession was lost, and on a
+    /// gain that is also the basic spot for the flag: a run followed by a change of
+    /// possession takes the spot where possession went (2025 rulebook, 14-3-5-b). On a
+    /// loss it is not — a basic spot behind the line puts a defensive foul back on the
+    /// previous spot (14-3-6, the exception for the defence). The offence's own gain is
+    /// nothing once it no longer has the ball, which is the contract the crude resolver
+    /// honours for the same event.
+    public func rush(
+        _ yards: Int16, fumbledAndReturnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 7
+    ) -> Outcome {
+        Outcome(
+            kind: .rush, yards: 0, endedIn: .fumbleLost, penalties: [record(foul)],
+            finalSpot: spot, possessionLostAt: UInt8(max(1, Int(ballOn) - Int(yards))),
+            clockRunoff: seconds)
+    }
+
+    /// The quarterback sacked `yards` behind the line — `yards` is negative — and stripped
+    /// as he goes down, with a flag on the defence during the down; the other side gets
+    /// the ball and takes it back to `spot` in the offence's frame.
+    ///
+    /// The ball comes loose behind the line, which is the case the strip sack makes
+    /// common and the case the three-and-one method sends back to the previous spot: a
+    /// basic spot behind the line of scrimmage puts a defensive foul on the previous spot
+    /// wherever the foul itself was (2025 rulebook, 14-3-6, the exception for the
+    /// defence; 14-4-6-b for a foul during the fumble). The kind is a sack and the yards
+    /// are nothing, which is what the crude resolver writes for the same event.
+    public func sack(
+        _ yards: Int16, fumbledAndReturnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 7
+    ) -> Outcome {
+        Outcome(
+            kind: .sack, yards: 0, endedIn: .fumbleLost, penalties: [record(foul)],
+            finalSpot: spot, possessionLostAt: UInt8(max(1, Int(ballOn) - Int(yards))),
+            clockRunoff: seconds)
+    }
+
+    /// A pass intercepted `depth` yards past the line and returned to `spot` in the
+    /// offence's frame, with a flag on the defence during the down.
+    ///
+    /// Where possession was lost is on the record because every takeaway carries it, not
+    /// because the flag is enforced from there: until a forward pass from behind the line
+    /// is over, a flag on either side comes off the previous spot (2025 rulebook, 14-4-5),
+    /// and a defensive personal foul before the catch comes off the better of two spots
+    /// for the offence — where it snapped, or where the ball was dead (14-4-5-d). The record
+    /// says nothing about *when* in the down a flag flew, so this is one scripted play and
+    /// not two: a foul before the catch and a foul by the intercepting team on its own
+    /// return are the same record.
+    public func interception(
+        caught depth: UInt8, returnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 8
+    ) -> Outcome {
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+            penalties: [record(foul)], finalSpot: spot,
+            possessionLostAt: UInt8(max(1, Int(ballOn) - Int(depth))), clockRunoff: seconds)
+    }
+
     /// A pass that falls incomplete because a defender interfered, `depth` yards past
     /// the line of scrimmage. Interference is measured rather than fixed, and the
     /// resolver's contract carries the spot in the offence's frame, with zero meaning
     /// the end zone.
     public func incompletion(interferenceAt depth: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(
-            kind: .pass, yards: 0, endedIn: .incomplete,
+            kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
             penalties: [
                 PenaltyRecord(
                     foul: .defensivePassInterference, offender: PlayerSlot(11),
@@ -171,22 +227,30 @@ extension Outcome {
     }
 
     public static func incompletion(seconds: UInt16 = 5) -> Outcome {
-        Outcome(kind: .pass, yards: 0, endedIn: .incomplete, clockRunoff: seconds)
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+            clockRunoff: seconds)
     }
 
-    public static let spike = Outcome(kind: .spike, yards: 0, endedIn: .incomplete, clockRunoff: 1)
+    public static let spike = Outcome(
+        kind: .spike, yards: 0, endedIn: .incomplete, passResult: .incomplete, clockRunoff: 1)
 
     /// Picked off and returned to `spot`, in the throwing team's frame: 100 is the
     /// interceptor's own goal line crossed the other way, a touchdown.
     public static func interception(to spot: UInt8, seconds: UInt16 = 6) -> Outcome {
-        Outcome(kind: .pass, yards: 0, endedIn: .intercepted, finalSpot: spot, clockRunoff: seconds)
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+            finalSpot: spot, clockRunoff: seconds)
     }
 
     public static let pickSix = interception(to: 100, seconds: 12)
 
-    /// A fumble the defence comes up with, at `spot` in the fumbling team's frame.
+    /// A fumble the defence comes up with and falls on, at `spot` in the fumbling team's
+    /// frame — so that is both where possession was lost and where the ball came to rest.
     public static func fumble(lostAt spot: UInt8, seconds: UInt16 = 6) -> Outcome {
-        Outcome(kind: .rush, yards: 0, endedIn: .fumbleLost, finalSpot: spot, clockRunoff: seconds)
+        Outcome(
+            kind: .rush, yards: 0, endedIn: .fumbleLost, finalSpot: spot, possessionLostAt: spot,
+            clockRunoff: seconds)
     }
 
     /// A fumble the offence falls on, `yards` past the line.
@@ -196,19 +260,30 @@ extension Outcome {
 
     public static let kickoffTouchback = Outcome(kind: .kickoff, yards: 0, endedIn: .touchback)
 
-    /// Fielded and brought out to the returner's own `yard` line, which is the same
-    /// number in the kicking team's frame.
+    /// Fielded at the goal line and brought out to the returner's own `yard` line, which
+    /// is the same number in the kicking team's frame.
     public static func kickoffReturn(toOwn yard: UInt8, seconds: UInt16 = 8) -> Outcome {
-        Outcome(kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, clockRunoff: seconds)
+        Outcome(
+            kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, fieldedAt: 0,
+            clockRunoff: seconds)
     }
 
     public static let kickoffReturnTouchdown = Outcome(
         kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 100, clockRunoff: 14)
 
+    /// A kickoff fielded two yards deep, fumbled by the returner, and carried into the
+    /// receivers' end zone by the kicking team. The resting spot is the receivers' goal
+    /// line — zero in the kicking team's frame — which is how a kickoff touchdown says
+    /// the kickers scored it.
+    public static let kickoffFumbledAndReturnedByTheKickers = Outcome(
+        kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 0, fieldedAt: -2,
+        clockRunoff: 14)
+
     /// Signalled for and fair caught at the returner's own `yard` line.
     public static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {
         Outcome(
-            kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard, clockRunoff: seconds)
+            kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard,
+            fieldedAt: Int8(clamping: yard), clockRunoff: seconds)
     }
 
     /// Fallen on by the kicking team, `ballOn` from the goal it is attacking: the same
@@ -240,12 +315,17 @@ extension Outcome {
         kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6)
 
     /// A punt that ends at the receiving team's own `yard` line, however it ended there.
+    /// One that was not returned was fielded where it ended; where a returned one was
+    /// fielded, the script does not say.
     public static func punt(
         toOwn yard: UInt8, endedIn: PlayEnding = .fairCatch, seconds: UInt16 = 6
     )
         -> Outcome
     {
-        Outcome(kind: .punt, yards: 0, endedIn: endedIn, finalSpot: yard, clockRunoff: seconds)
+        let returned = endedIn == .tackled || endedIn == .touchdown
+        return Outcome(
+            kind: .punt, yards: 0, endedIn: endedIn, finalSpot: yard,
+            fieldedAt: returned ? nil : Int8(clamping: yard), clockRunoff: seconds)
     }
 
     public static func fieldGoal(good: Bool) -> Outcome {
@@ -260,10 +340,12 @@ extension Outcome {
             clockRunoff: 0)
     }
 
+    /// A two-point pass, caught in the end zone or not.
     public static func twoPoint(converted: Bool) -> Outcome {
         Outcome(
             kind: .twoPointConversion, yards: converted ? 2 : 0,
-            endedIn: converted ? .touchdown : .incomplete, clockRunoff: 0)
+            endedIn: converted ? .touchdown : .incomplete,
+            passResult: converted ? .complete : .incomplete, clockRunoff: 0)
     }
 }
 
@@ -277,7 +359,7 @@ extension Outcome {
 /// scenario is never at the mercy of the baseline caller's judgement.
 public struct ScriptedCaller: FMSimulation.PlayCaller {
 
-    public var offensiveFamily: @Sendable (Situation) -> PlayFamily = { _ in .insideRun }
+    public var offensiveConcept: @Sendable (Situation) -> PlayConcept = { _ in .insideRun }
     public var offensiveTempo: @Sendable (Situation) -> Tempo = { _ in .normal }
     public var timeoutDecision: @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
         _, _ in false
@@ -289,7 +371,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     public var receiveDecision: @Sendable (Situation) -> Bool = { _ in true }
 
     public init(
-        offensiveFamily: @escaping @Sendable (Situation) -> PlayFamily = { _ in .insideRun },
+        offensiveConcept: @escaping @Sendable (Situation) -> PlayConcept = { _ in .insideRun },
         offensiveTempo: @escaping @Sendable (Situation) -> Tempo = { _ in .normal },
         timeoutDecision: @escaping @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
             _, _ in false
@@ -298,7 +380,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
         receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true }
     ) {
-        self.offensiveFamily = offensiveFamily
+        self.offensiveConcept = offensiveConcept
         self.offensiveTempo = offensiveTempo
         self.timeoutDecision = timeoutDecision
         self.twoPointDecision = twoPointDecision
@@ -310,7 +392,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> OffensiveCall {
-        CrudePlaybook.call(offensiveFamily(situation), tempo: offensiveTempo(situation))
+        OffensiveCall(concept: offensiveConcept(situation), tempo: offensiveTempo(situation))
     }
 
     public func defensiveCall(
@@ -340,7 +422,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     }
 
     public func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup {
         .eleven
@@ -421,7 +503,8 @@ struct ScenarioResolver: PlayResolver {
     }
 
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let snap = Snap(
             index: log.count(), situation: situation, calls: calls,

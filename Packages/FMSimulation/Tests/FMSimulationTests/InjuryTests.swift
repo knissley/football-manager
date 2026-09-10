@@ -134,7 +134,7 @@ struct InjuryTests {
                     quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 60,
                     possession: TeamID(1)),
                 calls: Calls(
-                    offense: CrudePlaybook.call(.insideRun), defense: .runStuff,
+                    offense: OffensiveCall(concept: .insideRun), defense: .runStuff,
                     offensiveCaller: .automatic, defensiveCaller: .automatic),
                 outcome: Outcome(
                     kind: .rush, yards: 4, endedIn: .tackled,
@@ -203,7 +203,7 @@ struct NonContactInjuryTests {
                 quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 60,
                 possession: TeamID(1)),
             calls: Calls(
-                offense: CrudePlaybook.call(.mediumPass), defense: .baseCoverThree,
+                offense: OffensiveCall(concept: .mediumPass), defense: .baseCoverThree,
                 offensiveCaller: .automatic, defensiveCaller: .automatic),
             outcome: Outcome(
                 kind: kind, yards: 0, endedIn: ending,

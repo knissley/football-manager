@@ -118,7 +118,7 @@ public enum RulesScenarios {
 
     static var fieldGoalThenKickoff: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
+            caller: ScriptedCaller(offensiveConcept: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
         ) { snap in
             if snap.index == 1 { return .rush(Int16(snap.ballOn) - 20) }
             return plod(snap)
@@ -208,7 +208,7 @@ public enum RulesScenarios {
     static var scorelessPostseasonUntilTheSixthPeriod: ScriptedGame {
         ScriptedGame(
             isPostseason: true,
-            caller: ScriptedCaller(offensiveFamily: { $0.quarter == 6 ? .fieldGoal : .insideRun }),
+            caller: ScriptedCaller(offensiveConcept: { $0.quarter == 6 ? .fieldGoal : .insideRun }),
             play: plod)
     }
 
@@ -225,7 +225,7 @@ public enum RulesScenarios {
     /// that had it first kicks another.
     static var overtimeFieldGoalsUntilOneIsUnanswered: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.quarter >= 5 && $0.down == .fourth ? .fieldGoal : .insideRun
             }),
             play: plod)
@@ -235,7 +235,7 @@ public enum RulesScenarios {
     /// possession and then kicks off; what the kickoff produces is `kick`.
     static func overtimeFieldGoalThenKickoff(_ kick: Outcome) -> ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.quarter >= 5 && $0.down == .fourth ? .fieldGoal : .insideRun
             })
         ) { snap in
@@ -297,7 +297,7 @@ public enum RulesScenarios {
         return ScriptedGame(
             isPostseason: true,
             caller: ScriptedCaller(
-                offensiveFamily: {
+                offensiveConcept: {
                     $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
                 },
                 timeoutDecision: { situation, isOffense in
@@ -317,7 +317,7 @@ public enum RulesScenarios {
         ScriptedGame(
             isPostseason: true,
             caller: ScriptedCaller(
-                offensiveFamily: {
+                offensiveConcept: {
                     $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
                 },
                 receiveDecision: { $0.quarter != 7 }),
@@ -332,7 +332,7 @@ public enum RulesScenarios {
         return ScriptedGame(
             isPostseason: true,
             caller: ScriptedCaller(
-                offensiveFamily: {
+                offensiveConcept: {
                     $0.quarter == 9 && $0.down == .fourth ? .fieldGoal : .insideRun
                 },
                 timeoutDecision: { situation, isOffense in
@@ -346,9 +346,9 @@ public enum RulesScenarios {
 
     static var puntReturnedAndTackled: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: { $0.down == .fourth ? .punt : .insideRun })
+            caller: ScriptedCaller(offensiveConcept: { $0.down == .fourth ? .punt : .insideRun })
         ) { snap in
-            snap.family == .punt ? .punt(toOwn: 30, endedIn: .tackled) : plod(snap)
+            snap.concept == .punt ? .punt(toOwn: 30, endedIn: .tackled) : plod(snap)
         }
     }
 
@@ -428,7 +428,7 @@ public enum RulesScenarios {
     /// the way a scoreless postseason walk is brought to an end. With no period it never
     /// kicks.
     static func decider(_ period: UInt8?) -> ScriptedCaller {
-        ScriptedCaller(offensiveFamily: {
+        ScriptedCaller(offensiveConcept: {
             $0.quarter == period && $0.down == .fourth ? .fieldGoal : .insideRun
         })
     }
@@ -569,9 +569,9 @@ public enum RulesScenarios {
             if snap.index == 1 { return .pickSix }
             guard snap.quarter == 4, snap.clock <= 120, snap.isScrimmage else { return plod(snap) }
             if snap.differential > 0 { return .interception(to: 50) }
-            if snap.down == .third, snap.family != .spike {
+            if snap.down == .third, snap.concept != .spike {
                 return Outcome(
-                    kind: snap.family?.kind ?? .pass, yards: Int16(snap.distance),
+                    kind: snap.concept.kind, yards: Int16(snap.distance),
                     endedIn: .tackled, clockRunoff: 6)
             }
             return plod(snap)
@@ -739,12 +739,12 @@ public enum RulesScenarios {
     /// A drive to `yardLine`, then a missed field goal from there.
     static func missedFieldGoal(from yardLine: UInt8) -> ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.ballOn == yardLine ? .fieldGoal : .insideRun
             })
         ) { snap in
             if snap.index == 1 { return .rush(Int16(snap.ballOn) - Int16(yardLine)) }
-            if snap.family == .fieldGoal { return .fieldGoal(good: false) }
+            if snap.concept == .fieldGoal { return .fieldGoal(good: false) }
             return plod(snap)
         }
     }
@@ -759,8 +759,15 @@ public enum RulesScenarios {
         }
     }
 
+    /// The offence throws from its own 30 and is picked off at the other side's 3, which
+    /// is where the false start that follows is worth half the distance. The throw is
+    /// called as a throw so that the record's concept is the play it plays.
     static var falseStartAtTheOwnThree: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .interception(to: 3)
             case 2: return snap.preSnapFoul(.falseStart)
@@ -773,8 +780,15 @@ public enum RulesScenarios {
         ScriptedGame { snap in snap.index == 1 ? snap.rush(20, foulBy: .facemask) : plod(snap) }
     }
 
+    /// A run to the opponents' 30, then a throw at the end zone a defender interferes on.
+    /// The throw is called as a deep throw so that the record's concept is the play it
+    /// plays.
     static var interferenceInTheEndZone: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 30 && $0.down == .first ? .deepPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .rush(Int16(snap.ballOn) - 30)
             case 2: return snap.incompletion(interferenceAt: 35)
@@ -783,8 +797,15 @@ public enum RulesScenarios {
         }
     }
 
+    /// The same interference from the 1, where half the distance rather than the spot is
+    /// the answer. The throw is called as a throw so that the record's concept is the play
+    /// it plays.
     static var interferenceInTheEndZoneFromTheOne: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 1 && $0.down == .first ? .quickPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .rush(Int16(snap.ballOn) - 1)
             case 2: return snap.incompletion(interferenceAt: 3)
@@ -793,15 +814,119 @@ public enum RulesScenarios {
         }
     }
 
+    /// The first snap from scrimmage, at the offence's own 30, is a run of ten yards on
+    /// which a defender is flagged for unnecessary roughness; the back is stripped at the
+    /// end of it, at his own 40, and the defence takes it back to the offence's 25.
+    ///
+    /// A run followed by a change of possession takes the spot where possession went as
+    /// its basic spot (14-3-5-b), and a defensive foul gives the ball back to the offence
+    /// before the walk-off (14-4-3-a): fifteen from its own 40, not fifteen from its 30.
+    /// The gain is what makes the fumble the spot — a fumble behind the line would send
+    /// the flag back to the previous spot (14-3-6, the exception for the defence), which
+    /// is the strip-sack scenario below.
+    static var roughnessByTheDefenseOnARunThatEndsInAFumbleLost: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 1
+                ? snap.rush(10, fumbledAndReturnedTo: 75, foulBy: .unnecessaryRoughness)
+                : plod(snap)
+        }
+    }
+
+    /// The same field position and the same flag, thrown instead of run: the first snap
+    /// from scrimmage, at the offence's own 30, is a pass a defender is flagged for
+    /// unnecessary roughness on before it is picked off ten yards downfield — at the
+    /// offence's 40 — and run back to its 25.
+    ///
+    /// Until a forward pass from behind the line is over, a flag on
+    /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
+    /// and the down does not turn into a running play until somebody catches the ball. A
+    /// defensive personal foul before the catch takes the better of two spots for the
+    /// offence — where it snapped, or where the ball was dead (14-4-5-d): the interceptor was
+    /// dropped at the offence's own 25, behind where it snapped, so the previous spot is
+    /// the better of the two — fifteen from its own 30, and the interception is wiped out.
+    /// The offence throws on first down from its own 30 so that the record's concept is
+    /// the play the script gives it.
+    static var roughnessByTheDefenseBeforeAnInterception: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            snap.index == 1
+                ? snap.interception(caught: 10, returnedTo: 75, foulBy: .unnecessaryRoughness)
+                : plod(snap)
+        }
+    }
+
+    /// A run to the offence's own 40, then a dropback on which a defender is flagged for
+    /// unnecessary roughness and the quarterback is stripped six yards behind the line, at
+    /// his own 34; the defence falls on it and takes it back to the offence's 20.
+    ///
+    /// The ball came loose behind the line, so the basic spot is behind the line, and a
+    /// defensive foul — behind the line or beyond it — is walked off from the previous
+    /// spot instead (14-3-6, the exception for the defence; 14-4-6-b for a foul during the
+    /// fumble itself): fifteen from the own 40, not fifteen from the own 34, which would
+    /// charge the offence for the sack a second time. The dropback is called as a throw so
+    /// that the record's concept is the play it plays.
+    static var roughnessByTheDefenseOnAStripSack: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 60 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 60)
+            case 2: return snap.sack(-6, fumbledAndReturnedTo: 80, foulBy: .unnecessaryRoughness)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// A run to the opponents' 45, then a throw a defender is flagged for unnecessary
+    /// roughness on; it is picked off at the opponents' 20 and the interceptor is dropped
+    /// at the opponents' 30 — fifteen yards nearer the goal line than the snap was.
+    ///
+    /// The other arm of the same exception. A defensive personal foul before a forward
+    /// pass thrown from behind the line is completed is walked off from the better of two
+    /// spots for the offence — where it snapped, or where the ball was dead (14-4-5-d, and
+    /// the same sentence as 8-6-1-d); an interception is not a completion (8-1-3), which
+    /// puts a foul that preceded it inside the exception and not outside it. Here the
+    /// dead-ball spot is the better of the two, so it is fifteen from the opponents' 30
+    /// and not fifteen from the opponents' 45. The throw is called as a throw so that the
+    /// record's concept is the play it plays.
+    static var roughnessByTheDefenseBeforeADeepInterception: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 45 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 45)
+            case 2:
+                return snap.interception(
+                    caught: 25, returnedTo: 30, foulBy: .unnecessaryRoughness)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// The opening kickoff is fielded two yards deep, fumbled, and carried into the end
+    /// zone by the kicking team.
+    static var kickoffFumbledAndReturnedByTheKickers: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 0 ? .kickoffFumbledAndReturnedByTheKickers : plod(snap)
+        }
+    }
+
     /// A pick-six puts one side up seven; the other kicks a field goal, is down four,
     /// and kicks onside. The kicking team falls on it at its own 47.
     static var onsideKickRecovered: ScriptedGame {
         ScriptedGame(
             caller: ScriptedCaller(
-                offensiveFamily: { $0.ballOn == 20 ? .fieldGoal : .insideRun },
+                offensiveConcept: { $0.ballOn == 20 ? .fieldGoal : .insideRun },
                 onsideDecision: { $0.scoreDifferential < 0 })
         ) { snap in
-            if snap.family == .onsideKick { return .onsideKick(recoveredAt: 53) }
+            if snap.concept == .onsideKick { return .onsideKick(recoveredAt: 53) }
             guard snap.isScrimmage else { return snap.neutral }
             if snap.differential == 0 { return .pickSix }
             if snap.differential == -7, snap.ballOn > 20 { return .rush(Int16(snap.ballOn) - 20) }

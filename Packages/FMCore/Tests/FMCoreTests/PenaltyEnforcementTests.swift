@@ -26,9 +26,11 @@ struct PenaltyEnforcementTests {
 
     private func outcome(
         _ yards: Int16, _ ending: PlayEnding = .tackled, kind: PlayKind = .rush,
-        finalSpot: UInt8? = nil
+        finalSpot: UInt8? = nil, possessionLostAt: UInt8? = nil
     ) -> Outcome {
-        Outcome(kind: kind, yards: yards, endedIn: ending, finalSpot: finalSpot)
+        Outcome(
+            kind: kind, yards: yards, endedIn: ending, finalSpot: finalSpot,
+            possessionLostAt: possessionLostAt)
     }
 
     /// The classic bug this exists to prevent: a declined penalty that still moves the
@@ -285,6 +287,27 @@ struct PenaltyEnforcementTests {
         #expect(decision.accepted)
         #expect(decision.advancement.ballOn == 45)
         #expect(decision.advancement.down == .first)
+    }
+
+    /// The same exception, on a play the offence did not survive. The ball comes loose
+    /// six yards behind the snap, so the basic spot is behind the line, and a defensive
+    /// foul — behind the line or beyond it — comes off the previous spot (14-3-6, the
+    /// exception for the defence; 14-4-6-b says the same for a foul during the fumble
+    /// itself). Measuring from where the ball came loose would charge the offence for
+    /// the sack twice: once in the yards, and again in where the fifteen is walked from.
+    @Test(
+        "football · Rule 14-3-6 Exception 1, 14-4-6-b · a defensive contact foul on a sack that ends in a fumble lost behind the line is enforced from the previous spot, not from the fumble",
+        .tags(.football)
+    )
+    func contactFoulOnAStripSack() {
+        let decision = rules.enforce(
+            penalty(.roughingThePasser), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(0, .fumbleLost, kind: .sack, finalSpot: 80, possessionLostAt: 66),
+            offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 45, "fifteen from the own 40, not from the own 34")
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.possessionChanged == false, "the ball reverts to the offence")
     }
 
     @Test(

@@ -145,12 +145,15 @@ struct PuntingTests {
             quarter: 2, clockRemaining: 700, down: .fourth, distance: 8, ballOn: ballOn,
             possession: TeamID(1), scoreDifferential: 0)
         let calls = Calls(
-            offense: CrudePlaybook.call(.punt), defense: .preventShell,
+            offense: OffensiveCall(concept: .punt), defense: .preventShell,
             offensiveCaller: .automatic, defensiveCaller: .automatic)
         var random = SplittableRandom(seed: seed)
         return (0..<count).compactMap { _ in
+            let onField = Lineup.onField(
+                context, concept: .punt, situation: situation, random: &random)
             let resolved = CrudeResolver().resolve(
-                situation: situation, calls: calls, context: context, random: &random)
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
             return resolved.outcome.kind == .punt ? resolved.outcome : nil
         }
     }

@@ -48,6 +48,8 @@ struct GoldenSeedTests {
         sum.mix(result.awayScore)
         sum.mix(result.plays.count)
         for play in result.plays {
+            sum.mix(play.schemaVersion)
+            sum.mix(play.calls.offense.concept.rawValue)
             sum.mix(play.situation.ballOn)
             sum.mix(play.situation.distance)
             sum.mix(play.situation.down.rawValue)
@@ -58,6 +60,9 @@ struct GoldenSeedTests {
             sum.mix(play.outcome.yards)
             sum.mix(play.outcome.clockRunoff)
             sum.mix(play.outcome.finalSpot ?? 200)
+            sum.mix(play.outcome.passResult?.rawValue ?? 200)
+            sum.mix(play.outcome.pointsScored)
+            for entry in play.onField { sum.mix(entry) }
             for participant in play.outcome.participants {
                 sum.mix(participant.player.rawValue)
                 sum.mix(participant.role.rawValue)
@@ -104,6 +109,26 @@ struct GoldenSeedTests {
             // ceiling along, so every rating on both rosters moved — an older league is a
             // slightly better one — and a game between two rosters of different players is
             // a different game.
+            //
+            // And moved by the record rather than by the game: the twenty-two roster
+            // indices of `PlayRecord.onField` are mixed in from here on, so the same
+            // three games hash differently. Nothing a play produced changed — the lineup
+            // is drawn by the simulator immediately before the snap is resolved, where
+            // the resolver used to draw it, so every stream is spent in the same order —
+            // and `Tools/gamelog` prints the same game before and after.
+            //
+            // And by the record again: `Outcome.passResult` and `Outcome.pointsScored`
+            // are mixed in from here on. A resolver writes the first and the game the
+            // second, neither reads either, and no play produced anything different;
+            // `Tools/gamelog` prints the same game before and after.
+            //
+            // And by the record a third time: `PlayRecord.schemaVersion`, which is 1,
+            // and the concept the offence called, now held by value as
+            // `OffensiveCall.concept` rather than pointed at through a stand-in design
+            // identifier, are mixed in from here on. The concept was always on the
+            // record — the identifier was its raw value plus one — so this is the same
+            // fact hashed under a different name, and nothing a play produced changed;
+            // `Tools/gamelog` prints the same game before and after.
             //
             // And moved by the play clock, this time by the engine. Every play now records
             // the play clock it was snapped against (2025 rulebook, 4-6) as a decision
@@ -174,9 +199,36 @@ struct GoldenSeedTests {
             // sideline is now something a trailing offence reaches on purpose — so the
             // two meet on the plays that matter most to both. Seeds 5 and 12 played the
             // same game either way; seed 1 did not.
-            (UInt64(1), UInt64(16_190_159_873_496_514_374)),
-            (UInt64(5), UInt64(9_358_588_685_460_489_739)),
-            (UInt64(12), UInt64(4_864_393_250_434_305_262)),
+            // The play clock and the record changes met in a merge, and the constants
+            // below are the union: the play clock's games, hashed with the record's
+            // schema version, concept, presence, pass result and points mixed in. Neither
+            // side's constants could survive, because each was computed without the
+            // other's mechanism; `Tools/gamelog` prints the play clock's game before and
+            // after the merge.
+            //
+            // And by the record a fourth time: what happened while the ball was dead
+            // before a snap — a charged timeout with the side that took it, the
+            // two-minute warning — is a rules-layer decision point on the next snap's
+            // record, and the checksum mixes every decision point. Where a kick was
+            // fielded and where possession was lost went on the record with it, but
+            // neither is hashed. Nothing a play produced changed: the same timeouts are
+            // spent at the same moments and the clock runs as it did, and `Tools/gamelog`
+            // prints the same plays before and after, with the dead ball now written
+            // above them and a kick's gross and return beside it.
+            //
+            // And moved by the merge of those two sets of changes, which is where the
+            // constants below come from. Neither side's could survive it: each was
+            // computed without the other's mechanism, and the checksum on this side
+            // mixes five facts the other side's did not. The football did not move —
+            // `Tools/gamelog --seed 7 --home 3 --away 11` prints the same hundred and
+            // seventy-nine plays with the same 35-41 either side of the merge, and every
+            // line that differs is a kick or a dead ball printing detail the record only
+            // just started carrying. The run-or-pass conversion moved type rather than
+            // meaning: it is a case of `PlayConcept`, which the checksum mixes, where it
+            // was a case of the now-deleted `PlayFamily`, which it did not.
+            (UInt64(1), UInt64(16_907_398_971_323_122_302)),
+            (UInt64(5), UInt64(3_992_350_416_242_507_068)),
+            (UInt64(12), UInt64(18_252_712_298_602_106_787)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

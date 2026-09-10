@@ -267,7 +267,7 @@ struct CalibrationTarget: Sendable {
             id: "completionPercentage", label: "completion percentage", low: 61.2, high: 68.6,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "Completions over attempts. The harness still counts a completion only when it gains, so it reads about three points low; the gap is the zero-or-fewer row (2023–24 positive-only rate: 61.1–62.4)."
+                "Completions over attempts, read from the record's pass result. Counted as a gain of a yard or more it read about three points low (2023–24 positive-only rate: 61.1–62.4); the zero-or-fewer row is the gap."
         ),
         CalibrationTarget(
             id: "sackRate", label: "sack rate per dropback", low: 6.1, high: 7.2,
@@ -399,6 +399,47 @@ struct CalibrationTarget: Sendable {
                 "Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7."
         ),
 
+        // Who took the snap: player-snaps per team-game on plays from scrimmage, by the
+        // roster position group of each man the record says was on the field. Read off
+        // `PlayRecord.onField` and the game's roster table, never off the credits.
+        CalibrationTarget(
+            id: "snaps.quarterback", label: "quarterback snaps per team-game", low: 58.9,
+            high: 66.8, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true,
+            note:
+                "Player-snaps on plays from scrimmage by roster position group, the source's participation feed scaled to plays from scrimmage. One a snap by construction on both sides."
+        ),
+        CalibrationTarget(
+            id: "snaps.backfield", label: "backfield snaps per team-game", low: 64.2, high: 72.4,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true,
+            note: "Running backs and fullbacks."),
+        CalibrationTarget(
+            id: "snaps.receiver", label: "receiver snaps per team-game", low: 150.3, high: 171.0,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true
+        ),
+        CalibrationTarget(
+            id: "snaps.tightEnd", label: "tight end snaps per team-game", low: 77.1, high: 87.2,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true
+        ),
+        CalibrationTarget(
+            id: "snaps.offensiveLine", label: "offensive line snaps per team-game", low: 296.7,
+            high: 332.9, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true,
+            note:
+                "Five a snap by construction in the engine; the source has a sixth now and then."
+        ),
+        CalibrationTarget(
+            id: "snaps.frontSeven", label: "front seven snaps per team-game", low: 363.7,
+            high: 405.1, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true,
+            note:
+                "Edge, interior and linebacker together: the source lists a four-man front's edge rushers as ends and a three-man front's as outside linebackers, so a narrower split would follow the scheme rather than the job."
+        ),
+        CalibrationTarget(
+            id: "snaps.defensiveBack", label: "defensive back snaps per team-game", low: 285.5,
+            high: 323.9, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true, note: "Cornerbacks and safeties."),
+
         // The shape of a carry.
         CalibrationTarget(
             id: "carriesStuffed", label: "carries stuffed (0 or fewer)", low: 17.5, high: 19.9,
@@ -526,8 +567,18 @@ struct CalibrationTarget: Sendable {
             id: "netPunt", label: "net punt (yards)", low: 39.4, high: 43.8,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "Distance less return yards, a touchback counted as a punt to the 20. The harness spots a punt touchback at the goal line, so its figure reads high on touchbacks; a harness fix, not a retune."
+                "Distance less return yards, a touchback counted as a punt to the 20 — read off the record, which carries where the punt was fielded."
         ),
+        CalibrationTarget(
+            id: "grossPunt", label: "gross punt (yards)", low: 45.0, high: 50.0,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note:
+                "Line to where the punt was fielded, downed or went out. Blocked punts excluded. ASSUMED, not read from the source: that the source measured a touchback's gross to the goal line. The band is what the source publishes; how it treated a touchback is our reading of it, and if that reading is wrong this row is biased by the touchback share."
+        ),
+        CalibrationTarget(
+            id: "puntReturnYards", label: "yards per punt return", low: 8.8, high: 10.6,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note: "Over punts that were fielded and run back; a fair catch is not a return."),
         CalibrationTarget(
             id: "twoPointTries", label: "two-point tries per team-game", low: 0.19, high: 0.29,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [.tryAttempt],
@@ -672,6 +723,17 @@ struct CalibrationTarget: Sendable {
             id: "kickoffsReturned.2024", label: "kickoffs returned", low: 30.9, high: 35.9,
             season: .season(2024), source: playByPlay, rulesSensitiveTo: [.kickoff], gate: true,
             unit: "%", note: "Kept for --rulebook 2024."),
+        CalibrationTarget(
+            id: "kickoffReturnYards.2025", label: "yards per kickoff return", low: 24.1,
+            high: 26.7, season: .season(2025), source: playByPlay, rulesSensitiveTo: [.kickoff],
+            gate: true,
+            note:
+                "From where the kick was fielded, end-zone depth included, to where the return ended; onside kicks excluded."
+        ),
+        CalibrationTarget(
+            id: "kickoffReturnYards.2024", label: "yards per kickoff return", low: 25.6,
+            high: 28.4, season: .season(2024), source: playByPlay, rulesSensitiveTo: [.kickoff],
+            gate: true, note: "Kept for --rulebook 2024."),
         CalibrationTarget(
             id: "puntsReturned", label: "punts returned", low: 40.5, high: 45.3,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
