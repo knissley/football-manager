@@ -1,5 +1,11 @@
 # Schemes and team identity
 
+**Status: partly built, sections marked.** `TeamScheme`, `SchemeFit` and generation's
+`SchemeIdentity` are built, teams are generated with an identity and rosters are built
+for it, and the resolver reads fit. **Familiarity is not built**: `SchemeExperience`
+exists as a type and nothing reads it, because a decay-and-rebuild mechanic needs a
+season loop (M3) to mean anything. Changing identity, and what it costs, is M7.
+
 A team plays a certain way, players suit some ways better than others, and
 changing identity costs something. The design problem is *which* something.
 
@@ -24,6 +30,9 @@ So the cost lives *inside* the decision rather than outside it, and there are tw
 of them behaving very differently.
 
 ### Familiarity, which decays
+
+**Designed, not built.** `SchemeExperience` is a type nothing reads. It needs a season
+loop (M3) before decay and rebuild mean anything.
 
 A coordinator who has run west coast for fifteen years runs an air raid worse.
 But he can run it, and he gets better at it — 60% proficiency unfamiliar, full
@@ -97,6 +106,9 @@ The obvious change is the wrong one, the right one is cheaper than it looks, and
 the roster screen tells you before you commit.
 
 ## When you can change
+
+**Designed, not built.** A team's scheme is set at world creation and never changes:
+there is no offseason, no camp and no install cost. M7.
 
 **Freely in the offseason**, with a one-season install cost on top of
 familiarity — the transition year real teams visibly go through.

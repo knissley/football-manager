@@ -1,5 +1,10 @@
 # Gameplan
 
+**Status: designed.** No `Gameplan` type exists and no rule, tier, directive or
+hypothesis is stored or read anywhere in the tree. What exists of the layer below it is
+`SituationClass`, the shared situational vocabulary a gameplan rule would key off, and a
+baseline caller with no gameplan at all. This arrives with the weekly loop at M4.
+
 The head-coach half of the role, and the weekly decision surface. Gameplan sets the
 guardrails your coordinator works inside ([play-calling.md](play-calling.md)) — you
 never call plays from here, you decide the room he operates in.

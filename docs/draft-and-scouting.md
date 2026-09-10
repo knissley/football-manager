@@ -1,5 +1,12 @@
 # The draft and scouting
 
+**Status: partly built, sections marked.** Class generation is built and inspectable —
+`DraftClassGenerator` produces a three-year pipeline with hidden ceilings, production
+carrying independent error, red flags, early declarations and mean-reverting class
+strength, and `worldgen --show class` prints it. Everything about *scouting* — biased
+observers, the fog, budgets, boards, draft day, retrospectives — is M7 and is labelled
+`Designed, not built`.
+
 The most interesting decision in the game, because it's the one where you act on
 information you know is wrong.
 
@@ -79,6 +86,9 @@ next season as a different prospect — another year of tape, and a stock that h
 either way. Seniors never had the choice.
 
 ## Scouts are biased observers
+
+**Designed, not built** — and so is every section below it. `Prospect` carries the true
+values and the noisy production; nothing observes them through a scout. M7.
 
 Named characters, like the writers ([news-and-narrative.md](news-and-narrative.md)), and
 built on the same machinery.

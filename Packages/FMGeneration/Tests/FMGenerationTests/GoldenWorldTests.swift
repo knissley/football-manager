@@ -146,9 +146,9 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process",
         arguments: [
-            (UInt64(1), UInt64(14_319_534_132_488_234_190)),
-            (UInt64(5), UInt64(16_911_792_513_748_082_494)),
-            (UInt64(7), UInt64(6_982_674_295_979_449_703)),
+            (UInt64(1), UInt64(12_206_648_183_704_183_677)),
+            (UInt64(5), UInt64(10_085_084_855_821_522_147)),
+            (UInt64(7), UInt64(17_159_367_310_507_637_788)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

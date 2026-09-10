@@ -17,7 +17,17 @@ public enum TeamGenerator {
     public struct NameLedger: Sendable {
 
         public var nicknames: Set<String> = []
+        /// A nickname's root, lowercased and without its plural ending. The full names
+        /// above are what a standings table shows; this is what makes two of them the
+        /// same name — a pool that ever holds both "Kestrel" and "Kestrels" cannot hand
+        /// out one of each.
+        public var nicknameStems: Set<String> = []
         public var stadiums: Set<String> = []
+        /// The word a feature-led ground is named for. Tracked because the collision
+        /// that reads as a duplicate is the *word*: Riverfront Park, Riverfront Field
+        /// and Riverfront Arena are three distinct strings and one ground written down
+        /// three times.
+        public var stadiumFeatures: Set<String> = []
         public var abbreviations: Set<String> = []
         /// The part of a city name before its suffix. Tracked separately because four
         /// distinct names — Saltflat, Saltflat Ridge, Saltflat Landing, Saltflat Mills
@@ -71,7 +81,7 @@ public enum TeamGenerator {
             ? Int16(random.nextInt(in: 3_000...5_500)) : Int16(random.nextInt(in: 0...900))
 
         return GeneratedCity(
-            name: name, region: region, market: market, climate: climate,
+            name: name, stem: stem, region: region, market: market, climate: climate,
             altitudeFeet: altitude)
     }
 
@@ -190,6 +200,34 @@ public enum TeamGenerator {
         return fallback
     }
 
+    /// A nickname's comparable root: lowercased, with a plural ending taken off.
+    ///
+    /// Deliberately crude. It exists to tell two spellings of one word apart, not to
+    /// conjugate English — "Foxes" reduces to "foxe", which is wrong as grammar and
+    /// perfectly serviceable as a key, because the only thing ever asked of it is
+    /// whether two names reduce to the same thing.
+    static func stem(ofNickname nickname: String) -> String {
+        let lowered = nickname.lowercased()
+        return lowered.hasSuffix("s") ? String(lowered.dropLast()) : lowered
+    }
+
+    /// Whether a nickname says its own city back at it — Coyote Coyotes, Frost
+    /// Frostbite, Elkhart Elk.
+    ///
+    /// Both directions, because the echo runs both ways: the nickname can carry the
+    /// city's whole stem ("Coyotes" holds "Coyote"), or the city can carry the
+    /// nickname's ("Elkhart" holds "Elk"). Compared on the stem going the second way so
+    /// a plural does not hide the repeat.
+    ///
+    /// What it does not catch is an echo of *meaning* rather than of letters: Winter
+    /// Blizzard shares no substring, and a generator would need to know what the words
+    /// mean to refuse it.
+    static func echoesCity(_ nickname: String, stem cityStem: String) -> Bool {
+        let city = cityStem.lowercased()
+        guard !city.isEmpty else { return false }
+        return nickname.lowercased().contains(city) || city.contains(stem(ofNickname: nickname))
+    }
+
     public static func stadium(
         for city: GeneratedCity, ledger: inout NameLedger, using random: inout SplittableRandom
     ) -> Stadium {
@@ -197,16 +235,19 @@ public enum TeamGenerator {
             Int(random.next(upperBound: UInt64(StadiumPools.kinds.count)))]
 
         // A feature-led name reads better — most grounds were named for the place or
-        // something in it — but the pool is small enough to collide across a league.
-        // The city-led form is the fallback because cities are unique, so it cannot.
+        // something in it — but the pool is small enough to collide across a league, and
+        // what collides is the word rather than the whole name: Riverfront Park and
+        // Riverfront Field are one ground written down twice however the kinds differ.
+        // So a feature word is spent once per world. When the draws all land on words
+        // already spent, the city-led form takes over — cities are unique in a world and
+        // no city is named for a feature, so it cannot collide with anything.
         var name = "\(city.name) \(kind)"
         if random.nextBool(probability: 0.55) {
             for _ in 0..<5 {
                 let feature = StadiumPools.features[
                     Int(random.next(upperBound: UInt64(StadiumPools.features.count)))]
-                let candidate = "\(feature) \(kind)"
-                if !ledger.stadiums.contains(candidate) {
-                    name = candidate
+                if ledger.stadiumFeatures.insert(feature).inserted {
+                    name = "\(feature) \(kind)"
                     break
                 }
             }
@@ -265,7 +306,14 @@ public enum TeamGenerator {
         for _ in 0..<24 {
             let category = categories[Int(random.next(upperBound: UInt64(categories.count)))]
             let candidate = category[Int(random.next(upperBound: UInt64(category.count)))]
-            if ledger.nicknames.insert(candidate).inserted {
+            // Coyote Coyotes. The pools are region-filtered, which puts a city and a
+            // nickname drawn from the same corner of the map next to each other far more
+            // often than chance would, so this is drawn again rather than lived with.
+            if echoesCity(candidate, stem: city.stem) { continue }
+            // On the stem rather than the whole name, so a pool that ever holds a
+            // singular and its plural cannot hand out one of each.
+            if ledger.nicknameStems.insert(stem(ofNickname: candidate)).inserted {
+                ledger.nicknames.insert(candidate)
                 nickname = candidate
                 break
             }
@@ -275,6 +323,7 @@ public enum TeamGenerator {
             // than two teams with one name.
             nickname = "Club \(ledger.nicknames.count + 1)"
             ledger.nicknames.insert(nickname)
+            ledger.nicknameStems.insert(stem(ofNickname: nickname))
         }
 
         let identity = TeamIdentity(

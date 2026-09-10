@@ -57,3 +57,19 @@ built at all.
 duplicate types. Rejected as strictly worse than the mapping layer: the abstraction
 leaks (lazy loading, contexts, identity) and generic code over a persistence protocol
 is harder to read than two structs and a function.
+
+## Amendment 2026-09-10 — what the headless harness actually runs in CI
+
+The first consequence says "10,000 seasons can be simulated in CI without a simulator."
+The decision it draws that from holds — the packages build and test on Linux with no
+Xcode, which is what makes headless calibration possible at all — but the number
+overstates today by a wide margin, and this is an amendment under the rule in
+[README.md](README.md) rather than an edit to the body.
+
+`Tools/simharness` sims **games, not seasons**: there is no schedule, no standings and no
+season loop until M3, so "a season" is not a unit the tree can run. What
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs is 400 games at seed 7,
+on x86_64 and arm64, in a job that uploads its output and writes the calibration table
+into the job summary and **does not gate a merge**. Calibration is practical, exactly as
+the decision predicted; the scale in that sentence is aspirational and the job is
+reporting.

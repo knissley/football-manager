@@ -250,4 +250,136 @@ struct LeagueGeneratorTests {
         }
         #expect(Set(world.teams.map(\.market)).count >= 3)
     }
+
+    // MARK: - Stems and feature words
+
+    /// The city's stem: its name with a pool suffix taken off. A bare city is all stem,
+    /// and a stem of two words — the pools hold one — keeps both.
+    private func stem(ofCity city: String) -> String {
+        let words = city.split(separator: " ").map(String.init)
+        guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {
+            return city
+        }
+        return words.dropLast().joined(separator: " ")
+    }
+
+    /// A nickname's comparable root: lowercased, with a plural ending taken off, so
+    /// "Coyotes" and the city stem "Coyote" are the same word.
+    private func stem(ofNickname nickname: String) -> String {
+        let lowered = nickname.lowercased()
+        return lowered.hasSuffix("s") ? String(lowered.dropLast()) : lowered
+    }
+
+    /// The word a stadium is named for, when it is named for a feature rather than for
+    /// its city. Read back off the pool rather than off the generator's ledger, so this
+    /// fails if the ledger stops being honoured.
+    private func featureWord(in stadiumName: String) -> String? {
+        StadiumPools.features.first { stadiumName.hasPrefix("\($0) ") }
+    }
+
+    /// The ledger checked whole stadium names, so a feature word could name three
+    /// grounds in one league — Riverfront Park, Riverfront Field and Riverfront Arena
+    /// read as one ground written down three times. Decision 154 fixed exactly this for
+    /// city stems and fixed it there only (issue #4).
+    ///
+    /// Twelve seeds, standard shape: a feature word that appears twice in any of them is
+    /// a league that names its grounds after itself.
+    @Test(
+        "contract: a stadium feature word names one ground in a world",
+        arguments: Array(UInt64(1)...12))
+    func stadiumFeatureWordsAreUsedOnce(seed: UInt64) {
+        guard let world = generate(seed: seed) else {
+            Issue.record("seed \(seed) did not generate")
+            return
+        }
+
+        // Keyed lookup, walked in the league's own team order — nothing here iterates the
+        // dictionary, so the failure it reports is the same one every run (rule 2).
+        var named: [String: String] = [:]
+        for team in world.teams {
+            guard let feature = featureWord(in: team.stadium.name) else { continue }
+            if let already = named[feature] {
+                Issue.record(
+                    "seed \(seed): \(feature) names both \(already) and \(team.stadium.name)")
+            }
+            named[feature] = team.stadium.name
+        }
+    }
+
+    /// A nickname that repeats its own city — Coyote Coyotes — is the stutter the city
+    /// stem ledger already refuses between two cities, and the nickname draw never
+    /// checked for (issue #4).
+    ///
+    /// The twelve-seed sweep is seeds 1 through 12; 14 and 42 are on the end because they
+    /// are where the fault actually shows in the first four dozen worlds, and a sweep
+    /// that only ever passes is not evidence of anything.
+    @Test(
+        "contract: a nickname never repeats the city it plays in",
+        arguments: Array(UInt64(1)...12) + [UInt64(14), UInt64(42)])
+    func nicknamesDoNotEchoTheirCity(seed: UInt64) {
+        guard let world = generate(seed: seed) else {
+            Issue.record("seed \(seed) did not generate")
+            return
+        }
+
+        for team in world.teams {
+            let city = stem(ofCity: team.identity.city).lowercased()
+            let nickname = team.identity.nickname.lowercased()
+            #expect(
+                nickname.contains(city) == false,
+                "seed \(seed): \(team.identity.fullName) says its city twice")
+            #expect(
+                city.contains(stem(ofNickname: nickname)) == false,
+                "seed \(seed): \(team.identity.fullName) says its city twice")
+        }
+    }
+
+    /// Two nicknames that reduce to one word are two teams with one name, whatever the
+    /// spelling. Nothing in today's pools reduces to another entry, and the ledger keys
+    /// on the stem so that a pool which grows a singular beside its plural cannot hand
+    /// out both.
+    @Test(
+        "contract: no two teams share a nickname stem", arguments: Array(UInt64(1)...12))
+    func nicknameStemsAreDistinct(seed: UInt64) {
+        guard let world = generate(seed: seed) else {
+            Issue.record("seed \(seed) did not generate")
+            return
+        }
+        let stems = world.teams.map { TeamGenerator.stem(ofNickname: $0.identity.nickname) }
+        #expect(Set(stems).count == stems.count, "seed \(seed) repeats a nickname stem")
+    }
+
+    /// The rule the nickname draw applies, on its own. An echo is a shared word in
+    /// either direction; a shared *idea* is not one, and the last row says so rather
+    /// than leaving the gap for someone to find in a standings table.
+    @Test(
+        "unit: a nickname echoes its city when either name carries the other's word",
+        arguments: [
+            ("Coyotes", "Coyote", true),
+            ("Frostbite", "Frost", true),
+            ("Timberwolves", "Timber", true),
+            ("Elk", "Elkhart", true),
+            ("Pumas", "Kettle", false),
+            ("Surge", "Big Sur", false),
+            ("Blizzard", "Winter", false),
+        ])
+    func nicknameEchoes(nickname: String, city: String, isEcho: Bool) {
+        #expect(TeamGenerator.echoesCity(nickname, stem: city) == isEcho)
+    }
+
+    /// Crude on purpose: the stem is a key for comparing two names, not grammar. "Foxes"
+    /// reducing to "foxe" is the honest shape of that, and it is written down here so a
+    /// later reader does not mistake it for a bug.
+    @Test(
+        "unit: a nickname's stem is its name without a plural ending",
+        arguments: [
+            ("Coyotes", "coyote"),
+            ("Elk", "elk"),
+            ("Foxes", "foxe"),
+            ("Dust Devils", "dust devil"),
+            ("Nor'easters", "nor'easter"),
+        ])
+    func nicknameStems(nickname: String, stem: String) {
+        #expect(TeamGenerator.stem(ofNickname: nickname) == stem)
+    }
 }

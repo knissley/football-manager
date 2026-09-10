@@ -1,5 +1,10 @@
 # Design decisions
 
+**Status: designed.** A register of what was *decided*, not of what is *built*. A row
+here means the question is settled and nobody should re-litigate it; it says nothing
+about whether code exists. Decisions the September 2026 audit reopened carry the issue
+that reopens them.
+
 The settled answers that the rest of the docs encode. Recorded 2026-09-08 across five
 rounds of scoping. Anything not listed here is still open.
 
@@ -219,7 +224,7 @@ See [penalties.md](penalties.md).
 | 113 | **Twelve men is a substitution failure against tempo** | Makes hurry-up a genuine weapon rather than only a clock tactic |
 | 114 | **Hard Count is a two-sided trait** | Draws opponent offside, raises your own false-start and delay risk |
 | 115 | **Drawing fouls is a by-product of winning matchups** | No trait reaches across to modify an opponent's rate; a beaten defender holds because he is losing |
-| 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because |ΔWP| is enormous |
+| 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because \|ΔWP\| is enormous |
 | 117 | **Accept/decline is yours while calling plays, your coordinator's otherwise** | Both branches compared on win probability, so the better option is always known and explicable |
 | 118 | **`OfficiatingProfile` is the contract; crews are a generator over it** | Walking back named officials means deleting a generator, not unpicking a feature |
 | 119 | **Thirty-three fouls, with pass interference the only spot foul** | Sounds like a broadcast rather than a rulebook subset, and each one has real enforcement. **Reopened by [#18](https://github.com/knissley/football-manager/issues/18) and [#38](https://github.com/knissley/football-manager/issues/38):** `Rules.enforcedAdvancement` measures every foul from the previous spot, so the contact family (facemask, roughing, horse collar, helmet) has no real enforcement and interference is not in fact the only spot foul; interference itself is drawn per read in the coverage loop, before the quarterback has thrown |
@@ -292,7 +297,7 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 | 151 | **A stadium is simulation input; an identity is not** | Roof and climate decide the weather, altitude reaches kicking and fatigue, noise raises the *visiting* offence's pre-snap penalties. Home field advantage is therefore a mechanism, not a bonus |
 | 152 | **Colours are checked for contrast at generation** | Two darks on a jersey is a scoreboard nobody can read. `hasReadableContrast` is enforced by a test across twelve seeds, not left to chance |
 | 153 | **Divisions are regional, and named for the region they hold** | A "South" division full of cold-weather cities reads as generated on sight. City demand is computed per region from the shape before anything is generated, because an even spread and then dealing leaves regions short |
-| 154 | **A name ledger is threaded through generation** | Nicknames, stadium names, abbreviations and city stems are all finite pools whose collisions are invisible per team and obvious in a standings table. Four teams named Saltflat-something passes a uniqueness test on the full name |
+| 154 | **A name ledger is threaded through generation** | Nicknames, stadium names, abbreviations and city stems are all finite pools whose collisions are invisible per team and obvious in a standings table. Four teams named Saltflat-something passes a uniqueness test on the full name. **Extended by [#4](https://github.com/knissley/football-manager/issues/4):** the same argument applies to what a ledger keys on. It now keys on the word rather than the string — a stadium's feature word is spent once per world, so Riverfront Park and Riverfront Field cannot both exist and the city-led form takes over when the pool runs dry — and a nickname is keyed on its stem and refused when it repeats its own city (Coyote Coyotes) |
 | 155 | **The generator validates the league it built** | Demand arithmetic should make a malformed league unreachable. It is checked anyway, so a future change surfaces here rather than as a broken schedule several systems downstream |
 
 ## Draft classes

@@ -1,5 +1,8 @@
 # Tools
 
+**Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
+`playsize`, `simharness`, `gamelog` and `scripts/lint-sim.sh`. Nothing here is a plan.
+
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
 for a command and read the output.
@@ -124,14 +127,60 @@ a league with badly-fitted rosters in it rather than a league of perfectly-fitte
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than
-emergent properties. Rows that depend on the *shape* of the yardage distribution rather
-than its mean are harder, and the spread of team win totals is not measurable at all
-until a schedule exists in M3.
+emergent properties.
+
+It measures far more than the parametric rows: where the points come from, how drives
+end and start, the shape of the carry and dropback distributions rather than their means,
+field goals by distance, red zone conversion, personnel and package shares, fourth-down
+behaviour, penalties by foul, injuries, the endgame, and the weather and home-road
+splits. One row in [the calibration table](match-engine.md#calibration) has no value at
+all — the spread of team win totals, which needs a season with a schedule and arrives
+with M3; it prints under **Not measured here** so the row cannot be quietly forgotten.
+
+The weather and rare-event rows need `--games 1000`; at 400 there are only twenty-odd
+heavy-rain games and the row is noise.
 
 The output is byte-identical across processes for a given seed and game count, so the
 before-and-after comparison every engine fix depends on is a plain `diff`. A line that
 moves between two runs of the same binary at the same seed is a bug in the harness's
-read-out, not noise (#52).
+read-out, not noise (#52) — with one deliberate exception, the `Budget` block below.
+
+### The Budget block
+
+The run ends with a `Budget` block: the wall clock of the simulate calls alone, as ms per
+game, the seconds that rate makes of a 272-game season, and the ~220 ms per game the
+[60-second season budget](match-engine.md#performance-budget) allows, with the ratio
+between them.
+
+```text
+  Budget
+    Wall clock of the simulate calls alone — world generation, the weather draws
+    and this report are outside it. Reporting only: no gate, and not a calibration
+    target. It is the one block that moves between two runs of the same binary at
+    the same seed, which is what --no-timing exists for.
+    simulate calls                400 games in 5.90 s
+    ms per game                   14.75
+    seconds per 272-game season   4.01
+    budget                        220.00 ms per game, 60 s a season (match-engine.md#performance-budget)
+    ratio to budget               0.07x
+```
+
+**Reporting only.** Nothing gates on it, and timing is not a `CalibrationTarget`: a
+wall-clock reading measures the machine that took it as much as the engine, so a band
+would mean one thing on a laptop and another on a CI runner. What it is for is drift — the
+budget is architectural ([ADR-0006](adr/0006-spatial-simulation.md)) and until this block
+existed nothing measured it at all (#9).
+
+It is printed **last**, after the verdicts, and it is the only part of the output that
+moves between runs. `--no-timing` omits it, so the byte-identical check still works:
+
+```bash
+cd Tools/simharness
+swift run -c release simharness --games 400 --seed 7 --no-timing | md5sum
+```
+
+Read the ratio, not the milliseconds. What one machine's milliseconds are worth is
+unknown; what a doubling between two commits on the same machine means is not.
 
 ## gamelog — watch a game
 
@@ -190,11 +239,16 @@ thirty seconds of this output, which is why it exists.
 swift test --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
+swift test --package-path Packages/FMSimulation      # ~45s; the engine's own suite
 swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
 
 # Integer maths must agree between debug and release
 swift test -c release --package-path Packages/FMRandom
 ```
+
+Every one of these is a hard-failing step of the `test` job in
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
+`Tools/simharness` included, since #9, because nothing else compiles its tests.
 
 ## lint-sim — the determinism and purity lint
 
@@ -268,9 +322,12 @@ hard-failing step.
 ## Formatting
 
 ```bash
-swift format lint --recursive --parallel Packages/ Tools/     # before committing
+swift format lint --strict --recursive --parallel Packages/ Tools/   # before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 ```
+
+`--strict` is not optional: without it `swift format lint` prints its findings and still
+exits 0, so a script that trusts the exit code passes while CI fails.
 
 ## Getting a toolchain
 

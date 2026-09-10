@@ -1,6 +1,10 @@
 # The weekly loop
 
-> **Status: provisional.** This was written as a *probe* — a way to test whether the
+**Status: designed.** None of this exists: there is no app target, no screen, and no
+week to advance. The findings it records about data and architecture are durable and
+several are already decisions; the screens are sketches.
+
+> **Provisional.** This was written as a *probe* — a way to test whether the
 > systems design stores the right data and models the right decisions, by forcing it onto
 > a phone screen. Its findings about data and architecture are durable and are recorded as
 > decisions; its screens, layouts and interactions are **sketches, not commitments**, and
