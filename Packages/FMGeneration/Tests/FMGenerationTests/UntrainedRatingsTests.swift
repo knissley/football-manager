@@ -191,8 +191,10 @@ struct CrossPositionTests {
         }
     }
 
-    /// The audit's two probes. A receiver is a poor quarterback because he cannot throw,
-    /// and a kicker is a worse one still.
+    /// The two moves that showed absence was a bonus, read the same way: every receiver
+    /// and every kicker on every roster, scored at quarterback. A receiver is a poor
+    /// quarterback because he cannot throw, and a kicker is a worse one still — and both
+    /// have to come out that way rather than as a mover scored on his awareness and speed.
     @Test(
         "contract: receivers rate well below their own overall at quarterback, and kickers under 35",
         .tags(.contract))

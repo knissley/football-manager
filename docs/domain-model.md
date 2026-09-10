@@ -158,9 +158,18 @@ kickAccuracy, puntPower, puntAccuracy.
 
 **A rating a position does not train is present and low, never absent.** Generation
 draws it from the untrained table in `PlayerGenerator` — a lineman's throwing centres on
-25, a defender's catching on 40, a kicker's punting on 45, and elusiveness, pursuit and
-hit power follow the man's agility, speed and strength — on a substream of the player's
-own, so the ratings he does train are exactly what they would be without it. `overall(at:)`
+25, a defensive back's or linebacker's catching on 40, a kicker's punting on 45, and
+elusiveness, pursuit and hit power follow the man's agility, speed and strength — on a
+substream of the player's own, so the ratings he does train are exactly what they would be
+without it. Three readings of that table are the generator's rather than its author's,
+and are stated beside the rows: "linemen" is the offensive line, so a defensive lineman
+carries what he takes away at the defenders' 35; a key the table does not name for a
+position — a receiver's carrying and breakTackle, a back's route running, a corner's
+pass-rush moves — takes its family's row for everyone, which is the family's lowest
+stated centre; and pursuit and hit power are derived from speed and strength for
+*everyone* who does not train them, not only for offensive linemen, so a corner hits at
+half his strength and a receiver covering a kick pursues at half his speed plus ten,
+where the family's row would have put both at 25. `overall(at:)`
 weighs an untrained key like any other, which is what makes a receiver a poor quarterback:
 he is scored on the throwing ratings he carries low. Absence was a free pass. `overall(at:)`
 dropped the weight of any key a player lacked and renormalised over the rest, so a

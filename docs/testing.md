@@ -52,6 +52,16 @@ CI runs the census as a hard-failing step of the `test` job and writes the table
 job summary, so the shares are in front of whoever opens the run rather than in a script
 nobody remembers to call. See [tools.md](tools.md#test-census--what-the-suite-asserts).
 
+The census reads the tags out of the source, so it counts a test that exists only in a
+debug build. Two do: the exit tests that check an assertion fires —
+`PositionWeightsTests.incompleteSetIsCaught` in FMCore and
+`SchemeFitInEngineTests.missingKeyIsCaught` in FMSimulation — sit under `#if DEBUG`, are
+in the table, and are absent from a `-c release` run. That costs nothing, because a
+release run is required only of FMRandom (CI runs it both ways; its integer maths must
+agree with optimisation on), and is run for FMGeneration when its goldens change so the
+constants agree between builds. FMCore and FMSimulation run in debug, which is where
+those two tests live.
+
 ## The first census
 
 Taken on the merge of wave 1, at 717 tests.

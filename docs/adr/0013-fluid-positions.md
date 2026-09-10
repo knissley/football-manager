@@ -153,7 +153,7 @@ at receiver, a kicker rated a 64 quarterback, and running backs rated 65.9 at li
 against natives at 61.6. Absence was a bonus, and "68 as a tight end, 81 as a receiver"
 was a number nobody could trust.
 
-The mechanism is replaced ([decision 217](../design-decisions.md#ratings),
+The mechanism is replaced ([decision 218](../design-decisions.md#ratings),
 [#25](https://github.com/knissley/football-manager/issues/25)). Every player carries every
 key; a rating his position does not train is present and low, drawn by generation from an
 untrained table by key family and by whether the job sometimes asks for it; and
