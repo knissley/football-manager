@@ -332,7 +332,6 @@ tree while this doc was written; the rest are the audit's findings, taken on its
 - There is no ten-second runoff. #32.
 - The team that gave up a safety does not kick off. #16.
 - The clock does not stop on a change of possession. #17.
-- A touchdown on the last play of a half gets no try. #31.
 - Live-ball fouls are enforced from the wrong spot. #18.
 
 The dynamic kickoff is not in the engine at all: `Rules` carries one

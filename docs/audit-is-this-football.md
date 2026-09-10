@@ -463,7 +463,7 @@ sudden death once both have had one, a tie only if still level at the end of it
 (16-1-4). The `ties` test is rewritten to assert that. The engine's overtime scenarios
 are in `RulesConformanceTests`, seven of them, one per clause.
 
-## S10 — A touchdown at the end of a half gets no try — **open**
+## S10 — A touchdown at the end of a half gets no try — **fixed**
 
 The half restart in `GameSimulator.State.checkForEnd` sets `pendingTry = false` along
 with the fresh timeouts, so a touchdown as the second quarter expires never gets its
@@ -473,6 +473,14 @@ the final play loses by one having never been allowed to kick.
 
 Reproduces as the issue describes: a scripted resolver, final 6–7 in each case. Closed by
 [A2 · #31](https://github.com/knissley/football-manager/issues/31).
+
+**Fixed by A2 (#31), in the wave 1 PR.** The try is an untimed down of the period the
+touchdown ended — the period is extended for it (2025 rulebook, 4-8-2) — so nothing ends
+while one is owed. It is waived only where 4-8-2-c says: in sudden-death overtime once the
+touchdown has decided it, and at the end of the game when no successful try could change
+who won. The end-of-regulation matrix (down seven, six, eight, two, one, level, up one)
+and the second- and first-quarter cases are scenarios in `RulesConformanceTests`, each
+asserting the try's period and clock.
 
 ## S11 — The team that scored the safety kicks off — **open**
 
@@ -580,7 +588,7 @@ table is a snapshot.
 | S7 Calibration runs in conditions no game is played in | fixed | — |
 | S8 The simulation is not deterministic | fixed | — |
 | S9 There is no overtime in the regular season | fixed | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
-| S10 A touchdown at the end of a half gets no try | **open** | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
+| S10 A touchdown at the end of a half gets no try | fixed | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
 | S11 The team that scored the safety kicks off | **open** | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
 | S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |

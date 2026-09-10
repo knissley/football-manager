@@ -58,16 +58,21 @@ enum RulesScenarios {
     }
 
     /// The side that has the ball first scores on its first snap and kicks the point.
+    ///
+    /// Only the opening try (play 2) is dictated. Every later try is left to the
+    /// neutral outcome, which honours whatever was called: an opening that answered
+    /// every try with a made kick answered a two-point call with an extra point, and
+    /// one that answered every try with a miss could never let a walk-off kick win.
     static func leadBySeven(_ snap: Snap) -> Outcome? {
         if snap.index == 1 { return snap.touchdown() }
-        if snap.isTry { return .extraPoint(good: true) }
+        if snap.index == 2, snap.isTry { return .extraPoint(good: true) }
         return nil
     }
 
     /// The side that has the ball first scores on its first snap and misses the kick.
     static func leadBySix(_ snap: Snap) -> Outcome? {
         if snap.index == 1 { return snap.touchdown() }
-        if snap.isTry { return .extraPoint(good: false) }
+        if snap.index == 2, snap.isTry { return .extraPoint(good: false) }
         return nil
     }
 

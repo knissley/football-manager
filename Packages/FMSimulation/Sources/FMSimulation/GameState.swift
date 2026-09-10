@@ -274,6 +274,16 @@ extension GameSimulator {
         private mutating func checkForEnd(_ advancement: Advancement, wasKickoff: Bool) {
             let rules = setup.rules
 
+            // A try is an untimed down of the period the touchdown ended: the period is
+            // extended for it (4-8-2), so neither the period nor the game ends while one
+            // is owed — unless it could not matter, in which case it is waived here and
+            // the game ends below.
+            if pendingTry {
+                guard tryCannotMatter else { return }
+                pendingTry = false
+                pendingKickoff = true
+            }
+
             if clock.quarter > rules.quarters {
                 checkForOvertimeEnd(advancement, wasKickoff: wasKickoff)
                 return
@@ -289,6 +299,32 @@ extension GameSimulator {
                 return
             }
             startNextPeriod()
+        }
+
+        /// Whether the try that is owed is waived (4-8-2-c): during sudden-death
+        /// overtime once the touchdown has decided it, or when time has expired in the
+        /// game's last period and no successful try could change who won.
+        ///
+        /// `scoreDifferential` is the scorer's: after a touchdown `possession` is the
+        /// team owed the try, whoever had the ball at the snap. A try is worth at most
+        /// the conversion, so leading by anything, or trailing by more than that, means
+        /// the try cannot affect the outcome. Level or within it, the try is played.
+        ///
+        /// Whether "the game's last period" includes a regular-season overtime period
+        /// expiring is a modelling reading of the article, which names the fourth
+        /// period: the game is over at that expiry either way (16-1-3-d), so a try that
+        /// could not change the winner is waived there on the same reasoning.
+        private var tryCannotMatter: Bool {
+            let rules = setup.rules
+            let isOvertime = clock.quarter > rules.quarters
+            if isOvertime && overtimePossessions >= 2 && scoreDifferential > 0 { return true }
+
+            let gameEndsHere =
+                clock.isExpired
+                && (clock.quarter == rules.quarters
+                    || (isOvertime && rules.mayEndInATie(isPostseason: setup.isPostseason)))
+            guard gameEndsHere else { return false }
+            return scoreDifferential > 0 || scoreDifferential < -rules.twoPointConversion
         }
 
         /// Overtime, as Rule 16 (2025) gives it. Regular season: one period, each side
@@ -316,21 +352,13 @@ extension GameSimulator {
                 && (advancement.possessionChanged || advancement.scoring != nil
                     || advancement.requiresKickoff)
 
-            if suddenDeath && homeScore != awayScore {
-                if pendingTry {
-                    // A touchdown that puts the scorer ahead has decided it, and there is
-                    // no try in sudden death (4-8-2-c). One that leaves him behind is
-                    // still owed its try, which may level or win it.
-                    if scoreDifferential > 0 {
-                        pendingTry = false
-                        isOver = true
-                    }
-                    return
-                }
-                if possessionEnded {
-                    isOver = true
-                    return
-                }
+            // Once both have possessed, the first score that separates the sides has
+            // won, and the possession it came on is over (16-1-3-b, 16-1-3-c). A try
+            // still owed to a scorer who is behind is held by `checkForEnd` before this
+            // is reached.
+            if suddenDeath && homeScore != awayScore && possessionEnded {
+                isOver = true
+                return
             }
 
             guard clock.isExpired else { return }
@@ -376,7 +404,6 @@ extension GameSimulator {
                 down = .first
                 distance = rules.yardsToGain
                 pendingKickoff = true
-                pendingTry = false
                 if startsOvertime { overtimePossessions = 0 }
             }
             previousBehavior = .stopsUntilSnap
