@@ -202,19 +202,23 @@ swift test -c release --package-path Packages/FMRandom
 ./scripts/lint-sim.sh
 ```
 
-Prints `file:line: what` for every hit and exits 1; exits 0 on a clean tree. It takes
-about two seconds — run it before committing. CI runs it as a hard-failing step, on both
-architectures, in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+Prints `file:line: what` for every hit and exits 1; exits 0 on a clean tree; exits 2 when
+it would otherwise have passed by scanning nothing — a `Sources/` directory that is gone,
+or that is there and holds no Swift files. It takes two to five seconds depending on what
+else the machine is doing — run it before committing. CI runs it as a hard-failing step,
+on both architectures, in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml),
+next to the self-test below.
 
 It enforces two rules that were conventions with nothing behind them:
 
 - The primitives [ADR-0003](adr/0003-deterministic-seeded-simulation.md) bans in the
-  `Sources/` tree of every `FM*` package — `.random(`, `SystemRandomNumberGenerator`,
-  `.shuffled()`, `.randomElement(`, `UUID(`, `Date(`, `Hasher(`, a clock or environment
-  read — plus the framework imports
-  [ADR-0004](adr/0004-pure-swift-domain-core.md) bans: `Foundation`, `Dispatch`,
-  `SwiftData`, `SwiftUI`, `UIKit` and the rest. `playsize` already catches a framework
-  dependency at link time; this catches it at the import, with a line number.
+  `Sources/` trees of `FMCore`, `FMRandom`, `FMGeneration` and `FMSimulation` —
+  `.random(`, `SystemRandomNumberGenerator`, `.shuffled()`, `.randomElement(`, `UUID(`,
+  `Date(`, `Hasher(`, a clock or environment read — plus the framework imports
+  [ADR-0004](adr/0004-pure-swift-domain-core.md) bans: `Foundation`,
+  `FoundationEssentials`, `Dispatch`, `SwiftData`, `SwiftUI`, `UIKit` and the rest.
+  `playsize` already catches a framework dependency at link time; this catches it at the
+  import, with a line number.
 - `Hasher` in a `*Golden*Tests.swift`. Swift randomises its hash seed per process, so a
   golden checksum built on `Hasher` agrees with itself inside one run and disagrees with
   yesterday's — it cannot detect the drift it exists to detect. Both goldens use FNV-1a.
@@ -224,9 +228,42 @@ Comments are stripped before matching, so prose *about* the ban — the doc comm
 saying it is deliberately not `Hasher` — does not trip the lint. String literals are
 not stripped: interpolation can hold real code.
 
+The stripper is not airtight, and a clean run is not proof. It walks a line at a time and
+never rejoins what a comment split, so `Date/* x */()` matches no rule; the script header
+says so at length. The golden tests, the replay contract tests and review are what catch
+the rest.
+
+That list of four packages is written out in the script rather than globbed.
+`FMPersistence` is an `FM*` package that must *not* be scanned — SwiftData lives there by
+design — so `Packages/FM*` would be the wrong check, not a shorter one. When `FMAnalysis`
+or `FMNarrative` lands, add it to the `packages` array; nothing else will.
+
 A file that genuinely needs an exemption goes in the `allowlist` array at the top of the
 script as a `"<path> <rule-id>"` pair. It is empty today. Widening it to turn a red lint
 green is the one thing it must not be used for.
+
+### The self-test
+
+```bash
+./scripts/lint-sim.sh --self-test
+```
+
+The comment stripper is the subtle part of the script, and for a while nothing checked
+it. `--self-test` lints
+[`scripts/lint-sim-fixtures/`](../scripts/lint-sim-fixtures) instead of the packages.
+That tree holds a Swift file per rule — never compiled, never part of a package, never
+scanned by the real lint, because they carry banned tokens on purpose — each with a plain
+hit plus the same token behind a line comment and inside a block comment. Alongside them
+sit a negative control naming every banned token in comments, the golden `Hasher`
+doc-comment case, and the shapes the stripper has to get right: a string literal holding
+`//`, an escaped quote, a multi-line string, and a block comment that opens or closes
+mid-line.
+
+Every hit the tree must produce is listed in `scripts/lint-sim-fixtures/expected.txt` as
+`path:line: rule-id`, and a difference in either direction fails — a hit that quietly
+stops firing is caught as loudly as a new false positive. So a new rule needs a fixture
+and an expectation line. It runs in under a second, and CI runs it as its own
+hard-failing step.
 
 ## Formatting
 
