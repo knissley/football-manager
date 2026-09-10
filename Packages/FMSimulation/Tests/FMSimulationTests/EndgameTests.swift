@@ -206,4 +206,59 @@ struct EndgameTests {
         }
         #expect(kneels > 0, "ten games and nobody ever took a knee")
     }
+
+    // MARK: - The walk-off
+
+    /// A game the baseline caller plays to a walk-off: one side leads by `deficit` from
+    /// the opening drive, and in the fourth quarter it throws an interception on every
+    /// snap it takes, so it can never kick a field goal and change the arithmetic; the
+    /// trailing side gains a yard at a time until, inside the last minute, it scores as
+    /// time expires.
+    private func walkOff(deficit: Int16) -> Trace {
+        let opening: @Sendable (Snap) -> Outcome? =
+            deficit == 7 ? RulesScenarios.leadBySeven : RulesScenarios.leadBySix
+        return ScriptedGame { snap in
+            if let staged = opening(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            if snap.differential > 0 { return .interception(to: 50) }
+            return snap.clock <= 60 ? snap.touchdownAsTimeExpires() : snap.neutral
+        }
+        .run(with: caller)
+    }
+
+    /// A touchdown as the fourth quarter expires, with the baseline caller deciding the
+    /// try. The football — that the try is played as an untimed down of the fourth
+    /// period, at 0:00 (2025 rulebook, 4-8-2, 4-8-2-c) — is asserted in the
+    /// rules-conformance suite with a scripted caller. What this adds is the engine's
+    /// promise about itself: the try that is snapped is the try the caller chose for
+    /// that situation, kick or conversion, from that try's spot. Down six the baseline
+    /// kicks to win; down seven it goes for two to win rather than kick to tie.
+    @Test(
+        "contract · after a walk-off touchdown the try snapped is the one the caller chose for its situation, at 0:00 of the fourth period (4-8-2)",
+        arguments: [Int16(6), Int16(7)])
+    func walkOffTryIsTheCallerChoice(deficit: Int16) {
+        let trace = walkOff(deficit: deficit)
+        guard
+            let touchdown = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.endedIn == .touchdown
+                    && $0.outcome.kind == .rush
+            })
+        else {
+            Issue.record("the script never scored as the fourth quarter expired")
+            return
+        }
+        guard let attempt = trace[touchdown.index + 1] else {
+            Issue.record("no try followed the touchdown: the game ended on it")
+            return
+        }
+        #expect(attempt.situation.quarter == 4 && attempt.situation.clockRemaining == 0)
+        let goesForTwo = caller.goesForTwo(
+            situation: attempt.situation, classified: SituationClass(attempt.situation))
+        #expect(
+            attempt.outcome.kind == (goesForTwo ? .twoPointConversion : .extraPoint),
+            "the try snapped disagrees with the caller's answer for that situation")
+        let rules = Rules.standard
+        let spot = goesForTwo ? rules.twoPointSnapYard : rules.extraPointSnapYard
+        #expect(attempt.situation.ballOn == spot, "and it is snapped from that try's spot")
+    }
 }

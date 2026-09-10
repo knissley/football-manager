@@ -145,6 +145,10 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 - **A touchdown on the last play of a period still gets its try.** It is waived only
   during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. `[2025 · 4-8-2-c]`
+- **The period is extended for that try.** A period may be extended by one untimed down
+  when something in the down that expired it calls for one, and the try is that down: it
+  belongs to the period the touchdown ended, at 0:00, not to the next one.
+  `[2025 · 4-8-2]`, `[2025 · 4-8-2-c]`
 - After the try, the team that was on defence for it receives the kickoff.
   `[2025 · 11-3-4]` The same is true after a successful field goal. `[2025 · 11-4-6]`
 

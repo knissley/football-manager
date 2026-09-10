@@ -587,19 +587,17 @@ struct RulesConformanceTests {
     /// Down seven, the touchdown as time expires leaves the side down one: a successful
     /// try affects the outcome, so it is played, and the kick sends the game on.
     ///
-    /// Which period the book records the try in, the reference does not say, so no try
-    /// after a period-ending touchdown is asserted to a quarter or a clock here — only
-    /// that it is played and what follows it. On this tree the try after a first-quarter
-    /// touchdown is recorded in the second quarter at 15:00; noted for A2 (#31).
+    /// The try is an untimed down of the period the touchdown ended: the period is
+    /// extended for it (4-8-2), so its situation reads the same quarter at 0:00.
     @Test(
-        "football · Rule 4-8-2-c, 11-3-1, 16-1-3 · a touchdown as the fourth quarter expires, down seven, gets its try, and the kick sends the game to overtime"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 16-1-3 · a touchdown as the fourth quarter expires, down seven, gets its try in that period at 0:00, and the kick sends the game to overtime"
     )
     func lastPlayTouchdownDownSeven() {
         let trace = RulesScenarios.lastPlayTouchdownDownSeven.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
-            "the try is played")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 4,
+            clock: 0, "the try is played, as an untimed down of the fourth period")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 5, clock: 600,
             "level after the try, a ten-minute overtime period follows")
@@ -608,14 +606,14 @@ struct RulesConformanceTests {
     /// Down six, the touchdown levels it and the kick wins it: the try is played, and
     /// nothing follows a successful one.
     @Test(
-        "football · Rule 4-8-2-c, 11-3-1 · a touchdown as the fourth quarter expires, down six, gets its try, and the kick wins it"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the fourth quarter expires, down six, gets its try in that period at 0:00, and the kick wins it"
     )
     func lastPlayTouchdownDownSix() {
         let trace = RulesScenarios.lastPlayTouchdownDownSix.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
-            "level after the touchdown, a successful try wins, so it is played")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 4,
+            clock: 0, "level after the touchdown, a successful try wins, so it is played")
         trace.expectLastPlay(touchdown.index + 1, "the successful try ends the game")
         trace.expectWinner(touchdown.scorer)
         trace.expectScore(touchdown.scorer, 7)
@@ -625,14 +623,14 @@ struct RulesConformanceTests {
     /// Down eight, the touchdown leaves the side down two, and a two-point try levels
     /// it: a successful try affects the outcome, so it is played.
     @Test(
-        "football · Rule 4-8-2-c, 11-3-2-b, 16-1-3 · a touchdown as the fourth quarter expires, down eight, gets a two-point try, and the conversion sends the game to overtime"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-2-b, 16-1-3 · a touchdown as the fourth quarter expires, down eight, gets a two-point try in that period at 0:00, and the conversion sends the game to overtime"
     )
     func lastPlayTouchdownDownEight() {
         let trace = RulesScenarios.lastPlayTouchdownDownEight.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
             touchdown.index + 1, kind: .twoPointConversion, possession: touchdown.scorer,
-            "a two-point try can level it, so the try is played")
+            quarter: 4, clock: 0, "a two-point try can level it, so the try is played")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 5, clock: 600,
             "level after the conversion, overtime follows")
@@ -685,17 +683,17 @@ struct RulesConformanceTests {
         trace.expectScore(trace.opponent(of: touchdown.scorer), 6)
     }
 
-    /// The half does not end until the try has been played; the third quarter then
-    /// opens with a kickoff and a full clock.
+    /// The half does not end until the try has been played — the period is extended for
+    /// it (4-8-2) — and the third quarter then opens with a kickoff and a full clock.
     @Test(
-        "football · Rule 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try, and the second half then opens with a kickoff"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try in that period at 0:00, and the second half then opens with a kickoff"
     )
     func touchdownAsTheSecondQuarterExpires() {
         let trace = RulesScenarios.touchdownAsSecondQuarterExpires.run()
         guard let touchdown = touchdown(in: trace, quarter: 2) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
-            "the try is played")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 2,
+            clock: 0, "the try is played, as an untimed down of the second period")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 3, clock: 900,
             "and the second half then opens with a kickoff")
@@ -703,16 +701,14 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-8-2-c, 11-3-1, 11-3-4 · a touchdown as the first quarter expires gets its try, and the scoring team kicks off to open the second"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 11-3-4 · a touchdown as the first quarter expires gets its try in that period at 0:00, and the scoring team kicks off to open the second"
     )
     func touchdownAsTheFirstQuarterExpires() {
         let trace = RulesScenarios.touchdownAsFirstQuarterExpires.run()
         guard let touchdown = touchdown(in: trace, quarter: 1) else { return }
-        // The period the try is recorded in is not asserted: see the note on the
-        // fourth-quarter scenarios above.
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
-            "the try is played")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 1,
+            clock: 0, "the try is played, as an untimed down of the first period")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, possession: touchdown.scorer, quarter: 2,
             clock: 900, "the side that scored kicks off to open the second quarter")
