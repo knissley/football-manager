@@ -23,6 +23,12 @@ fixes are an issue backlog. See [`CLAUDE.md`](CLAUDE.md) for the current state a
 
 ## Docs
 
+**Every doc opens with a status line** — `built`, `partly built, sections marked`, or
+`designed` — because most of this repository is still design. Inside a partly-built doc,
+a section describing work that does not exist yet is labelled `Designed, not built`. The
+ADR index carries the same information in an [In the tree](docs/adr/README.md#index)
+column, since an ADR's own status is the decision's, not the code's.
+
 | Doc | What's in it |
 | --- | --- |
 | [Vision](docs/vision.md) | What the game is, the hook, the design pillars, what it isn't |

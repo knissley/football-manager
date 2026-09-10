@@ -1,5 +1,12 @@
 # AI play calling
 
+**Status: partly built, sections marked.** A baseline caller runs both sides of the ball
+today: it keys off `SituationClass`, picks personnel and packages, decides fourth downs
+on a chart, spends timeouts, spikes and kneels. It is deliberately the *floor*, and it is
+the same caller for all thirty-two teams. **The coordinator half is not built** — no
+opponent model, no tendencies, no adaptation, no gameplan constraints, no coordinator
+ratings, and no benchmark. Those sections are labelled `Designed, not built`.
+
 Both sides of the ball. Every heading below that says "coordinator" applies to the
 offensive and defensive coordinator alike unless it says otherwise; where the two
 genuinely differ, the [defensive section](#the-defensive-coordinator) says how.
@@ -34,6 +41,9 @@ reason to go hire someone better in the offseason.
 
 ### Gameplan is constraints, not commands
 
+**Designed, not built.** There is no `Gameplan` type; see [gameplan.md](gameplan.md).
+
+
 Designed in full in [gameplan.md](gameplan.md). You never hand him a script. You set the
 room he operates in:
 
@@ -48,6 +58,10 @@ A good coordinator uses the room well. A bad one wastes it, or drifts to its edg
 "Overriding his tendencies" means tightening the guardrails until he has no choice.
 
 ### What makes a coordinator good
+
+**Designed, not built.** Coordinator identity is two hardcoded `PersonnelID`s, the same
+pair for every team in the league, so every team calls plays identically.
+
 
 The critical rule, and the one that keeps the engine honest:
 
@@ -158,6 +172,11 @@ own drive. Defense is not the half you skip.
 
 ## The opponent model
 
+**Designed, not built.** The baseline caller has no memory of the game it is in, let
+alone of an opponent. Nothing builds a tendency table, and no `PlayRecord` history is
+read back into a call.
+
+
 Each coordinator carries his own belief about the other team, built from what he could
 actually have observed.
 
@@ -225,6 +244,11 @@ Worth building this way from the start; discovering it later means reworking the
 format after things depend on it.
 
 ## Benchmarking
+
+**Designed, not built.** There is no oracle, no benchmark harness and no measured caller
+quality. The baseline caller is the floor a real caller will be measured against, and
+nothing measures it yet.
+
 
 "Is the AI good enough?" has to be a measurement, not a vibe. Three tests, all run
 headless in `Tools/simharness`:

@@ -1,5 +1,10 @@
 # Roadmap
 
+**Status: designed.** This is the plan, not the tree. A ✅ marks work that is in the
+repository today and was checked against `Packages/` and `Tools/` rather than against
+another doc; everything unmarked is not built. M0 is done, M1 is nearly done, and
+nothing beyond it has started.
+
 Ordered by dependency and by risk, not by calendar. The shape follows one idea: **fix
 the event stream contract early, then deepen the engine behind it.** Everything above
 the engine — analysis, news, UI — is written once against a contract that doesn't move.
@@ -37,15 +42,21 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
   second validator for a legal shape filled in wrongly.
 - ✅ Team identity event-sourced, so a replay shows the name and the building of the
   time rather than the ones a rebrand has since given the team.
-- The `GameSimulator` game-state machine — clock, downs, possession, scoring, penalties,
-  overtime — written once and shared with M5's spatial resolver
-  ([ADR-0012](adr/0012-play-resolver-seam.md)).
-- `DepthChart` with real rotation by position group, so every snap credits a real player
-  and backups accumulate genuine statistics.
+- ⚠️ The `GameSimulator` game-state machine — clock, downs, possession, scoring,
+  penalties, overtime — written once and shared with M5's spatial resolver
+  ([ADR-0012](adr/0012-play-resolver-seam.md)). It exists, it sims a whole game, and a
+  baseline caller runs both sides. It does not yet get the football right: regular-season
+  overtime is never played, a touchdown on the last play of a half gets no try, the wrong
+  team kicks off after a safety, the clock runs through a change of possession, and
+  contact fouls are enforced from the wrong spot. Those are the A track of the audit
+  backlog (#1) and they are what M1 has left.
+- ✅ `DepthChart` with real rotation by position group, so every snap credits a real
+  player and backups accumulate genuine statistics (`RotationProfile`, and `Lineup.fill`
+  fielding from it).
 - ✅ A crude matchup-lite `PlayResolver` emitting real participants and decision points,
   with the internal-consistency constraints from ADR-0012 asserted as tests.
-- ✅ `GameSimulator`, the shared game-state machine, and a baseline caller on both sides.
-- Injury availability — a player can go down and miss weeks. Severity stays in M3.
+- ✅ Injury availability — a player goes down and misses weeks, and next man up follows
+  from the depth chart. Severity stays in M3.
 - ✅ `Tools/simharness` running headless and reporting the calibration table.
 - ✅ Configurable, validated league shape with 8- and 12-team test presets.
 - ✅ `SituationClass` — the shared situational vocabulary both callers, the gameplan
@@ -57,6 +68,11 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 exit criterion used to call `generateWorld(seed:)` — is reproducible byte-for-byte, pinned
 by a whole-world checksum at three seeds in `GoldenWorldTests`. Still owed: a season sims
 headless, and the event stream carries everything M2 needs without changes.
+
+*Not met yet.* Generation is reproducible and the stream is in good shape, but a game
+does not finish correctly and there is no season to sim — the season loop is M3. The
+outstanding work is the audit backlog (#1), and M1 does not close until its A and B
+tracks do.
 
 ## M2 — Analysis and narrative
 
@@ -81,6 +97,40 @@ answer derived entirely from the stream.
 
 *Exit:* a ten-season career runs headless with no invariant violations, and win-total
 spread lands in the calibration range.
+
+## M3.5 — Roles, and a lineup you can move players around in
+
+[ADR-0013](adr/0013-fluid-positions.md) decided that a player's personnel position and
+his lineup position are different things. Nothing of it is built. It sits here because it
+wants the season loop above it — development follows where a player actually played, and
+that is a query over a season of `Participation` — and because M4's depth chart screen is
+the first thing that cannot be drawn honestly without it.
+
+**It is not a prerequisite for the spatial engine.** M5 can be built against positions as
+they are keyed today and rekeyed afterwards; the seam is `Lineup.fill`, not the tick loop.
+
+- **The depth chart is keyed by role, not by position.** Third-down back, nickel corner,
+  dime corner. `DepthChart` and `RotationProfile` are both per position today and both
+  become per role, which is a breaking change to a type `Lineup.fill` and
+  `RosterGenerator` depend on.
+- **A lineup legality checker, shared with the play designer.** Seven on the line, five
+  ineligible, enforced from the rules of the sport rather than from archetypes. One
+  checker, used by the lineup editor and by M6's play validator — building it twice would
+  let the two disagree about what a legal formation is.
+- **The AI positional-move question**, which ADR-0013 leaves open: a search over players
+  against positions is cheap at roster size, but "rates higher somewhere else" is not the
+  same as "worth moving", and the answer has to account for what he leaves behind and
+  what the scheme needs. Until it is answered the AI clause in that ADR is intent rather
+  than a built thing, and the arbitrage it creates is one only the human can work.
+
+**Roles are defined once, with M6's formation vocabulary.** A role is what a formation
+asks for; a formation is a set of roles with places to stand. Defining them in two
+milestones produces two vocabularies that drift, so the role list lands here and M6's
+formats name the same roles rather than inventing their own.
+
+*Exit:* a receiver can be made the second tight end from the depth chart, the lineup that
+results is legal by the checker, and an AI team makes a positional move that a human would
+recognise as sensible.
 
 ## M4 — First playable
 
@@ -161,10 +211,15 @@ would otherwise be built against a league missing them:
   is now the home-field mechanism [penalties.md](penalties.md) describes.
 - ✅ Injury availability. A player goes down, misses games, and next-man-up follows from
   the depth chart. `InjuryEvent` is its own stream; severity and rehabilitation are M3's.
-- Kick and punt returns. Every kickoff is a touchback and every punt a fair catch.
-- Traits, as engine hooks rather than cosmetic modifiers.
-- ✅ Crowd noise and stadium, through the penalty model. Weather beyond the kicking game
-  is still to come.
+- ✅ Kick and punt returns. Kickoffs and punts are fielded, returned, fair-caught,
+  muffed or downed, and the harness prints the return rates. Returns as pursuit geometry
+  are M5.
+- ✅ Crowd noise and stadium, through the penalty model.
+- ✅ Weather beyond the kicking game. `Conditions` makes the ball harder to hold and
+  harder to throw accurately in rain, snow, cold and wind, and the harness checks
+  combined points in heavy rain against a dry game.
+- Traits, as engine hooks rather than cosmetic modifiers. `Trait` exists on `Player` and
+  nothing in `FMSimulation` reads it.
 
 **Deferred to M5, and still needed** — these want the spatial engine to be meaningful, not
 merely to be wired up:
@@ -177,9 +232,11 @@ merely to be wired up:
 - Coordinator quality. Both callers are currently the same hardcoded pair of identifiers,
   so every team in the league calls plays identically. The real caller and its
   benchmark are [play-calling.md](play-calling.md)'s work.
-- Personnel groups and defensive packages. The resolver fields the same eleven regardless
-  of what the situation says is on the field.
 - Stamina and fatigue within a game.
+
+**Landed since this list was written:** personnel groups and defensive packages. The
+caller picks an offensive grouping and a defensive package per snap, `Lineup` fields
+them, and the harness checks the 11-personnel, nickel and base shares.
 
 ## M5 — The spatial engine
 
@@ -197,7 +254,9 @@ one, hits the budget, and a replayed game is identical to its original.
 
 ## M6 — Plays as data
 
-- The play format: formations, assignments, routes, blocking rules, coverages. The
+- The play format: formations, assignments, routes, blocking rules, coverages. Formations
+  are named in the **role vocabulary defined at M3.5**, not a second set of names, and the
+  validator below is the legality checker built there rather than a copy of it. The
   offensive playbook entry — the `PlayDesign` — lands here; it should read like
   `DefensiveCall` already does, and until then `OffensiveCall.design` points at a
   playbook that does not exist.

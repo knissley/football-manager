@@ -1,5 +1,11 @@
 # Domain model
 
+**Status: partly built, sections marked.** Most of the world-and-league, player,
+contract, scheme, play and rivalry types exist in `FMCore` today and are exercised by
+`FMGeneration` and `FMSimulation`. The season calendar, statistics, development and the
+coaching carousel are types that do not exist yet; those sections carry a
+`Designed, not built` label.
+
 Types described here live in `FMCore` unless noted. All are value types, `Sendable`,
 and free of persistence and UI concerns.
 
@@ -146,6 +152,11 @@ wrong and every wrong answer is player-visible.
 
 ## Coaching staff
 
+**Partly built.** `PersonnelRole`, the ratings and the ageing lifecycle exist in `FMCore`
+and generation fills a staff. Nothing reads a coach: the engine's callers are the same
+hardcoded pair for every team, and hiring, firing and the carousel are M3.
+
+
 Head coach, offensive coordinator, defensive coordinator, special teams coordinator,
 position coaches, scouts, trainers.
 
@@ -171,6 +182,10 @@ an invalid depth chart is the most likely source of sim crashes.
 
 ## Season calendar
 
+**Designed, not built.** M3. There is no schedule, no week, no phase and no calendar
+type; a game today is an arbitrary matchup with no season around it.
+
+
 The phase machine that drives everything. Advancing is always "advance to next phase
 or week," never an arbitrary date jump.
 
@@ -194,6 +209,10 @@ Preseason ─→ RegularSeason (18 weeks, 1 bye per team)
 
 ## Statistics
 
+**Designed, not built.** M2. Statistics are a query over the stream and nothing performs
+that query yet — the harness computes its own aggregates and is the only reader.
+
+
 Three levels, because they have different retention rules:
 
 - **`PlayRecord` stream** — every play's situation, both calls, engine decision points,
@@ -213,6 +232,10 @@ Aggregates are derived from the event stream, never accumulated in parallel with
 score can't drift from the play log.
 
 ## Plays
+
+**Partly built.** `OffensiveCall` and `DefensiveCall` exist as composed data and the
+engine calls with them. `PlayDesign` and the playbook they point at are M6.
+
 
 A `Play` is data the engine executes and the designer edits: a formation, personnel,
 and a per-player `Assignment` — a route with landmarks and timing, a blocking rule, or
@@ -252,6 +275,9 @@ league has your grudges.
 
 ## Career and the carousel
 
+**Designed, not built.** M3.
+
+
 The player is a `CareerProfile`, not a team. It holds employment history, a record, and
 a `reputation` that AI owners read when hiring.
 
@@ -263,6 +289,10 @@ This means the save's root is a career, and the league outlives your tenure at a
 team.
 
 ## Development
+
+**Designed, not built.** Generation writes a hidden ceiling and a `DevelopmentTrait`;
+nothing grows or declines. See [development.md](development.md).
+
 
 Player development is player-driven and you nudge it
 ([decision 21](design-decisions.md#development-and-progression)). Traits, personality,

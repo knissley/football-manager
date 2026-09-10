@@ -1,5 +1,12 @@
 # The `PlayRecord` event stream
 
+**Status: built.** `PlayRecord` and the types around it live in `FMCore`, the engine
+fills them on every snap, and `Tools/playsize` measures the footprint this doc quotes.
+Two caveats a reader needs: the record is not yet versioned and the play concept is
+stored by reference rather than by value (#33), and several facts the doc implies are
+derivable are not on the record yet — who was on the field (#21), whether a pass was
+completed and where the points came from (#22), and where a kick was fielded (#58).
+
 The highest-stakes artifact in the project. Everything downstream is a query over it
 ([ADR-0007](adr/0007-event-stream-contract.md)), and it gets designed before the engine
 that fills it exists — so the guesses here are the expensive ones.

@@ -46,9 +46,7 @@ simulation, opt-in trajectory capture.
   deadline, and because the alternatives don't deliver the hook.
 - Performance stops being a later concern. A naive implementation — classes, per-tick
   object churn, dictionaries, logging strings — is roughly 100× too slow, and fixing it
-  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark —
-  *not yet true: the Linux workflow runs the suites and the lints, and has no benchmark
-  step, so nothing measures the budget today.*
+  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark.
 - Floating-point determinism across architectures becomes a real risk rather than a
   theoretical one, because errors compound over thousands of ticks. Golden tests run on
   both arm64 and x86_64.
@@ -68,3 +66,22 @@ a sensible compromise. Rejected because hybrid engines tend to get the worst of 
 and the seam would be visible exactly where players look hardest. It also wouldn't
 reduce the hard part: once you have a tick loop and entities, the remaining play types
 are incremental.
+
+## Amendment 2026-09-10 — no CI benchmark enforces the budget
+
+The consequence above says the budget "is enforced by a CI benchmark." It is not, and it
+never has been. This is an amendment under the rule in [README.md](README.md) rather than
+an edit to the body, which is left as it was written.
+
+CI exists — [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the four
+suites, `FMRandom` again in release, the format lint, `scripts/lint-sim.sh`, `playsize`
+and a `worldgen` build on both x86_64 and arm64, and reports the calibration harness
+without gating on it. **None of those steps times anything.** There is no benchmark
+target, and there is nothing yet to benchmark: the tick loop the budget describes is M5
+work and no season loop exists to run in sixty seconds.
+
+The decision is unchanged — the budget is still architectural, and the hot-loop rules
+still bind whoever writes the tick loop. What is corrected is the enforcement: today the
+budget is a rule people follow, not a check that fails. Issue #9 adds a timing row to
+`simharness`, which is the first thing that will measure it; making that row gate a merge
+is a separate, later decision.

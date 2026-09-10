@@ -1,10 +1,21 @@
 # Contracts and negotiation
 
+**Status: partly built, sections marked.** The *structures* are built: `Contract`,
+`ContractYear`, `ProratedBonus`, `DeadMoney` and the cap arithmetic live in `FMCore` with
+their own tests, and generation writes real contracts. **Negotiation is not built at
+all** — no agent, no offer, no counter, no probing. Everything from
+[You negotiate a structure](#you-negotiate-a-structure-not-a-number) onwards that
+describes a conversation with an agent is M7.
+
 The cap is the game's central constraint, and negotiation is how you fight it. The
 failure mode to avoid is the genre standard: a slider where more money means yes, or a
 minigame with a sweet spot you learn once and never think about again.
 
 ## You negotiate a structure, not a number
+
+**Designed, not built** — and so is every section below it. The structures exist as types
+in `FMCore`; the negotiation is M7.
+
 
 The same total value can be built a dozen ways, and players want different ones.
 

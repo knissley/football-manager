@@ -1,11 +1,29 @@
 # Match engine
 
-Lives in `FMSimulation`. Pure, synchronous, deterministic, spatial.
+**Status: partly built, sections marked.** `FMSimulation` exists and sims a game behind
+the real `PlayRecord` contract, using the crude resolver. The spatial engine, the play
+format, sliders and grades are M5 and M6 work; every section describing them is labelled
+`Designed, not built`. The rules layer has known gaps that are open issues on the audit
+backlog (#1) and are labelled where they appear.
+
+Lives in `FMSimulation`. Pure, synchronous, deterministic — and spatial at M5. Today a
+crude, matchup-lite resolver sits behind the same contract ([the resolver
+seam](#the-resolver-seam)).
 
 Given a `GameSetup` — two teams, gameplans, sliders, weather, seed — it returns a
-`GameResult`: the event stream, the box score derived from it, and per-player grades.
+`GameResult`.
+
+*Designed, not built:* today `GameResult` carries the event stream, the injuries, the
+score and the winner. The box score and the per-player grades are queries over the stream
+that nothing computes yet — they arrive with `FMAnalysis` at M2. `GameSetup` carries no
+gameplan and no sliders yet either; both are types that do not exist.
 
 ## The engine is spatial
+
+**Designed, not built.** This is M5. No tick loop, no field geometry and no entity
+positions exist in `FMSimulation` today; the crude resolver named below is what runs.
+Everything in this section is written in the present tense because it is the contract M5
+is built to, not a description of the tree.
 
 Twenty-two players exist as positions and velocities on a field, updated on a fixed
 tick. Outcomes are not drawn from outcome distributions; they **emerge from geometry**.
@@ -63,6 +81,11 @@ sixteen games each week keep a box score and their replay tuple; ask to watch on
 it re-simulates identically. Storage stays bounded across a decade-long career, and
 determinism stops being a testing convenience and becomes a player-facing feature.
 
+*Designed, not built:* the storage half of that paragraph is M4. There is no persistence
+layer, no `SliderConfig` and no `decisionLog` type today. What is built and enforced is
+the determinism itself — the banned list below, `scripts/lint-sim.sh`, and the golden
+constants in `GoldenSeedTests` and `GoldenWorldTests`.
+
 **Banned in `FMSimulation` and `FMGeneration`**: `Int.random`, `Double.random`,
 `SystemRandomNumberGenerator`, `.shuffled()`, `.randomElement()`, `UUID()`, `Date()`, and
 any clock or environment read. Iteration order over unordered collections must never
@@ -79,6 +102,10 @@ for an abstract engine. Golden tests run on both arm64 and x86_64 in CI, and hot
 avoid transcendental functions where a cheaper formulation exists.
 
 ## Performance budget
+
+**Designed, not built.** The budget describes the M5 tick loop, and nothing measures it:
+there is no benchmark, no season loop to time, and CI has no timing step (issue H3, #9,
+adds a timing row to the harness). The rules below are what M5 is written to.
 
 **A season simulates in about 60 seconds.** That is the constraint, and it is
 architectural rather than a tuning target.
@@ -145,6 +172,9 @@ replay tuples and reproduce exactly.
 
 ### Plays are data
 
+**Designed, not built.** The play format, the concept library and the validator are M6.
+`OffensiveCall.design` points at a playbook that does not exist.
+
 A play is a formation plus a per-player assignment: a route with landmarks and timing,
 a blocking rule, a coverage responsibility. The engine reads that format; the play
 designer edits it; the premade concept library is authored in it.
@@ -154,6 +184,10 @@ legal formation, every assignment executable — before it reaches the engine. T
 constraint checker, not a drawing tool, and it's the real cost of the play designer.
 
 ### Pass play
+
+**Designed, not built.** M5. The crude resolver draws a pass from named matchups and
+emits decision points consistent with its own outcome; it has no ball flight, no route
+geometry and no pocket.
 
 Pressure, routes, and the read happen concurrently on the tick clock rather than as
 sequential dice rolls:
@@ -174,11 +208,18 @@ rep in 2.1 seconds and the checkdown was covered" comes from — it's logged, no
 
 ### Run play
 
+**Designed, not built.** M5. The crude resolver has no gaps and no pursuit angles.
+
 Blocking assignments resolve into actual displacement; the hole is a real gap between
 bodies. The back's vision trait affects which gap he attacks and how quickly he commits.
 Tacklers pursue on real angles. Broken tackles chain.
 
 ### Special teams
+
+**Partly built.** Kick distance and accuracy from ratings, wind and precipitation are in
+the crude resolver today, and so are kickoff and punt returns, fair catches, touchbacks
+and muffs — the harness prints the return rates. *Designed, not built:* returns as
+pursuit geometry (M5), and blocked kicks.
 
 Kick distance and accuracy from ratings, wind, and precipitation; returns resolve as
 pursuit geometry like any other play. Blocks and muffs are low-probability branches and
@@ -210,6 +251,11 @@ roles are exposed — and a quarterback is exposed when he scrambles and not whe
 in the pocket.
 
 ## Clock, penalties, and AI
+
+**Partly built, and the gaps are open issues.** Penalties and the AI caller are in the
+engine. The clock is not all here: there is no ten-second runoff (#32), the clock runs
+through a change of possession (#17), and a foul before the snap does not run it (#56).
+Read the tracker (#1) before trusting a clock rule in this section.
 
 - **Clock** rules are explicit states, not approximations. Two-minute warning, spikes,
   kneels, the out-of-bounds rule, and the ten-second runoff all matter most exactly
@@ -284,6 +330,10 @@ breaks a record that looked unattainable — and `Tools/simharness` reports the 
 alongside the means for exactly that reason.
 
 ## Sliders
+
+**Designed, not built.** No `SliderConfig` type exists; the replay tuple's slider slot is
+a promise, not a field. The calibration targets below are read at the engine's own
+defaults.
 
 Sliders are **league-wide world tuning**, not a personal difficulty dial. Pass
 difficulty, injury frequency, pass rush intensity and the rest apply to every team, so

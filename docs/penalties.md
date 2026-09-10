@@ -1,5 +1,13 @@
 # Penalties
 
+**Status: partly built, sections marked.** Both classes of foul are in the engine:
+procedural fouls drawn from `discipline`, noise and tempo, and desperation fouls drawn at
+the matchup that beat the man committing them, with accept/decline evaluated on both
+branches. The harness prints the per-foul rates and the road-versus-home pre-snap ratio.
+*Not built:* officiating crews with tendencies. *Known wrong:* live-ball fouls are
+enforced from the previous spot (#18), a flag on a try does not move the try (#19), and
+fouls after a score are not enforced on the kickoff (#48).
+
 A soul-crushing offside in a playoff game has to be possible. Getting there means
 being careful about *why* flags happen, because the obvious implementation — roll
 a die each play — produces penalties that are frequent, meaningless and
