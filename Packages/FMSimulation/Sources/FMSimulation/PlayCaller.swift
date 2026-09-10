@@ -49,6 +49,14 @@ public protocol PlayCaller: Sendable {
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
 
+    /// After a defensive dead-ball foul inside two minutes with the clock running, the
+    /// clock starts on the ready signal unless the offence chooses the snap
+    /// (4-7-1 Item 2). Whether it does.
+    func startsClockOnTheSnap(
+        afterDefensiveFoul situation: Situation, classified: SituationClass
+    )
+        -> Bool
+
     /// Who the offence sends out, which it declares by substituting before the snap.
     ///
     /// This is the first half of the sport's oldest chess match: personnel is public
@@ -179,6 +187,17 @@ extension PlayCaller {
         if situation.scoreDifferential <= -9 && situation.clockRemaining <= 180 { return true }
         // One score down with no realistic way to get the ball back and score again.
         return situation.clockRemaining <= 50 && situation.defenseTimeouts == 0
+    }
+
+    // The baseline answer to a dead-ball foul's clock decision. A coaching choice, not
+    // a rule; a caller with a gameplan overrides it.
+
+    /// Have the clock wait for the snap unless leading: a trailing or level offence
+    /// inside two minutes wants every second.
+    public func startsClockOnTheSnap(
+        afterDefensiveFoul situation: Situation, classified: SituationClass
+    ) -> Bool {
+        situation.scoreDifferential <= 0
     }
 }
 

@@ -218,7 +218,14 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         let resolved = resolver.resolve(
             situation: situation, calls: calls, context: context, random: &random)
 
-        state.apply(resolved.outcome, calls: calls, decisions: resolved.decisions)
+        // A flag before the snap puts a question to the offence — whether the clock
+        // waits for the snap after the defence's foul — and it is asked here, where the
+        // callers are, with the clock as it reads at the flag. The rules layer then uses
+        // the answer if the foul makes it relevant.
+        let deadBall = deadBallChoices(
+            for: resolved.outcome, in: state, tempo: calls.offense.tempo)
+        state.apply(
+            resolved.outcome, calls: calls, decisions: resolved.decisions, deadBall: deadBall)
 
         // Injuries are drawn from who was involved, after the play is recorded, so the
         // event can point at the snap it happened on.
@@ -228,6 +235,18 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             state.injuries.append(injury)
             if injury.leavesTheGame { state.hurt.insert(injury.player) }
         }
+    }
+
+    /// The callers' answers to a flag before the snap, or `nil` when the play was not one.
+    private func deadBallChoices(
+        for outcome: Outcome, in state: State, tempo: Tempo
+    ) -> DeadBallChoices? {
+        guard outcome.kind == .penaltyOnly else { return nil }
+        let atTheFlag = state.situationAtTheFlag(tempo: tempo)
+        let classified = SituationClass(atTheFlag, rules: state.setup.rules)
+        return DeadBallChoices(
+            offenseStartsClockOnTheSnap: caller.startsClockOnTheSnap(
+                afterDefensiveFoul: atTheFlag, classified: classified))
     }
 
     /// A try is a decision, not a formality: down eight late, you go for two.

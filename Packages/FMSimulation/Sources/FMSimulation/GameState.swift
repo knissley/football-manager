@@ -3,6 +3,14 @@ import FMRandom
 
 extension GameSimulator {
 
+    /// What the callers chose when a flag flew before the snap (2025 rulebook, 4-7-1).
+    /// Asked before the rules layer knows whether the foul makes it relevant.
+    struct DeadBallChoices: Sendable {
+        /// After a defensive foul inside two minutes, the offence has the clock wait
+        /// for the snap rather than start on the ready signal.
+        var offenseStartsClockOnTheSnap: Bool
+    }
+
     /// The game as it stands, and every rule about how it moves.
     ///
     /// Nothing here draws a random number. Every branch is the rules applied to what the
@@ -171,9 +179,36 @@ extension GameSimulator {
             distance = max(1, ballOn)
         }
 
+        /// The situation as it reads when a flag flies before the snap: the huddle has
+        /// elapsed if the clock was running into it, and nothing else has.
+        func situationAtTheFlag(tempo: Tempo) -> Situation {
+            var probe = clock
+            _ = probe.run(huddleBeforeTheFlag(tempo: tempo), rules: setup.rules)
+            var atTheFlag = situation()
+            atTheFlag.clockRemaining = probe.secondsRemaining
+            return atTheFlag
+        }
+
+        /// The clock spent before a flag before the snap: the offence's tempo, when the
+        /// clock ran into the interval, and nothing during a kickoff or a try, where the
+        /// clock is dead.
+        private func huddleBeforeTheFlag(tempo: Tempo) -> GameClock.Elapsed {
+            guard !pendingKickoff && !pendingTry else {
+                return GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
+            }
+            return GameClock.Elapsed(
+                duringPlay: 0,
+                beforeSnap: GameClock.elapsed(
+                    playDuration: 0, tempo: tempo, previousBehavior: previousBehavior
+                ).beforeSnap)
+        }
+
         // MARK: - Applying a play
 
-        mutating func apply(_ outcome: Outcome, calls: Calls, decisions: [DecisionPoint]) {
+        mutating func apply(
+            _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint],
+            deadBall: DeadBallChoices? = nil
+        ) {
             let before = situation()
             let rules = setup.rules
 
@@ -194,7 +229,11 @@ extension GameSimulator {
 
             record(effective, calls: calls, decisions: decisions, situation: before)
             score(advancement)
-            runClock(effective, advancement: advancement, tempo: calls.offense.tempo)
+            if effective.kind == .penaltyOnly {
+                runClockForDeadBallFoul(effective, choices: deadBall, tempo: calls.offense.tempo)
+            } else {
+                runClock(effective, advancement: advancement, tempo: calls.offense.tempo)
+            }
             let wasKickoff = pendingKickoff
             let replayed = effective.kind == .penaltyOnly
             reposition(advancement, replayed: replayed)
@@ -283,6 +322,44 @@ extension GameSimulator {
 
             let warningTaken = clock.run(elapsed, rules: rules)
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
+        }
+
+        /// The clock after a flag before the snap. No play happened, so no play time is
+        /// charged; the huddle is, if the clock was running into it (4-4-e). Then how
+        /// the clock restarts. The ten-second runoff (4-7-1) is A5's, not yet here.
+        private mutating func runClockForDeadBallFoul(
+            _ outcome: Outcome, choices: DeadBallChoices?, tempo: Tempo
+        ) {
+            let rules = setup.rules
+            let clockWasRunning = previousBehavior != .stopsUntilSnap
+            let warningTaken = clock.run(huddleBeforeTheFlag(tempo: tempo), rules: rules)
+            // The clock at the flag is running only if it was running into the interval
+            // and nothing stopped it on the way — the two-minute warning, or the end of
+            // the period.
+            let runningAtTheFlag = clockWasRunning && !warningTaken && !clock.isExpired
+
+            guard let penalty = outcome.penalties.first else {
+                previousBehavior = runningAtTheFlag ? .stopsUntilReadyForPlay : .stopsUntilSnap
+                return
+            }
+            let byOffense = penalty.offendingTeam == possession
+
+            // A dead-ball foul stops the clock and it restarts as though the
+            // flag had never flown (4-4-e): at the snap if it was stopped, on the ready
+            // signal if it was running — unless the foul was the defence's inside two
+            // minutes, where the offence may choose the snap instead (4-7-1 Item 2).
+            guard runningAtTheFlag else {
+                previousBehavior = .stopsUntilSnap
+                return
+            }
+            let insideTwoMinutes =
+                rules.isEndOfHalf(quarter: clock.quarter)
+                && clock.secondsRemaining < rules.twoMinuteWarning
+            if !byOffense, insideTwoMinutes, choices?.offenseStartsClockOnTheSnap == true {
+                previousBehavior = .stopsUntilSnap
+                return
+            }
+            previousBehavior = .stopsUntilReadyForPlay
         }
 
         private mutating func reposition(_ advancement: Advancement, replayed: Bool) {
