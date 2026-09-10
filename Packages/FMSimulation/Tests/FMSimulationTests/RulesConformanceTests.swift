@@ -2330,7 +2330,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.onsideKickRecovered.run()
         guard
             let onside = trace.first(where: {
-                CrudePlaybook.family(of: $0.calls.offense.design) == .onsideKick
+                $0.calls.offense.concept == .onsideKick
             })
         else {
             Issue.record("the trailing side never kicked onside")
@@ -2342,5 +2342,158 @@ struct RulesConformanceTests {
         trace.expectPlay(
             onside.index + 1, kind: .rush, possession: kicker, down: .first, distance: 10,
             ballOn: 53, "the kicking side keeps the ball where it fell on it")
+    }
+
+    // MARK: A foul on a takeaway, and a kickoff the kickers carry in
+
+    /// A run is a run until somebody else has the ball. The basic spot for a foul during
+    /// a run followed by a change of possession is the spot where possession was lost
+    /// (14-3-5-b), and a defensive foul reverts the ball to the offence before
+    /// enforcement (14-4-3-a); unnecessary roughness by the defence is fifteen and an
+    /// automatic first down (12-2-8). The offence snapped from its 30, ran to its 40 with
+    /// a defender flagged on the way, and lost the ball there — so it gets it back
+    /// fifteen past its own 40, at the opponents' 45, first and ten. Not fifteen past the
+    /// 30, which is what enforcing from the previous spot gives.
+    ///
+    /// The gain is what makes the fumble the spot. A fumble *behind* the line is the
+    /// exception in 14-3-6, and `defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
+    /// below is that case; this one does not reach it.
+    ///
+    /// Written from the book, but green the day it was written: it pins the engine's
+    /// answer here rather than having driven it.
+    @Test(
+        "football · Rule 14-3-5-b, 14-4-3-a, 12-2-8 · a defensive personal foul during a run that ends in a fumble lost gives the ball back to the offence fifteen yards past the spot of the fumble, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble() {
+        let trace = RulesScenario.roughnessByTheDefenseOnARunThatEndsInAFumbleLost.run()
+        guard let strip = trace[1] else {
+            Issue.record("the script never put the ball on the ground")
+            return
+        }
+        #expect(strip.situation.ballOn == 70, "the scenario meant the snap from the own 30")
+        #expect(strip.outcome.possessionLostAt == 60, "stripped at the own 40")
+        trace.expectPlay(1, kind: .rush, endedIn: .fumbleLost)
+        trace.expectPlay(
+            2, possession: strip.situation.possession, down: .first, distance: 10, ballOn: 45,
+            "the offence's ball, fifteen past where it lost possession, first and ten")
+    }
+
+    /// The same flag on a pass is a different rule, and a narrower one than the article's
+    /// opening sentence. Until a forward pass from behind the line is over, a flag on
+    /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
+    /// and the down does not turn into a running play until somebody catches the ball — so
+    /// the catch is never the basic spot for a foul that came before it. But a *personal*
+    /// foul by the defence before the pass is completed has its own answer: the offence
+    /// gets the better of two spots — where it snapped, or where the ball was dead
+    /// (14-4-5-d, and the same sentence as 8-6-1-d). An interception is not a completion
+    /// (8-1-3), which is what puts a foul that preceded it inside that exception rather
+    /// than outside it.
+    ///
+    /// Here the two arms differ and the previous spot is the better of them: the
+    /// interceptor was dropped at the offence's own 25, behind where it snapped. So the
+    /// offence gets its own 30 plus fifteen, at its own 45, first and ten (12-2-8), and
+    /// the interception is wiped out.
+    /// `defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot` below is the
+    /// other arm, where the dead-ball spot wins.
+    @Test(
+        "football · Rule 14-4-5-d, 8-6-1-d, 12-2-8 · a defensive personal foul before a forward pass is intercepted and returned behind the previous spot is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseBeforeAnInterception.run()
+        guard let pick = trace[1] else {
+            Issue.record("the script never threw the interception")
+            return
+        }
+        #expect(pick.situation.ballOn == 70, "the scenario meant the snap from the own 30")
+        #expect(pick.outcome.possessionLostAt == 60, "picked off at the own 40")
+        trace.expectPlay(1, kind: .pass, endedIn: .intercepted)
+        trace.expectPlay(
+            2, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 55,
+            "the offence's ball, fifteen past the previous spot, first and ten")
+    }
+
+    /// The exception the sack makes common. A basic spot behind the line puts a defensive
+    /// foul back on the previous spot, and where the foul itself was makes no difference:
+    /// behind the line or beyond it, it comes off the snap (14-3-6, the exception for
+    /// fouls by the defence), and 14-4-6-b says the same of a foul during the fumble. The
+    /// offence snapped from its own 40 and the quarterback was stripped six yards behind
+    /// it, at his own 34; unnecessary roughness by the defence is fifteen and an automatic
+    /// first down (12-2-8). So the walk-off is from the own 40 — first and ten at the
+    /// opponents' 45 — and not from the own 34, which would take the sack's six yards off
+    /// the offence a second time on its way to the opponents' 49.
+    @Test(
+        "football · Rule 14-3-6 Exception 1, 14-4-6-b, 12-2-8 · a defensive personal foul on a sack that ends in a fumble lost behind the line is enforced from the previous spot and not from the fumble, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseOnAStripSack.run()
+        guard let strip = trace[2] else {
+            Issue.record("the script never put the ball on the ground")
+            return
+        }
+        #expect(strip.situation.ballOn == 60, "the scenario meant the snap from the own 40")
+        #expect(strip.outcome.possessionLostAt == 66, "stripped six yards behind the line")
+        trace.expectPlay(2, kind: .sack, endedIn: .fumbleLost)
+        trace.expectPlay(
+            3, possession: strip.situation.possession, down: .first, distance: 10, ballOn: 45,
+            "the offence's ball, fifteen past the previous spot, first and ten")
+    }
+
+    /// The other arm of 14-4-5-d. A personal foul by the defence before a forward pass
+    /// thrown from behind the line is completed is walked off from the better of two spots
+    /// for the offence — where it snapped, or where the ball was dead (14-4-5-d, and the
+    /// same sentence as 8-6-1-d); an interception is not a completion (8-1-3), so a foul that
+    /// preceded it is inside that exception. Here the dead-ball spot is the better of the
+    /// two: the offence snapped at the opponents' 45, the pass was picked off at the
+    /// opponents' 20, and the interceptor was dropped at the opponents' 30, still fifteen
+    /// yards nearer the goal line than the snap. So the fifteen comes off the opponents'
+    /// 30 — first and ten at the opponents' 15 — and not off the opponents' 45.
+    @Test(
+        "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the snap is enforced from the dead-ball spot, which is the better of the two spots the offence may have",
+        .tags(.football)
+    )
+    func defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseBeforeADeepInterception.run()
+        guard let pick = trace[2] else {
+            Issue.record("the script never threw the interception")
+            return
+        }
+        #expect(pick.situation.ballOn == 45, "the scenario meant the snap from the opponents' 45")
+        #expect(pick.outcome.possessionLostAt == 20, "picked off at the opponents' 20")
+        #expect(pick.outcome.finalSpot == 30, "and dropped at the opponents' 30")
+        trace.expectPlay(2, kind: .pass, endedIn: .intercepted)
+        trace.expectPlay(
+            3, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 15,
+            "the offence's ball, fifteen past the dead-ball spot, first and ten")
+    }
+
+    /// Any player of either team may recover a fumble and advance it (8-7-3 Item 1), and
+    /// a runner carrying the ball into the opponents' end zone scores (11-2-1) — so a
+    /// kickoff fumbled by the returner and carried in by the kicking team is the kicking
+    /// team's touchdown, its try (11-3-1), and the receivers of that try receive the
+    /// kickoff after it (11-3-4). The record used to read every kickoff touchdown as the
+    /// receivers', so this scored for the wrong side and gave them the try.
+    @Test(
+        "football · Rule 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4 · a kickoff fumbled by the returner and carried in by the kicking team is the kicking team's touchdown, its try, and its kickoff",
+        .tags(.football)
+    )
+    func kickoffFumbledAndCarriedInIsTheKickersTouchdown() {
+        let trace = RulesScenario.kickoffFumbledAndReturnedByTheKickers.run()
+        guard let kicker = trace[0]?.situation.possession else {
+            Issue.record("no opening kickoff")
+            return
+        }
+        let receiver = trace.opponent(of: kicker)
+        trace.expectPlay(0, kind: .kickoff, endedIn: .touchdown)
+        trace.expectPlay(
+            1, kind: .extraPoint, possession: kicker, "the try belongs to the side that scored")
+        trace.expectPlay(2, kind: .kickoff, possession: kicker, "and it kicks off again")
+        trace.expectPlay(3, kind: .rush, possession: receiver, "to the side it took the ball from")
+        trace.expectScore(kicker, 7)
+        trace.expectScore(receiver, 0)
+        #expect(trace[0]?.outcome.pointsScored == 6, "six points on the kickoff's own record")
+        #expect(trace[0]?.outcome.scoring == .touchdown, "paid to the side that had the ball")
     }
 }

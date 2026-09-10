@@ -601,7 +601,7 @@ the score standing, until [C9 · #48](https://github.com/knissley/football-manag
 enforces it on the try or the kickoff (14-2-3) and re-tries after a live-ball foul on a
 try.
 
-## S14 — The completion-percentage row is a false pass — **open**
+## S14 — The completion-percentage row is a false pass — **fixed**
 
 `PlayEnding` cannot express a completed pass: a catch for a loss ends `.tackled`, exactly
 like a run. The harness therefore counts a completion as `yards > 0 || touchdown`, so every
@@ -620,10 +620,11 @@ the issue: across every package, test suite and tool the only occurrences of
 `pointsScored` are its declaration, its default of `0`, and the assignment of that
 default.
 
-Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22), which makes a
-completion a fact in the record, and
-[E2 · #42](https://github.com/knissley/football-manager/issues/42), which makes the harness
-read that fact instead of inferring one.
+Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22): a
+completion is a fact in the record (`Outcome.passResult`) and the row reads it, and the
+points are written onto the play by the game so the scoreboard is the stream summed. The
+rows still on the older inference — yards per completion's denominator and the catch
+leaders — are [E2 · #42](https://github.com/knissley/football-manager/issues/42)'s.
 
 ## S15 — A flag on a try is recorded and never enforced — **fixed**
 
@@ -647,10 +648,10 @@ extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
 ## Where this leaves the engine
 
-**Fifteen findings: fourteen fixed, one open.** S1 through S8 are the original pass and
-are fixed. S9 through S15 were added by the September 2026 external audit; the seven
-rules-layer findings among them were fixed by wave 1 of the backlog, and S14 — the
-harness row, not the engine — is the one still open. The backlog in
+**Fifteen findings: fifteen fixed.** S1 through S8 are the original pass and are fixed.
+S9 through S15 were added by the September 2026 external audit; the seven rules-layer
+findings among them were fixed by wave 1 of the backlog, and S14 — the harness row, not
+the engine — by wave 2's record track. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
@@ -686,7 +687,7 @@ foul on a try), both open.
 | S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | fixed | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32), [A10 · #56](https://github.com/knissley/football-manager/issues/56) |
 | S13 Live-ball fouls are enforced from the previous spot | fixed | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
-| S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
+| S14 The completion-percentage row is a false pass | fixed | [B2 · #22](https://github.com/knissley/football-manager/issues/22) |
 | S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
 
 These fifteen are not the whole backlog. The engine findings that did not earn a section of
@@ -710,10 +711,10 @@ comfortably outside them.
 | first downs per team-game | 17.9 | — | 18.5–22 | Follows from the first two. |
 | three-and-out rate | 18.8% | — | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that *punt* count here. |
 
-Fourteen of the fifteen headline calibration rows land on seed 7 and third-down conversion
-is the one that does not — but one of the fourteen is not a pass at all. Completion
-percentage sits inside its 61.0–68.0 band only because the harness cannot see a completion
-that gained nothing (S14). Thirteen rows land honestly.
+Fourteen of the fifteen headline calibration rows landed on seed 7 when this was written
+and third-down conversion was the one that did not — but one of the fourteen was not a
+pass at all. Completion percentage sat inside its band only because the harness could not
+see a completion that gained nothing (S14); it reads the record's pass result now.
 
 **The engine-wide retune is the next piece of work**, and its brief is that one sentence:
 the calibration bands were established against a defence that never substituted and a
@@ -782,28 +783,29 @@ argument for watching a game.
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
-- **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
-  so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
-  snap count is not a query the record can answer.
-  ([#21](https://github.com/knissley/football-manager/issues/21))
-- **B3** — the record carries no schema version, and `OffensiveCall.design` points into a
-  fake identifier space built from `PlayFamily.rawValue + 1` that will dangle the day a real
-  playbook exists. ([#33](https://github.com/knissley/football-manager/issues/33))
-- **B4** — the weather is copied onto every play, about 150 times a game, although it is a
-  fact about the afternoon. ([#23](https://github.com/knissley/football-manager/issues/23))
-- **B5** — nothing fails when a decision-detail case becomes unreachable. The engine
-  produces 3 of 5 `ThrowDecision` cases, 2 of 5 `TackleResult`, 2 of 5 `BlockResult` and 2
-  of 6 `CoverageTechnique`, and the coverage suite does not look at
-  `DecisionPoint.detail`. ([#24](https://github.com/knissley/football-manager/issues/24))
-- **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
-  resolves a slot only through `outcome.participants` and a decoy or a cover man is not
-  credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that
-  asserted the contract passed by luck and is now a pin listing the eight.
+- **B1**, **B3**, **B4** and **B5** landed with wave 2's record track: who was on the
+  field is twenty-two roster indices on every play
+  ([#21](https://github.com/knissley/football-manager/issues/21)); the record carries a
+  schema version and the concept called is on it by value, with the design reference
+  `nil` until a playbook exists rather than pointing into a stand-in identifier space
+  that would have dangled ([#33](https://github.com/knissley/football-manager/issues/33));
+  the weather is on the game's result and no longer on a hundred and fifty situations
+  ([#23](https://github.com/knissley/football-manager/issues/23)); and the enums behind
+  `DecisionPoint.detail` have a two-directional coverage register — the twelve cases the
+  engine cannot reach are named with the issue that closes each, and the suite fails the
+  moment one is reached ([#24](https://github.com/knissley/football-manager/issues/24)).
+- **B6** landed with B1: a flag names a slot, and every slot resolves through `onField`
+  whether or not the play credited the man, so the eight fouls on uncredited slots — 29 of
+  1104 flags over eighty games — name a player a reader can identify. The pin that listed
+  the eight is the contract again, with no register.
   ([#54](https://github.com/knissley/football-manager/issues/54))
-- **B7** — the record does not carry where a kick was fielded, so gross punt distance, net
-  punt distance and return yardage cannot be recovered from a returned kick; nor does it
-  carry timeouts or the two-minute warning, which are inferences from two consecutive
-  situations. ([#58](https://github.com/knissley/football-manager/issues/58))
+- **B7** landed with wave 2's record track: the record carries where a kick was fielded,
+  so gross, return and net are read off it and the net punt row stopped spotting a
+  touchback at the goal line; where possession was lost on a takeaway, so a defensive
+  foul on one is enforced from there; a kickoff the kicking team carries in as the
+  kicking team's touchdown; and a charged timeout with its side and the two-minute
+  warning as decision points on the snap they preceded, which `gamelog` prints.
+  ([#58](https://github.com/knissley/football-manager/issues/58))
 - **C3** — the quarterback always throws to the best-separated receiver on the field. He
   never locks onto his first read, never checks down, never throws it away, and never
   attempts a throw he cannot make.

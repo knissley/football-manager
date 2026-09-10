@@ -131,6 +131,16 @@ struct SituationTests {
         #expect(situation(quarter: 7, clock: 400).isValid)
     }
 
+    /// A situation is the down and not the afternoon. The weather is a fact about the
+    /// game, carried once on `GameResult` and read by the resolver from its context;
+    /// carrying it on every one of a hundred and fifty situations a game cost six bytes a
+    /// play for a field nothing that reads a situation ever looked at. The figure here is
+    /// the one the sizing table in docs/play-record.md quotes.
+    @Test("A situation is twenty-three bytes: the down, not the afternoon", .tags(.contract))
+    func situationSize() {
+        #expect(MemoryLayout<Situation>.size == 23)
+    }
+
     @Test("Downs advance and run out", .tags(.unit))
     func downs() {
         #expect(Down.first.next == .second)
@@ -378,7 +388,7 @@ struct PlayRecordTests {
                 quarter: 2, clockRemaining: 480, down: down,
                 distance: distance, ballOn: ballOn, possession: TeamID(1)),
             calls: Calls(
-                offense: OffensiveCall(design: PlayDesignID(100)),
+                offense: OffensiveCall(concept: .mediumPass),
                 defense: .nickelTwoMan,
                 offensiveCaller: .coordinator(PersonnelID(9)),
                 defensiveCaller: .coordinator(PersonnelID(10))),
@@ -442,8 +452,40 @@ struct PlayRecordTests {
     func callsAreCapturedByValue() {
         let play = record()
         #expect(play.calls.defense.coverage == .twoMan)
-        #expect(play.calls.offense.design == PlayDesignID(100))
+        #expect(play.calls.offense.concept == .mediumPass)
         #expect(play.calls.offense.tempo == .normal)
+        // The design is a reference into a playbook that does not exist until M6, and
+        // nothing invents one: a record that named a design nobody authored would be
+        // pointing at a playbook entry that could never be shown.
+        #expect(play.calls.offense.design == nil)
+    }
+
+    /// Old events must still fold correctly, which starts with an event saying which
+    /// shape it is. The version is on every record, and the first shape is 1.
+    @Test("A record carries the schema version it was written under", .tags(.contract))
+    func recordIsVersioned() {
+        #expect(PlayRecord.currentSchemaVersion == 1)
+        #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
+    }
+
+    /// A concept's kind is what a snap of it produces when no flag wipes it out.
+    @Test("Every concept names the kind of play it produces", .tags(.unit))
+    func conceptKinds() {
+        #expect(PlayConcept.insideRun.kind == .rush)
+        #expect(PlayConcept.outsideRun.kind == .rush)
+        #expect(PlayConcept.screen.kind == .pass)
+        #expect(PlayConcept.playAction.kind == .pass)
+        #expect(PlayConcept.punt.kind == .punt)
+        #expect(PlayConcept.fieldGoal.kind == .fieldGoal)
+        #expect(PlayConcept.kickoff.kind == .kickoff)
+        #expect(PlayConcept.onsideKick.kind == .kickoff)
+        #expect(PlayConcept.extraPoint.kind == .extraPoint)
+        #expect(PlayConcept.twoPointConversion.kind == .twoPointConversion)
+        #expect(PlayConcept.kneel.kind == .kneel)
+        #expect(PlayConcept.spike.kind == .spike)
+        #expect(PlayConcept.scrimmage.allSatisfy { $0.isRun || $0.isPass })
+        #expect(PlayConcept.twoPointConversion.isPass)
+        #expect(PlayConcept.punt.isRun == false && PlayConcept.punt.isPass == false)
     }
 
     /// The call selects the package and the situation observes it, so the two must
@@ -458,6 +500,43 @@ struct PlayRecordTests {
     @Test("Kicks are not first downs regardless of yardage", .tags(.unit))
     func kicks() {
         #expect(record(yards: 45, kind: .punt).gainedFirstDown == false)
+    }
+
+    /// A completion is what the record says it is, not what the yardage implies: a ball
+    /// caught behind the line is complete, and a pass with no result is not a completion
+    /// however far it went.
+    @Test("A completion is a fact of the outcome, not an inference from the yards", .tags(.unit))
+    func completionIsAFact() {
+        var caughtForALoss = record(yards: -3)
+        caughtForALoss.outcome.passResult = .complete
+        #expect(caughtForALoss.isCompletion)
+
+        var thrownAway = record(yards: 0, endedIn: .incomplete)
+        thrownAway.outcome.passResult = .incomplete
+        #expect(thrownAway.isCompletion == false)
+
+        var picked = record(yards: 0, endedIn: .intercepted)
+        picked.outcome.passResult = .intercepted
+        #expect(picked.isCompletion == false)
+
+        #expect(record(yards: 12).outcome.passResult == nil, "a result nobody wrote")
+        #expect(record(yards: 12).isCompletion == false)
+        #expect(record(yards: 12, kind: .rush).outcome.passResult == nil)
+    }
+
+    /// The points are on the record, with who scored them, so a scoreboard is a sum.
+    @Test(
+        "An outcome carries its points and its scoring kind, and defaults to neither", .tags(.unit))
+    func pointsAreOnTheRecord() {
+        let play = record()
+        #expect(play.outcome.pointsScored == 0)
+        #expect(play.outcome.scoring == nil)
+
+        var scored = record(yards: 45, endedIn: .touchdown)
+        scored.outcome.pointsScored = 6
+        scored.outcome.scoring = .touchdown
+        #expect(scored.outcome.pointsScored == 6)
+        #expect(scored.outcome.scoring == .touchdown)
     }
 
     @Test("Decisions are filterable by kind", .tags(.unit))
