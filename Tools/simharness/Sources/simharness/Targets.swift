@@ -32,11 +32,13 @@ let supportedRulebooks = [2024, 2025]
 /// The `Rules` in force under a season's rulebook, built here from data.
 ///
 /// 2024 is today's `Rules.standard`. 2025 is `.standard` with the kickoff touchback at the
-/// receiving team's 35 (2025 NFL Rulebook, Rule 6). The 2025 rulebook also permits a
+/// receiving team's 35 (2025 rulebook, Rule 6). The 2025 rulebook also permits a
 /// declared onside kick whenever a team trails, at any point in the game; `Rules` has no
 /// field for when an onside kick is permitted — the fourth-quarter-only gate lives in
-/// `BaselineCaller.kicksOnside` — so the 2025 variant carries the touchback change alone
-/// and the onside rows are stale under either rulebook until D1 (#41) adds the field.
+/// `BaselineCaller.kicksOnside` — so the 2025 variant carries the touchback change alone.
+/// The onside rows still pair a 2024 and a 2025 variant, and one of the pair is current
+/// under each rulebook; what neither run does yet is play the 2025 onside rule, which
+/// waits for D1 (#41) to add the field.
 func rules(forRulebook season: Int) -> Rules? {
     switch season {
     case 2024:
@@ -72,22 +74,22 @@ struct RuleChange: Sendable {
     static let all: [RuleChange] = [
         RuleChange(
             area: .tryAttempt, season: 2015,
-            citation: "2015 NFL Rulebook, Rule 11 (Scoring), Section 3 (Try): snap from the 15"),
+            citation: "2015 rulebook, Rule 11 (Scoring), Section 3 (Try): snap from the 15"),
         RuleChange(
             area: .kickoff, season: 2024,
             citation:
-                "2024 NFL Rulebook, Rule 6 (Free Kicks): the dynamic kickoff, touchback to the 30"),
+                "2024 rulebook, Rule 6 (Free Kicks): the dynamic kickoff, touchback to the 30"),
         RuleChange(
             area: .kickoff, season: 2025,
-            citation: "2025 NFL Rulebook, Rule 6 (Free Kicks): touchback to the 35"),
+            citation: "2025 rulebook, Rule 6 (Free Kicks): touchback to the 35"),
         RuleChange(
             area: .onsideKick, season: 2025,
             citation:
-                "2025 NFL Rulebook, Rule 6 (Free Kicks): a declared onside kick whenever trailing"),
+                "2025 rulebook, Rule 6 (Free Kicks): a declared onside kick whenever trailing"),
         RuleChange(
             area: .overtime, season: 2025,
             citation:
-                "2025 NFL Rulebook, Rule 16 (Overtime Procedures): both teams possess in the regular season"
+                "2025 rulebook, Rule 16 (Overtime Procedures): both teams possess in the regular season"
         ),
     ]
 }
@@ -155,12 +157,15 @@ struct CalibrationTarget: Sendable {
     func format(_ value: Double) -> String {
         let scale = pow10(decimals)
         let scaled = Int((value * scale).rounded())
-        let whole = scaled / Int(scale)
-        let fraction = abs(scaled % Int(scale))
-        if decimals == 0 { return "\(whole)\(unit)" }
-        var digits = "\(fraction)"
+        // Format the magnitude and prefix the sign: a value in (-1, 0) has a whole part of
+        // zero, which carries no sign of its own.
+        let sign = scaled < 0 ? "-" : ""
+        let magnitude = abs(scaled)
+        let whole = magnitude / Int(scale)
+        if decimals == 0 { return "\(sign)\(whole)\(unit)" }
+        var digits = "\(magnitude % Int(scale))"
         while digits.count < decimals { digits = "0" + digits }
-        return "\(whole).\(digits)\(unit)"
+        return "\(sign)\(whole).\(digits)\(unit)"
     }
 
     var band: String {
@@ -312,7 +317,9 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "tiesPerGame", label: "ties per game", low: 0.000, high: 0.010,
             season: .season(2025), source: playByPlay, rulesSensitiveTo: [.overtime], gate: true,
-            decimals: 3, note: "One tie in 272 games in 2025; the upper bound is the rule of three."
+            decimals: 3,
+            note:
+                "One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy."
         ),
         CalibrationTarget(
             id: "overtimeRate", label: "games reaching overtime", low: 3.0, high: 7.3,

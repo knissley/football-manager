@@ -93,11 +93,13 @@ struct TargetsTests {
             id: "t", label: "t", low: 1.25, high: 2, season: .season(2025), source: "s",
             rulesSensitiveTo: [], gate: true, decimals: 2, unit: "%")
         #expect(target.format(1.234) == "1.23%")
+        #expect(target.format(-0.456) == "-0.46%", "a value in (-1, 0) keeps its sign")
         #expect(target.band == "1.25-2.00")
         let whole = CalibrationTarget(
             id: "w", label: "w", low: 152, high: 170, season: .season(2025), source: "s",
             rulesSensitiveTo: [], gate: true, decimals: 0)
         #expect(whole.format(157.6) == "158")
+        #expect(whole.format(-2.6) == "-3")
         #expect(whole.band == "152-170")
         #expect(TargetSeason.seasons(2023...2024).printed == "2023-24")
         #expect(TargetSeason.season(2025).printed == "2025")

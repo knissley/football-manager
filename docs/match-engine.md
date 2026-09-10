@@ -360,7 +360,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per play | 5.0-5.8 | 2023-24 | — | S1 | yes | The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7. |
 | yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | — |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
-| ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the upper bound is the rule of three. |
+| ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy. |
 | games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |
 | seconds played per overtime | 355-463 | 2025 | overtime | S1 | yes | Game clock used by the last snap of the period. Both teams possessing lengthened it from about 345 in 2023–24. |
 | player-games lost per season | 40.0-90.0 | unsourced | — | — | no | Nobody has cited this band; it is not in the play-by-play. |

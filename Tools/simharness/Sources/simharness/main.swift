@@ -73,14 +73,17 @@ func pad(_ value: String, _ width: Int) -> String {
 
 func oneDecimal(_ value: Double) -> String {
     let scaled = Rounding.toNearest(value * 10)
-    return "\(scaled / 10).\(abs(scaled % 10))"
+    let magnitude = abs(scaled)
+    return "\(scaled < 0 ? "-" : "")\(magnitude / 10).\(magnitude % 10)"
 }
 
 /// Two places, for rates small enough that one hides the whole signal — a fifth of a
 /// touchdown per team-game reads as "0.1" and tells you nothing.
 func twoDecimals(_ value: Double) -> String {
     let scaled = Int((value * 100).rounded())
-    return "\(scaled / 100).\(scaled % 100 < 10 ? "0" : "")\(scaled % 100)"
+    let magnitude = abs(scaled)
+    return
+        "\(scaled < 0 ? "-" : "")\(magnitude / 100).\(magnitude % 100 < 10 ? "0" : "")\(magnitude % 100)"
 }
 
 var verdicts: [String: [String]] = [:]
