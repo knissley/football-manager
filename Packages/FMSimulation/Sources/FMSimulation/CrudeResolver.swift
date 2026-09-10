@@ -19,12 +19,10 @@ public struct CrudeResolver: PlayResolver {
     public init() {}
 
     public func resolve(
-        situation: Situation, calls: Calls, context: PlayContext,
+        situation: Situation, calls: Calls, onField personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        let personnel = Lineup.onField(
-            context, family: family, situation: situation, random: &random)
+        let concept = calls.offense.concept
 
         // A flag before the snap means the play never happened, whatever was called.
         // Every snap can draw one, kicks included. Tries and kickoffs used to be excluded
@@ -44,15 +42,15 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
-        switch family {
+        switch concept {
         case .insideRun, .outsideRun:
-            return run(family, situation, calls, context, personnel, &random)
+            return run(concept, situation, calls, context, personnel, &random)
         case .quickPass, .mediumPass, .deepPass, .screen, .playAction:
-            return pass(family, situation, calls, context, personnel, &random)
+            return pass(concept, situation, calls, context, personnel, &random)
         case .punt:
             return punt(situation, context, personnel, &random)
         case .fieldGoal, .extraPoint:
-            return kick(family, situation, context, personnel, &random)
+            return kick(concept, situation, context, personnel, &random)
         case .twoPointConversion:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
@@ -71,7 +69,7 @@ public struct CrudeResolver: PlayResolver {
         case .spike:
             return (
                 Outcome(
-                    kind: .spike, yards: 0, endedIn: .incomplete,
+                    kind: .spike, yards: 0, endedIn: .incomplete, passResult: .incomplete,
                     participants: quarterbackOnly(.passer, personnel), clockRunoff: 1), []
             )
         }
@@ -100,6 +98,16 @@ public struct CrudeResolver: PlayResolver {
         participants.append(Participation(slot: slot, player: id, position: position, role: role))
     }
 
+    /// A fumble, as the record carries it: how the play ended, where the ball came to
+    /// rest, and — when the defence came up with it — where it came loose.
+    private struct LooseBall {
+        var ending: PlayEnding
+        var finalSpot: UInt8
+        /// The spot where possession was lost, in the offence's frame; `nil` when the
+        /// offence fell on it.
+        var lostAt: UInt8?
+    }
+
     /// Turn a hit into a fumble, if it was one.
     ///
     /// Returns the ending and resting spot to use instead of the tackle's. The spot is in
@@ -110,7 +118,7 @@ public struct CrudeResolver: PlayResolver {
         carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int,
         personnel: Lineup, context: PlayContext,
         participants: inout [Participation], random: inout SplittableRandom
-    ) -> (ending: PlayEnding, finalSpot: UInt8)? {
+    ) -> LooseBall? {
         guard let tackler,
             let loose = Fumbles.drawn(
                 carrier: carrier, tackler: tackler, isSack: isSack, personnel: personnel,
@@ -118,11 +126,13 @@ public struct CrudeResolver: PlayResolver {
         else { return nil }
 
         credit(loose.forcedBy, .tackler, personnel, into: &participants)
+        let lostAt = UInt8(max(1, min(99, spot)))
         guard loose.lost else {
-            return (.fumbleRecovered, UInt8(max(1, min(99, spot))))
+            return LooseBall(ending: .fumbleRecovered, finalSpot: lostAt, lostAt: nil)
         }
         let resting = spot + loose.returnYards
-        return (.fumbleLost, UInt8(max(1, min(100, resting))))
+        return LooseBall(
+            ending: .fumbleLost, finalSpot: UInt8(max(1, min(100, resting))), lostAt: lostAt)
     }
 
     private func participation(
@@ -177,7 +187,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Pass
 
     private func pass(
-        _ family: PlayFamily,
+        _ concept: PlayConcept,
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
@@ -275,7 +285,7 @@ public struct CrudeResolver: PlayResolver {
             isTry
             ? RouteDepth(
                 yards: 1, timeMillis: 1_500, flightTicks: 3, accuracyKey: .throwAccuracyShort)
-            : routeDepth(family)
+            : routeDepth(concept)
 
         // Where the ball is actually caught. Every route of a kind used to be exactly the
         // same length — a `mediumPass` was ten yards, always — and that is most of why
@@ -379,7 +389,7 @@ public struct CrudeResolver: PlayResolver {
                         yards: scores ? Int16(situation.ballOn) : gained,
                         endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
                         participants: participants, penalties: penalty.map { [$0] } ?? [],
-                        finalSpot: dropped?.finalSpot,
+                        finalSpot: dropped?.finalSpot, possessionLostAt: dropped?.lostAt,
                         clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
                     decisions
                 )
@@ -423,7 +433,7 @@ public struct CrudeResolver: PlayResolver {
                     yards: strip?.ending == .fumbleLost ? 0 : (inOwnEndZone ? Int16(-room) : loss),
                     endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: strip?.finalSpot,
+                    finalSpot: strip?.finalSpot, possessionLostAt: strip?.lostAt,
                     clockRunoff: runoff),
                 decisions
             )
@@ -431,7 +441,9 @@ public struct CrudeResolver: PlayResolver {
 
         guard let target = best else {
             return (
-                Outcome(kind: .pass, yards: 0, endedIn: .incomplete, participants: participants),
+                Outcome(
+                    kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+                    participants: participants),
                 decisions
             )
         }
@@ -439,7 +451,7 @@ public struct CrudeResolver: PlayResolver {
         // Linemen who released to block a run that turned out to be a throw.
         if penalty == nil {
             penalty = Penalties.onLineRelease(
-                blockers: protection, isScreen: family == .screen || family == .playAction,
+                blockers: protection, isScreen: concept == .screen || concept == .playAction,
                 personnel: personnel, context: context, random: &random)
         }
 
@@ -453,7 +465,7 @@ public struct CrudeResolver: PlayResolver {
         let accuracy = rating(depth.accuracyKey, SlotLayout.quarterback, personnel, context)
         let placement = placement(
             accuracy: accuracy, pressured: pressured,
-            conditions: Conditions.throwing(situation.weather, depthYards: depth.yards),
+            conditions: Conditions.throwing(context.weather, depthYards: depth.yards),
             random: &random)
         let throwTick = UInt16(timeNeeded / 100)
         let arrivalTick = throwTick + UInt16(depth.flightTicks)
@@ -472,7 +484,7 @@ public struct CrudeResolver: PlayResolver {
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
-            contested: isTry, conditions: Conditions.handling(situation.weather),
+            contested: isTry, conditions: Conditions.handling(context.weather),
             random: &random)
         decisions.append(
             .init(
@@ -496,8 +508,10 @@ public struct CrudeResolver: PlayResolver {
             let spot = UInt8(max(1, min(100, caught + back)))
             return (
                 Outcome(
-                    kind: .pass, yards: 0, endedIn: .intercepted, participants: participants,
-                    penalties: penalty.map { [$0] } ?? [], finalSpot: spot, clockRunoff: runoff),
+                    kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+                    participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    finalSpot: spot, possessionLostAt: UInt8(max(1, min(99, caught))),
+                    clockRunoff: runoff),
                 decisions
             )
 
@@ -526,9 +540,9 @@ public struct CrudeResolver: PlayResolver {
                 fumble?.ending ?? (reachesEndZone ? .touchdown : afterCatch.ending)
             return (
                 Outcome(
-                    kind: kind, yards: gained, endedIn: ending,
+                    kind: kind, yards: gained, endedIn: ending, passResult: .complete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: fumble?.finalSpot,
+                    finalSpot: fumble?.finalSpot, possessionLostAt: fumble?.lostAt,
                     clockRunoff: runoff),
                 decisions
             )
@@ -537,6 +551,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: isTry ? .twoPointConversion : .pass, yards: 0, endedIn: .incomplete,
+                    passResult: .incomplete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
                     clockRunoff: runoff),
                 decisions
@@ -547,7 +562,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Run
 
     private func run(
-        _ family: PlayFamily,
+        _ concept: PlayConcept,
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
@@ -619,7 +634,7 @@ public struct CrudeResolver: PlayResolver {
         decisions.append(
             .init(
                 tick: 10, kind: .holeQuality, primary: SlotLayout.back,
-                detail: family == .insideRun ? 0 : 1, value: quality))
+                detail: concept == .insideRun ? 0 : 1, value: quality))
 
         // Vision turns a hole into yards; a back with none runs into his own linemen.
         let vision = rating(.vision, SlotLayout.back, personnel, context)
@@ -645,7 +660,7 @@ public struct CrudeResolver: PlayResolver {
 
         let tackle = tackleSequence(
             carrier: SlotLayout.back,
-            pursuit: family == .insideRun
+            pursuit: concept == .insideRun
                 ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
             personnel: personnel,
             context: context,
@@ -657,7 +672,7 @@ public struct CrudeResolver: PlayResolver {
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
         // The ball on the ground, before the play is allowed to have been a gain.
-        var fumble: (ending: PlayEnding, finalSpot: UInt8)?
+        var fumble: LooseBall?
         if !reachesEndZone && !intoOwnEndZone {
             fumble = looseBall(
                 carrier: SlotLayout.back,
@@ -702,7 +717,7 @@ public struct CrudeResolver: PlayResolver {
                     ?? (reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending)),
                 participants: participants,
                 penalties: penalty.map { [$0] } ?? [],
-                finalSpot: fumble?.finalSpot,
+                finalSpot: fumble?.finalSpot, possessionLostAt: fumble?.lostAt,
                 clockRunoff: UInt16(5 + Int(random.next(upperBound: 3)))),
             decisions
         )
@@ -725,8 +740,8 @@ public struct CrudeResolver: PlayResolver {
         // teams pay for one.
         let leg = rating(.kickPower, SlotLayout.specialist, personnel, context)
         var touchbackChance = 0.50 + (leg - 68) * 0.012
-        if situation.weather.windSpeed > 15 { touchbackChance -= 0.10 }
-        if situation.weather.isIndoors { touchbackChance += 0.04 }
+        if context.weather.windSpeed > 15 { touchbackChance -= 0.10 }
+        if context.weather.isIndoors { touchbackChance += 0.04 }
 
         if random.nextBool(probability: min(0.88, max(0.25, touchbackChance))) {
             return (
@@ -748,14 +763,15 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .touchdown, participants: participants,
-                    finalSpot: 100, clockRunoff: 12),
+                    finalSpot: 100, fieldedAt: Int8(start), clockRunoff: 12),
                 decisions
             )
         }
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: UInt16(6 + run.spot / 12)),
+                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: Int8(start),
+                clockRunoff: UInt16(6 + run.spot / 12)),
             decisions
         )
     }
@@ -780,19 +796,22 @@ public struct CrudeResolver: PlayResolver {
             for slot in SlotLayout.coverageUnit.prefix(2) {
                 credit(slot.0, .other, personnel, into: &participants)
             }
+            // Dead where it was fallen on, so that is where it was fielded too.
+            let fell = max(1, min(99, 100 - spot))
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .fumbleRecovered,
                     participants: participants,
-                    finalSpot: UInt8(max(1, min(99, 100 - spot))), clockRunoff: 5),
+                    finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
                 []
             )
         }
         credit(SlotLayout.returner, .returner, personnel, into: &participants)
+        let fell = max(1, min(99, spot))
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(max(1, min(99, spot))), clockRunoff: 5),
+                finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
             []
         )
     }
@@ -901,11 +920,12 @@ public struct CrudeResolver: PlayResolver {
                     foul: .illegalTouching, offender: toucher, offendingTeam: context.offense,
                     yards: 0, wasAccepted: false)
             }
+            let dead = max(1, min(99, landing + drift))
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
                     participants: participants, penalties: illegal.map { [$0] } ?? [],
-                    finalSpot: UInt8(max(1, min(99, landing + drift))), clockRunoff: 6),
+                    finalSpot: UInt8(dead), fieldedAt: Int8(dead), clockRunoff: 6),
                 []
             )
         }
@@ -921,7 +941,8 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .fairCatch, participants: participants,
-                    finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
+                    finalSpot: UInt8(max(1, min(99, landing))),
+                    fieldedAt: Int8(max(1, min(99, landing))), clockRunoff: 6),
                 []
             )
         }
@@ -942,12 +963,13 @@ public struct CrudeResolver: PlayResolver {
         let reached = run.scores ? 100 : run.spot
         blockBack?.enforcementSpot = UInt8(max(1, min(99, (landing + reached) / 2)))
 
+        let fielded = Int8(max(1, min(99, landing)))
         if run.scores {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
                     penalties: blockBack.map { [$0] } ?? [],
-                    finalSpot: 100, clockRunoff: 12),
+                    finalSpot: 100, fieldedAt: fielded, clockRunoff: 12),
                 decisions
             )
         }
@@ -955,13 +977,14 @@ public struct CrudeResolver: PlayResolver {
             Outcome(
                 kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
                 penalties: blockBack.map { [$0] } ?? [],
-                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: 8),
+                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: fielded,
+                clockRunoff: 8),
             decisions
         )
     }
 
     private func kick(
-        _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
+        _ concept: PlayConcept, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         if let foul = Penalties.onKick(
@@ -989,7 +1012,7 @@ public struct CrudeResolver: PlayResolver {
         // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
         // these modules link without libm, and `Tools/playsize` is the guard that proves it.
         let carry = Conditions.kickingAdjustment(
-            situation.weather, altitudeFeet: context.altitudeFeet)
+            context.weather, altitudeFeet: context.altitudeFeet)
         let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
         var chance: Double
         if length <= 30 {
@@ -1003,19 +1026,19 @@ public struct CrudeResolver: PlayResolver {
         // hard to block, and the sport converts it at a better rate than a field goal of
         // the same length. Running it through the field-goal curve unmodified is what
         // made extra points a coin-flip-adjacent 85%.
-        if family == .extraPoint { chance += 0.025 }
+        if concept == .extraPoint { chance += 0.025 }
         // Centred on an average leg, so the curve above *is* the league average rather
         // than a floor everybody beats.
         chance += (accuracy - 68) * 0.004
-        if situation.weather.precipitation != .none { chance -= 0.03 }
+        if context.weather.precipitation != .none { chance -= 0.03 }
 
         let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
         return (
             Outcome(
-                kind: family == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
+                kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
                 endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
                 participants: participation(for: SlotLayout.specialist, personnel, role: .kicker),
-                clockRunoff: family == .extraPoint ? 0 : 5),
+                clockRunoff: concept == .extraPoint ? 0 : 5),
             []
         )
     }
@@ -1029,8 +1052,8 @@ public struct CrudeResolver: PlayResolver {
         let accuracyKey: RatingKey
     }
 
-    private func routeDepth(_ family: PlayFamily) -> RouteDepth {
-        switch family {
+    private func routeDepth(_ concept: PlayConcept) -> RouteDepth {
+        switch concept {
         case .screen:
             return RouteDepth(
                 yards: -1, timeMillis: 1_400, flightTicks: 3, accuracyKey: .throwAccuracyShort)

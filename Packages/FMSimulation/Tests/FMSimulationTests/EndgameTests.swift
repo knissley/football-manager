@@ -32,14 +32,14 @@ struct EndgameTests {
             offenseTimeouts: offenseTimeouts, defenseTimeouts: defenseTimeouts)
     }
 
-    private func family(
+    private func concept(
         _ situation: Situation, clockRunning: Bool = true, seed: UInt64 = 1
-    ) -> PlayFamily? {
+    ) -> PlayConcept {
         var random = SplittableRandom(seed: seed)
         let call = caller.offensiveCall(
             for: situation, classified: SituationClass(situation),
             context: context(clockRunning: clockRunning), random: &random)
-        return CrudePlaybook.family(of: call.design)
+        return call.concept
     }
 
     // MARK: - Victory formation
@@ -50,7 +50,7 @@ struct EndgameTests {
     func kneelsWhenTheClockCanBeBurned() {
         let safe = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(safe) == .kneel)
+        #expect(concept(safe) == .kneel)
     }
 
     /// Kneeling a play too early hands the ball back. Timeouts are exactly what buys the
@@ -59,30 +59,31 @@ struct EndgameTests {
     func timeoutsPreventKneeling() {
         let withTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 3)
-        #expect(family(withTimeouts) != .kneel, "three timeouts can still get the ball back")
+        #expect(concept(withTimeouts) != .kneel, "three timeouts can still get the ball back")
 
         let noTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(noTimeouts) == .kneel)
+        #expect(concept(noTimeouts) == .kneel)
     }
 
     @Test("A team that is behind or level never kneels", .tags(.unit))
     func neverKneelsWhenItCannotAfford() {
-        #expect(family(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
-        #expect(family(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
     }
 
     @Test("Nobody kneels in the first quarter", .tags(.unit))
     func neverKneelsEarly() {
         #expect(
-            family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
+            concept(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0))
+                != .kneel)
     }
 
     /// Kneeling on fourth down is a turnover on downs, not a way to end a game.
     @Test("Fourth down is not a kneel", .tags(.unit))
     func neverKneelsOnFourth() {
         #expect(
-            family(
+            concept(
                 situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0)
             ) != .kneel)
     }
@@ -95,14 +96,14 @@ struct EndgameTests {
     func spikesWithNoTimeouts() {
         let racing = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(racing, clockRunning: true) == .spike)
+        #expect(concept(racing, clockRunning: true) == .spike)
     }
 
     @Test("A team with a timeout uses it rather than burning a down", .tags(.unit))
     func doesNotSpikeWithTimeouts() {
         let hasTimeouts = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 2)
-        #expect(family(hasTimeouts, clockRunning: true) != .spike)
+        #expect(concept(hasTimeouts, clockRunning: true) != .spike)
     }
 
     /// Spiking on a stopped clock wastes a down for nothing.
@@ -110,14 +111,14 @@ struct EndgameTests {
     func doesNotSpikeOnAStoppedClock() {
         let stopped = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(stopped, clockRunning: false) != .spike)
+        #expect(concept(stopped, clockRunning: false) != .spike)
     }
 
     @Test("A spike on fourth down is a turnover with extra steps", .tags(.unit))
     func neverSpikesOnFourth() {
         let fourth = situation(
             down: .fourth, quarter: 4, clock: 20, differential: -4, offenseTimeouts: 0)
-        #expect(family(fourth, clockRunning: true) != .spike)
+        #expect(concept(fourth, clockRunning: true) != .spike)
     }
 
     // MARK: - Timeouts

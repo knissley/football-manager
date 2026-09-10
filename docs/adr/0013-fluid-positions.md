@@ -173,8 +173,8 @@ not be asked of the stream. The query that development-follows-snaps reads is th
 on-field record ([#21](https://github.com/knissley/football-manager/issues/21),
 [play-record.md](../play-record.md)): `PlayRecord.onField`, twenty-two roster indices in
 slot order into `GameResult.rosters`, and `snapCounts(rosters:)` over a game's plays.
-Credits stay sparse; presence is its own fact. This paragraph is written against that
-record as pushed on `fix/wave2-b-record`, ahead of its merge.
+Credits stay sparse; presence is its own fact. That record is on the tree, and these are
+the names it landed under.
 
 **Nothing requires a fullback.** The decision says legality "permits one back, five
 linemen and any mix of tight ends and receivers — and no fullback ever", which misstates

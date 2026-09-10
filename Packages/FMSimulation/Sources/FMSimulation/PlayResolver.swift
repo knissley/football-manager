@@ -26,8 +26,9 @@ public struct PlayContext: Sendable {
     /// Thin air carries a kick. Generated for every stadium since the world existed, and
     /// until now it reached no game.
     public let altitudeFeet: Int16
-    /// The conditions. On the context as well as the situation because facts about the
-    /// afternoon belong to the game, not to the down.
+    /// The conditions. On the context and not on the situation, because facts about the
+    /// afternoon belong to the game, not to the down: the game's result carries them once
+    /// for whoever reads the stream, and this is where the resolver reads them.
     public let weather: WeatherState
     public let offenseIsHome: Bool
     /// Whether the clock is running into this snap.
@@ -146,12 +147,16 @@ public protocol PlayResolver: Sendable {
     /// - Parameters:
     ///   - situation: the state before the ball is snapped.
     ///   - calls: what each side chose.
-    ///   - context: who is on the field, and the rules in force.
+    ///   - onField: the twenty-two men standing there, by slot. Who plays is
+    ///     substitution, which the game decides and the record carries; the resolver
+    ///     is handed the eleven a side and asks nothing about who else was available.
+    ///   - context: the rotations, the rules in force, and the conditions.
     ///   - random: the play's own stream, already split from the game's seed.
     /// - Returns: the outcome and the decision points that explain it.
     func resolve(
         situation: Situation,
         calls: Calls,
+        onField: Lineup,
         context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint])

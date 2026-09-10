@@ -42,11 +42,11 @@ struct SituationTests {
 
     @Test("The two-minute drill covers the end of either half", .tags(.unit))
     func twoMinuteDrill() {
-        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill())
-        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill())
-        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill() == false)
-        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill() == false)
-        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill() == false)
+        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill(isPostseason: false))
+        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill(isPostseason: false))
+        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill(isPostseason: false) == false)
+        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill(isPostseason: false) == false)
+        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill(isPostseason: false) == false)
     }
 
     /// The half boundaries and the threshold come from the rules, so a variant moves
@@ -56,9 +56,51 @@ struct SituationTests {
         .tags(.unit))
     func twoMinuteDrillFollowsTheRules() {
         let variant = Rules(quarters: 2, twoMinuteWarning: 60)
-        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill(rules: variant))
-        #expect(situation(quarter: 1, clock: 61).isTwoMinuteDrill(rules: variant) == false)
-        #expect(situation(quarter: 2, clock: 30).isTwoMinuteDrill(rules: variant))
+        #expect(
+            situation(quarter: 1, clock: 60).isTwoMinuteDrill(rules: variant, isPostseason: false))
+        #expect(
+            situation(quarter: 1, clock: 61).isTwoMinuteDrill(rules: variant, isPostseason: false)
+                == false)
+        #expect(
+            situation(quarter: 2, clock: 30).isTwoMinuteDrill(rules: variant, isPostseason: false))
+    }
+
+    /// The drill is the clock's own reading of where a half ends. Overtime is where the
+    /// two used to disagree: the helper called every period past regulation a drill, and
+    /// a first postseason overtime period is timed as a first quarter.
+    @Test(
+        "contract · Situation.isTwoMinuteDrill reads Rules.periodTiming: true exactly where the period ends a half and the clock is inside the warning, in the postseason as in the regular season",
+        .tags(.contract))
+    func twoMinuteDrillReadsThePeriodTiming() {
+        let rules = Rules.standard
+        for isPostseason in [false, true] {
+            for quarter in UInt8(1)...12 {
+                let endsAHalf =
+                    rules.periodTiming(quarter: quarter, isPostseason: isPostseason)
+                    != .firstOrThird
+                #expect(
+                    situation(quarter: quarter, clock: 120).isTwoMinuteDrill(
+                        isPostseason: isPostseason) == endsAHalf,
+                    "period \(quarter), postseason \(isPostseason)")
+                #expect(
+                    situation(quarter: quarter, clock: 121).isTwoMinuteDrill(
+                        isPostseason: isPostseason) == false,
+                    "period \(quarter), postseason \(isPostseason): outside the warning")
+            }
+        }
+        // The rows the old reading got wrong, and the one it got right by accident.
+        #expect(
+            situation(quarter: 5, clock: 90).isTwoMinuteDrill(isPostseason: true) == false,
+            "a first postseason overtime period is a first period (16-1-4-h)")
+        #expect(
+            situation(quarter: 7, clock: 90).isTwoMinuteDrill(isPostseason: true) == false,
+            "and so is a third")
+        #expect(
+            situation(quarter: 6, clock: 90).isTwoMinuteDrill(isPostseason: true),
+            "a second ends as the first half does")
+        #expect(
+            situation(quarter: 5, clock: 90).isTwoMinuteDrill(isPostseason: false),
+            "regular-season overtime is timed as the fourth quarter (16-1-3-e)")
     }
 
     @Test("Obvious passing downs are late and long", .tags(.unit))
@@ -87,6 +129,16 @@ struct SituationTests {
     func doubleOvertimeIsValid() {
         #expect(situation(quarter: 6, clock: 900).isValid)
         #expect(situation(quarter: 7, clock: 400).isValid)
+    }
+
+    /// A situation is the down and not the afternoon. The weather is a fact about the
+    /// game, carried once on `GameResult` and read by the resolver from its context;
+    /// carrying it on every one of a hundred and fifty situations a game cost six bytes a
+    /// play for a field nothing that reads a situation ever looked at. The figure here is
+    /// the one the sizing table in docs/play-record.md quotes.
+    @Test("A situation is twenty-three bytes: the down, not the afternoon", .tags(.contract))
+    func situationSize() {
+        #expect(MemoryLayout<Situation>.size == 23)
     }
 
     @Test("Downs advance and run out", .tags(.unit))
@@ -336,7 +388,7 @@ struct PlayRecordTests {
                 quarter: 2, clockRemaining: 480, down: down,
                 distance: distance, ballOn: ballOn, possession: TeamID(1)),
             calls: Calls(
-                offense: OffensiveCall(design: PlayDesignID(100)),
+                offense: OffensiveCall(concept: .mediumPass),
                 defense: .nickelTwoMan,
                 offensiveCaller: .coordinator(PersonnelID(9)),
                 defensiveCaller: .coordinator(PersonnelID(10))),
@@ -400,8 +452,40 @@ struct PlayRecordTests {
     func callsAreCapturedByValue() {
         let play = record()
         #expect(play.calls.defense.coverage == .twoMan)
-        #expect(play.calls.offense.design == PlayDesignID(100))
+        #expect(play.calls.offense.concept == .mediumPass)
         #expect(play.calls.offense.tempo == .normal)
+        // The design is a reference into a playbook that does not exist until M6, and
+        // nothing invents one: a record that named a design nobody authored would be
+        // pointing at a playbook entry that could never be shown.
+        #expect(play.calls.offense.design == nil)
+    }
+
+    /// Old events must still fold correctly, which starts with an event saying which
+    /// shape it is. The version is on every record, and the first shape is 1.
+    @Test("A record carries the schema version it was written under", .tags(.contract))
+    func recordIsVersioned() {
+        #expect(PlayRecord.currentSchemaVersion == 1)
+        #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
+    }
+
+    /// A concept's kind is what a snap of it produces when no flag wipes it out.
+    @Test("Every concept names the kind of play it produces", .tags(.unit))
+    func conceptKinds() {
+        #expect(PlayConcept.insideRun.kind == .rush)
+        #expect(PlayConcept.outsideRun.kind == .rush)
+        #expect(PlayConcept.screen.kind == .pass)
+        #expect(PlayConcept.playAction.kind == .pass)
+        #expect(PlayConcept.punt.kind == .punt)
+        #expect(PlayConcept.fieldGoal.kind == .fieldGoal)
+        #expect(PlayConcept.kickoff.kind == .kickoff)
+        #expect(PlayConcept.onsideKick.kind == .kickoff)
+        #expect(PlayConcept.extraPoint.kind == .extraPoint)
+        #expect(PlayConcept.twoPointConversion.kind == .twoPointConversion)
+        #expect(PlayConcept.kneel.kind == .kneel)
+        #expect(PlayConcept.spike.kind == .spike)
+        #expect(PlayConcept.scrimmage.allSatisfy { $0.isRun || $0.isPass })
+        #expect(PlayConcept.twoPointConversion.isPass)
+        #expect(PlayConcept.punt.isRun == false && PlayConcept.punt.isPass == false)
     }
 
     /// The call selects the package and the situation observes it, so the two must
@@ -416,6 +500,43 @@ struct PlayRecordTests {
     @Test("Kicks are not first downs regardless of yardage", .tags(.unit))
     func kicks() {
         #expect(record(yards: 45, kind: .punt).gainedFirstDown == false)
+    }
+
+    /// A completion is what the record says it is, not what the yardage implies: a ball
+    /// caught behind the line is complete, and a pass with no result is not a completion
+    /// however far it went.
+    @Test("A completion is a fact of the outcome, not an inference from the yards", .tags(.unit))
+    func completionIsAFact() {
+        var caughtForALoss = record(yards: -3)
+        caughtForALoss.outcome.passResult = .complete
+        #expect(caughtForALoss.isCompletion)
+
+        var thrownAway = record(yards: 0, endedIn: .incomplete)
+        thrownAway.outcome.passResult = .incomplete
+        #expect(thrownAway.isCompletion == false)
+
+        var picked = record(yards: 0, endedIn: .intercepted)
+        picked.outcome.passResult = .intercepted
+        #expect(picked.isCompletion == false)
+
+        #expect(record(yards: 12).outcome.passResult == nil, "a result nobody wrote")
+        #expect(record(yards: 12).isCompletion == false)
+        #expect(record(yards: 12, kind: .rush).outcome.passResult == nil)
+    }
+
+    /// The points are on the record, with who scored them, so a scoreboard is a sum.
+    @Test(
+        "An outcome carries its points and its scoring kind, and defaults to neither", .tags(.unit))
+    func pointsAreOnTheRecord() {
+        let play = record()
+        #expect(play.outcome.pointsScored == 0)
+        #expect(play.outcome.scoring == nil)
+
+        var scored = record(yards: 45, endedIn: .touchdown)
+        scored.outcome.pointsScored = 6
+        scored.outcome.scoring = .touchdown
+        #expect(scored.outcome.pointsScored == 6)
+        #expect(scored.outcome.scoring == .touchdown)
     }
 
     @Test("Decisions are filterable by kind", .tags(.unit))

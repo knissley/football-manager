@@ -75,27 +75,51 @@ Taken on the merge of wave 1, at 717 tests.
 | simharness | 0 — 0.0% | 9 — 75.0% | 3 — 25.0% | 0 | 12 |
 | **all** | **87 — 12.1%** | **155 — 21.6%** | **471 — 65.7%** | **4** | **717** |
 
-A sixth target has joined the census since: `gamelog`, whose two tests landed with #87
-and are not in the table above, which is left as it was taken.
+A sixth target has joined the census since: `gamelog`, which was not in the table above,
+and the table is left as it was taken.
 
 The estimate this rule was written from was "roughly 85% checking that the code does what
 the code does, about 10% the engine's own contracts, perhaps 5% the sport" — read off the
 suite by hand, because nothing measured it. Measured, and after wave 1 added the
-fifty-five-scenario rules-conformance suite, it is 65.7%, 21.6% and 12.1%. How much of
+fifty-five-scenario rules-conformance suite, it was 65.7%, 21.6% and 12.1%. How much of
 that move is wave 1 and how much is the estimate being an estimate has not been measured:
 the tags do not exist on the pre-wave-1 tree, so the census cannot be taken there.
+
+## The census as it stands
+
+Taken on wave 2's record and ratings tracks, at 852 tests. `./scripts/test-census.sh`
+reprints it; if this table and that output disagree, the output is right and this table is
+stale.
+
+| target | football | contract | unit | pin | total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
+| FMCore | 40 — 11.2% | 31 — 8.7% | 284 — 79.3% | 3 | 358 |
+| FMGeneration | 1 — 0.5% | 94 — 45.9% | 110 — 53.7% | 0 | 205 |
+| FMSimulation | 91 — 38.1% | 80 — 33.5% | 63 — 26.4% | 5 | 239 |
+| simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
+| gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
+| **all** | **132 — 15.5%** | **222 — 26.1%** | **490 — 57.5%** | **8** | **852** |
+
+Nothing is untagged, in any target, which is the census's hard-failing condition.
 
 ### Where the football is, and is not
 
 The share that matters is not the tree's. It is the share **in the rules layer and in the
 resolver**, which is what CLAUDE.md asks to watch between milestones.
 
+The areas are sums over named suites of the census above, so the grouping can be checked
+against `./scripts/test-census.sh` rather than taken on trust. The rules layer is *Down
+and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
+forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement* and *Tries and
+touchbacks*; the resolver is *Crude resolver* and *Contest curve*.
+
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 25 — 30.5% | 4 | 52 | 1 | 82 |
-| Rules conformance — the scripted games (FMSimulation) | 54 — 98.2% | 0 | 0 | 1 | 55 |
+| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
+| Rules conformance — the scripted games (FMSimulation) | 86 — 97.7% | 0 | 0 | 2 | 88 |
 | The resolver — `CrudeResolver` and the contest curve (FMSimulation) | 0 — 0.0% | 10 | 6 | 0 | 16 |
-| Generation (FMGeneration) | 0 — 0.0% | 66 | 107 | 0 | 173 |
+| Generation (FMGeneration) | 1 — 0.5% | 94 | 110 | 0 | 205 |
 
 Three findings come straight off that table.
 
@@ -109,7 +133,7 @@ that a run lands inside one. A row going `OFF` in CI is reporting, not a failure
 `0.0%` in that row is honest about the suite and unfair to the harness, and both halves
 of that sentence are worth remembering.
 
-**Fifty-two of the rules layer's eighty-two tests are `.unit`, and many of them are
+**Fifty-four of the rules layer's ninety-eight tests are `.unit`, and many of them are
 football claims with no citation.** Three suites are the clearest: `Tries and touchbacks`
 (11 of 11 — what an extra point is worth, where a kickoff touchback is spotted), the
 uncited fourteen of `Down and possession advancement`, and five of `Clock stoppage`.
@@ -121,8 +145,8 @@ the untagged-test problem this issue set out to fix.
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
 FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
-the census above, and 44.2% — 87 of 197 — as this paragraph is written. Nearly `0.0%`
-football is the right answer there, not a gap.
+the first census, and 44.2% — 87 of 197 — now. Nearly `0.0%` football is the right answer
+there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be
 made up like a real one.** [#67](https://github.com/knissley/football-manager/issues/67)
