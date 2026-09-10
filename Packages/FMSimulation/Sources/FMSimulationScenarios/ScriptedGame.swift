@@ -149,11 +149,11 @@ extension Snap {
     /// offence's frame, with a flag on the defence during the down.
     ///
     /// Where possession was lost is on the record because every takeaway carries it, not
-    /// because the flag is enforced from there: until a forward pass from behind the
-    /// line is over, a flag on either side comes off the previous spot
-    /// (2025 rulebook, 14-4-5). The record says nothing about *when* in the down a flag
-    /// flew, so this is one scripted play and not two: a foul before the catch and a foul
-    /// by the intercepting team on its own return are the same record.
+    /// because the flag is enforced from there: until a forward pass from behind the line
+    /// is over, a flag on either side comes off the previous spot (2025 rulebook, 14-4-5).
+    /// The record says nothing about *when* in the down a flag flew, so this is one
+    /// scripted play and not two: a foul before the catch and a foul by the intercepting
+    /// team on its own return are the same record.
     public func interception(
         caught depth: UInt8, returnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 8
     ) -> Outcome {

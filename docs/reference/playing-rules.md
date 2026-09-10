@@ -392,17 +392,17 @@ below are what it is held to.
   stays; a foul at the snap from the previous spot, and the down is repeated. —
   `test:preSnapKillsThePlay`, `test:falseStartAtTheOwnThreeIsHalfTheDistance`
 - **14-4-3** — When a **run** with a foul in it ends in a change of possession, the spot
-  possession went is the basic spot and the three-and-one method applies: a
-  defensive foul gives the ball back to the offence before enforcement (**14-4-3-a**); an
-  offensive foul must be declined by the defence to keep the ball, unless it was a personal
-  or unsportsmanlike foul (**14-4-3-b**), in which case the defence keeps the ball and the
+  possession went is the basic spot and the three-and-one method applies: a defensive foul
+  gives the ball back to the offence before enforcement (**14-4-3-a**); an offensive foul
+  must be declined by the defence to keep the ball, unless it was a personal or
+  unsportsmanlike foul (**14-4-3-b**), in which case the defence keeps the ball and the
   foul is enforced from the dead-ball spot. — `test:facemaskByTheFormerOffenseOnAReturn`,
   `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`
-- **14-4-5** — Until a forward pass from behind the line is over, a
-  flag on either side comes off the previous spot, and the down turns into a running play
-  only once somebody catches the ball. So a defensive personal foul
-  *before* an interception is enforced from the previous spot and not from the catch, and
-  the offence keeps the ball there. The same sentence is Rule 8's, as **8-6-1**. —
+- **14-4-5** — Until a forward pass from behind the line is over, a flag on either side
+  comes off the previous spot, and the down turns into a running play only once somebody
+  catches the ball. So a defensive personal foul *before* an interception is enforced from
+  the previous spot and not from the catch, and the offence keeps the ball there. The same
+  sentence is Rule 8's, as **8-6-1**. —
   `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**: the
   record carries no time within a down, so a foul by the intercepting team on its own
   return is indistinguishable from one before the catch and is enforced as the latter,
