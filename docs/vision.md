@@ -1,5 +1,10 @@
 # Vision
 
+**Status: designed.** This is the product being aimed at, and none of it is a
+description of what runs today. The engine exists in crude form and there is no app; see
+[roadmap.md](roadmap.md) for what is built and [CLAUDE.md](../CLAUDE.md) for the current
+state.
+
 ## The pitch
 
 You take a head coach and general manager job with a franchise that needs rebuilding.

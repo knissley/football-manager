@@ -1,5 +1,10 @@
 # Design decisions
 
+**Status: designed.** A register of what was *decided*, not of what is *built*. A row
+here means the question is settled and nobody should re-litigate it; it says nothing
+about whether code exists. Decisions the September 2026 audit reopened carry the issue
+that reopens them.
+
 The settled answers that the rest of the docs encode. Recorded 2026-09-08 across five
 rounds of scoping. Anything not listed here is still open.
 
@@ -219,7 +224,7 @@ See [penalties.md](penalties.md).
 | 113 | **Twelve men is a substitution failure against tempo** | Makes hurry-up a genuine weapon rather than only a clock tactic |
 | 114 | **Hard Count is a two-sided trait** | Draws opponent offside, raises your own false-start and delay risk |
 | 115 | **Drawing fouls is a by-product of winning matchups** | No trait reaches across to modify an opponent's rate; a beaten defender holds because he is losing |
-| 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because |ΔWP| is enormous |
+| 116 | **The engine never reads leverage** | A flag is not likelier in January. It is equally likely and simply matters more, and the analysis layer surfaces it because \|ΔWP\| is enormous |
 | 117 | **Accept/decline is yours while calling plays, your coordinator's otherwise** | Both branches compared on win probability, so the better option is always known and explicable |
 | 118 | **`OfficiatingProfile` is the contract; crews are a generator over it** | Walking back named officials means deleting a generator, not unpicking a feature |
 | 119 | **Thirty-three fouls, with pass interference the only spot foul** | Sounds like a broadcast rather than a rulebook subset, and each one has real enforcement. **Reopened by [#18](https://github.com/knissley/football-manager/issues/18) and [#38](https://github.com/knissley/football-manager/issues/38):** `Rules.enforcedAdvancement` measures every foul from the previous spot, so the contact family (facemask, roughing, horse collar, helmet) has no real enforcement and interference is not in fact the only spot foul; interference itself is drawn per read in the coverage loop, before the quarterback has thrown |

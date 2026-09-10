@@ -1,5 +1,12 @@
 # AI play calling
 
+**Status: partly built, sections marked.** A baseline caller runs both sides of the ball
+today: it keys off `SituationClass`, picks personnel and packages, decides fourth downs
+on a chart, spends timeouts, spikes and kneels. It is deliberately the *floor*, and it is
+the same caller for all thirty-two teams. **The coordinator half is not built** — no
+opponent model, no tendencies, no adaptation, no gameplan constraints, no coordinator
+ratings, and no benchmark. Those sections are labelled `Designed, not built`.
+
 Both sides of the ball. Every heading below that says "coordinator" applies to the
 offensive and defensive coordinator alike unless it says otherwise; where the two
 genuinely differ, the [defensive section](#the-defensive-coordinator) says how.
@@ -28,11 +35,20 @@ PlayCaller
    PlayCall              play + personnel + tempo
 ```
 
+*Designed, not built:* of those five, only the call exists — as `OffensiveCall` and
+`DefensiveCall`, which carry tempo and the defensive package; the offence's personnel
+group is on `Situation`, not on the call. `Gameplan`, `CoordinatorProfile`,
+`OpponentModel` and `GameContext` are none of them types; the sections below say what
+each is waiting on. What runs today is a baseline caller that reads the situation and
+nothing else.
+
 This turns the project's biggest technical risk into a mechanic. A great coordinator
 makes simming ahead safe; a bad one is a reason to take the wheel yourself — and a
 reason to go hire someone better in the offseason.
 
 ### Gameplan is constraints, not commands
+
+**Designed, not built.** There is no `Gameplan` type; see [gameplan.md](gameplan.md).
 
 Designed in full in [gameplan.md](gameplan.md). You never hand him a script. You set the
 room he operates in:
@@ -48,6 +64,9 @@ A good coordinator uses the room well. A bad one wastes it, or drifts to its edg
 "Overriding his tendencies" means tightening the guardrails until he has no choice.
 
 ### What makes a coordinator good
+
+**Designed, not built.** Coordinator identity is two hardcoded `PersonnelID`s, the same
+pair for every team in the league, so every team calls plays identically.
 
 The critical rule, and the one that keeps the engine honest:
 
@@ -136,6 +155,10 @@ that needs a new case per call.
 
 ### Every call gives something up
 
+**Designed, not built.** `CallVulnerability` exists in `FMCore` and nothing in
+`FMSimulation` reads it — the resolver never asks what a call concedes. It wants the
+spatial engine before a soft spot can honestly be soft.
+
 `CallVulnerability` has **no `none` case**, and that is the design. Cover 3 concedes the
 seams. A zone blitz concedes the hot throw. Man concedes crossers. Prevent concedes the
 run and everything underneath — *on purpose*, which is why the analysis layer needs to
@@ -147,6 +170,10 @@ what gives the interrogation layer something true to say about why a play worked
 
 ### The two-minute drill from the other chair
 
+**Designed, not built.** `isTwoMinuteSound` exists on the call in `FMCore` and no caller
+consults it; there is no `situational` coordinator rating to reach for the wrong call
+under pressure either.
+
 The scenario the shared vocabulary exists to serve: the opponent is driving to tie, and
 you are picking calls against a clock that is working for you. `isTwoMinuteSound` —
 enough deep help that the sideline throw is the only cheap one, and a rush that does not
@@ -157,6 +184,10 @@ Watching that unfold, with the reasoning legible, is the same product as watchin
 own drive. Defense is not the half you skip.
 
 ## The opponent model
+
+**Designed, not built.** The baseline caller has no memory of the game it is in, let
+alone of an opponent. Nothing builds a tendency table, and no `PlayRecord` history is
+read back into a call.
 
 Each coordinator carries his own belief about the other team, built from what he could
 actually have observed.
@@ -195,6 +226,12 @@ layer can say plainly *they were sitting on your screen game and you called four
 
 ## What each side knows pre-snap
 
+**Designed, not built.** The information rule is the commitment; the machinery is not
+here. No tendency model exists to make a prediction from — see
+[the opponent model](#the-opponent-model) — and neither caller reads formation, personnel
+or motion off the other. What *is* true today is the half that costs nothing: neither
+side is shown the other's call.
+
 The defense reads **formation, personnel, and motion** — everything physically
 observable — plus **its tendency model's prediction** for this situation from this look.
 
@@ -213,6 +250,12 @@ eat you, and the interrogation layer will tell you exactly why.
 
 ## Replay: snapshot the model
 
+**Designed, not built.** `GameSetup` carries the game, the two teams, the players, the
+stadium, the weather, the rules, the seed and whether it is postseason — and no model
+snapshot, because there is no model to snapshot. This section is the constraint the
+replay format has to satisfy once one exists, and it is recorded now precisely because
+retrofitting it would mean reworking the replay format after things depend on it.
+
 A subtle trap. The opponent model derives from prior games, so replaying game *N*
 would need the model as it stood then — which derives from games 1…*N*−1, which would
 have to be replayed first. Replaying one game would cascade through a whole season.
@@ -225,6 +268,10 @@ Worth building this way from the start; discovering it later means reworking the
 format after things depend on it.
 
 ## Benchmarking
+
+**Designed, not built.** There is no oracle, no benchmark harness and no measured caller
+quality. The baseline caller is the floor a real caller will be measured against, and
+nothing measures it yet.
 
 "Is the AI good enough?" has to be a measurement, not a vibe. Three tests, all run
 headless in `Tools/simharness`:

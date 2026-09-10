@@ -46,9 +46,7 @@ simulation, opt-in trajectory capture.
   deadline, and because the alternatives don't deliver the hook.
 - Performance stops being a later concern. A naive implementation — classes, per-tick
   object churn, dictionaries, logging strings — is roughly 100× too slow, and fixing it
-  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark —
-  *not yet true: the Linux workflow runs the suites and the lints, and has no benchmark
-  step, so nothing measures the budget today.*
+  is a rewrite rather than a tuning pass. The budget is enforced by a CI benchmark.
 - Floating-point determinism across architectures becomes a real risk rather than a
   theoretical one, because errors compound over thousands of ticks. Golden tests run on
   both arm64 and x86_64.
@@ -68,3 +66,26 @@ a sensible compromise. Rejected because hybrid engines tend to get the worst of 
 and the seam would be visible exactly where players look hardest. It also wouldn't
 reduce the hard part: once you have a tick loop and entities, the remaining play types
 are incremental.
+
+## Amendment 2026-09-10 — no CI benchmark enforces the budget
+
+The consequence above says the budget "is enforced by a CI benchmark." It is not, and it
+never has been. This is an amendment under the rule in [README.md](README.md) rather than
+an edit to the body, which is left as it was written.
+
+There is **no benchmark target and no CI step that fails on a timing regression, and
+nothing gates on the budget**. [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+runs the four suites, `FMRandom` again in release, the format lint,
+`scripts/lint-sim.sh`, `playsize` and a `worldgen` build on both x86_64 and arm64, and
+reports the calibration harness without gating on it. Issue H3 (#9) adds a
+milliseconds-per-game row to `simharness` and puts it in the job summary: a number to
+read, not a gate.
+
+There is also less to measure than the budget describes: the tick loop is M5 work and no
+season loop exists to run in sixty seconds, so what gets timed is a game at the crude
+resolver's speed rather than a season at the spatial engine's.
+
+The decision is unchanged — the budget is still architectural, and the hot-loop rules
+still bind whoever writes the tick loop. What is corrected is the enforcement: the budget
+is a number somebody has to read, not a check that fails. Making it gate a merge is a
+separate, later decision.

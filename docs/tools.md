@@ -1,5 +1,8 @@
 # Tools
 
+**Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
+`playsize`, `simharness`, `gamelog` and `scripts/lint-sim.sh`. Nothing here is a plan.
+
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
 for a command and read the output.
@@ -124,9 +127,18 @@ a league with badly-fitted rosters in it rather than a league of perfectly-fitte
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than
-emergent properties. Rows that depend on the *shape* of the yardage distribution rather
-than its mean are harder, and the spread of team win totals is not measurable at all
-until a schedule exists in M3.
+emergent properties.
+
+It measures far more than the parametric rows: where the points come from, how drives
+end and start, the shape of the carry and dropback distributions rather than their means,
+field goals by distance, red zone conversion, personnel and package shares, fourth-down
+behaviour, penalties by foul, injuries, the endgame, and the weather and home-road
+splits. One row in [the calibration table](match-engine.md#calibration) has no value at
+all — the spread of team win totals, which needs a season with a schedule and arrives
+with M3; it prints under **Not measured here** so the row cannot be quietly forgotten.
+
+The weather and rare-event rows need `--games 1000`; at 400 there are only twenty-odd
+heavy-rain games and the row is noise.
 
 The output is byte-identical across processes for a given seed and game count, so the
 before-and-after comparison every engine fix depends on is a plain `diff`. A line that
@@ -190,6 +202,7 @@ thirty seconds of this output, which is why it exists.
 swift test --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
+swift test --package-path Packages/FMSimulation      # ~45s; the engine's own suite
 swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
 
 # Integer maths must agree between debug and release
@@ -268,9 +281,12 @@ hard-failing step.
 ## Formatting
 
 ```bash
-swift format lint --recursive --parallel Packages/ Tools/     # before committing
+swift format lint --strict --recursive --parallel Packages/ Tools/   # before committing
 swift format --in-place --recursive --parallel Packages/ Tools/
 ```
+
+`--strict` is not optional: without it `swift format lint` prints its findings and still
+exits 0, so a script that trusts the exit code passes while CI fails.
 
 ## Getting a toolchain
 
