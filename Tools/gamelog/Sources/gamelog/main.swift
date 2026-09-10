@@ -20,6 +20,7 @@ import FMCore
 import FMGeneration
 import FMRandom
 import FMSimulation
+import FMSimulationScenarios
 
 #if canImport(Glibc)
 import Glibc
@@ -34,6 +35,7 @@ var homeIndex = 0
 var awayIndex = 1
 var week = 1
 var season = 2030
+var scenarioName: String?
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
@@ -43,6 +45,7 @@ while let argument = arguments.next() {
     case "--away": awayIndex = Int(arguments.next() ?? "") ?? awayIndex
     case "--week": week = Int(arguments.next() ?? "") ?? week
     case "--season": season = Int(arguments.next() ?? "") ?? season
+    case "--scenario": scenarioName = arguments.next() ?? "list"
     case "--help", "-h":
         print(
             """
@@ -55,6 +58,11 @@ while let argument = arguments.next() {
                              (default 1)
               --season <n>   season the rosters are generated for (default 2030)
 
+              --scenario <name>   print one rules-conformance scenario instead of a
+                                  seeded game — the same games the engine's conformance
+                                  suite asserts on, through this same printer
+              --scenario list     name them all, with the football each one shows
+
             One line per play: quarter and clock, the offence, down and distance, field
             position, the concept, what happened and who did it, any flag and how it was
             enforced, and the score after anything that scored. A drive summary at each
@@ -65,6 +73,13 @@ while let argument = arguments.next() {
         print("unknown argument: \(argument) — try --help")
         exit(1)
     }
+}
+
+// A scenario is a whole game of its own, so it answers here and the seeded game below is
+// never built. Both end in the same `printPlayByPlay`.
+if let scenarioName {
+    printScenario(named: scenarioName)
+    exit(0)
 }
 
 // MARK: - The world
@@ -483,7 +498,10 @@ struct Broadcast {
         // fixed spot and neither can produce a second down.
         line += pad(isTry || isKickoff ? "" : downAndDistance(situation), 11)
         line += pad(ownOrOpponent(situation.ballOn), 10)
-        line += pad(concept(play.calls), 13)
+        // Fourteen, not thirteen: "two-point try" is thirteen characters exactly, and a
+        // conversion printed as `two-point tryconversion good` is the one play in the
+        // sport whose line nobody could read.
+        line += pad(concept(play.calls), 14)
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
@@ -825,31 +843,44 @@ struct Broadcast {
 
 // MARK: - Print it
 
+/// The column header, the play-by-play and the check that the scoreboard is the stream
+/// summed: everything a seeded game and a scripted scenario print the same way.
+///
+/// One printer, called from both, on purpose. A scenario shown through a printer of its
+/// own would be showing a reader something other than the game the conformance suite
+/// asserts on, and the whole point of `--scenario` is that those are the same game.
+func printPlayByPlay(
+    home: Team, away: Team, players: [PlayerID: Player], rules: Rules, result: GameResult
+) {
+    print(
+        padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11)
+            + pad("ball", 10) + pad("concept", 14) + "what happened")
+    print("")
+
+    var broadcast = Broadcast(home: home, away: away, players: players, rules: rules)
+    broadcast.run(result.plays)
+
+    // The scoreboard is the stream summed, and saying so out loud is cheap. If these two
+    // ever disagree the printer is wrong or the engine is, and either is worth knowing
+    // before anybody reads a conclusion off this log.
+    let derived = broadcast.scoreline()
+    let engine =
+        "\(away.identity.abbreviation) \(result.awayScore), "
+        + "\(home.identity.abbreviation) \(result.homeScore)"
+    if derived != engine {
+        print("")
+        print("  !! the stream sums to \(derived) and the engine reported \(engine)")
+    }
+    print("")
+    print("        \(result.plays.count) plays")
+}
+
 print("gamelog — seed \(seed), week \(week), season \(season)")
 print(
     "\(awayTeam.identity.fullName) (\(awayTeam.identity.abbreviation)) at "
         + "\(homeTeam.identity.fullName) (\(homeTeam.identity.abbreviation))")
 print("\(homeTeam.stadium.name) · \(weatherLine(weather))")
 print("")
-print(
-    padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11) + pad("ball", 10)
-        + pad("concept", 13) + "what happened")
-print("")
 
-var broadcast = Broadcast(
-    home: homeTeam, away: awayTeam, players: world.players, rules: setup.rules)
-broadcast.run(result.plays)
-
-// The scoreboard is the stream summed, and saying so out loud is cheap. If these two ever
-// disagree the printer is wrong or the engine is, and either is worth knowing before
-// anybody reads a conclusion off this log.
-let derived = broadcast.scoreline()
-let engine =
-    "\(awayTeam.identity.abbreviation) \(result.awayScore), "
-    + "\(homeTeam.identity.abbreviation) \(result.homeScore)"
-if derived != engine {
-    print("")
-    print("  !! the stream sums to \(derived) and the engine reported \(engine)")
-}
-print("")
-print("        \(result.plays.count) plays")
+printPlayByPlay(
+    home: homeTeam, away: awayTeam, players: world.players, rules: setup.rules, result: result)

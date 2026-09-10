@@ -1,4 +1,5 @@
 import FMCore
+import FMSimulationScenarios
 import Testing
 
 @testable import FMSimulation
@@ -71,7 +72,7 @@ struct TryTests {
         "football · Rule 11-3-3 Item 2, 7-4-2 · a false start on an extra point re-kicks from the 20, a 37-yard try"
     )
     func falseStartOnTheKickMovesItBack() {
-        let trace = RulesScenarios.falseStartOnATry.run()
+        let trace = RulesScenario.falseStartOnATry.run()
         guard let scorer = trace[1]?.situation.possession else {
             Issue.record("no first snap")
             return

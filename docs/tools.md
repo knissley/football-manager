@@ -202,6 +202,7 @@ matchup, any flag and how it was enforced, and the score after anything that sco
 drive summary at each change of possession and a scoreboard at the end of each period.
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
+`--scenario <name>`
 
 `--home` and `--away` are indices into the league at that seed, in identifier order, and
 the header names the two teams it picked. They agree with `worldgen` and `simharness`:
@@ -240,6 +241,52 @@ every snap of a drive, and whether a penalty leaves the ball where the rule puts
 Aggregates hid every rules bug the September audit found. Each of them is obvious in
 thirty seconds of this output, which is why it exists.
 
+### --scenario — watch a conformance scenario
+
+```bash
+cd Tools/gamelog && swift run gamelog --scenario list
+cd Tools/gamelog && swift run gamelog --scenario safety-free-kick
+```
+
+The rules-conformance scenarios are the acceptance language for the rules layer: each one
+is a game whose plays are dictated, so that what is left to watch is the clock, the downs,
+possession, scoring, enforcement and overtime. The suite in
+`Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift` asserts on
+them and prints a verdict; `--scenario` prints the game, so a rule can be *shown* to a
+person rather than described to him.
+
+It is the same game and the same printer. The scenario, its world, its caller and its seed
+all come from `FMSimulationScenarios`, the library the suite runs, so what a reader watches
+is what the suite asserts on, and the play-by-play is `printPlayByPlay` — the one a seeded
+game goes through.
+
+`--scenario list` names them all. The name is a slug (`safety-free-kick`) because a shell
+argument cannot be the test's own sentence; under each name the list prints what the suite
+asserts about it, verbatim — the football sentence and the rule it comes from — and the
+same lines head the game itself, so a reader knows what he is looking for before the first
+play goes by. Most scenarios play a *whole* game, and the moment the citation points at is
+usually a handful of plays: read the header, then find them.
+
+```bash
+# The rule the audit's S11 was about: the side scored upon free-kicks from its own 20.
+swift run gamelog --scenario safety-free-kick | head -20
+
+# S10: a touchdown as the fourth quarter expires gets its try, at 0:00 of that period.
+# Down six, the kick wins it and the game ends on the try, so the tail is short.
+swift run gamelog --scenario last-play-touchdown-down-six | tail -10
+
+# The same rule down seven, where the try levels it: the try is at 0:00 of the fourth
+# and a ten-minute overtime period follows, so the play-by-play runs on past it.
+swift run gamelog --scenario last-play-touchdown-down-seven | tail -40
+
+# And the other half of the same rule: a try that could not change the outcome is waived.
+swift run gamelog --scenario last-play-touchdown-down-two | tail -10
+```
+
+The men are not named in a scenario — a scripted outcome credits nobody, so the log says
+"the back" and "the kicker" — and the header says so. Everything else reads exactly as a
+seeded game does.
+
 ## Tests
 
 ```bash
@@ -256,6 +303,26 @@ swift test -c release --package-path Packages/FMRandom
 Every one of these is a hard-failing step of the `test` job in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
 `Tools/simharness` included, since #9, because nothing else compiles its tests.
+
+### The conformance scenarios are a library, not test support
+
+`FMSimulation` ships a second library, **`FMSimulationScenarios`**: the scripted games the
+rules-conformance suite runs — `Snap` and the outcome vocabulary, `ScriptedCaller`,
+`ScriptedGame`, the `Trace` a game produces, `ScenarioWorld`, and the scenarios themselves.
+It is a plain `FM*` module: no Swift Testing, no Foundation, and `scripts/lint-sim.sh`
+scans it like any other.
+
+It is a library rather than a test target so that a tool can link it, which is what
+`gamelog --scenario` does. What stays in `Packages/FMSimulation/Tests/` is the half only a
+test can hold: the assertions over a `Trace` (`expectPlay` and the rest, in
+`Scenarios/TraceAssertions.swift`) and the conformance suite itself.
+
+Every scenario the suite runs is a case of `RulesScenario`, and that enum is the only way
+to reach one — the scripts are internal to the library. So the list `--scenario list`
+prints is the list the suite runs, by construction rather than by upkeep, and
+`Scenarios/ScenarioLibraryTests.swift` pins the rest: that the listing names every
+scenario with the football it is there to show, that the printed name is the name the tool
+parses back, and that every scenario still runs.
 
 ## lint-sim — the determinism and purity lint
 

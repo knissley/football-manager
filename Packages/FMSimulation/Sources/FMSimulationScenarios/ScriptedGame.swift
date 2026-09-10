@@ -1,9 +1,7 @@
 import FMCore
 import FMRandom
+import FMSimulation
 import Synchronization
-import Testing
-
-@testable import FMSimulation
 
 // A game whose plays a scenario dictates, so that what is left to observe is the rules
 // layer: the clock, the downs, possession, scoring, enforcement and overtime.
@@ -14,8 +12,14 @@ import Testing
 // expires* — and never as an index into a script. Every play the scenario does not care
 // about honours the call it was given and changes nothing worth noticing.
 //
-// Nothing in here draws a random number. The world comes from `TestWorld` at a seed, and
-// the sim's own stream is never read, so a scenario replays identically every time.
+// Nothing in here draws a random number. The world comes from `ScenarioWorld` at a seed,
+// and the sim's own stream is never read, so a scenario replays identically every time.
+//
+// This is the *pure* half of the scenario machinery, and it is a library rather than test
+// support so that a tool can link it: `gamelog --scenario <name>` walks one of these
+// games through the same printer a seeded game goes through. The assertions over a
+// `Trace` — `expectPlay` and the rest — stay in the test target, which is the only place
+// that may import Swift Testing.
 
 // MARK: - One snap, as a scenario sees it
 
@@ -26,39 +30,39 @@ import Testing
 /// play before, and it is what every clock scenario asserts on. `previous` is the snap
 /// before this one and `huddle` the offence's measured tempo, for the scenarios that
 /// stage a play to end at a particular second.
-struct Snap: Sendable {
+public struct Snap: Sendable {
 
-    let index: Int
-    let situation: Situation
-    let calls: Calls
-    let offense: TeamID
-    let defense: TeamID
-    let clockIsRunning: Bool
-    let previous: Previous?
+    public let index: Int
+    public let situation: Situation
+    public let calls: Calls
+    public let offense: TeamID
+    public let defense: TeamID
+    public let clockIsRunning: Bool
+    public let previous: Previous?
 
     /// The snap before this one, and what the scenario made of it.
-    struct Previous: Sendable {
-        let situation: Situation
-        let outcome: Outcome
+    public struct Previous: Sendable {
+        public let situation: Situation
+        public let outcome: Outcome
     }
 
-    var quarter: UInt8 { situation.quarter }
-    var clock: UInt16 { situation.clockRemaining }
-    var down: Down { situation.down }
-    var distance: UInt8 { situation.distance }
-    var ballOn: UInt8 { situation.ballOn }
-    var possession: TeamID { situation.possession }
+    public var quarter: UInt8 { situation.quarter }
+    public var clock: UInt16 { situation.clockRemaining }
+    public var down: Down { situation.down }
+    public var distance: UInt8 { situation.distance }
+    public var ballOn: UInt8 { situation.ballOn }
+    public var possession: TeamID { situation.possession }
     /// The score from the possessing team's point of view.
-    var differential: Int16 { situation.scoreDifferential }
+    public var differential: Int16 { situation.scoreDifferential }
 
-    var family: PlayFamily? { CrudePlaybook.family(of: calls.offense.design) }
+    public var family: PlayFamily? { CrudePlaybook.family(of: calls.offense.design) }
 
-    var isScrimmage: Bool {
+    public var isScrimmage: Bool {
         guard let family else { return false }
         return PlayFamily.scrimmage.contains(family) || family == .kneel || family == .spike
     }
-    var isTry: Bool { family == .extraPoint || family == .twoPointConversion }
-    var isKickoff: Bool { family == .kickoff || family == .onsideKick }
+    public var isTry: Bool { family == .extraPoint || family == .twoPointConversion }
+    public var isKickoff: Bool { family == .kickoff || family == .onsideKick }
 
     /// The seconds the offence takes between the end of one play and the snap of the
     /// next when the clock is running — its tempo — measured from the plays so far rather
@@ -68,7 +72,7 @@ struct Snap: Sendable {
     /// charges the huddle at the snap, so a play snapped with the clock running ends at
     /// `clock - huddle - clockRunoff`. A scenario that needs a play to end at a particular
     /// second stretches its runoff by this.
-    let huddle: UInt16?
+    public let huddle: UInt16?
 }
 
 // MARK: - The vocabulary of scripted outcomes
@@ -76,7 +80,7 @@ struct Snap: Sendable {
 extension Snap {
 
     /// Honours the call and changes nothing worth noticing.
-    var neutral: Outcome {
+    public var neutral: Outcome {
         switch family {
         case .kickoff: return .kickoffTouchback
         case .onsideKick: return .onsideKick(lostAtOwn: 45)
@@ -95,32 +99,32 @@ extension Snap {
     }
 
     /// The ball carried into the end zone from wherever it was spotted.
-    func touchdown(seconds: UInt16 = 6) -> Outcome {
+    public func touchdown(seconds: UInt16 = 6) -> Outcome {
         Outcome(kind: .rush, yards: Int16(ballOn), endedIn: .touchdown, clockRunoff: seconds)
     }
 
     /// A touchdown on a play that runs the period's clock to zero.
-    func touchdownAsTimeExpires() -> Outcome {
+    public func touchdownAsTimeExpires() -> Outcome {
         Outcome(
             kind: .rush, yards: Int16(ballOn), endedIn: .touchdown, clockRunoff: max(1, clock))
     }
 
     /// The ball carrier tackled in his own end zone.
-    func safety(seconds: UInt16 = 5) -> Outcome {
+    public func safety(seconds: UInt16 = 5) -> Outcome {
         Outcome(
             kind: .sack, yards: -(100 - Int16(ballOn)), endedIn: .safety, clockRunoff: seconds)
     }
 
     /// A flag before the snap. No play happens; the record carries the foul and nothing
     /// else, which is the contract the crude resolver honours for the same event.
-    func preSnapFoul(_ foul: Foul) -> Outcome {
+    public func preSnapFoul(_ foul: Foul) -> Outcome {
         Outcome(
             kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
             penalties: [record(foul)], clockRunoff: 0)
     }
 
     /// A run that ends in a flag on the man who made the tackle, or on a blocker.
-    func rush(_ yards: Int16, foulBy foul: Foul, seconds: UInt16 = 6) -> Outcome {
+    public func rush(_ yards: Int16, foulBy foul: Foul, seconds: UInt16 = 6) -> Outcome {
         Outcome(
             kind: .rush, yards: yards, endedIn: .tackled, penalties: [record(foul)],
             clockRunoff: seconds)
@@ -130,7 +134,7 @@ extension Snap {
     /// the line of scrimmage. Interference is measured rather than fixed, and the
     /// resolver's contract carries the spot in the offence's frame, with zero meaning
     /// the end zone.
-    func incompletion(interferenceAt depth: UInt8, seconds: UInt16 = 5) -> Outcome {
+    public func incompletion(interferenceAt depth: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(
             kind: .pass, yards: 0, endedIn: .incomplete,
             penalties: [
@@ -156,7 +160,7 @@ extension Snap {
 extension Outcome {
 
     /// A carry, tackled in bounds unless told otherwise.
-    static func rush(
+    public static func rush(
         _ yards: Int16, seconds: UInt16 = 6, endedIn: PlayEnding = .tackled
     )
         -> Outcome
@@ -164,43 +168,43 @@ extension Outcome {
         Outcome(kind: .rush, yards: yards, endedIn: endedIn, clockRunoff: seconds)
     }
 
-    static func incompletion(seconds: UInt16 = 5) -> Outcome {
+    public static func incompletion(seconds: UInt16 = 5) -> Outcome {
         Outcome(kind: .pass, yards: 0, endedIn: .incomplete, clockRunoff: seconds)
     }
 
-    static let spike = Outcome(kind: .spike, yards: 0, endedIn: .incomplete, clockRunoff: 1)
+    public static let spike = Outcome(kind: .spike, yards: 0, endedIn: .incomplete, clockRunoff: 1)
 
     /// Picked off and returned to `spot`, in the throwing team's frame: 100 is the
     /// interceptor's own goal line crossed the other way, a touchdown.
-    static func interception(to spot: UInt8, seconds: UInt16 = 6) -> Outcome {
+    public static func interception(to spot: UInt8, seconds: UInt16 = 6) -> Outcome {
         Outcome(kind: .pass, yards: 0, endedIn: .intercepted, finalSpot: spot, clockRunoff: seconds)
     }
 
-    static let pickSix = interception(to: 100, seconds: 12)
+    public static let pickSix = interception(to: 100, seconds: 12)
 
     /// A fumble the defence comes up with, at `spot` in the fumbling team's frame.
-    static func fumble(lostAt spot: UInt8, seconds: UInt16 = 6) -> Outcome {
+    public static func fumble(lostAt spot: UInt8, seconds: UInt16 = 6) -> Outcome {
         Outcome(kind: .rush, yards: 0, endedIn: .fumbleLost, finalSpot: spot, clockRunoff: seconds)
     }
 
     /// A fumble the offence falls on, `yards` past the line.
-    static func fumble(recoveredAfter yards: Int16, seconds: UInt16 = 6) -> Outcome {
+    public static func fumble(recoveredAfter yards: Int16, seconds: UInt16 = 6) -> Outcome {
         Outcome(kind: .rush, yards: yards, endedIn: .fumbleRecovered, clockRunoff: seconds)
     }
 
-    static let kickoffTouchback = Outcome(kind: .kickoff, yards: 0, endedIn: .touchback)
+    public static let kickoffTouchback = Outcome(kind: .kickoff, yards: 0, endedIn: .touchback)
 
     /// Fielded and brought out to the returner's own `yard` line, which is the same
     /// number in the kicking team's frame.
-    static func kickoffReturn(toOwn yard: UInt8, seconds: UInt16 = 8) -> Outcome {
+    public static func kickoffReturn(toOwn yard: UInt8, seconds: UInt16 = 8) -> Outcome {
         Outcome(kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, clockRunoff: seconds)
     }
 
-    static let kickoffReturnTouchdown = Outcome(
+    public static let kickoffReturnTouchdown = Outcome(
         kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 100, clockRunoff: 14)
 
     /// Signalled for and fair caught at the returner's own `yard` line.
-    static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {
+    public static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {
         Outcome(
             kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard, clockRunoff: seconds)
     }
@@ -208,28 +212,33 @@ extension Outcome {
     /// Fallen on by the kicking team, `ballOn` from the goal it is attacking: the same
     /// contract as an onside kick the kickers recover. The record does not say whether
     /// the receivers muffed it first, so the clock reads it as untouched (4-3-1-b).
-    static func kickoffRecoveredByTheKickers(at ballOn: UInt8, seconds: UInt16 = 5) -> Outcome {
+    public static func kickoffRecoveredByTheKickers(
+        at ballOn: UInt8, seconds: UInt16 = 5
+    )
+        -> Outcome
+    {
         onsideKick(recoveredAt: ballOn, seconds: seconds)
     }
 
     /// The kicking team falls on its own kick, `ballOn` from the goal it is attacking.
     /// `.fumbleRecovered` on a kickoff is how the contract says the kick did not change
     /// hands.
-    static func onsideKick(recoveredAt ballOn: UInt8, seconds: UInt16 = 5) -> Outcome {
+    public static func onsideKick(recoveredAt ballOn: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(
             kind: .kickoff, yards: 0, endedIn: .fumbleRecovered, finalSpot: ballOn,
             clockRunoff: seconds)
     }
 
     /// The receiving team falls on it at its own `yard` line.
-    static func onsideKick(lostAtOwn yard: UInt8, seconds: UInt16 = 5) -> Outcome {
+    public static func onsideKick(lostAtOwn yard: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, clockRunoff: seconds)
     }
 
-    static let puntTouchback = Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6)
+    public static let puntTouchback = Outcome(
+        kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6)
 
     /// A punt that ends at the receiving team's own `yard` line, however it ended there.
-    static func punt(
+    public static func punt(
         toOwn yard: UInt8, endedIn: PlayEnding = .fairCatch, seconds: UInt16 = 6
     )
         -> Outcome
@@ -237,19 +246,19 @@ extension Outcome {
         Outcome(kind: .punt, yards: 0, endedIn: endedIn, finalSpot: yard, clockRunoff: seconds)
     }
 
-    static func fieldGoal(good: Bool) -> Outcome {
+    public static func fieldGoal(good: Bool) -> Outcome {
         Outcome(
             kind: .fieldGoal, yards: 0, endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
             clockRunoff: 5)
     }
 
-    static func extraPoint(good: Bool) -> Outcome {
+    public static func extraPoint(good: Bool) -> Outcome {
         Outcome(
             kind: .extraPoint, yards: 0, endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
             clockRunoff: 0)
     }
 
-    static func twoPoint(converted: Bool) -> Outcome {
+    public static func twoPoint(converted: Bool) -> Outcome {
         Outcome(
             kind: .twoPointConversion, yards: converted ? 2 : 0,
             endedIn: converted ? .touchdown : .incomplete, clockRunoff: 0)
@@ -264,53 +273,69 @@ extension Outcome {
 /// every scrimmage down, at normal tempo, no timeouts, a kick after every touchdown and
 /// a deep kickoff. A scenario overrides the one or two that matter to it, so a rules
 /// scenario is never at the mercy of the baseline caller's judgement.
-struct ScriptedCaller: FMSimulation.PlayCaller {
+public struct ScriptedCaller: FMSimulation.PlayCaller {
 
-    var offensiveFamily: @Sendable (Situation) -> PlayFamily = { _ in .insideRun }
-    var offensiveTempo: @Sendable (Situation) -> Tempo = { _ in .normal }
-    var timeoutDecision: @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
+    public var offensiveFamily: @Sendable (Situation) -> PlayFamily = { _ in .insideRun }
+    public var offensiveTempo: @Sendable (Situation) -> Tempo = { _ in .normal }
+    public var timeoutDecision: @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
         _, _ in false
     }
-    var twoPointDecision: @Sendable (Situation) -> Bool = { _ in false }
-    var onsideDecision: @Sendable (Situation) -> Bool = { _ in false }
+    public var twoPointDecision: @Sendable (Situation) -> Bool = { _ in false }
+    public var onsideDecision: @Sendable (Situation) -> Bool = { _ in false }
 
-    func offensiveCall(
+    public init(
+        offensiveFamily: @escaping @Sendable (Situation) -> PlayFamily = { _ in .insideRun },
+        offensiveTempo: @escaping @Sendable (Situation) -> Tempo = { _ in .normal },
+        timeoutDecision: @escaping @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
+            _, _ in false
+        },
+        twoPointDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
+        onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false }
+    ) {
+        self.offensiveFamily = offensiveFamily
+        self.offensiveTempo = offensiveTempo
+        self.timeoutDecision = timeoutDecision
+        self.twoPointDecision = twoPointDecision
+        self.onsideDecision = onsideDecision
+    }
+
+    public func offensiveCall(
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> OffensiveCall {
         CrudePlaybook.call(offensiveFamily(situation), tempo: offensiveTempo(situation))
     }
 
-    func defensiveCall(
+    public func defensiveCall(
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> DefensiveCall {
         .baseCoverThree
     }
 
-    func callsTimeout(
+    public func callsTimeout(
         for situation: Situation, classified: SituationClass, isOffense: Bool,
         context: PlayContext
     ) -> Bool {
         timeoutDecision(situation, isOffense)
     }
 
-    func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
+    public func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
         twoPointDecision(situation)
     }
 
-    func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
+    public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
         onsideDecision(situation)
     }
 
-    func personnel(
+    public func personnel(
         for family: PlayFamily, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup {
         .eleven
     }
 
-    func package(
+    public func package(
         for situation: Situation, classified: SituationClass, random: inout SplittableRandom
     ) -> DefensivePackage {
         .base
@@ -389,15 +414,15 @@ struct ScenarioResolver: PlayResolver {
 // MARK: - The game
 
 /// A game whose plays the scenario dictates.
-struct ScriptedGame {
+public struct ScriptedGame {
 
-    var seed: UInt64
-    var rules: Rules
-    var isPostseason: Bool
-    var caller: ScriptedCaller
-    var play: @Sendable (Snap) -> Outcome
+    public var seed: UInt64
+    public var rules: Rules
+    public var isPostseason: Bool
+    public var caller: ScriptedCaller
+    public var play: @Sendable (Snap) -> Outcome
 
-    init(
+    public init(
         seed: UInt64 = 1,
         rules: Rules = .standard,
         isPostseason: Bool = false,
@@ -411,14 +436,14 @@ struct ScriptedGame {
         self.play = play
     }
 
-    func run() -> Trace {
+    public func run() -> Trace {
         run(with: caller)
     }
 
     /// The same scripted plays under a different caller, for the scenarios about what a
     /// caller does rather than what the rules do with it.
-    func run(with caller: some FMSimulation.PlayCaller) -> Trace {
-        let setup = TestWorld.setup(seed: seed, rules: rules, isPostseason: isPostseason)
+    public func run(with caller: some FMSimulation.PlayCaller) -> Trace {
+        let setup = ScenarioWorld.setup(seed: seed, rules: rules, isPostseason: isPostseason)
         let log = ScenarioResolver.Log()
         let result = GameSimulator(
             resolver: ScenarioResolver(script: play, log: log), caller: caller
@@ -432,168 +457,46 @@ struct ScriptedGame {
 
 // MARK: - What happened, and the assertions over it
 
-/// A scripted game's stream, with the clock facts alongside it and the assertions a
-/// rules scenario makes.
-struct Trace {
+/// A scripted game's stream, with the clock facts alongside it.
+///
+/// The assertions a rules scenario makes over one of these live in the test target, as an
+/// extension: this type is what a printer walks and what a test asserts on, and only the
+/// second of those may import Swift Testing.
+public struct Trace {
 
-    let result: GameResult
+    public let result: GameResult
     /// Whether the clock was running into each snap, by play index.
-    let clockRunning: [Bool]
+    public let clockRunning: [Bool]
     /// The offence's tempo between plays on a running clock, measured; see `Snap.huddle`.
-    let huddle: UInt16?
-    let home: TeamID
-    let away: TeamID
+    public let huddle: UInt16?
+    public let home: TeamID
+    public let away: TeamID
 
-    var plays: [PlayRecord] { result.plays }
+    public var plays: [PlayRecord] { result.plays }
 
-    subscript(index: Int) -> PlayRecord? {
+    public subscript(index: Int) -> PlayRecord? {
         plays.indices.contains(index) ? plays[index] : nil
     }
 
-    func clockRunning(into index: Int) -> Bool? {
+    public func clockRunning(into index: Int) -> Bool? {
         clockRunning.indices.contains(index) ? clockRunning[index] : nil
     }
 
-    func opponent(of team: TeamID) -> TeamID {
+    public func opponent(of team: TeamID) -> TeamID {
         team == home ? away : home
     }
 
-    func score(of team: TeamID) -> Int16 {
+    public func score(of team: TeamID) -> Int16 {
         team == home ? result.homeScore : result.awayScore
     }
 
     /// The first play satisfying the predicate, with its index.
-    func first(where predicate: (PlayRecord) -> Bool) -> (index: Int, play: PlayRecord)? {
+    public func first(where predicate: (PlayRecord) -> Bool) -> (index: Int, play: PlayRecord)? {
         plays.firstIndex(where: predicate).map { ($0, plays[$0]) }
     }
 
     /// The number of plays satisfying the predicate.
-    func count(where predicate: (PlayRecord) -> Bool) -> Int {
+    public func count(where predicate: (PlayRecord) -> Bool) -> Int {
         plays.filter(predicate).count
-    }
-
-    // MARK: Assertions
-
-    /// One play, checked against every fact the scenario names. A `nil` fact is not
-    /// checked. A missing play is one failure, not ten.
-    func expectPlay(
-        _ index: Int,
-        kind: PlayKind? = nil,
-        endedIn: PlayEnding? = nil,
-        possession: TeamID? = nil,
-        quarter: UInt8? = nil,
-        clock: UInt16? = nil,
-        down: Down? = nil,
-        distance: UInt8? = nil,
-        ballOn: UInt8? = nil,
-        clockRunning: Bool? = nil,
-        _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        guard let play = self[index] else {
-            Issue.record(
-                "no play \(index): the game had \(plays.count) — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-            return
-        }
-        let at = "play \(index)"
-        if let kind {
-            #expect(
-                play.outcome.kind == kind, "\(at) kind — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let endedIn {
-            #expect(
-                play.outcome.endedIn == endedIn, "\(at) ending — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let possession {
-            #expect(
-                play.situation.possession == possession,
-                "\(at) possession — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let quarter {
-            #expect(
-                play.situation.quarter == quarter,
-                "\(at) quarter — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let clock {
-            #expect(
-                play.situation.clockRemaining == clock,
-                "\(at) clock — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let down {
-            #expect(
-                play.situation.down == down, "\(at) down — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let distance {
-            #expect(
-                play.situation.distance == distance,
-                "\(at) distance — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let ballOn {
-            #expect(
-                play.situation.ballOn == ballOn,
-                "\(at) ball on — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-        if let clockRunning {
-            #expect(
-                self.clockRunning(into: index) == clockRunning,
-                "\(at) clock running into the snap — \(comment?.description ?? "")",
-                sourceLocation: sourceLocation)
-        }
-    }
-
-    func expectScore(
-        _ team: TeamID, _ points: Int16, _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        #expect(
-            score(of: team) == points,
-            "score of \(team == home ? "home" : "away") — \(comment?.description ?? "")",
-            sourceLocation: sourceLocation)
-    }
-
-    func expectScore(
-        home homePoints: Int16, away awayPoints: Int16, _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        expectScore(home, homePoints, comment, sourceLocation: sourceLocation)
-        expectScore(away, awayPoints, comment, sourceLocation: sourceLocation)
-    }
-
-    /// The kinds of the plays from `index` on, in order.
-    func expectSequence(
-        _ kinds: [PlayKind], from index: Int, _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        let actual = plays.dropFirst(index).prefix(kinds.count).map(\.outcome.kind)
-        #expect(
-            Array(actual) == kinds,
-            "plays from \(index) — \(comment?.description ?? "")", sourceLocation: sourceLocation)
-    }
-
-    func expectWinner(
-        _ team: TeamID?, _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        #expect(result.winner == team, comment, sourceLocation: sourceLocation)
-    }
-
-    /// The game's last play is the one at `index`: nothing was played after it.
-    func expectLastPlay(
-        _ index: Int, _ comment: Comment? = nil,
-        sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        #expect(
-            plays.count == index + 1,
-            "the game went on for \(plays.count - index - 1) more plays — \(comment?.description ?? "")",
-            sourceLocation: sourceLocation)
     }
 }

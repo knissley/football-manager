@@ -1,9 +1,10 @@
 # Architecture
 
 **Status: partly built, sections marked.** Four of the nine modules in the map below
-exist — `FMCore`, `FMRandom`, `FMGeneration`, `FMSimulation` — and the two rules are
-enforced today. There is no app target, no SwiftUI, no SwiftData, and no `FMAnalysis`,
-`FMNarrative`, `FMPersistence` or `FMUI`. Sections describing those carry a
+exist — `FMCore`, `FMRandom`, `FMGeneration`, `FMSimulation`, the last of them shipping
+`FMSimulationScenarios` alongside it — and the two rules are enforced today. There is no
+app target, no SwiftUI, no SwiftData, and no `FMAnalysis`, `FMNarrative`,
+`FMPersistence` or `FMUI`. Sections describing those carry a
 `Designed, not built` label.
 
 ## Two rules
@@ -24,10 +25,11 @@ contract that doesn't move.
 
 ## Module map
 
-**Four of these exist.** `FMCore`, `FMRandom`, `FMGeneration` and `FMSimulation` are
-built and green. The app target, `FMUI` and `FMPersistence` are M4; `FMAnalysis` and
-`FMNarrative` are M2. The rest of this map is the shape they get built to, not a
-description of the tree — check `Packages/` before assuming a module is there.
+**Four of these exist**, and `FMSimulationScenarios` with them. `FMCore`, `FMRandom`,
+`FMGeneration` and `FMSimulation` are built and green. The app target, `FMUI` and
+`FMPersistence` are M4; `FMAnalysis` and `FMNarrative` are M2. The rest of this map is
+the shape they get built to, not a description of the tree — check `Packages/` before
+assuming a module is there.
 
 ```
 FootballManager.xcodeproj          App target — SwiftUI, composition root
@@ -53,6 +55,17 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     on both sides (see docs/play-calling.md).
     │                     Built: the match engine and both callers. The season
     │                     half — schedules, playoffs, progression — is M3.
+    │
+    ├── FMSimulationScenarios
+    │                     The rules-conformance scenarios, as scripted games.
+    │                     → FMSimulation, FMCore, FMGeneration, FMRandom
+    │                     A second library of the FMSimulation package: `Snap`,
+    │                     `ScriptedGame`, `Trace`, `ScenarioWorld` and the scenarios
+    │                     themselves, with `RulesScenario` naming each one. The
+    │                     conformance suite asserts over them and `gamelog --scenario`
+    │                     prints them — same game, same printer. A plain FM* module:
+    │                     the assertions stay in the test target, which is the only
+    │                     place that may import Swift Testing.
     │
     ├── FMAnalysis        The interrogation layer. → FMCore
     │                     Win probability, leverage, player grades, situational splits,

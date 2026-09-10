@@ -1,5 +1,6 @@
 import FMCore
 import FMRandom
+import FMSimulationScenarios
 import Testing
 
 @testable import FMSimulation
