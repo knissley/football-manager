@@ -1,5 +1,10 @@
 # Player development
 
+**Status: designed.** Nothing here is built. What exists is generation's half: every
+player carries a hidden ceiling and a `DevelopmentTrait`, and draft classes carry noisy
+production. Nothing ages, grows, declines or leaps — that is M3's offseason and M8's
+texture.
+
 How players grow, decline, and occasionally leap — and why the league does not
 inflate into a collection of 99s.
 

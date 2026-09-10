@@ -1,5 +1,10 @@
 # Audit: is this football?
 
+**Status: built** — this is a record of an audit of code that exists, not a design doc.
+Every finding and every number in it is measured. S1 through S8 are fixed; S9 through S15
+are open and are why the rules layer does not yet finish a game correctly. The backlog
+tracker (#1) is the live state of each; the table at the end is a snapshot.
+
 A deliberate pass over the engine asking one question — *does this behave like the sport?*
 — rather than *do the units work?* Separate from the end-of-M1 systems inventory, which
 asks whether designed systems are wired in. This one assumes they are and asks whether
@@ -438,8 +443,9 @@ array order. This was the only one.
 
 ## S9 — There is no overtime in the regular season — **open**
 
-`GameState.checkForEnd` ends any tied regulation game when ties are allowed
-(`mayEndInATie`, in `GameState.swift`), so overtime exists only in the postseason and
+`GameSimulator.State.checkForEnd` — the state machine in `GameState.swift` — ends any
+tied regulation game when ties are allowed (`Rules.mayEndInATie`, called from there), so
+overtime exists only in the postseason and
 `Rules.regularSeasonOvertimeLength` is dead. The harness prints **25 ties in 400 games, at
 seed 7 and at seed 11 alike**, with no target beside the row; the real rate is about 0.4%.
 
@@ -452,8 +458,9 @@ describes, which is the issue that closes it.
 
 ## S10 — A touchdown at the end of a half gets no try — **open**
 
-The half restart in `GameState.checkForEnd` sets `pendingTry = false` along with the fresh
-timeouts, so a touchdown as the second quarter expires never gets its extra point. The end
+The half restart in `GameSimulator.State.checkForEnd` sets `pendingTry = false` along
+with the fresh timeouts, so a touchdown as the second quarter expires never gets its
+extra point. The end
 of regulation checks the score *before* the try exists, so a team down seven that scores on
 the final play loses by one having never been allowed to kick.
 

@@ -1,5 +1,10 @@
 # Traits
 
+**Status: designed.** `Player.traits` is a `[TraitID]` that generation never fills and
+the engine never reads. There is no catalogue, no discovery, no belief and no hook.
+Traits get their engine hooks at M8 — and per [ADR-0006](adr/0006-spatial-simulation.md)
+several of them want the spatial engine to be honest rather than cosmetic.
+
 The most personality per line of code in the project, and the place where being playful
 and being rigorous point the same direction: **the names are funny, the effects are
 honest.**

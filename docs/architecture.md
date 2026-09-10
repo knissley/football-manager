@@ -1,5 +1,11 @@
 # Architecture
 
+**Status: partly built, sections marked.** Four of the nine modules in the map below
+exist — `FMCore`, `FMRandom`, `FMGeneration`, `FMSimulation` — and the two rules are
+enforced today. There is no app target, no SwiftUI, no SwiftData, and no `FMAnalysis`,
+`FMNarrative`, `FMPersistence` or `FMUI`. Sections describing those carry a
+`Designed, not built` label.
+
 ## Two rules
 
 **1. The simulation never imports SwiftData, SwiftUI, or UIKit.**
@@ -18,13 +24,20 @@ contract that doesn't move.
 
 ## Module map
 
+**Four of these exist.** `FMCore`, `FMRandom`, `FMGeneration` and `FMSimulation` are
+built and green. The app target, `FMUI` and `FMPersistence` are M4; `FMAnalysis` and
+`FMNarrative` are M2. The rest of this map is the shape they get built to, not a
+description of the tree — check `Packages/` before assuming a module is there.
+
 ```
 FootballManager.xcodeproj          App target — SwiftUI, composition root
 │
 └── Packages/
     ├── FMCore            Domain types + the event stream types. No dependencies.
-    │                     Player, Team, League, Contract, Ratings, Trait, Play,
-    │                     PlayRecord, GameResult. All Sendable value types.
+    │                     Player, Team, League, Contract, Ratings, PlayRecord,
+    │                     OffensiveCall, DefensiveCall. All Sendable value types.
+    │                     (`GameResult` is FMSimulation's; a trait is a `TraitID`
+    │                     and a play design is M6 — neither is a type yet.)
     │
     ├── FMRandom          Seeded splittable PRNG. No dependencies.
     │                     The only source of randomness in the sim.
@@ -38,6 +51,8 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     `PlayResolver` what happened on each snap (ADR-0012).
     │                     Schedules, playoffs, progression, and the AI play-caller
     │                     on both sides (see docs/play-calling.md).
+    │                     Built: the match engine and both callers. The season
+    │                     half — schedules, playoffs, progression — is M3.
     │
     ├── FMAnalysis        The interrogation layer. → FMCore
     │                     Win probability, leverage, player grades, situational splits,
@@ -97,6 +112,8 @@ mechanism at all. If AI roster management ever needs a function from
 
 ## Win probability is shared infrastructure
 
+**Designed, not built.** M2. Nothing computes win probability today.
+
 One model, four consumers ([ADR-0008](adr/0008-win-probability-keystone.md)):
 
 - **Interrogation** — aggregate WP swings by unit and situation to answer "why are we losing"
@@ -108,6 +125,10 @@ One model, four consumers ([ADR-0008](adr/0008-win-probability-keystone.md)):
 Build it early. Four of the product's asks collapse into it.
 
 ## Layering
+
+**Designed, not built above the sim.** The bottom two rows exist; there are no views,
+no stores and no services, and there will not be until M4. The rules are here so the
+first screen is written to them.
 
 ```
 Views (SwiftUI)                  Render state, send intent. No football logic.
@@ -125,9 +146,11 @@ FMPersistence · FMCore
 
 ## Concurrency
 
-Swift 6 language mode, strict concurrency throughout. A week's games are independent —
-simulate them concurrently, then merge in game-ID order so parallelism cannot change
-outcomes.
+Swift 6 language mode, strict concurrency throughout — that part is enforced today.
+
+*Designed, not built:* a week's games are independent, so they will be simulated
+concurrently and merged in game-ID order, which is what stops parallelism changing
+outcomes. Nothing sims a week yet; the season loop is M3.
 
 ## Performance discipline
 
@@ -140,13 +163,17 @@ architectural. In `FMSimulation`'s hot loop:
 - Buffers sized once and reused. No `Array` growth inside a play.
 - Trajectory capture is opt-in per game.
 
-*Intent, not yet built:* a benchmark test guards the budget and fails CI on regression.
-CI exists ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) and *reports* the
-budget — `simharness` times its simulate loop and prints a `Budget` block that the job
-summary carries (#9) — but nothing gates on it, so a regression shows up in a summary
-nobody has to read rather than in a red build.
+**Designed, not built.** The hot loop the rules above describe is the M5 tick loop, and
+nothing in the tree runs one. There is no benchmark target and no CI step that fails on a
+timing regression — CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs
+the suites, the two lints and the harness — and nothing gates on the budget. Since H3
+(#9), `simharness` times its simulate loop and prints a `Budget` block that the job
+summary carries: a number to read, not a gate.
 
 ## Persistence
+
+**Designed, not built.** M4. No `FMPersistence`, no `@Model` class and no store exists;
+nothing is written to disk today.
 
 SwiftData, one on-device store ([ADR-0002](adr/0002-swiftdata-offline-first.md)), with
 explicit mapping between `FMCore` structs and `@Model` classes in `FMPersistence`.
@@ -163,6 +190,10 @@ explicit mapping between `FMCore` structs and `@Model` classes in `FMPersistence
 Replay-from-tuple is why determinism is load-bearing rather than merely convenient.
 
 ## Testing
+
+**Partly built.** The `FMCore`, `FMRandom`, `FMGeneration` and `FMSimulation` rows exist
+today, minus the perf benchmark. The `FMAnalysis`, `FMPersistence` and UI rows describe
+suites for modules that do not exist yet.
 
 | Layer | How |
 | --- | --- |
@@ -186,6 +217,10 @@ rules never fire.
 ## Tooling
 
 - `Tools/simharness` — headless CLI, sims N games and prints the calibration table.
+- `Tools/worldgen` — inspect generated content from a terminal; `Tools/playsize` —
+  play-record footprint, and the proof the `FM*` modules link without a framework.
+- [`scripts/lint-sim.sh`](../scripts/lint-sim.sh) — the banned primitives from ADR-0003
+  and the framework ban from ADR-0004, enforced as a script.
 - `swift-format` with the repo config, enforced in CI as `swift format lint --strict`
   (without `--strict` the linter reports findings and exits 0).
 - CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the packages on

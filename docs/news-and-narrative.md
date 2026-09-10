@@ -1,5 +1,8 @@
 # News and narrative
 
+**Status: designed.** `FMNarrative` does not exist, and neither does the `FMAnalysis` it
+would read from. Nothing detects a story, writes a line, or tracks a writer. M2.
+
 Where the league feels alive, and the fastest way to make the whole game feel cheap if
 it's wrong. Generated news goes stale around week six of season one unless the design
 attacks that directly.

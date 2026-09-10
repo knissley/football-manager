@@ -1,5 +1,15 @@
 # Architecture Decision Records
 
+**Status: built** — the practice is in use and thirteen records exist.
+
+An ADR records a **decision**, not a build state. Its `**Status:**` line is the
+decision's status — `Accepted`, or superseded by a later record — and it stays accepted
+whether or not a line of code has been written. Because an ADR's body is immutable (see
+below), the build state cannot live inside it, so the index at the end of this file
+carries an **In the tree** column instead. That column is the one thing here that is
+allowed to go stale, so it is checked against `Packages/` and `Tools/` rather than
+against another doc.
+
 Short documents capturing decisions that are expensive to reverse, and *why* we made
 them — so that six months from now nobody re-litigates a settled question from scratch,
 and when we do reverse one, we know what we're giving up.
@@ -50,18 +60,18 @@ immutable like any other's.
 
 ## Index
 
-| # | Title | Status |
-| --- | --- | --- |
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
-| [0002](0002-swiftdata-offline-first.md) | SwiftData, offline-first, no backend | Accepted |
-| [0003](0003-deterministic-seeded-simulation.md) | Deterministic seeded simulation | Accepted |
-| [0004](0004-pure-swift-domain-core.md) | Pure Swift domain core, isolated from frameworks | Accepted |
-| [0005](0005-generated-fictional-content.md) | Generated fictional players and teams | Accepted |
-| [0006](0006-spatial-simulation.md) | Spatial simulation over an abstract outcome model | Accepted |
-| [0007](0007-event-stream-contract.md) | The play event stream is the engine's public contract | Accepted |
-| [0008](0008-win-probability-keystone.md) | Win probability as shared infrastructure | Accepted |
-| [0009](0009-event-sourcing-by-default.md) | Event sourcing as the default state model | Accepted |
-| [0010](0010-plays-designs-and-calls.md) | Distinguish play designs, calls, and plays | Accepted |
-| [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted |
-| [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted |
-| [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted |
+| # | Title | Status | In the tree |
+| --- | --- | --- | --- |
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | Built — this directory |
+| [0002](0002-swiftdata-offline-first.md) | SwiftData, offline-first, no backend | Accepted | Not built — M4 |
+| [0003](0003-deterministic-seeded-simulation.md) | Deterministic seeded simulation | Accepted | Built — `FMRandom`, `scripts/lint-sim.sh`, the two golden suites |
+| [0004](0004-pure-swift-domain-core.md) | Pure Swift domain core, isolated from frameworks | Accepted | Built — no framework import in any `FM*` package; `playsize` guards the link |
+| [0005](0005-generated-fictional-content.md) | Generated fictional players and teams | Accepted | Built — `FMGeneration` |
+| [0006](0006-spatial-simulation.md) | Spatial simulation over an abstract outcome model | Accepted | Not built — M5. The seam it needs is built (0012) |
+| [0007](0007-event-stream-contract.md) | The play event stream is the engine's public contract | Accepted | Partly — the engine emits the stream; no downstream consumer exists yet |
+| [0008](0008-win-probability-keystone.md) | Win probability as shared infrastructure | Accepted | Not built — M2 |
+| [0009](0009-event-sourcing-by-default.md) | Event sourcing as the default state model | Accepted | Partly — `TeamIdentityEvent`, `InjuryEvent` and the rivalry log; no world fold yet |
+| [0010](0010-plays-designs-and-calls.md) | Distinguish play designs, calls, and plays | Accepted | Partly — calls are held by value; `PlayDesign` and the playbook are M6 |
+| [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted | Built — `PlayRef` |
+| [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted | Partly — `GameSimulator` and `CrudeResolver` are built; the `SpatialResolver` the seam exists for is M5 |
+| [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted | Not built — [roadmap M3.5](../roadmap.md) |
