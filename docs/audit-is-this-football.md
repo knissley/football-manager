@@ -799,7 +799,9 @@ argument for watching a game.
   emitted even on a play where a fumble was forced.
   ([#39](https://github.com/knissley/football-manager/issues/39))
 - **C7** — every two-point try is a pass, and the defensive call's package disagrees with
-  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable.
+  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable —
+  **fixed.** The caller chooses run or pass for the try and the package on a call is the
+  substitution the caller made; the probe counts zero mismatches over forty games.
   ([#40](https://github.com/knissley/football-manager/issues/40))
 - **C8** — a tackle ends out of bounds 14% of the time, flat, whatever the play and
   whatever the clock is doing — **fixed.** The sideline is drawn against the concept and

@@ -53,8 +53,10 @@ public struct CrudeResolver: PlayResolver {
             return punt(situation, context, personnel, &random)
         case .fieldGoal, .extraPoint:
             return kick(family, situation, context, personnel, &random)
-        case .twoPointConversion:
+        case .twoPointPass:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
+        case .twoPointRun:
+            return run(.insideRun, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
             return kickoff(situation, context, personnel, &random)
         case .onsideKick:
@@ -509,7 +511,7 @@ public struct CrudeResolver: PlayResolver {
                 carrier: target.receiver, coveredBy: target.defender, personnel: personnel,
                 context: context, separation: target.separation,
                 sideline: sidelineChance(
-                    isTry ? .twoPointConversion : family, situation, context),
+                    isTry ? .twoPointPass : family, situation, context),
                 decisions: &decisions,
                 participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
@@ -558,7 +560,8 @@ public struct CrudeResolver: PlayResolver {
         _ calls: Calls,
         _ context: PlayContext,
         _ personnel: Lineup,
-        _ random: inout SplittableRandom
+        _ random: inout SplittableRandom,
+        isTry: Bool = false
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var decisions: [DecisionPoint] = []
         var participants: [Participation] = []
@@ -636,7 +639,14 @@ public struct CrudeResolver: PlayResolver {
         // actually comes from.
         var yards = Int(Double(quality) * 0.075 + (vision - 60) * 0.04 + 1.3)
         yards += Int(random.next(upperBound: 5)) - 2
-        if quality > 30 {
+        // A carry from the two is a play into a phone booth: there is no second level to
+        // reach and no grass behind the defence, so the crease pays nothing. That is the
+        // run's half of the adjustment the conversion pass carries, and it is the whole
+        // of it — the goal-line package the try is now answered with already puts eight
+        // men in the box against six or seven blockers, and subtracting yards on top of
+        // that counted the same crowd twice: it converted the try at 10% against the
+        // pass's 72% on the same eighty games.
+        if quality > 30, !isTry {
             // A hole that opens gets him to the second level. It does not by itself make
             // a long run — what does is beating the man waiting there, which the tackle
             // sequence below already decides. Paying the whole bonus here put 19% of
@@ -655,7 +665,7 @@ public struct CrudeResolver: PlayResolver {
                 ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
             personnel: personnel,
             context: context,
-            sideline: sidelineChance(family, situation, context),
+            sideline: sidelineChance(isTry ? .twoPointRun : family, situation, context),
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
@@ -664,8 +674,10 @@ public struct CrudeResolver: PlayResolver {
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
         // The ball on the ground, before the play is allowed to have been a gain.
+        // A try is left alone, exactly as the conversion pass is: it cannot fumble into
+        // anything but a failed try until #48 enforces what happens on one.
         var fumble: (ending: PlayEnding, finalSpot: UInt8)?
-        if !reachesEndZone && !intoOwnEndZone {
+        if !reachesEndZone && !intoOwnEndZone && !isTry {
             fumble = looseBall(
                 carrier: SlotLayout.back,
                 tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
@@ -679,7 +691,9 @@ public struct CrudeResolver: PlayResolver {
 
         if penalty == nil {
             penalty = Penalties.afterThePlay(
-                Outcome(kind: .rush, yards: gained, endedIn: tackle.ending),
+                Outcome(
+                    kind: isTry ? .twoPointConversion : .rush, yards: gained,
+                    endedIn: tackle.ending),
                 personnel: personnel, context: context, random: &random)
         }
 
@@ -703,7 +717,7 @@ public struct CrudeResolver: PlayResolver {
 
         return (
             Outcome(
-                kind: .rush,
+                kind: isTry ? .twoPointConversion : .rush,
                 yards: reachesEndZone ? Int16(situation.ballOn) : gained,
                 endedIn: fumble?.ending
                     ?? (reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending)),
@@ -1088,7 +1102,7 @@ public struct CrudeResolver: PlayResolver {
         case .deepPass: chance = 0.20
         // From the two there is no field to run to, and the try is untimed anyway
         // (4-3-2-h), so nobody is chasing the clock.
-        case .twoPointConversion, .extraPoint: chance = 0.02
+        case .twoPointPass, .twoPointRun, .extraPoint: chance = 0.02
         default: chance = 0.12
         }
 

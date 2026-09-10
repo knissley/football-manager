@@ -618,6 +618,7 @@ var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
 
 var twoPointTries = 0
 var twoPointGood = 0
+var twoPointRuns = 0
 var drivePlays: [Int] = []
 var threeAndOuts = 0
 var shortDriveEndings: [String: Int] = [:]
@@ -684,6 +685,9 @@ for result in results {
         case .twoPointConversion:
             twoPointTries += 1
             if outcome.endedIn == .touchdown { twoPointGood += 1 }
+            if CrudePlaybook.family(of: play.calls.offense.design) == .twoPointRun {
+                twoPointRuns += 1
+            }
         default:
             break
         }
@@ -902,6 +906,15 @@ report("twoPointTries", Double(twoPointTries) / teamGames)
 report(
     "twoPointConversion",
     twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
+// How the conversions were attempted. A try may be by pass *or run* (2025 rulebook,
+// 11-3-1) and every one of them used to be a throw. No target: nothing in
+// docs/reference/calibration-sources.md bands the split, and a sourced band belongs to
+// E2 (#42).
+print(
+    "    \(pad("two-point tries run", 30))"
+        + "\(twoPointTries == 0 ? "—" : oneDecimal(Double(twoPointRuns) / Double(twoPointTries) * 100) + "%")"
+        + "   \(twoPointRuns) of \(twoPointTries)   (no target: unsourced, a band belongs to #42)"
+)
 
 // Where punters put the ball, which from plus territory is the whole of a punter's value:
 // a scrimmage kick that reaches the end zone untouched is a touchback (2025 rulebook,

@@ -48,7 +48,7 @@ struct StalemateResolver: PlayResolver {
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])
@@ -74,7 +74,7 @@ struct GrinderResolver: PlayResolver {
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])

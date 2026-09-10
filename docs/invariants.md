@@ -125,7 +125,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:triesAreSnappedFromTheRightSpot`
 18. A made kick is one point and a converted pass or run is two; a failed try of either kind
     is nothing. `[2025 · 11-1-2-d]` — `test:extraPointIsOnePoint`, `test:twoPointIsTwoPoints`,
-    `test:missedExtraPoint`, `test:failedTwoPoint`, `test:conversionsGoBothWays`
+    `test:missedExtraPoint`, `test:failedTwoPoint`, `test:conversionsGoBothWays`;
+    a two-point try is thrown *or carried*, and both happen —
+    `test:twoPointTriesCanBeRuns`
 19. A foul before the snap on a try is treated as it would be before a scrimmage play, so a
     false start on an extra point re-kicks from five yards back — the 20, a 37-yard kick.
     `[2025 · 11-3-3 Item 2, 7-4-2]` — `test:falseStartOnTheKickMovesItBack`,
@@ -416,6 +418,11 @@ season is what checks one. A band is evidence about a rate and never about a rul
 88. Every ball is on a legal spot, in a legal down and distance, in a period the rules
     define. `[2025 · 1-1-1, 3-8-2, 4-1-1]` — `test:spotsAreAlwaysLegal`,
     `test:situationsAreValid`, `test:streamIsOrdered`
+89. **Contract**, not a rule: the package a defensive call names is the package the
+    situation says is on the field. Both are held by value in the record so a reader
+    years later can ask what was called ([ADR-0010](adr/0010-plays-designs-and-calls.md)),
+    and a record that answers the question two ways cannot be read. —
+    `test:theCallAndTheFieldAgreeOnThePackage`
 
 ## What a season of games looks like
 

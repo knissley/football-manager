@@ -61,7 +61,9 @@ public struct Snap: Sendable {
         guard let family else { return false }
         return PlayFamily.scrimmage.contains(family) || family == .kneel || family == .spike
     }
-    public var isTry: Bool { family == .extraPoint || family == .twoPointConversion }
+    public var isTry: Bool {
+        family == .extraPoint || family == .twoPointPass || family == .twoPointRun
+    }
     public var isKickoff: Bool { family == .kickoff || family == .onsideKick }
 
     /// The seconds the offence takes between the end of one play and the snap of the
@@ -87,7 +89,7 @@ extension Snap {
         case .punt: return .puntTouchback
         case .fieldGoal: return .fieldGoal(good: true)
         case .extraPoint: return .extraPoint(good: true)
-        case .twoPointConversion: return .twoPoint(converted: false)
+        case .twoPointPass, .twoPointRun: return .twoPoint(converted: false)
         case .kneel: return Outcome(kind: .kneel, yards: -1, endedIn: .tackled, clockRunoff: 2)
         case .spike: return .spike
         default:

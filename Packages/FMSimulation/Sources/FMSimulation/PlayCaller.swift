@@ -43,6 +43,15 @@ public protocol PlayCaller: Sendable {
     /// it and trailing by five means it cuts the lead to a field goal.
     func goesForTwo(situation: Situation, classified: SituationClass) -> Bool
 
+    /// Whether the two-point try is carried rather than thrown.
+    ///
+    /// A separate question from `goesForTwo`, and asked after the offence has sent out
+    /// the grouping it wants: 11-3-1 puts the try in play two yards out for a try by pass
+    /// **or run**, and which of the two it is follows from who is on the field.
+    func runsTheTwoPointTry(
+        situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> Bool
+
     /// Whether to keep the kickoff short and fight for it.
     ///
     /// Note the frame: the *kicking* team has possession on a kickoff, so a negative
@@ -205,6 +214,19 @@ extension PlayCaller {
             // otherwise.
             return classified.isMustPass ? .nickel : .base
         }
+    }
+
+    /// The conventional split. Rather more than a third of conversions are runs, and a
+    /// team that sent out a heavy grouping to snap it from the two did so for a reason.
+    ///
+    /// A modelling convention, not a sourced rate: `docs/reference/calibration-sources.md`
+    /// bands how often a team goes for two and how often it converts, and neither of
+    /// those says how it went about it.
+    public func runsTheTwoPointTry(
+        situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> Bool {
+        let heavy = situation.offensePersonnel.wideReceivers <= 1
+        return random.nextBool(probability: heavy ? 0.62 : 0.30)
     }
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {

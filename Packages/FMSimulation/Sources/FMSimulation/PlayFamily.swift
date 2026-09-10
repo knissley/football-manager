@@ -26,17 +26,24 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case spike = 10
     case kickoff = 11
     case extraPoint = 12
-    case twoPointConversion = 13
+    /// A try thrown from the two. The rule allows a pass *or* a run (11-3-1), and the
+    /// two are different plays with different personnel on both sides, so they are
+    /// different families rather than one family the resolver reinterprets.
+    case twoPointPass = 13
     /// A kick deliberately kept short so the kicking team can fight for it. Its own
     /// family because it is a different play, not a kickoff with a flag on it: different
     /// personnel, a different decision, and a different distribution of outcomes.
     case onsideKick = 14
+    /// The other half of 11-3-1: a try carried in from the two.
+    case twoPointRun = 15
 
-    public var isRun: Bool { self == .insideRun || self == .outsideRun }
+    public var isRun: Bool {
+        self == .insideRun || self == .outsideRun || self == .twoPointRun
+    }
 
     public var isPass: Bool {
         switch self {
-        case .quickPass, .mediumPass, .deepPass, .screen, .playAction, .twoPointConversion:
+        case .quickPass, .mediumPass, .deepPass, .screen, .playAction, .twoPointPass:
             return true
         default:
             return false
@@ -82,7 +89,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         case .spike: return .spike
         case .kickoff, .onsideKick: return .kickoff
         case .extraPoint: return .extraPoint
-        case .twoPointConversion: return .twoPointConversion
+        case .twoPointPass, .twoPointRun: return .twoPointConversion
         }
     }
 }

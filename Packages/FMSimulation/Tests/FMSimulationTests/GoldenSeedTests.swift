@@ -142,9 +142,17 @@ struct GoldenSeedTests {
             // what happened whenever a team punted from plus territory, so drives after
             // one start much nearer their own goal, and an aimed punt spends two draws
             // where a struck one spends one.
-            (UInt64(1), UInt64(9_940_974_686_661_438_037)),
-            (UInt64(5), UInt64(18_409_754_143_122_552_883)),
-            (UInt64(12), UInt64(12_973_742_013_181_616_236)),
+            //
+            // And moved by the try and the package. A two-point conversion is now a run
+            // or a pass at the caller's choice (11-3-1), substituted for like the
+            // scrimmage down it is; the defence on a try is its goal-line eleven rather
+            // than whatever was on the field for the touchdown; and the package a
+            // defensive call names is the substitution the caller actually made rather
+            // than the label its preset carried. All three change who is on the field,
+            // and the personnel and package draws move the stream on every snap.
+            (UInt64(1), UInt64(1_575_977_047_223_683_702)),
+            (UInt64(5), UInt64(3_696_806_419_858_936_631)),
+            (UInt64(12), UInt64(15_832_361_156_370_514_439)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
