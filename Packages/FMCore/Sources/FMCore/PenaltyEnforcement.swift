@@ -97,9 +97,14 @@ extension Rules {
         let foul = penalty.foul
         let yards = Int(foul.yards)
 
-        // A score by the team the offender is not on stands (14-2-3); so does one by
-        // the offender's own team when the foul is a personal or conduct foul, which
-        // is enforced on the try. A live-ball foul by the scorer wipes the score.
+        // A score by the team the offender is not on stands (14-2-3), and so does the
+        // scorer's own when the foul came after the ball was dead: a dead-ball foul is
+        // enforced on the try or the kickoff that follows, which the record does not
+        // carry yet (C9). A live-ball foul by the scorer wipes its score (4-8-2-b): a
+        // contact foul during its own run is enforced by the three-and-one method from
+        // the spot of the foul (14-3-6), which the record does not carry either, so the
+        // previous spot stands in for it and the down is replayed there.
+        var nullifiesTheScore = false
         if let scoring = declined.scoring, declined.points > 0 {
             let scorerHadBall: Bool
             switch scoring {
@@ -107,7 +112,8 @@ extension Rules {
             case .defensiveTouchdown, .safety: scorerHadBall = false
             }
             let offenderScored = scorerHadBall == offendingTeamHadBall
-            if !offenderScored || foul.enforcement == .succeedingSpot { return nil }
+            if !offenderScored || foul.isDeadBall { return nil }
+            nullifiesTheScore = true
         }
 
         let changed = declined.possessionChanged
@@ -127,7 +133,10 @@ extension Rules {
         var advancement: Advancement
         var awardsFirstDown = false
 
-        switch foul.enforcement {
+        let basis: EnforcementSpot =
+            nullifiesTheScore && foul.enforcement == .succeedingSpot
+            ? .previousSpot : foul.enforcement
+        switch basis {
         case .previousSpot:
             // In the frame of the team that snapped, which keeps the ball: accepting a
             // defensive foul on a takeaway gives the ball back (14-4-3-a, 8-6-1).

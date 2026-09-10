@@ -205,8 +205,9 @@ extension Outcome {
             kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard, clockRunoff: seconds)
     }
 
-    /// Muffed by the receivers and fallen on by the kicking team, `ballOn` from the goal
-    /// it is attacking. The same contract as an onside kick the kickers recover.
+    /// Fallen on by the kicking team, `ballOn` from the goal it is attacking: the same
+    /// contract as an onside kick the kickers recover. The record does not say whether
+    /// the receivers muffed it first, so the clock reads it as untouched (4-3-1-b).
     static func kickoffRecoveredByTheKickers(at ballOn: UInt8, seconds: UInt16 = 5) -> Outcome {
         onsideKick(recoveredAt: ballOn, seconds: seconds)
     }

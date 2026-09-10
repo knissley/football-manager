@@ -461,8 +461,14 @@ describes, which is the issue that closed it.
 ten-minute period in the regular season, each side owed an opportunity to possess and
 sudden death once both have had one, a tie only if still level at the end of it
 (2025 rulebook, 16-1-3); fifteen-minute periods until decided in the postseason
-(16-1-4). The `ties` test is rewritten to assert that. The engine's overtime scenarios
-are in `RulesConformanceTests`, seven of them, one per clause.
+(16-1-4). The `ties` test is rewritten to assert that. The wave 1 review added the
+kickoff cases: a kickoff that scores, or that the kicking team recovers, ends the
+receivers' opportunity, so after an opening-possession field goal either one ends the
+game (16-1-5-c, A.R. 16.2, A.R. 16.4), and each side has two timeouts in a
+regular-season overtime period (16-1-3-e). The engine's overtime scenarios are in
+`RulesConformanceTests`, eleven of them, one per clause. Not yet modelled: the
+two-minute warning in overtime, which the fourth quarter's timing (16-1-3-e) implies
+and `Rules.isEndOfHalf` does not give.
 
 ## S10 — A touchdown at the end of a half gets no try — **fixed**
 
@@ -524,13 +530,19 @@ Closed by [A4 · #17](https://github.com/knissley/football-manager/issues/17) an
 possession stops the clock until the snap, whatever the ending (2025 rulebook, 4-4-i,
 4-3-2-a-1); a kickoff return costs its seconds and a touchback none (4-3-1); the
 two-minute warning is a stoppage between downs, so a down under way at 2:00 finishes
-(3-41). A flag before the snap charges no play time and the clock restarts as though the
-flag had never flown (4-4-e). The ten-second runoff exists: `Rules.tenSecondRunoff`, with
-the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2), the offence's timeout and the
-defence's decline as `PlayCaller` decisions with baseline defaults, and a half that can
-end on it (4-5-4 Note 4). Article 3, the defensive foul in the last forty seconds, is
-not modelled and the `Rules` doc comment says so. Fourteen clock scenarios in
-`RulesConformanceTests` cover the three.
+(3-41). A flag before the snap charges no play time, and the clock then restarts as
+4-3-2-e says: as though the flag had never flown, except on the snap after the
+two-minute warning of the first half, inside the last five minutes of the second half,
+or after an offensive foul that stops the clock before the snap anywhere in the fourth
+period or regular-season overtime (`Rules.clockStartsOnTheSnapAfterFoul`, from the wave
+1 review, which found the fourth-quarter case asserted the wrong way). The kick's
+clock does not start on a touchback, on a kick the kicking team recovers first, or on a
+fair catch (4-3-1-a to 4-3-1-c). The ten-second runoff exists: `Rules.tenSecondRunoff`,
+with the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2; regular-season overtime
+included, 16-1-3-e), the offence's timeout and the defence's decline as `PlayCaller`
+decisions with baseline defaults, and a half that can end on it (4-5-4 Note 4). Article
+3, the defensive foul in the last forty seconds, is not modelled and the `Rules` doc
+comment says so. Twenty clock scenarios in `RulesConformanceTests` cover the three.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -559,7 +571,10 @@ contact family is walked off from the dead-ball spot with the gain counting (14-
 a first down; interference in the end zone is the 1 (8-6-1-b); half the distance is
 measured from the enforcement spot (14-2-1). The case table is in
 `PenaltyEnforcementTests`, and the harness prints how often the contact family is
-declined. A foul by the team scored upon is still recorded declined with the score
+declined. A live-ball contact foul by the scorer wipes its own score and is enforced
+from the previous spot, which stands in for the spot of the foul the record does not
+carry (14-3-6, 4-8-2-b; the wave 1 review). A foul by the team scored upon, or a
+dead-ball conduct foul by the scorer, is still recorded declined with the score
 standing, until C9 enforces it on the try or the kickoff (14-2-3).
 
 ## S14 — The completion-percentage row is a false pass — **open**

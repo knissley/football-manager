@@ -257,9 +257,12 @@ in the pocket.
 **Partly built, and the gaps are open issues.** Penalties and the AI caller are in the
 engine. The clock rules below are built as of wave 1 of the audit backlog: the clock
 stops on every change of possession (#17), a foul before the snap charges no play time
-(#56), and the ten-second runoff exists with its timeout and decline as caller decisions
-(#32); its Article 3, the defensive foul in the last forty seconds, is not modelled.
-Read the tracker (#1) before trusting anything else in this section.
+and the clock restarts as 4-3-2-e says (#56, and the wave 1 review), a kick the kicking
+team recovers or the receivers fair catch starts no clock (4-3-1), and the ten-second
+runoff exists with its timeout and decline as caller decisions (#32), in regular-season
+overtime too (16-1-3-e); its Article 3, the defensive foul in the last forty seconds, is
+not modelled, and neither is the two-minute warning in overtime. Read the tracker (#1)
+before trusting anything else in this section.
 
 - **Clock** rules are explicit states, not approximations. Two-minute warning, spikes,
   kneels, the out-of-bounds rule, and the ten-second runoff all matter most exactly

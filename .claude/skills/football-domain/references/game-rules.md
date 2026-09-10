@@ -59,10 +59,10 @@ the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 | --- | --- | --- |
 | Incomplete pass | Snap | `4-4-f`, `4-3-2` |
 | Ball dead on or behind a goal line | Snap | `4-4-d` |
-| Free kick or fair catch kick down | Legal touching in the field of play, with exceptions | `4-4-a`, `4-3-1` |
+| Free kick or fair catch kick down | Legal touching in the field of play — not on a touchback, a kick the kicking team recovers before any other legal touching, or a fair catch; the down over, the clock waits for the snap | `4-4-a`, `4-3-1-a` to `4-3-1-c`, `4-3-2` |
 | Charged timeout | Snap | `4-4-j`, `4-3-2` |
 | **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` |
-| Foul | Generally as though the flag had never flown; on the snap in the listed late-game cases | `4-4-e`, `4-3-2-e` |
+| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e` |
 | Two-minute warning | Snap | `4-4-h` |
 | Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` |
@@ -181,7 +181,11 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 
 On kicking plays the opportunity to possess is defined for you: a kickoff is the receiving
 team's opportunity, and if the kicking team legally recovers it the receiving team is
-still deemed to have had it. `[2025 · 16-1-5-c]`
+still deemed to have had it. `[2025 · 16-1-5-c]` So after a field goal on the opening
+possession, a kickoff the kicking team recovers ends the game `[2025 · A.R. 16.2]`, and
+one returned for a touchdown ends it too, with no try `[2025 · A.R. 16.4]`; the return
+touchdown on the *opening* kickoff, by contrast, gets its try, because the kicking team is
+still owed its turn. `[2025 · A.R. 16.1]`
 
 ## Penalties
 
@@ -360,7 +364,7 @@ The book's own list of what changed for 2025, with what it touches here.
 | `6-1-5` | **Touchback spot moves to the 35** when the kick reaches the end zone without touching down in the landing zone first — downed there, out of bounds behind the goal line, or off the goal post | `Rules.kickoffTouchbackOwnYard` — #41, #46 |
 | `6-1-6` | Where the kicking team stands for an onside kick, **and a trailing team may now call for one in any quarter** | `PlayCaller.kicksOnside` — #41, #46 |
 | `15-9` | Replay assist may advise the on-field crew on more objective aspects of a play | Officiating; not modelled |
-| `16-1-3` | **Regular-season overtime gives both teams a possession** whatever the first one produced, within one 10-minute period | `GameState`, `Rules` — #15 |
+| `16-1-3` | **Regular-season overtime gives both teams a possession** whatever the first one produced, within one 10-minute period | `GameState`, `Rules` — #15, and the wave 1 review for the kickoff cases |
 
 The landing-zone touchback (the 20) did not move, and neither did the onside kick's
 restraining line: it is still the 35.

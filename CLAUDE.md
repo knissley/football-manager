@@ -21,17 +21,21 @@ assume a file exists because a doc describes it; check first, because several do
 describe intent rather than what is built.
 
 What works today: world and roster generation, a crude game engine behind the real
-`PlayRecord` contract, and a calibration harness. The per-play numbers land. **The rules
-layer does not yet finish a game correctly.** An external audit in September 2026 found,
-among other things, that regular-season games end tied with no overtime, a touchdown on
-the last play of a half gets no try, the wrong team kicks off after a safety, the clock
-runs through a change of possession, and contact fouls are enforced from the wrong spot.
-Five hundred sixty-two tests were green throughout, and three of them assert wrong
-football.
+`PlayRecord` contract, and a calibration harness. The per-play numbers land. An external
+audit in September 2026 found that the rules layer did not finish a game correctly:
+regular-season games ended tied with no overtime, a touchdown on the last play of a half
+got no try, the wrong team kicked off after a safety, the clock ran through a change of
+possession, and contact fouls were enforced from the wrong spot — while five hundred
+sixty-two tests were green, three of them asserting wrong football. **Wave 1 of the
+backlog fixed those** (S9–S13 and S15 in the audit doc): overtime, the try, the safety
+kickoff, the clock with its runoff, and the enforcement spot each have scenario tests
+written from the 2025 rulebook, and the three wrong tests were rewritten. Still open are
+S14, the completion-percentage row that is a false pass, and what the wave 1 fixes
+deferred to their own issues, which the audit doc's status table links.
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
-engine. The audit doc is current as of issue I2: it carries all fifteen findings with a
+engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
 status table and links every open one to its issue.
 
 The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024

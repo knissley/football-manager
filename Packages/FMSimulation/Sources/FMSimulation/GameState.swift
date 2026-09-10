@@ -74,8 +74,10 @@ extension GameSimulator {
         ///
         /// A kickoff is the receiving team's opportunity, and a defence that takes the
         /// ball away has thereby had its own (2025 rulebook, 16-1-5-b, 16-1-5-c), so the
-        /// count moves on every kickoff and every change of possession. Two means the
-        /// game is in sudden death: the next score that separates the sides wins.
+        /// count moves on every kickoff and every change of possession. A kick the
+        /// kicking team recovers counts twice: the receivers have had their opportunity
+        /// and the kickers now possess (16-1-5-c, A.R. 16.2). Two means the game is in
+        /// sudden death: the next score that separates the sides wins.
         private var overtimePossessions: UInt8 = 0
 
         init(setup: GameSetup) {
@@ -244,7 +246,7 @@ extension GameSimulator {
             if pendingTry, replayed, let penalty = effective.penalties.first {
                 moveTheOtherTryOption(for: penalty, before: before, outcome: outcome)
             }
-            checkForEnd(advancement, wasKickoff: wasKickoff)
+            checkForEnd(advancement, wasKickoff: wasKickoff, replayed: replayed)
         }
 
         /// A flag on a try moves both try options (11-3-3): the one being attempted has
@@ -311,12 +313,22 @@ extension GameSimulator {
                 elapsed = GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
             } else if pendingKickoff {
                 // The clock on a free kick starts when the ball is legally touched in
-                // the field of play (4-3-1), so a return costs its seconds and a
-                // touchback costs none; nothing is charged before the kick, because the
-                // clock is dead after a score.
-                let returned = outcome.endedIn != .touchback && outcome.kind != .penaltyOnly
+                // the field of play (4-3-1), so a return costs its seconds, and nothing
+                // is charged before the kick, because the clock is dead after a score.
+                // It does not start on a touchback (4-3-1-a), on a kick the kicking team
+                // recovers before anyone else touches it (4-3-1-b) — which is what
+                // `.fumbleRecovered` on a kickoff means — or on a fair catch (4-3-1-c).
+                // The down over, the clock stops (4-4-a) and waits for the snap (4-3-2).
+                let returned: Bool
+                switch outcome.endedIn {
+                case .tackled, .outOfBounds, .touchdown, .fumbleLost, .safety: returned = true
+                default: returned = false
+                }
                 elapsed = GameClock.Elapsed(
                     duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
+                _ = clock.run(elapsed, rules: rules)
+                previousBehavior = .stopsUntilSnap
+                return
             } else {
                 elapsed = GameClock.elapsed(
                     playDuration: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6,
@@ -330,7 +342,7 @@ extension GameSimulator {
 
         /// The clock after a flag before the snap. No play happened, so no play time is
         /// charged; the huddle is, if the clock was running into it (4-4-e). Then the
-        /// runoff, where it applies (4-7-1), and how the clock restarts.
+        /// runoff, where it applies (4-7-1), and how the clock restarts (4-3-2-e).
         private mutating func runClockForDeadBallFoul(
             _ outcome: Outcome, choices: DeadBallChoices?, tempo: Tempo
         ) {
@@ -347,10 +359,19 @@ extension GameSimulator {
                 return
             }
             let byOffense = penalty.offendingTeam == possession
+            // How the clock restarts once the flag is enforced, unless a specific rule
+            // says otherwise: on the snap in the late-game cases, else as though the
+            // foul had not occurred (4-3-2-e).
+            let restart: ClockBehavior =
+                rules.clockStartsOnTheSnapAfterFoul(
+                    byOffense: byOffense, quarter: clock.quarter, isPostseason: setup.isPostseason,
+                    clockRemaining: clock.secondsRemaining)
+                ? .stopsUntilSnap : .stopsUntilReadyForPlay
 
             if rules.carriesRunoff(
                 foul: penalty.foul, byOffense: byOffense, quarter: clock.quarter,
-                clockRemaining: clock.secondsRemaining, clockWasRunning: runningAtTheFlag)
+                isPostseason: setup.isPostseason, clockRemaining: clock.secondsRemaining,
+                clockWasRunning: runningAtTheFlag)
             {
                 // The offence may spend a timeout instead, and the clock then starts on
                 // the snap (4-7-1 Item 1).
@@ -360,9 +381,10 @@ extension GameSimulator {
                     return
                 }
                 // The defence may decline the runoff and keep the yardage; the clock
-                // then restarts as any dead-ball foul's does.
+                // then restarts as any dead-ball foul's does, which inside two minutes
+                // is on the snap (4-3-2-e-1, 4-3-2-e-2).
                 if choices?.defenseDeclinesRunoff == true {
-                    previousBehavior = .stopsUntilReadyForPlay
+                    previousBehavior = restart
                     return
                 }
                 // The runoff, between downs; a half can end on it (4-5-4 Note 4). The
@@ -374,22 +396,24 @@ extension GameSimulator {
                 return
             }
 
-            // No runoff. A dead-ball foul stops the clock and it restarts as though the
-            // flag had never flown (4-4-e): at the snap if it was stopped, on the ready
-            // signal if it was running — unless the foul was the defence's inside two
-            // minutes, where the offence may choose the snap instead (4-7-1 Item 2).
+            // No runoff. A dead-ball foul stops the clock (4-4-e): one that was stopped
+            // at the flag waits for the snap. One that was running restarts on the ready
+            // signal after a defensive foul inside two minutes unless the offence
+            // chooses the snap (4-7-1 Item 2); otherwise as 4-3-2-e says.
             guard runningAtTheFlag else {
                 previousBehavior = .stopsUntilSnap
                 return
             }
-            let insideTwoMinutes =
-                rules.isEndOfHalf(quarter: clock.quarter)
-                && clock.secondsRemaining < rules.twoMinuteWarning
-            if !byOffense, insideTwoMinutes, choices?.offenseStartsClockOnTheSnap == true {
-                previousBehavior = .stopsUntilSnap
+            let insideTwoMinutes = rules.isAfterTheTwoMinuteWarning(
+                quarter: clock.quarter, isPostseason: setup.isPostseason,
+                clockRemaining: clock.secondsRemaining)
+            if !byOffense, insideTwoMinutes {
+                previousBehavior =
+                    choices?.offenseStartsClockOnTheSnap == true
+                    ? .stopsUntilSnap : .stopsUntilReadyForPlay
                 return
             }
-            previousBehavior = .stopsUntilReadyForPlay
+            previousBehavior = restart
         }
 
         private mutating func reposition(_ advancement: Advancement, replayed: Bool) {
@@ -410,10 +434,16 @@ extension GameSimulator {
             }
             // Overtime counts opportunities to possess: the receiving team's on a kickoff,
             // whoever ends up with it, and the new possessor's on a change of possession
-            // (16-1-5-b, 16-1-5-c).
-            if clock.quarter > setup.rules.quarters, pendingKickoff || advancement.possessionChanged
-            {
-                overtimePossessions = min(2, overtimePossessions + 1)
+            // (16-1-5-b, 16-1-5-c). A kickoff the kicking team recovers is both at once:
+            // the receivers have had their opportunity and the kickers possess
+            // (16-1-5-c, A.R. 16.2).
+            if clock.quarter > setup.rules.quarters {
+                if pendingKickoff {
+                    overtimePossessions = min(
+                        2, overtimePossessions + (advancement.possessionChanged ? 1 : 2))
+                } else if advancement.possessionChanged {
+                    overtimePossessions = min(2, overtimePossessions + 1)
+                }
             }
 
             ballOn = advancement.ballOn
@@ -447,7 +477,9 @@ extension GameSimulator {
 
         // MARK: - Ending periods and the game
 
-        private mutating func checkForEnd(_ advancement: Advancement, wasKickoff: Bool) {
+        private mutating func checkForEnd(
+            _ advancement: Advancement, wasKickoff: Bool, replayed: Bool
+        ) {
             let rules = setup.rules
 
             // A try is an untimed down of the period the touchdown ended: the period is
@@ -461,7 +493,7 @@ extension GameSimulator {
             }
 
             if clock.quarter > rules.quarters {
-                checkForOvertimeEnd(advancement, wasKickoff: wasKickoff)
+                checkForOvertimeEnd(advancement, wasKickoff: wasKickoff, replayed: replayed)
                 return
             }
 
@@ -508,7 +540,9 @@ extension GameSimulator {
         /// at the end is a tie and the period is never extended (16-1-3). Postseason: the
         /// same possession rules, and another period whenever one ends undecided
         /// (16-1-4).
-        private mutating func checkForOvertimeEnd(_ advancement: Advancement, wasKickoff: Bool) {
+        private mutating func checkForOvertimeEnd(
+            _ advancement: Advancement, wasKickoff: Bool, replayed: Bool
+        ) {
             let rules = setup.rules
 
             // A safety ends it whenever it comes: against the opening drive it is the one
@@ -520,13 +554,21 @@ extension GameSimulator {
             }
 
             let suddenDeath = overtimePossessions >= 2
-            // The play that starts a possession — the kickoff — is not the play that
-            // ends one. A score, a change of possession, or the try that closes a
-            // scoring sequence is.
-            let possessionEnded =
-                !wasKickoff
-                && (advancement.possessionChanged || advancement.scoring != nil
-                    || advancement.requiresKickoff)
+            // The play that starts a possession — the kickoff — ends one only when it
+            // scores, or when the kicking team recovers it: the receivers' opportunity
+            // is over either way (16-1-5-c, A.R. 16.2, A.R. 16.4). From scrimmage, a
+            // score, a change of possession, or the try that closes a scoring sequence
+            // ends one. A flag before the snap ends nothing; the down is replayed.
+            let possessionEnded: Bool
+            if replayed {
+                possessionEnded = false
+            } else if wasKickoff {
+                possessionEnded = advancement.scoring != nil || !advancement.possessionChanged
+            } else {
+                possessionEnded =
+                    advancement.possessionChanged || advancement.scoring != nil
+                    || advancement.requiresKickoff
+            }
 
             // Once both have possessed, the first score that separates the sides has
             // won, and the possession it came on is over (16-1-3-b, 16-1-3-c). A try
@@ -569,12 +611,17 @@ extension GameSimulator {
             clock = next
 
             // Halftime and the first overtime period both restart with a kickoff and
-            // fresh timeouts. Later overtime periods do not come through here.
+            // fresh timeouts: three for a half, two for regular-season overtime
+            // (16-1-3-e), three for postseason overtime (16-1-4-g). Later overtime
+            // periods do not come through here.
             let startsHalf = next.quarter == (rules.quarters / 2) + 1
             let startsOvertime = next.quarter == rules.quarters + 1
             if startsHalf || startsOvertime {
-                homeTimeouts = rules.timeoutsPerHalf
-                awayTimeouts = rules.timeoutsPerHalf
+                let timeouts =
+                    startsOvertime && !setup.isPostseason
+                    ? rules.regularSeasonOvertimeTimeouts : rules.timeoutsPerHalf
+                homeTimeouts = timeouts
+                awayTimeouts = timeouts
                 possession = startsHalf ? secondHalfReceiver : possession
                 ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
                 down = .first

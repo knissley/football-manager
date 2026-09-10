@@ -83,6 +83,30 @@ extension Rules {
         return false
     }
 
+    /// After a foul that stopped a running clock, whether the clock waits for the snap
+    /// rather than restarting on the ready-for-play signal (2025 rulebook, 4-3-2-e).
+    ///
+    /// The clock restarts as though the foul had not occurred — on the ready, since it
+    /// was running — except that it starts on the snap after the two-minute warning of
+    /// the first half (e-1), inside the last five minutes of the second half (e-2), or
+    /// for an offensive foul that stops the clock before a snap anywhere in the fourth
+    /// period or regular-season overtime (e-3). The first two are the windows of the
+    /// out-of-bounds rule (4-3-2-a), and are read the same way; the third is the
+    /// fourth period's timing, which regular-season overtime shares (16-1-3-e). A
+    /// clock that was stopped at the flag waits for the snap either way.
+    ///
+    /// The runoff's restart (4-3-2-g) and the offence's choice after a defensive foul
+    /// inside two minutes (4-7-1 Item 2) are specific rules that prescribe otherwise
+    /// (e-5), and are decided before this is asked.
+    public func clockStartsOnTheSnapAfterFoul(
+        byOffense: Bool, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
+    ) -> Bool {
+        if isInLateClockWindow(quarter: quarter, clockRemaining: clockRemaining) {
+            return true
+        }
+        return byOffense && hasFourthPeriodTiming(quarter: quarter, isPostseason: isPostseason)
+    }
+
     /// Whether this play crosses the two-minute warning, which stops the clock on its
     /// own regardless of how the play ended.
     public func crossesTwoMinuteWarning(

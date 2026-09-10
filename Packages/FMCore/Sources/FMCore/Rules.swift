@@ -25,6 +25,9 @@ public struct Rules: Sendable, Hashable, Codable {
     /// The shorter play clock after an administrative stoppage.
     public var playClockAfterStoppage: UInt8
     public var timeoutsPerHalf: UInt8
+    /// Charged timeouts per team in a regular-season overtime period (2025 rulebook,
+    /// 16-1-3-e). Postseason overtime keeps `timeoutsPerHalf` (16-1-4-g).
+    public var regularSeasonOvertimeTimeouts: UInt8
     /// Inside this many seconds of the first half, going out of bounds stops the clock
     /// until the snap rather than until the ready-for-play signal.
     public var outOfBoundsStopsClockFirstHalf: UInt16
@@ -90,6 +93,7 @@ public struct Rules: Sendable, Hashable, Codable {
         playClock: UInt8 = 40,
         playClockAfterStoppage: UInt8 = 25,
         timeoutsPerHalf: UInt8 = 3,
+        regularSeasonOvertimeTimeouts: UInt8 = 2,
         outOfBoundsStopsClockFirstHalf: UInt16 = 120,
         outOfBoundsStopsClockSecondHalf: UInt16 = 300,
         tenSecondRunoff: UInt16 = 10,
@@ -118,6 +122,7 @@ public struct Rules: Sendable, Hashable, Codable {
         self.playClock = playClock
         self.playClockAfterStoppage = playClockAfterStoppage
         self.timeoutsPerHalf = timeoutsPerHalf
+        self.regularSeasonOvertimeTimeouts = regularSeasonOvertimeTimeouts
         self.outOfBoundsStopsClockFirstHalf = outOfBoundsStopsClockFirstHalf
         self.outOfBoundsStopsClockSecondHalf = outOfBoundsStopsClockSecondHalf
         self.tenSecondRunoff = tenSecondRunoff
@@ -186,22 +191,44 @@ extension Rules {
         quarter == quarters / 2 || quarter == quarters
     }
 
+    /// Whether `quarter` is played under the fourth period's timing rules: the fourth
+    /// period itself, and regular-season overtime, whose general provisions are the
+    /// fourth quarter's (2025 rulebook, 16-1-3-e). Postseason overtime reads its own
+    /// periods differently (16-1-4-h) and is not modelled here.
+    public func hasFourthPeriodTiming(quarter: UInt8, isPostseason: Bool) -> Bool {
+        quarter == quarters || (!isPostseason && quarter > quarters)
+    }
+
+    /// Whether the clock, read at a flag, is inside the closing two minutes of a half —
+    /// the window of Rule 4 Section 7 — with regular-season overtime carrying the
+    /// fourth period's timing (16-1-3-e). At exactly the warning the clock has just
+    /// stopped, so nothing is running to conserve.
+    public func isAfterTheTwoMinuteWarning(
+        quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
+    ) -> Bool {
+        guard
+            quarter == quarters / 2
+                || hasFourthPeriodTiming(quarter: quarter, isPostseason: isPostseason)
+        else { return false }
+        return clockRemaining < twoMinuteWarning
+    }
+
     /// Whether a foul before the snap carries the ten-second runoff.
     ///
     /// By the offence, after the two-minute warning of either half, with the clock
     /// running into the flag (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
-    /// defence (4-7-1 Item 2). The clock is read at the flag: at exactly the warning it
-    /// has just stopped, so nothing is running to run off.
+    /// defence (4-7-1 Item 2). Regular-season overtime is timed as the fourth quarter
+    /// (16-1-3-e), so its closing two minutes carry the runoff too.
     ///
     /// Only the dead-ball fouls before the snap are here. Intentional grounding, an
     /// illegal forward pass and the other live-ball acts in the article are not drawn
     /// by the engine yet; when they are (C3), they belong in this predicate.
     public func carriesRunoff(
-        foul: Foul, byOffense: Bool, quarter: UInt8, clockRemaining: UInt16,
-        clockWasRunning: Bool
+        foul: Foul, byOffense: Bool, quarter: UInt8, isPostseason: Bool,
+        clockRemaining: UInt16, clockWasRunning: Bool
     ) -> Bool {
         guard byOffense, foul.isPreSnap, clockWasRunning else { return false }
-        guard isEndOfHalf(quarter: quarter) else { return false }
-        return clockRemaining < twoMinuteWarning
+        return isAfterTheTwoMinuteWarning(
+            quarter: quarter, isPostseason: isPostseason, clockRemaining: clockRemaining)
     }
 }
