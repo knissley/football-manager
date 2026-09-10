@@ -157,9 +157,14 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // It used to be made after, which left every conversion attempt starting from
         // the fifteen and needing fifteen yards: across eight hundred team-games not one
         // of them was ever converted.
-        if state.pendingTry {
+        //
+        // And it is made *once*. Re-spotting the try on every step is how a flag before
+        // the snap was recorded and then undone: the enforced spot was overwritten with
+        // the standard one before the replay. The decision is asked again only when a
+        // defensive foul has moved the ball inside the two.
+        if state.pendingTry, state.tryGoesForTwo == nil || state.tryNeedsRedecision {
             let provisional = state.situation()
-            state.moveToTrySpot(
+            state.chooseTry(
                 goingForTwo: caller.goesForTwo(
                     situation: provisional, classified: SituationClass(provisional)))
         }
@@ -200,7 +205,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
         } else if state.pendingTry {
-            calls = tryCalls(situation: situation, classified: classified, random: &random)
+            calls = tryCalls(goesForTwo: state.tryGoesForTwo ?? false)
         } else {
             calls = Calls(
                 offense: declared ?? CrudePlaybook.call(.insideRun),
@@ -227,14 +232,11 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
 
     /// A try is a decision, not a formality: down eight late, you go for two.
     ///
-    /// The score here is *before* the touchdown has its try, so trailing by two after
-    /// scoring means the conversion ties it, and trailing by five means it cuts the lead
-    /// to a field goal. Those are the ones worth taking.
-    private func tryCalls(
-        situation: Situation, classified: SituationClass, random: inout SplittableRandom
-    ) -> Calls {
-        let goesForTwo = caller.goesForTwo(situation: situation, classified: classified)
-        return Calls(
+    /// The call is built from the decision the state already holds, which is the one
+    /// the spot was chosen for; asking the caller a second time here could disagree
+    /// with where the ball is.
+    private func tryCalls(goesForTwo: Bool) -> Calls {
+        Calls(
             offense: CrudePlaybook.call(goesForTwo ? .twoPointConversion : .extraPoint),
             defense: .goalLineStop,
             offensiveCaller: goesForTwo ? .coordinator(PersonnelID(1)) : .automatic,

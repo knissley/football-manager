@@ -24,6 +24,17 @@ extension GameSimulator {
 
         /// A try is owed before anything else can happen.
         var pendingTry = false
+        /// The try as chosen: `nil` until the caller has been asked, then whether the
+        /// scoring side goes for two. Chosen once, so a flag on the try replays it from
+        /// the enforced spot rather than from the standard one.
+        var tryGoesForTwo: Bool?
+        /// A defensive foul has moved the try inside the two, which is a decision worth
+        /// putting to the caller again: two from the one is a different question.
+        var tryNeedsRedecision = false
+        /// The other try option's yard line, as any penalty enforced on this try has
+        /// moved it (2025 rulebook, 11-3-3): the spot the try moves to if the caller
+        /// changes its mind after a flag.
+        private var otherTrySpot: UInt8 = 0
         var pendingKickoff = false
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
@@ -137,9 +148,22 @@ extension GameSimulator {
             previousBehavior = .stopsUntilSnap
         }
 
-        /// Put the ball where this try is actually snapped from.
-        mutating func moveToTrySpot(goingForTwo: Bool) {
-            ballOn = goingForTwo ? setup.rules.twoPointSnapYard : setup.rules.extraPointSnapYard
+        /// Choose the try, and put the ball where it is snapped from.
+        ///
+        /// The first time, the spot is the standard one for the choice — the fifteen
+        /// for a kick, the two for a play (11-3-1). Asked again after a flag, a changed
+        /// answer moves the try to the other option's yard line as the flag has already
+        /// moved it (11-3-3); the same answer keeps the enforced spot.
+        mutating func chooseTry(goingForTwo: Bool) {
+            let rules = setup.rules
+            if let chosen = tryGoesForTwo {
+                if chosen != goingForTwo { swap(&ballOn, &otherTrySpot) }
+            } else {
+                ballOn = goingForTwo ? rules.twoPointSnapYard : rules.extraPointSnapYard
+                otherTrySpot = goingForTwo ? rules.extraPointSnapYard : rules.twoPointSnapYard
+            }
+            tryGoesForTwo = goingForTwo
+            tryNeedsRedecision = false
             down = .first
             distance = max(1, ballOn)
         }
@@ -169,8 +193,33 @@ extension GameSimulator {
             score(advancement)
             runClock(effective, tempo: calls.offense.tempo)
             let wasKickoff = pendingKickoff
-            reposition(advancement, replayed: effective.kind == .penaltyOnly)
+            let replayed = effective.kind == .penaltyOnly
+            reposition(advancement, replayed: replayed)
+            if pendingTry, replayed, let penalty = effective.penalties.first {
+                moveTheOtherTryOption(for: penalty, before: before, outcome: outcome)
+            }
             checkForEnd(advancement, wasKickoff: wasKickoff)
+        }
+
+        /// A flag on a try moves both try options (11-3-3): the one being attempted has
+        /// just been enforced by `reposition`, and the other follows the same walk-off
+        /// from its own spot, so that a caller who changes its mind after the flag
+        /// snaps from the right place. A defensive foul that leaves the ball inside the
+        /// two is worth asking the caller about again.
+        private mutating func moveTheOtherTryOption(
+            for penalty: PenaltyRecord, before: Situation, outcome: Outcome
+        ) {
+            let rules = setup.rules
+            var other = before
+            other.ballOn = otherTrySpot
+            other.distance = max(1, otherTrySpot)
+            let byOffense = penalty.offendingTeam == possession
+            otherTrySpot =
+                rules.enforce(penalty, on: other, outcome: outcome, offendingTeamHadBall: byOffense)
+                .advancement.ballOn
+            if !byOffense && ballOn < rules.twoPointSnapYard {
+                tryNeedsRedecision = true
+            }
         }
 
         private mutating func record(
@@ -258,6 +307,8 @@ extension GameSimulator {
             // Order matters: a try is owed before the kickoff that follows it.
             if pendingTry {
                 pendingTry = false
+                tryGoesForTwo = nil
+                tryNeedsRedecision = false
                 pendingKickoff = true
                 ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
                 return

@@ -555,7 +555,7 @@ completion a fact in the record, and
 [E2 · #42](https://github.com/knissley/football-manager/issues/42), which makes the harness
 read that fact instead of inferring one.
 
-## S15 — A flag on a try is recorded and never enforced — **open**
+## S15 — A flag on a try is recorded and never enforced — **fixed**
 
 `GameSimulator.step` calls `moveToTrySpot` on every step while a try is pending, so the
 enforcement spot from a pre-snap flag is overwritten with the standard 15 or 2 before the
@@ -568,6 +568,12 @@ start on an extra point should make it a 37-yard kick, and does not.
 
 Reproduces as the issue describes. Closed by
 [A7 · #19](https://github.com/knissley/football-manager/issues/19).
+
+**Fixed by A7 (#19), in the wave 1 PR.** The try is chosen once, when it is first
+owed, and a replayed try keeps its enforced spot; the other try option's yard line
+follows the same walk-off (2025 rulebook, 11-3-3), and a defensive foul that leaves the
+ball inside the two puts the two-point question to the caller again. A false start on an
+extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
 ## Where this leaves the engine
 
@@ -593,7 +599,7 @@ table is a snapshot.
 | S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
 | S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
 | S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
-| S15 A flag on a try is recorded and never enforced | **open** | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
+| S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
 
 These fifteen are not the whole backlog. The engine findings that did not earn a section of
 their own are one line each under *What to trust* below, with the issue that closes them.

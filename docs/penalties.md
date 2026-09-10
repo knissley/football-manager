@@ -7,8 +7,8 @@ branches. The harness prints the per-foul rates and the road-versus-home pre-sna
 *Not built:* officiating in any form — there is no `OfficiatingProfile`, no per-category
 tightness and no crew, so the whole [Officiating](#officiating) section is design. Nor is
 there an officiating slider. *Known wrong:* live-ball fouls are
-enforced from the previous spot (#18), a flag on a try does not move the try (#19), and
-fouls after a score are not enforced on the kickoff (#48).
+enforced from the previous spot (#18), and fouls after a score are not enforced on the
+kickoff (#48). A flag on a try moves the try (#19, fixed in wave 1).
 
 A soul-crushing offside in a playoff game has to be possible. Getting there means
 being careful about *why* flags happen, because the obvious implementation — roll
