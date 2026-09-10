@@ -257,6 +257,26 @@ Every one of these is a hard-failing step of the `test` job in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
 `Tools/simharness` included, since #9, because nothing else compiles its tests.
 
+### The conformance scenarios are a library, not test support
+
+`FMSimulation` ships a second library, **`FMSimulationScenarios`**: the scripted games the
+rules-conformance suite runs — `Snap` and the outcome vocabulary, `ScriptedCaller`,
+`ScriptedGame`, the `Trace` a game produces, `ScenarioWorld`, and the scenarios themselves.
+It is a plain `FM*` module: no Swift Testing, no Foundation, and `scripts/lint-sim.sh`
+scans it like any other.
+
+It is a library rather than a test target so that a tool can link it, which is what
+`gamelog --scenario` does. What stays in `Packages/FMSimulation/Tests/` is the half only a
+test can hold: the assertions over a `Trace` (`expectPlay` and the rest, in
+`Scenarios/TraceAssertions.swift`) and the conformance suite itself.
+
+Every scenario the suite runs is a case of `RulesScenario`, and that enum is the only way
+to reach one — the scripts are internal to the library. So the list `--scenario list`
+prints is the list the suite runs, by construction rather than by upkeep, and
+`Scenarios/ScenarioLibraryTests.swift` pins the rest: that the listing names every
+scenario with the football it is there to show, that the printed name is the name the tool
+parses back, and that every scenario still runs.
+
 ## lint-sim — the determinism and purity lint
 
 ```bash
