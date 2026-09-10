@@ -299,10 +299,18 @@ its season and source belong to issue #2.
   the enforced spot, and the caller may change its mind about which try it is attempting.
   `[2025 · 11-3-3 Item 3-a]` A defensive foul leaves the point and is enforced on the
   ensuing kickoff. `[2025 · 11-3-3 Item 4-a]`
-- **The kicker.** Roughing him is fifteen yards and an automatic first down; running into
-  him is five and the down is replayed. `[2025 · 12-2-12]`, `[2025 · 6-2-3]` Neither
-  cancels a kick that was already away: the rush is over before the ball comes down, so
-  the kick is a fact and the flag is a choice on top of it.
+- **The kicker.** On a kick from scrimmage, roughing him (Item 1) is fifteen yards from
+  the previous spot and an automatic first down, and the article marks it a **personal
+  foul**; running into him (Item 2) is five from the previous spot with no automatic first
+  down, and the article marks it **not** one. `[2025 · 12-2-12]` That marking, not the
+  section the foul is printed under, is what the 14-2-3 entry above turns on, so only
+  roughing travels to a succeeding spot. The article says nothing about the down: five
+  from the previous spot replays it only where they leave the ball short of the line to
+  gain, because reaching it is a new series like any other. `[2025 · 7-3-1-b]`,
+  `[2025 · 3-8-4]` Neither foul wipes a kick that was already away by itself — the rush
+  is over before the ball comes down, so the offended team weighs the flag against what
+  the kick did. The **free** kicker is a different article with its own five yards
+  `[2025 · 6-2-3]`, and a personal foul against him is 12-2-8-i.
 - **The passing game.** Between the snap and the moment a forward pass from behind the
   line is over, a foul by either team is enforced from the previous spot; the catch is the
   boundary, and with the ball in a receiver's hands the down has become a run.
