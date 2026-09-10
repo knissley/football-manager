@@ -288,9 +288,13 @@ A drive summary reads `── NRW drive: 4 plays, 34 yards, 1:52 — touchdown`:
 scrimmage, net yards, the clock the drive had the ball, and how it ended. A drive that ran
 out of period rather than out of downs is named by the break it ran into — `end of half`,
 `end of regulation`, or `end of game`. Overtime is where that is easy to get wrong, and
-#87 is where it was: a postseason period that ends undecided is **not** a break, because
-the next one begins with the ball where it was and the same side in possession (16-1-4-d),
-so a drive runs straight through it and is printed once, when it really ends. The last
+#87 is where it was: the end of a first or a third postseason overtime period is **not** a
+break, because the next one begins with the ball where it was and the same side in
+possession (16-1-4-f, 4-2-3), so a drive runs straight through it and is printed once,
+when it really ends. The end of a second or a fourth is one — the third and the fifth
+period open a new half with a kickoff (16-1-4-e, 16-1-4-i) — and the drive chart ends a
+drive there as it does at halftime, because both read `Rules.periodResumesWithKickoff`.
+The last
 drive of a game runs to 0:00, because in regulation the clock is the only thing that ends
 a game — a kick that wins it at 0:03 does not, the horn does. The exception is again
 overtime, where a score ends the game where it stands: a walk-off drive is charged to the
@@ -412,6 +416,35 @@ swift run gamelog --scenario roughness-by-the-defense-before-an-interception | h
 # 11-3-1, 11-3-4): the kickers' touchdown, the kickers' try, and the kickers kicking off
 # again. The opening kickoff, so the first three lines of play are the whole rule.
 swift run gamelog --scenario kickoff-fumbled-and-returned-by-the-kickers | head -14
+
+# A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
+# play snapped outside 5:00 of the fourth quarter carries him out inside it, and the
+# next snap comes with the clock stopped rather than a huddle later.
+swift run gamelog --scenario runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter | tail -30
+
+# The mirror, and the first-half boundary, of the same rule: a play kept inside 5:00, and
+# a runner out after a play snapped before the second quarter's warning, which the
+# warning stops on its own.
+swift run gamelog --scenario runner-out-of-bounds-inside-five-minutes-of-the-fourth-quarter | grep -B1 -A2 "out of bounds"
+swift run gamelog --scenario runner-out-of-bounds-across-the-two-minute-warning-of-the-second-quarter | grep -B1 -A2 "out of bounds"
+
+# A14 (#86): a third postseason overtime period opens a new half — a kickoff at 3OT
+# 15:00, kicked to the side that lost the toss before overtime, and three timeouts each
+# again; the 2OT boundary before it is played straight through.
+swift run gamelog --scenario third-postseason-overtime-period | tail -60
+
+# The choice is the toss loser's (4-2-2-a): electing to kick, it kicks off the third period.
+swift run gamelog --scenario third-postseason-overtime-period-with-the-toss-loser-kicking-off | grep -A2 "end of 2OT"
+
+# A fifth period after the toss of 16-1-4-i: a kickoff at 5OT 15:00, with the 4OT boundary
+# before it played straight through.
+swift run gamelog --scenario fifth-postseason-overtime-period | grep -A2 "end of 3OT\|end of 4OT"
+
+# A half that ends between downs, on an excess injury timeout's runoff, is followed by the
+# second-half kickoff like any other: the side that received the opening kick kicks, and
+# the receivers have the ball after it — at their restart spot, or where the return ended.
+swift run gamelog --scenario second-half-kickoff-after-an-injury-runoff-ends-the-first-half | grep -B3 -A2 "halftime ·"
+swift run gamelog --scenario second-half-kickoff-returned-after-an-injury-runoff-ends-the-first-half | grep -A2 "halftime ·"
 ```
 
 The men are not named in a scenario — a scripted outcome credits nobody, so the log says

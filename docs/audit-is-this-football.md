@@ -651,7 +651,14 @@ table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
 two-minute warning and postseason overtime timing), since landed, as has
 [A12 · #76](https://github.com/knissley/football-manager/issues/76) (the play clock, the
-last forty seconds and the injury timeout, which the invariants list had found unenforced);
+last forty seconds and the injury timeout, which the invariants list had found unenforced),
+and the two follow-ups #74 itself found, landed together:
+[A13 · #85](https://github.com/knissley/football-manager/issues/85) (the late
+out-of-bounds window is judged where the runner stepped out, not at the previous whistle)
+and [A14 · #86](https://github.com/knissley/football-manager/issues/86) (postseason
+overtime halves: a third period, and a fifth, put back in play with a kick at the toss
+loser's first choice, three timeouts a half, and the kickoff that opens a half settled
+before it is played whichever way the half before it ended);
 [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
 possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
 [C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a

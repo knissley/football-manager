@@ -51,6 +51,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case overtimeFirstPossessionInterceptionReturned =
         "overtime-first-possession-interception-returned"
     case overtimeOpeningDriveSafety = "overtime-opening-drive-safety"
+    case thirdPostseasonOvertimePeriod = "third-postseason-overtime-period"
+    case thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff =
+        "third-postseason-overtime-period-with-the-toss-loser-kicking-off"
+    case fifthPostseasonOvertimePeriod = "fifth-postseason-overtime-period"
 
     // The clock
     case puntReturnedAndTackled = "punt-returned-and-tackled"
@@ -72,6 +76,12 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "runner-out-of-bounds-inside-five-minutes-of-a-second-postseason-overtime-period"
     case runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod =
         "runner-out-of-bounds-inside-five-minutes-of-a-fourth-postseason-overtime-period"
+    case runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter =
+        "runner-out-of-bounds-inside-five-minutes-of-the-fourth-quarter"
+    case runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter =
+        "runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter"
+    case runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter =
+        "runner-out-of-bounds-across-the-two-minute-warning-of-the-second-quarter"
 
     // Fouls before the snap late in a half
     case falseStartInsideTwoMinutes = "false-start-inside-two-minutes"
@@ -109,6 +119,12 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "injury-inside-two-minutes-with-no-timeouts-left"
     case injuryInsideTwoMinutesAgainstATrailingDefense =
         "injury-inside-two-minutes-against-a-trailing-defense"
+
+    // The kickoff that opens a half
+    case secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf =
+        "second-half-kickoff-after-an-injury-runoff-ends-the-first-half"
+    case secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf =
+        "second-half-kickoff-returned-after-an-injury-runoff-ends-the-first-half"
 
     // Tries, kicks and enforcement
     case falseStartOnATry = "false-start-on-a-try"
@@ -180,6 +196,10 @@ extension RulesScenario {
         case .overtimeFirstPossessionInterceptionReturned:
             return RulesScenarios.overtimeFirstPossessionInterceptionReturned
         case .overtimeOpeningDriveSafety: return RulesScenarios.overtimeOpeningDriveSafety
+        case .thirdPostseasonOvertimePeriod: return RulesScenarios.thirdPostseasonOvertimePeriod
+        case .thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff:
+            return RulesScenarios.thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff
+        case .fifthPostseasonOvertimePeriod: return RulesScenarios.fifthPostseasonOvertimePeriod
 
         case .puntReturnedAndTackled: return RulesScenarios.puntReturnedAndTackled
         case .fumbleRecoveredByTheOffense: return RulesScenarios.fumbleRecoveredByTheOffense
@@ -204,6 +224,14 @@ extension RulesScenario {
         case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
             return RulesScenarios.runnerOutOfBounds(
                 quarter: 8, window: 226...300, postseasonDecidedIn: 9)
+        case .runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.runnerOutOfBounds(quarter: 4, window: 226...300)
+        case .runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.playStretchedToEnd(
+                quarter: 4, at: 290, endedIn: .outOfBounds, snappedAfter: 300)
+        case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
+            return RulesScenarios.playStretchedToEnd(
+                quarter: 2, at: 110, endedIn: .outOfBounds, snappedAfter: 120)
 
         case .falseStartInsideTwoMinutes: return RulesScenarios.falseStartInsideTwoMinutes
         case .falseStartInTheThirdQuarter: return RulesScenarios.falseStartInTheThirdQuarter
@@ -246,6 +274,12 @@ extension RulesScenario {
             return RulesScenarios.injuryInsideTwoMinutesWithNoTimeoutsLeft
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return RulesScenarios.injuryInsideTwoMinutesAgainstATrailingDefense
+
+        case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
+            return RulesScenarios.injuryRunoffEndsTheFirstHalf(kick: .kickoffTouchback)
+        case .secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf:
+            return RulesScenarios.injuryRunoffEndsTheFirstHalf(
+                kick: .kickoffReturn(toOwn: 25, seconds: 8))
 
         case .falseStartOnATry: return RulesScenarios.falseStartOnATry
         case .missedFieldGoalFromTheTen: return RulesScenarios.missedFieldGoal(from: 10)
@@ -393,6 +427,21 @@ extension RulesScenario {
             return [
                 "football · Rule 16-1-3-a · a safety against the opening overtime drive wins it for the team that kicked off"
             ]
+        case .thirdPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
+                "football · Rule 16-1-4-f, 4-2-3 · at the end of a first postseason overtime period the teams change goals and play on: possession, the down, the ball and the line to gain are unchanged, and no kick is made",
+                "football · Rule 16-1-4-g · each team has three timeouts in each postseason overtime half: a side that spent its three across the first and second overtime periods has three again when the third opens, and a side that spent none still has three",
+            ]
+        case .thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff:
+            return [
+                "football · Rule 16-1-4-e, 4-2-2-a · the captain with the first choice at a third postseason overtime period may elect to kick off, and then kicks off"
+            ]
+        case .fifthPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-i, 16-1-2, 4-2-2, 16-1-4-g · at the end of a fourth postseason overtime period the coin is tossed again, so a fifth is put back in play with a kickoff and each side has three timeouts for the half it opens",
+                "pin · the toss before a fifth postseason overtime period (16-1-4-i) is not drawn: as at the first, the side with the ball at the end of the period before kicks off and stands for the captain who lost it",
+            ]
 
         case .puntReturnedAndTackled:
             return [
@@ -443,6 +492,18 @@ extension RulesScenario {
         case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
             return [
                 "football · Rule 16-1-4-h, 4-3-2-a · a fourth postseason overtime period carries the fourth period's five-minute window, so a runner out of bounds inside its last five minutes stops the clock until the snap"
+            ]
+        case .runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds on a play snapped inside the last five minutes of the fourth quarter stops the clock until the snap"
+            ]
+        case .runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds inside the last five minutes of the fourth quarter, on a play snapped with more than five minutes left, stops the clock until the snap: the window is judged where the ball became dead"
+            ]
+        case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
+            return [
+                "football · Rule 4-3-2-a-2, 3-41, 4-4-h · a runner out of bounds after the two-minute warning of the second quarter, on a play snapped before it, stops the clock until the snap: the warning is taken as that down ends"
             ]
 
         case .falseStartInsideTwoMinutes:
@@ -532,6 +593,15 @@ extension RulesScenario {
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return [
                 "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap"
+            ]
+
+        case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
+            return [
+                "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 11-6-2, 11-6-3 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a touchback is the receiving team's ball, and it snaps next at its own restart spot"
+            ]
+        case .secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf:
+            return [
+                "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 7-6-1 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a returned kick is the receiving team's ball where the return ended, and it snaps next from there"
             ]
 
         case .falseStartOnATry:

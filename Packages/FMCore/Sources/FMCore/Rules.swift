@@ -255,36 +255,40 @@ extension Rules {
         return quarter == 1 || quarter == quarters / 2 + 1
     }
 
-    /// The period boundaries **the engine** puts back in play with a free kick, rather
-    /// than carrying on from where the period before left the ball.
+    /// The periods put back in play with a free kick rather than carried on from where
+    /// the period before left the ball: every period that opens a half, except the first,
+    /// which opens the game.
     ///
-    /// Two of them. The second half: the toss article names the first-half kickoff and
-    /// gives the second half's first choice to the captain who lost the pregame toss
-    /// (4-2-2). And the first period of overtime, which opens like a half, each side owed
-    /// its opportunity to possess, of which a kickoff is the receivers' (16-1-3-a,
-    /// 16-1-5-c). A period inside a half is not one: the teams change goals and
-    /// possession, the down, the ball and the line to gain are unchanged (4-2-3), which
-    /// 16-1-4-f carries into the ends of a first and a third overtime period. Nor is the
-    /// game's opening kick, because nothing is resumed at the start of a first period, so
-    /// the answer there is `false`.
-    ///
-    /// **The book has a third, and the engine does not model it.** 16-1-4-e gives the
-    /// beginning of a *third* overtime period the first choice of 4-2-2's privileges to
-    /// the captain who lost the toss before overtime, and 16-1-4-i tosses again after the
-    /// fourth, so a third postseason overtime period is put back in play with a kick and
-    /// by the same reading so is a fifth — which is what `opensHalf` computes and this
-    /// does not. The engine restarts only the first, and 16-1-4-d then reads as another
-    /// period beginning with play continuing.
-    /// [#86](https://github.com/knissley/football-manager/issues/86) owns that boundary;
-    /// until it lands this answers `false` there, pinned by
-    /// `aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`.
+    /// The second half: the toss article names the first-half kickoff and gives the
+    /// second half's first choice to the captain who lost the pregame toss (4-2-2). The
+    /// first period of overtime, which opens after a toss of its own (16-1-2), each side
+    /// owed its opportunity to possess, of which a kickoff is the receivers' (16-1-3-a,
+    /// 16-1-5-c). A third postseason overtime period, whose first choice of 4-2-2's
+    /// privileges 16-1-4-e gives to the captain who lost the toss before overtime. And a
+    /// fifth, after the toss 16-1-4-i calls at the end of a fourth — from which the
+    /// pairing repeats, by the reading `periodTiming` pins, so a seventh opens as a third
+    /// does. A period inside a half is not one: the teams change goals and possession,
+    /// the down, the ball and the line to gain are unchanged (4-2-3), which 16-1-4-f
+    /// carries into the ends of a first and a third overtime period.
     ///
     /// One predicate, because two layers ask this and a second copy of the answer is how
     /// they come to disagree: `GameState.startNextPeriod` restarts possession, the spot
-    /// and the timeouts by it, and `Tools/gamelog` ends a drive by it. `AsModelled` is in
-    /// the name so that neither call site reads as a claim about the sport.
-    public func periodResumesWithKickoffAsModelled(quarter: UInt8) -> Bool {
-        quarter == quarters / 2 + 1 || quarter == quarters + 1
+    /// and the timeouts by it, and `Tools/gamelog` ends a drive by it. It is `opensHalf`
+    /// less the game's opening period, so the timeout rule and the timing rule read the
+    /// halves the same way.
+    public func periodResumesWithKickoff(quarter: UInt8) -> Bool {
+        quarter != 1 && opensHalf(quarter: quarter)
+    }
+
+    /// Whether a coin is tossed before `quarter` begins: before the game (4-2-2), before
+    /// overtime (16-1-2), and again before a fifth overtime period (16-1-4-i) — and, by
+    /// the reading `periodTiming` pins past the fourth, before every fourth period after
+    /// that. A half that opens without a toss opens with the first choice of the captain
+    /// who lost the one before (4-2-2, 16-1-4-e). The engine does not draw the toss;
+    /// what stands in for it is `GameState.startNextPeriod`'s to say.
+    public func periodFollowsACoinToss(quarter: UInt8) -> Bool {
+        if quarter <= quarters { return quarter == 1 }
+        return (quarter - quarters) % 4 == 1
     }
 
     /// The period a half ends on, which is the period with a two-minute warning in it.
