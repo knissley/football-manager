@@ -99,7 +99,7 @@ public protocol PlayCaller: Sendable {
     /// This is the first half of the sport's oldest chess match: personnel is public
     /// information, and the defence answers it.
     func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup
 
@@ -140,7 +140,7 @@ extension PlayCaller {
 
     /// The conventional groupings, by what the play is asking for.
     public func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup {
         // Short yardage and the goal line are where the extra bodies go — though the
@@ -312,16 +312,16 @@ public struct BaselineCaller: PlayCaller {
         random: inout SplittableRandom
     ) -> OffensiveCall {
         if shouldKneel(situation, classified, context) {
-            return CrudePlaybook.call(.kneel, tempo: .bleedClock)
+            return OffensiveCall(concept: .kneel, tempo: .bleedClock)
         }
         if shouldSpike(situation, classified, context) {
-            return CrudePlaybook.call(.spike, tempo: .hurryUp)
+            return OffensiveCall(concept: .spike, tempo: .hurryUp)
         }
         if situation.down == .fourth, let kick = fourthDown(situation, classified, context) {
-            return CrudePlaybook.call(kick)
+            return OffensiveCall(concept: kick)
         }
-        return CrudePlaybook.call(
-            family(for: classified, random: &random), tempo: tempo(for: classified))
+        return OffensiveCall(
+            concept: concept(for: classified, random: &random), tempo: tempo(for: classified))
     }
 
     /// Kick, punt, or go. Returns `nil` when the answer is to run a play.
@@ -331,7 +331,7 @@ public struct BaselineCaller: PlayCaller {
     /// hiring a coordinator matter.
     private func fourthDown(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
-    ) -> PlayFamily? {
+    ) -> PlayConcept? {
         let kickLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
 
         // A long kick is worth attempting when the alternative is nothing — the end of a
@@ -394,13 +394,13 @@ public struct BaselineCaller: PlayCaller {
         }
     }
 
-    private func family(
+    private func concept(
         for situation: SituationClass, random: inout SplittableRandom
-    ) -> PlayFamily {
+    ) -> PlayConcept {
         // Short yardage is a run unless the clock says otherwise; long yardage is a
         // throw. Everything in between leans on the down.
         if situation.isMustPass {
-            return passFamily(for: situation, random: &random)
+            return passConcept(for: situation, random: &random)
         }
         if situation.downAndDistance.isShortYardage {
             // Short yardage on the goal line is not the same as short yardage at
@@ -431,12 +431,12 @@ public struct BaselineCaller: PlayCaller {
         if random.nextBool(probability: runShare) {
             return random.nextBool(probability: 0.62) ? .insideRun : .outsideRun
         }
-        return passFamily(for: situation, random: &random)
+        return passConcept(for: situation, random: &random)
     }
 
-    private func passFamily(
+    private func passConcept(
         for situation: SituationClass, random: inout SplittableRandom
-    ) -> PlayFamily {
+    ) -> PlayConcept {
         // Desperation throws deep because there is no time for anything else; ordinary
         // downs spread across the tree.
         if situation.isDesperation && situation.field != .redZone {
