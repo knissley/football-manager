@@ -42,11 +42,21 @@ struct SituationTests {
 
     @Test("The two-minute drill covers the end of either half")
     func twoMinuteDrill() {
-        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill)
-        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill)
-        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill == false)
-        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill == false)
-        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill == false)
+        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill())
+        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill())
+        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill() == false)
+        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill() == false)
+        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill() == false)
+    }
+
+    /// The half boundaries and the threshold come from the rules, so a variant moves
+    /// them (A8, #20).
+    @Test("unit · the two-minute drill follows Rules.quarters and Rules.twoMinuteWarning")
+    func twoMinuteDrillFollowsTheRules() {
+        let variant = Rules(quarters: 2, twoMinuteWarning: 60)
+        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill(rules: variant))
+        #expect(situation(quarter: 1, clock: 61).isTwoMinuteDrill(rules: variant) == false)
+        #expect(situation(quarter: 2, clock: 30).isTwoMinuteDrill(rules: variant))
     }
 
     @Test("Obvious passing downs are late and long")
@@ -67,6 +77,14 @@ struct SituationTests {
         var tooManyTimeouts = situation()
         tooManyTimeouts.offenseTimeouts = 4
         #expect(tooManyTimeouts.isValid == false)
+    }
+
+    /// A postseason game plays as many overtime periods as it takes, so a sixth or a
+    /// seventh period is a situation the engine has to be able to describe (A8, #20).
+    @Test("unit · a postseason double-overtime situation is valid")
+    func doubleOvertimeIsValid() {
+        #expect(situation(quarter: 6, clock: 900).isValid)
+        #expect(situation(quarter: 7, clock: 400).isValid)
     }
 
     @Test("Downs advance and run out")

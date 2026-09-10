@@ -59,10 +59,10 @@ the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 | --- | --- | --- |
 | Incomplete pass | Snap | `4-4-f`, `4-3-2` |
 | Ball dead on or behind a goal line | Snap | `4-4-d` |
-| Free kick or fair catch kick down | Legal touching in the field of play, with exceptions | `4-4-a`, `4-3-1` |
+| Free kick or fair catch kick down | Legal touching in the field of play — not on a touchback, a kick the kicking team recovers before any other legal touching, or a fair catch; the down over, the clock waits for the snap | `4-4-a`, `4-3-1-a` to `4-3-1-c`, `4-3-2` |
 | Charged timeout | Snap | `4-4-j`, `4-3-2` |
 | **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` |
-| Foul | Generally as though the flag had never flown; on the snap in the listed late-game cases | `4-4-e`, `4-3-2-e` |
+| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e` |
 | Two-minute warning | Snap | `4-4-h` |
 | Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` |
@@ -145,6 +145,10 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 - **A touchdown on the last play of a period still gets its try.** It is waived only
   during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. `[2025 · 4-8-2-c]`
+- **The period is extended for that try.** A period may be extended by one untimed down
+  when something in the down that expired it calls for one, and the try is that down: it
+  belongs to the period the touchdown ended, at 0:00, not to the next one.
+  `[2025 · 4-8-2]`, `[2025 · 4-8-2-c]`
 - After the try, the team that was on defence for it receives the kickoff.
   `[2025 · 11-3-4]` The same is true after a successful field goal. `[2025 · 11-4-6]`
 
@@ -177,7 +181,11 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 
 On kicking plays the opportunity to possess is defined for you: a kickoff is the receiving
 team's opportunity, and if the kicking team legally recovers it the receiving team is
-still deemed to have had it. `[2025 · 16-1-5-c]`
+still deemed to have had it. `[2025 · 16-1-5-c]` So after a field goal on the opening
+possession, a kickoff the kicking team recovers ends the game `[2025 · A.R. 16.2]`, and
+one returned for a touchdown ends it too, with no try `[2025 · A.R. 16.4]`; the return
+touchdown on the *opening* kickoff, by contrast, gets its try, because the kicking team is
+still owed its turn. `[2025 · A.R. 16.1]`
 
 ## Penalties
 
@@ -207,12 +215,59 @@ All cites are the 2025 book.
 **Accept/decline:** simulate the play outcome and the penalty outcome, then let the
 non-penalized team take whichever is better. Offsetting penalties replay the down.
 
-**Where a foul is enforced from** is its own rule — Rule 14 `[2025 · 14-4]` for the spots,
-`[2025 · 8-6]` for the passing game — and is not in this table. The engine gets some of
-them wrong today; that is issue #18.
+**Where a foul is enforced from** is its own rule, and the next section carries it.
 
 The 10–14 penalties per game the harness aims at is a calibration band, not a rule, and
 its season and source belong to issue #2.
+
+### Where a foul is enforced from
+
+- The spots a penalty can be enforced from are the previous spot (where the ball was last
+  put in play), the spot of the foul, the spot of a backward pass or fumble, the dead-ball
+  spot, the succeeding spot (where the ball will next be put in play), the other try
+  spot, and the spot of a change of possession. `[2025 · 14-3-4]`
+- **Half the distance to the goal is measured from the spot of enforcement**, whichever
+  spot that is. `[2025 · 14-2-1]`
+- A foul before the snap is enforced from the succeeding spot and the down stays; a foul
+  at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]`
+- **The basic spot.** For a foul during a run that is not followed by a change of
+  possession, the basic spot is the dead-ball spot; when the run is followed by a change
+  of possession, it is the spot where possession was lost; during a backward pass or
+  fumble, the spot of the pass or the fumble. `[2025 · 14-3-5]`
+- **The three-and-one method.** A foul during a run, a backward pass or a fumble is
+  enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
+  advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
+  Exceptions: the offence's fouls behind the line of scrimmage are enforced from the
+  previous spot, and so are the defence's when the basic spot is behind the line.
+  `[2025 · 14-3-6]`
+- When a run with a foul in it is followed by a change of possession: a defensive foul
+  gives the ball back to the offence before enforcement; an offensive foul must be
+  declined by the defence to keep the ball, unless it was a personal or unsportsmanlike
+  foul, in which case the defence keeps the ball and the foul is enforced from the
+  dead-ball spot. `[2025 · 14-4-3]`
+- A personal or unsportsmanlike foul by a team whose opponent has the ball at the end of
+  the down may be enforced from the dead-ball spot. `[2025 · 14-2-4]`
+- **A foul during a score.** A personal or unsportsmanlike foul during a down in which
+  the opponent kicks a field goal or scores a safety is enforced on the free kick; during
+  a touchdown, any foul is enforced on the try; the offended team may instead take the
+  penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
+  engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
+  the flag is recorded declined.
+- **The passing game.** A foul by either team from the snap until a forward pass thrown
+  from behind the line ends is enforced from the previous spot, and the pass play ends
+  and a running play begins at the instant of the catch. `[2025 · 8-6-1]` Interference by
+  the defence is enforced from the spot of the foul; in the end zone it is first down at
+  the 1, or half the distance from the previous spot when that was inside the 2.
+  `[2025 · 8-6-1-b]` A personal foul by the defence before a completion is enforced from
+  the previous spot or the dead-ball spot, whichever is better for the offence; if the
+  play scores, on the try. `[2025 · 8-6-1-d]`
+- Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
+  automatic first down when it is the defence's. `[2025 · 12-3-1]`
+- Horse-collar tackle: fifteen yards and an automatic first down. `[2025 · 12-2-16]`
+  Impermissible use of the helmet: fifteen, an automatic first down if by the defence.
+  `[2025 · 12-2-10]` Blindside block: fifteen. `[2025 · 12-2-7]` Illegal use of hands by
+  the offence: ten. `[2025 · 12-1-3-a]` An ineligible player downfield on a pass: five
+  from the previous spot. `[2025 · 8-3-1]`
 
 ## Kickoffs
 
@@ -309,7 +364,7 @@ The book's own list of what changed for 2025, with what it touches here.
 | `6-1-5` | **Touchback spot moves to the 35** when the kick reaches the end zone without touching down in the landing zone first — downed there, out of bounds behind the goal line, or off the goal post | `Rules.kickoffTouchbackOwnYard` — #41, #46 |
 | `6-1-6` | Where the kicking team stands for an onside kick, **and a trailing team may now call for one in any quarter** | `PlayCaller.kicksOnside` — #41, #46 |
 | `15-9` | Replay assist may advise the on-field crew on more objective aspects of a play | Officiating; not modelled |
-| `16-1-3` | **Regular-season overtime gives both teams a possession** whatever the first one produced, within one 10-minute period | `GameState`, `Rules` — #15 |
+| `16-1-3` | **Regular-season overtime gives both teams a possession** whatever the first one produced, within one 10-minute period | `GameState`, `Rules` — #15, and the wave 1 review for the kickoff cases |
 
 The landing-zone touchback (the 20) did not move, and neither did the onside kick's
 restraining line: it is still the 35.
@@ -325,14 +380,6 @@ tree while this doc was written; the rest are the audit's findings, taken on its
   `PlayCaller` protocol extension, not a method on one caller: `BaselineCaller` and every
   other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
   #41, #46.
-- Regular-season overtime is never played: a level game ends a tie at the end of the
-  fourth quarter, because `Rules.mayEndInATie` is asked before any extra period is
-  reached. `GameState.swift`. #15.
-- There is no ten-second runoff. #32.
-- The team that gave up a safety does not kick off. #16.
-- The clock does not stop on a change of possession. #17.
-- A touchdown on the last play of a half gets no try. #31.
-- Live-ball fouls are enforced from the wrong spot. #18.
 
 The dynamic kickoff is not in the engine at all: `Rules` carries one
 `kickoffTouchbackOwnYard` and `Advancement` has one kickoff touchback spot, so there is no

@@ -206,4 +206,112 @@ struct EndgameTests {
         }
         #expect(kneels > 0, "ten games and nobody ever took a knee")
     }
+
+    // MARK: - The runoff decisions (A5, #32)
+
+    /// Not a rule: the rulebook gives the offence a timeout instead of the runoff and
+    /// the defence the right to decline it (4-7-1 Item 1), and which way each goes is a
+    /// coaching decision. These pin the protocol's baseline answers, which every caller
+    /// inherits: the offence spends a timeout only at fifteen seconds or less with one
+    /// in hand; the defence accepts the runoff when level or leading and declines it
+    /// when trailing; and after a defensive dead-ball foul the offence has the clock
+    /// wait for the snap unless it leads.
+    @Test(
+        "pin · the baseline runoff decisions: a timeout at 15 seconds or less with one in hand, the defence declines only when trailing, the offence takes the snap start unless it leads (PlayCaller defaults; coaching decisions, not rules)"
+    )
+    func runoffDecisionDefaults() {
+        func at(_ clock: UInt16, differential: Int16 = 0, timeouts: UInt8 = 1) -> Situation {
+            situation(clock: clock, differential: differential, offenseTimeouts: timeouts)
+        }
+        func classified(_ situation: Situation) -> SituationClass { SituationClass(situation) }
+
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(situation: at(15), classified: classified(at(15))))
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(situation: at(16), classified: classified(at(16)))
+                == false)
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(
+                situation: at(10, timeouts: 0), classified: classified(at(10, timeouts: 0)))
+                == false)
+
+        // `scoreDifferential` is the offence's, so a positive number means the defence trails.
+        #expect(
+            caller.declinesRunoff(
+                situation: at(40, differential: 7), classified: classified(at(40, differential: 7)))
+        )
+        #expect(caller.declinesRunoff(situation: at(40), classified: classified(at(40))) == false)
+        #expect(
+            caller.declinesRunoff(
+                situation: at(40, differential: -7),
+                classified: classified(at(40, differential: -7)))
+                == false)
+
+        #expect(
+            caller.startsClockOnTheSnap(
+                afterDefensiveFoul: at(40, differential: -7),
+                classified: classified(at(40, differential: -7))))
+        #expect(
+            caller.startsClockOnTheSnap(afterDefensiveFoul: at(40), classified: classified(at(40))))
+        #expect(
+            caller.startsClockOnTheSnap(
+                afterDefensiveFoul: at(40, differential: 7),
+                classified: classified(at(40, differential: 7)))
+                == false)
+    }
+
+    // MARK: - The walk-off
+
+    /// A game the baseline caller plays to a walk-off: one side leads by `deficit` from
+    /// the opening drive, and in the fourth quarter it throws an interception on every
+    /// snap it takes, so it can never kick a field goal and change the arithmetic; the
+    /// trailing side gains a yard at a time until, inside the last minute, it scores as
+    /// time expires.
+    private func walkOff(deficit: Int16) -> Trace {
+        let opening: @Sendable (Snap) -> Outcome? =
+            deficit == 7 ? RulesScenarios.leadBySeven : RulesScenarios.leadBySix
+        return ScriptedGame { snap in
+            if let staged = opening(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            if snap.differential > 0 { return .interception(to: 50) }
+            return snap.clock <= 60 ? snap.touchdownAsTimeExpires() : snap.neutral
+        }
+        .run(with: caller)
+    }
+
+    /// A touchdown as the fourth quarter expires, with the baseline caller deciding the
+    /// try. The football — that the try is played as an untimed down of the fourth
+    /// period, at 0:00 (2025 rulebook, 4-8-2, 4-8-2-c) — is asserted in the
+    /// rules-conformance suite with a scripted caller. What this adds is the engine's
+    /// promise about itself: the try that is snapped is the try the caller chose for
+    /// that situation, kick or conversion, from that try's spot. Down six the baseline
+    /// kicks to win; down seven it goes for two to win rather than kick to tie.
+    @Test(
+        "contract · after a walk-off touchdown the try snapped is the one the caller chose for its situation, at 0:00 of the fourth period (4-8-2)",
+        arguments: [Int16(6), Int16(7)])
+    func walkOffTryIsTheCallerChoice(deficit: Int16) {
+        let trace = walkOff(deficit: deficit)
+        guard
+            let touchdown = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.endedIn == .touchdown
+                    && $0.outcome.kind == .rush
+            })
+        else {
+            Issue.record("the script never scored as the fourth quarter expired")
+            return
+        }
+        guard let attempt = trace[touchdown.index + 1] else {
+            Issue.record("no try followed the touchdown: the game ended on it")
+            return
+        }
+        #expect(attempt.situation.quarter == 4 && attempt.situation.clockRemaining == 0)
+        let goesForTwo = caller.goesForTwo(
+            situation: attempt.situation, classified: SituationClass(attempt.situation))
+        #expect(
+            attempt.outcome.kind == (goesForTwo ? .twoPointConversion : .extraPoint),
+            "the try snapped disagrees with the caller's answer for that situation")
+        let rules = Rules.standard
+        let spot = goesForTwo ? rules.twoPointSnapYard : rules.extraPointSnapYard
+        #expect(attempt.situation.ballOn == spot, "and it is snapped from that try's spot")
+    }
 }

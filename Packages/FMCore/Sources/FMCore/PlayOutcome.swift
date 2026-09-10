@@ -170,6 +170,28 @@ public struct Participation: Sendable, Hashable, Codable {
     }
 }
 
+/// Where a foul is walked off from (2025 rulebook, 14-3-4).
+///
+/// Three families, and the difference between them is the difference between a
+/// facemask at the end of a twenty-yard run being worth thirty-five yards and being
+/// declined: the engine used to measure every foul from the previous spot, so the
+/// contact family offered fifteen yards from the old line against the run's own gain.
+public enum EnforcementSpot: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// The spot the ball was last put in play from: every foul before the snap
+    /// (14-4-1), the offence's fouls at or behind the line (14-3-6, exception 1), and
+    /// the passing game until the catch — holding, illegal contact, interference by the
+    /// offence (8-6-1).
+    case previousSpot = 0
+    /// Where the foul happened: interference by the defence (8-6-1-b), and a block by
+    /// the team in possession beyond the line, which is behind the basic spot of a run
+    /// that went on past it (14-3-6).
+    case spotOfFoul = 1
+    /// Where the ball will next be put in play — the dead-ball spot, with the play's
+    /// gain counting: the contact fouls on a run (14-3-5-a, 14-3-6), a personal foul
+    /// on a completed pass (8-6-1-d), and conduct after the whistle (12-3-1).
+    case succeedingSpot = 2
+}
+
 public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
 
     // Pre-snap, procedural
@@ -245,11 +267,27 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
         }
     }
 
-    /// Enforced from the spot of the foul rather than the previous line of
-    /// scrimmage, which is what makes deep interference the highest-variance
-    /// call in the sport.
+    /// Where this foul is walked off from. See `EnforcementSpot` for the three families
+    /// and the articles behind them.
+    public var enforcement: EnforcementSpot {
+        switch self {
+        case .defensivePassInterference, .illegalBlockInTheBack, .illegalBlindsideBlock,
+            .lowBlock:
+            return .spotOfFoul
+        case .facemask, .unnecessaryRoughness, .horseCollarTackle, .illegalUseOfHelmet,
+            .roughingThePasser, .unsportsmanlikeConduct, .taunting:
+            return .succeedingSpot
+        default:
+            return .previousSpot
+        }
+    }
+
+    /// Enforced from the spot of the foul rather than the previous line of scrimmage,
+    /// which is what makes deep interference the highest-variance call in the sport.
+    /// Interference is no longer the only one: a block in the back beyond the line is
+    /// walked off from where it happened too.
     public var isSpotFoul: Bool {
-        self == .defensivePassInterference
+        enforcement == .spotOfFoul
     }
 
     /// Standard yardage. Spot fouls are measured instead, and carry zero here.
@@ -299,10 +337,18 @@ public struct PenaltyRecord: Sendable, Hashable, Codable {
     public var foul: Foul
     public var offender: PlayerSlot
     public var offendingTeam: TeamID
-    /// Yards enforced. Usually `foul.yards`, but a spot foul is measured.
+    /// Yards walked off. `foul.yards` as the resolver reports it; once enforced, the
+    /// distance actually assessed, which half the distance to the goal can shorten and
+    /// a spot foul measures.
     public var yards: UInt8
     public var wasAccepted: Bool
     public var awardedFirstDown: Bool
+    /// Where a spot foul is walked off from, in the frame of the team that snapped —
+    /// the same frame as `Situation.ballOn` and `Outcome.finalSpot` — with zero meaning
+    /// the defence's end zone. The resolver measured it, so the resolver reports it;
+    /// it is required for a `.spotOfFoul` foul and read for no other, because the
+    /// previous spot is the situation's and the dead-ball spot follows from the play.
+    public var enforcementSpot: UInt8?
 
     public init(
         foul: Foul,
@@ -310,7 +356,8 @@ public struct PenaltyRecord: Sendable, Hashable, Codable {
         offendingTeam: TeamID,
         yards: UInt8,
         wasAccepted: Bool,
-        awardedFirstDown: Bool = false
+        awardedFirstDown: Bool = false,
+        enforcementSpot: UInt8? = nil
     ) {
         self.foul = foul
         self.offender = offender
@@ -318,6 +365,7 @@ public struct PenaltyRecord: Sendable, Hashable, Codable {
         self.yards = yards
         self.wasAccepted = wasAccepted
         self.awardedFirstDown = awardedFirstDown
+        self.enforcementSpot = enforcementSpot
     }
 }
 

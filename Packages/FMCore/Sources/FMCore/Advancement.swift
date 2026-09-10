@@ -32,7 +32,8 @@ public struct Advancement: Sendable, Hashable {
     public var points: Int16
     /// A try — extra point or two-point attempt — is owed before anything else.
     public var requiresTry: Bool
-    /// A kickoff is owed. Following a safety it is the *scoring* team who receives.
+    /// A kickoff is owed. Following a safety it is the *scoring* team who receives, so
+    /// the possession that kicks is the one that conceded.
     public var requiresKickoff: Bool
 
     public init(
@@ -156,11 +157,13 @@ extension Rules {
                 scoring: .touchdown, points: touchdown, requiresTry: true)
 
         case .safety:
-            // The defence scores, and then *receives* the free kick. The team scored
-            // upon kicks from its own twenty.
+            // The defence scores, and then *receives* the free kick: the team scored
+            // upon keeps the ball to put it in play from its own twenty (11-5-2,
+            // 6-1-1-b), and that kick changes hands like every kickoff does. Flipping
+            // possession here as well had the scoring team kicking — the audit's S11.
             return Advancement(
                 ballOn: ballOnFromOwnYard(safetyKickoffOwnYard), down: .first,
-                distance: yardsToGain, possessionChanged: true, scoring: .safety,
+                distance: yardsToGain, possessionChanged: false, scoring: .safety,
                 points: safety, requiresKickoff: true)
 
         case .fieldGoalGood:

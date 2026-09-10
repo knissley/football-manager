@@ -233,25 +233,51 @@ struct GameSimulatorTests {
         #expect(kinds.contains(.extraPoint), "a try should follow the touchdown")
     }
 
-    /// A safety pays the *defence*, and then the defence receives. Paying the wrong side
-    /// is the scoreboard bug this checks for.
-    @Test("A safety pays the team that did not have the ball")
+    /// Rewritten for A3 (#16). This test checked only the points, and the points were
+    /// right while the wrong team kicked off. A safety pays the defence, the team scored
+    /// upon then puts the ball in play with a free kick from its own 20, and the team
+    /// that scored takes the kick and the ball — at the touchback spot here, because the
+    /// scripted kick is a touchback; that spot is `Rules.kickoffTouchbackOwnYard`, the
+    /// 30 until D1 (#41) moves it.
+    @Test(
+        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety pays the defence, the team scored upon free-kicks from its own 20, and the team that scored takes over"
+    )
     func safetyPaysTheDefence() {
         let script = [
             Outcome(kind: .kickoff, yards: 0, endedIn: .touchback),
             Outcome(kind: .sack, yards: -4, endedIn: .safety, clockRunoff: 5),
+            Outcome(kind: .kickoff, yards: 0, endedIn: .touchback),
             Outcome(kind: .rush, yards: 1, endedIn: .tackled, clockRunoff: 6),
         ]
         let result = simulate(ScriptedResolver(script))
+        let rules = Rules.standard
 
-        guard let safetyPlay = result.plays.first(where: { $0.outcome.endedIn == .safety }) else {
-            Issue.record("the script should have produced a safety")
+        guard
+            let index = result.plays.firstIndex(where: { $0.outcome.endedIn == .safety }),
+            result.plays.count > index + 2
+        else {
+            Issue.record("the script should have produced a safety with two plays after it")
             return
         }
-        // The team that was on offence for the safety must not be the one that gained.
-        let conceded = safetyPlay.situation.possession
-        let gained = conceded == TeamID(1) ? result.awayScore : result.homeScore
-        #expect(gained >= 2, "the defence should have been credited")
+        let conceded = result.plays[index].situation.possession
+        let scored = conceded == home ? away : home
+        #expect(
+            (scored == home ? result.homeScore : result.awayScore) >= 2,
+            "two points to the team that did not have the ball")
+
+        let freeKick = result.plays[index + 1]
+        #expect(freeKick.outcome.kind == .kickoff, "the next play is the free kick")
+        #expect(freeKick.situation.possession == conceded, "by the team scored upon")
+        #expect(
+            freeKick.situation.ballOn == rules.ballOnFromOwnYard(rules.safetyKickoffOwnYard),
+            "from its own 20")
+
+        let takeover = result.plays[index + 2]
+        #expect(takeover.situation.possession == scored, "the team that scored takes over")
+        #expect(takeover.situation.down == .first && takeover.situation.distance == 10)
+        #expect(
+            takeover.situation.ballOn == rules.kickoffTouchbackSpot,
+            "at the kickoff touchback spot, its own \(rules.kickoffTouchbackOwnYard)")
     }
 
     /// Points and the play log cannot disagree: the box score *is* the play log, summed.
@@ -386,20 +412,27 @@ struct GameSimulatorTests {
 
     // MARK: - Overtime
 
-    /// A regular season game may end level; a postseason game may not.
-    @Test("A tied game ends level in the regular season and goes on in the postseason")
+    /// Rewritten for A1 (#15). This test used to assert that a level regular-season
+    /// game ends after four periods, which is the bug the September audit's S9 named:
+    /// the sport plays one ten-minute overtime period first, and only a game still
+    /// level at the end of *that* is a tie. The postseason half of the old test is the
+    /// rules-conformance scenario "a postseason game level after the fifth period plays
+    /// a sixth"; a resolver that never scores cannot end a postseason game at all.
+    @Test(
+        "football · Rule 4-1-1, 16-1-3, 16-1-3-d · a regular-season game level after four periods plays one ten-minute overtime period, and level at the end of it is a tie"
+    )
     func ties() {
         let regular = simulate(StalemateResolver(), setup(seed: 9))
-        if regular.homeScore == regular.awayScore {
-            #expect(regular.isTie)
-            #expect(regular.plays.allSatisfy { $0.situation.quarter <= 4 })
-        }
+        #expect(
+            regular.homeScore == 0 && regular.awayScore == 0,
+            "the stalemate never scores; the game is level throughout")
 
-        let postseason = simulate(StalemateResolver(), setup(seed: 9, isPostseason: true))
-        if postseason.homeScore == postseason.awayScore {
-            #expect(
-                postseason.plays.contains { $0.situation.quarter > 4 },
-                "a tied playoff game must go to overtime")
-        }
+        let overtime = regular.plays.filter { $0.situation.quarter == 5 }
+        #expect(overtime.isEmpty == false, "a level game plays a fifth period")
+        #expect(overtime.first?.situation.clockRemaining == 600, "ten minutes long")
+        #expect(
+            regular.plays.contains { $0.situation.quarter > 5 } == false,
+            "the period is never extended: one, and no more")
+        #expect(regular.isTie, "level at the end of it, the game is a tie")
     }
 }

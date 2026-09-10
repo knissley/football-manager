@@ -24,6 +24,11 @@ extension Rules {
     ///
     /// Note what is absent: **gaining a first down does not stop the clock.** It runs
     /// while the chains move.
+    ///
+    /// This reads the ending alone, and the ending alone cannot tell a fourth-down stop
+    /// from a first-down tackle: both end `.tackled`. A change of possession stops the
+    /// clock whatever the ending (4-4-i), and the overload that takes it is what the
+    /// game state consults.
     public func clockBehavior(
         after ending: PlayEnding, quarter: UInt8, clockRemaining: UInt16
     ) -> ClockBehavior {
@@ -31,18 +36,36 @@ extension Rules {
         case .incomplete, .touchdown, .intercepted, .fumbleLost, .touchback, .safety,
             .fieldGoalGood, .fieldGoalMissed, .fairCatch, .blocked:
             return .stopsUntilSnap
+        // A downed kick has changed hands, which is a stoppage in its own right (4-4-i).
+        case .downed:
+            return .stopsUntilSnap
         case .outOfBounds:
             return isInLateClockWindow(quarter: quarter, clockRemaining: clockRemaining)
                 ? .stopsUntilSnap : .stopsUntilReadyForPlay
-        // A punt downed in bounds and a fumble recovered by the offence both leave the
-        // ball live and the clock with it.
-        case .tackled, .fumbleRecovered, .downed:
+        // A tackle in bounds and a fumble recovered by the offence both leave the ball
+        // live and the clock with it.
+        case .tackled, .fumbleRecovered:
             return .keepsRunning
         // Enforcement stops the clock; whether it restarts on the ready signal or the
         // snap depends on the foul, which the enforcement layer decides.
         case .penaltyEnforced:
             return .stopsUntilReadyForPlay
         }
+    }
+
+    /// What the clock does after a play, given whether the ball changed hands.
+    ///
+    /// **Any change of possession stops the clock until the snap**, whatever the
+    /// ending (2025 rulebook, 4-4-i, 4-3-2-a-1): a fourth-down stop, a returned punt
+    /// and a fumble the defence recovers all end with the new offence's huddle free.
+    /// Without this, a turnover on downs ended `.tackled` and cost the team taking over
+    /// its whole play clock.
+    public func clockBehavior(
+        after ending: PlayEnding, possessionChanged: Bool, quarter: UInt8,
+        clockRemaining: UInt16
+    ) -> ClockBehavior {
+        if possessionChanged { return .stopsUntilSnap }
+        return clockBehavior(after: ending, quarter: quarter, clockRemaining: clockRemaining)
     }
 
     /// Whether the out-of-bounds rule is in its late-game form.
@@ -58,6 +81,30 @@ extension Rules {
             return clockRemaining <= outOfBoundsStopsClockSecondHalf
         }
         return false
+    }
+
+    /// After a foul that stopped a running clock, whether the clock waits for the snap
+    /// rather than restarting on the ready-for-play signal (2025 rulebook, 4-3-2-e).
+    ///
+    /// The clock restarts as though the foul had not occurred — on the ready, since it
+    /// was running — except that it starts on the snap after the two-minute warning of
+    /// the first half (e-1), inside the last five minutes of the second half (e-2), or
+    /// for an offensive foul that stops the clock before a snap anywhere in the fourth
+    /// period or regular-season overtime (e-3). The first two are the windows of the
+    /// out-of-bounds rule (4-3-2-a), and are read the same way; the third is the
+    /// fourth period's timing, which regular-season overtime shares (16-1-3-e). A
+    /// clock that was stopped at the flag waits for the snap either way.
+    ///
+    /// The runoff's restart (4-3-2-g) and the offence's choice after a defensive foul
+    /// inside two minutes (4-7-1 Item 2) are specific rules that prescribe otherwise
+    /// (e-5), and are decided before this is asked.
+    public func clockStartsOnTheSnapAfterFoul(
+        byOffense: Bool, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
+    ) -> Bool {
+        if isInLateClockWindow(quarter: quarter, clockRemaining: clockRemaining) {
+            return true
+        }
+        return byOffense && hasFourthPeriodTiming(quarter: quarter, isPostseason: isPostseason)
     }
 
     /// Whether this play crosses the two-minute warning, which stops the clock on its
@@ -153,27 +200,54 @@ extension GameClock {
         }
     }
 
-    /// Run the clock down, stopping at the two-minute warning if this play crosses it.
+    /// Run the clock through one snap: the interval before it, then the play.
+    ///
+    /// The two-minute warning is a stoppage *between* downs (3-41, 4-4-h). When the
+    /// clock reaches 2:00 in the huddle it stops there, the snap restarts it, and the
+    /// play then runs from 2:00. When a down is under way as the clock passes 2:00, the
+    /// down finishes and the clock is dead after it, at whatever it reads. Running the
+    /// whole interval as one lump and clamping it at 2:00 did neither: it swallowed a
+    /// play snapped just before the warning and cut short a down that was under way.
     ///
     /// Returns whether the warning was taken, because it is a stoppage in its own right
     /// and the caller has to know the clock is now stopped.
-    public mutating func run(_ seconds: UInt16, rules: Rules) -> Bool {
-        guard seconds > 0 else { return false }
+    public mutating func run(_ elapsed: Elapsed, rules: Rules) -> Bool {
+        let warningApplies = !twoMinuteWarningTaken && rules.isEndOfHalf(quarter: quarter)
+        var taken = false
 
-        let target = secondsRemaining > seconds ? secondsRemaining - seconds : 0
-
-        if !twoMinuteWarningTaken, rules.isEndOfHalf(quarter: quarter),
-            secondsRemaining > rules.twoMinuteWarning, target <= rules.twoMinuteWarning
-        {
-            // The clock stops *at* two minutes, not past it. Letting the play run
-            // through the warning is how a half quietly loses a snap.
-            secondsRemaining = rules.twoMinuteWarning
-            twoMinuteWarningTaken = true
-            return true
+        if elapsed.beforeSnap > 0 {
+            let afterHuddle =
+                secondsRemaining > elapsed.beforeSnap ? secondsRemaining - elapsed.beforeSnap : 0
+            if warningApplies, secondsRemaining > rules.twoMinuteWarning,
+                afterHuddle <= rules.twoMinuteWarning
+            {
+                secondsRemaining = rules.twoMinuteWarning
+                twoMinuteWarningTaken = true
+                taken = true
+            } else {
+                secondsRemaining = afterHuddle
+            }
         }
 
-        secondsRemaining = target
-        return false
+        if elapsed.duringPlay > 0 {
+            let afterPlay =
+                secondsRemaining > elapsed.duringPlay ? secondsRemaining - elapsed.duringPlay : 0
+            if !taken, warningApplies, secondsRemaining > rules.twoMinuteWarning,
+                afterPlay <= rules.twoMinuteWarning
+            {
+                twoMinuteWarningTaken = true
+                taken = true
+            }
+            secondsRemaining = afterPlay
+        }
+
+        return taken
+    }
+
+    /// Run a down's worth of clock with nothing before the snap: a down under way, with
+    /// the two-minute warning taken as it ends if the clock passes 2:00 during it.
+    public mutating func run(_ seconds: UInt16, rules: Rules) -> Bool {
+        run(Elapsed(duringPlay: seconds, beforeSnap: 0), rules: rules)
     }
 
     /// Move to the next period. Returns `nil` when regulation is over.

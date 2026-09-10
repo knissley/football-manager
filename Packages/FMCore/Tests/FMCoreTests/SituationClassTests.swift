@@ -310,4 +310,56 @@ struct SituationClassTests {
         }
         #expect(seen.count == DownAndDistanceClass.allCases.count)
     }
+
+    // MARK: - Period numbers come from the rules (A8, #20)
+
+    /// `Rules.quarters` is data, and the classification has to follow it rather than
+    /// hard-code 2, 4 and 5. Under a two-period variant the first period is the end of the
+    /// first half and the second is the end of the game.
+    @Test(
+        "unit · under a two-period variant the first period ends the first half and the second ends the game"
+    )
+    func twoPeriodVariantClassifiesByStructure() {
+        let twoPeriods = Rules(quarters: 2)
+        func classify(quarter: UInt8, clock: UInt16) -> TimeState {
+            SituationClass(
+                Situation(
+                    quarter: quarter, clockRemaining: clock, down: .first, distance: 10,
+                    ballOn: 75, possession: TeamID(1)),
+                rules: twoPeriods
+            ).time
+        }
+        #expect(classify(quarter: 1, clock: 500) == .middle)
+        #expect(classify(quarter: 1, clock: 120) == .twoMinuteFirstHalf)
+        #expect(classify(quarter: 2, clock: 500) == .fourthQuarter)
+        #expect(classify(quarter: 2, clock: 300) == .clockBurn)
+        #expect(classify(quarter: 2, clock: 120) == .twoMinuteGame)
+        #expect(classify(quarter: 3, clock: 600) == .overtime)
+    }
+
+    /// A postseason game can reach a sixth period and beyond; every one of them is
+    /// overtime.
+    @Test("unit · a sixth period is overtime")
+    func sixthPeriodIsOvertime() {
+        #expect(classify(quarter: 6, clock: 900).time == .overtime)
+        #expect(classify(quarter: 7, clock: 900).time == .overtime)
+    }
+
+    /// The two-minute threshold is `Rules.twoMinuteWarning`, not a literal 120.
+    @Test("unit · the two-minute threshold is read from Rules.twoMinuteWarning")
+    func twoMinuteThresholdComesFromRules() {
+        let variant = Rules(twoMinuteWarning: 60)
+        func time(quarter: UInt8, clock: UInt16) -> TimeState {
+            SituationClass(
+                Situation(
+                    quarter: quarter, clockRemaining: clock, down: .first, distance: 10,
+                    ballOn: 75, possession: TeamID(1)),
+                rules: variant
+            ).time
+        }
+        #expect(time(quarter: 2, clock: 61) == .middle)
+        #expect(time(quarter: 2, clock: 60) == .twoMinuteFirstHalf)
+        #expect(time(quarter: 4, clock: 61) == .clockBurn)
+        #expect(time(quarter: 4, clock: 60) == .twoMinuteGame)
+    }
 }
