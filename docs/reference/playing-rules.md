@@ -212,8 +212,8 @@ below are what it is held to.
   kick. — `test:afterASafetyTheTeamScoredUponKicks`
 - **6-1-1-c**, **6-1-6** — Only a trailing team may attempt an onside kick, and it must
   declare it to the Referee before the play clock starts. It may declare at any point in
-  the game; fourth quarter only was the 2024 rule. — not yet enforced,
-  [#41](https://github.com/knissley/football-manager/issues/41)
+  the game; fourth quarter only was the 2024 rule. —
+  `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`
 - **6-1-2-a**, **6-1-2-b** — The kick is from the kicking team's 35 — its 20 for a safety
   kick — and the other ten of the kicking team line up on the receiving team's 40. — not
   yet enforced, [#46](https://github.com/knissley/football-manager/issues/46)
@@ -240,8 +240,9 @@ below are what it is held to.
 - **6-1-5** — A kick that reaches the end zone without touching down in the landing zone
   first — downed there, out of bounds behind the goal line, or off the goal post — is a
   touchback at the **35**. This is the 2025 change; it was the 30 in 2024. A kick that
-  reaches the end zone and stays inbounds is still alive. — not yet enforced,
-  [#41](https://github.com/knissley/football-manager/issues/41),
+  reaches the end zone and stays inbounds is still alive. —
+  `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`; the
+  live kick into the end zone is not modelled,
   [#46](https://github.com/knissley/football-manager/issues/46)
 - **6-1-5-a** — Landing zone first, then the end zone: a touchback at the **20**. — not yet
   enforced, [#46](https://github.com/knissley/football-manager/issues/46)

@@ -66,21 +66,38 @@ struct SpecialTeamsTests {
     /// You kick it away when a stop gets you the ball back, and you kick onside when it
     /// does not. Getting this wrong in either direction is glaring: a team kicking onside
     /// while ahead looks broken, and one that never does it cannot come back from ten.
+    ///
+    /// The coach's judgement only. This used to carry a bare `quarter >= 4` and assert
+    /// it — "before half", on a team down ten in the second quarter — which read as
+    /// coaching and was really the 2024 rulebook sitting inside a caller. The rule is
+    /// `Rules.mayDeclareOnsideKick` now and is asserted against the article in
+    /// `onsideDeclarationFollowsTheBook`; what is left here is taste, so it is a unit
+    /// test and the second-quarter line is gone rather than rewritten: a caller is
+    /// allowed to want one there, and this one simply does not.
     @Test("Onside kicks happen when a stop would not be enough, and not otherwise", .tags(.unit))
     func onsideJudgement() {
         #expect(onside(situation(clock: 120, differential: -10)), "two scores down, two minutes")
         #expect(onside(situation(clock: 60, differential: -14)))
+        #expect(onside(situation(clock: 280, differential: -10)), "two scores down, five minutes")
 
         #expect(!onside(situation(differential: 7)), "kicking onside while ahead")
         #expect(!onside(situation(differential: 0)), "kicking onside while level")
         #expect(!onside(situation(clock: 600, differential: -10)), "ten minutes still left")
-        #expect(!onside(situation(quarter: 2, clock: 60, differential: -10)), "before half")
         #expect(
             !onside(situation(clock: 120, differential: -3, defenseTimeouts: 3)),
             "one score down with timeouts: get a stop")
         #expect(
-            onside(situation(clock: 40, differential: -3, defenseTimeouts: 0)),
-            "one score down, no timeouts, under a minute")
+            onside(situation(clock: 100, differential: -3, defenseTimeouts: 0)),
+            "one score down, no timeouts, inside two minutes")
+
+        // The rare early one: three scores down with the third quarter running out.
+        #expect(onside(situation(quarter: 3, clock: 60, differential: -18)))
+        #expect(
+            !onside(situation(quarter: 3, clock: 60, differential: -10)),
+            "two scores down in the third is not desperate enough")
+        #expect(
+            !onside(situation(quarter: 3, clock: 400, differential: -18)),
+            "three scores down with most of the third quarter left")
     }
 
     /// The sign check. A back who protects the ball has to fumble *less* than one who

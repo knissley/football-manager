@@ -45,6 +45,10 @@ public protocol PlayCaller: Sendable {
 
     /// Whether to keep the kickoff short and fight for it.
     ///
+    /// A preference, not a permission: whether the book allows a declaration at all is
+    /// `Rules.mayDeclareOnsideKick`, which the simulator asks first, so an answer of
+    /// `true` here from a team that may not declare one is simply not acted on.
+    ///
     /// Note the frame: the *kicking* team has possession on a kickoff, so a negative
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
@@ -224,11 +228,34 @@ extension PlayCaller {
     }
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
-        guard situation.quarter >= 4, situation.scoreDifferential < 0 else { return false }
-        // Two scores down: any time inside the last three minutes.
-        if situation.scoreDifferential <= -9 && situation.clockRemaining <= 180 { return true }
-        // One score down with no realistic way to get the ball back and score again.
-        return situation.clockRemaining <= 50 && situation.defenseTimeouts == 0
+        // Whether the book allows one at all is `Rules.mayDeclareOnsideKick`, and the
+        // simulator asks it first. This is only whether a coach wants one, so the
+        // trailing test here is arithmetic and not the rule: a team that is level has
+        // nothing to buy with the field position it is giving away.
+        guard situation.scoreDifferential < 0 else { return false }
+
+        // Two scores down with five minutes left. Two stops and two drives is more than
+        // the clock has in it, so the possession is worth the thirty yards it costs when
+        // it fails.
+        if situation.quarter >= 4, situation.scoreDifferential <= -9,
+            situation.clockRemaining <= 300
+        {
+            return true
+        }
+        // One score down inside two minutes with nothing to stop the clock with: a stop
+        // does not get the ball back in time, so there is nothing else to try.
+        if situation.quarter >= 4, situation.clockRemaining <= 120,
+            situation.defenseTimeouts == 0
+        {
+            return true
+        }
+        // Rarely, and earlier than the endgame: three scores down with the third quarter
+        // running out is an arithmetic problem that needs a possession nobody is going to
+        // hand over. Narrow on purpose — it wants all three at once — and it is the one
+        // branch the 2025 book made reachable at all, since the 2024 book could not
+        // declare before the fourth quarter.
+        return situation.scoreDifferential <= -17 && situation.quarter == 3
+            && situation.clockRemaining <= 120
     }
 
     // The baseline answers to the runoff's decisions. Coaching choices, not rules;

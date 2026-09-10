@@ -630,7 +630,8 @@ struct RulesConformanceTests {
     /// The toss before overtime is not drawn: the side that kicks off to open it stands
     /// for the captain who lost, and 16-1-4-e gives that captain the first choice of
     /// 4-2-2's privileges at the third period — receive or kick. Receiving, the other
-    /// side kicks off to it from its own 35, and the touchback puts the ball at its 30.
+    /// side kicks off to it from its own 35, and the touchback puts the ball at its 35
+    /// (6-1-5).
     @Test(
         "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
         .tags(.football)
@@ -652,8 +653,8 @@ struct RulesConformanceTests {
         )
         trace.expectPlay(
             third.index + 1, possession: tossLoser, quarter: 7, clock: 900, down: .first,
-            distance: 10, ballOn: 70,
-            "and the toss loser has it, first and ten at its 30 after the touchback, with no time gone"
+            distance: 10, ballOn: 65,
+            "and the toss loser has it, first and ten at its 35 after the touchback, with no time gone"
         )
     }
 

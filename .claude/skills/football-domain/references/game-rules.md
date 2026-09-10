@@ -414,11 +414,12 @@ The gap between this doc and the tree, as of the September 2026 audit. Each line
 somebody's issue; none of them are decided questions. The first three were read out of the
 tree while this doc was written; the rest are the audit's findings, taken on its word.
 
-- `Rules.kickoffTouchbackOwnYard` is 30 — the 2024 value. `Rules.swift`. #41.
-- `kicksOnside` requires the fourth quarter — the 2024 rule. It is the default in the
-  `PlayCaller` protocol extension, not a method on one caller: `BaselineCaller` and every
-  other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
-  #41, #46.
+- `Rules.kickoffTouchbackOwnYard` is the 35 and `Rules.rulebookSeason` is 2025, so the
+  defaults are one book. `Rules.swift`.
+- The onside declaration is `Rules.mayDeclareOnsideKick` — any period, trailing — and the
+  simulator asks it before it asks the caller, so no caller can declare one the book does
+  not allow. Whether a coach *wants* one is still the `PlayCaller` extension's default,
+  inherited by every caller. `Rules.swift`, `GameSimulator.swift`, `PlayCaller.swift`.
 
 The dynamic kickoff is not in the engine at all: `Rules` carries one
 `kickoffTouchbackOwnYard` and `Advancement` has one kickoff touchback spot, so there is no

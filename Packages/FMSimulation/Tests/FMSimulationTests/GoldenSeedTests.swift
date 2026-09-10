@@ -115,9 +115,18 @@ struct GoldenSeedTests {
             // the whole play clock rather than the huddle, and a huddle after a runoff or a
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
-            (UInt64(1), UInt64(10_997_765_792_780_390_008)),
-            (UInt64(5), UInt64(6_618_904_821_654_125_080)),
-            (UInt64(12), UInt64(502_004_049_860_331_307)),
+            // And moved by the rulebook. `Rules` carried the 2024 kickoff — a touchback
+            // at the receiving team's 30 — and now carries the 2025 book's 35 (6-1-5), so
+            // every drive that follows a touchback starts five yards further on and
+            // everything downstream of a drive's field position moves with it. The onside
+            // declaration moved with it too (6-1-6): the book allows one at any time
+            // while trailing rather than in the fourth quarter alone, and the baseline
+            // caller now wants one from five minutes out rather than three, from two
+            // minutes rather than fifty seconds when nothing can stop the clock, and in a
+            // narrow third-quarter case the old rule could not reach.
+            (UInt64(1), UInt64(4_476_701_398_038_527_520)),
+            (UInt64(5), UInt64(18_341_301_897_429_804_812)),
+            (UInt64(12), UInt64(4_970_932_941_357_169_858)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

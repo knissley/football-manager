@@ -408,20 +408,22 @@ season is what checks one. A band is evidence about a rate and never about a rul
     play died. `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6]` — `test:onsideRecoveryKeepsPossession`,
     `test:onsideRecovered`
 82. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
-    any point in the game. `[2025 · 6-1-1-c, 6-1-6]` — **not yet enforced**,
-    [#41](https://github.com/knissley/football-manager/issues/41): the caller still requires
-    the fourth quarter, which was the 2024 rule, and `test:onsideJudgement` pins that
+    any point in the game. `[2025 · 6-1-1-c, 6-1-6]` —
+    `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`;
+    the declaration itself is not in the stream, so what the engine models is the rule's
+    two conditions and not the notice to the Referee
 83. A kickoff is from the kicking team's 35 and a safety kick from its 20, and the receiving
     team's setup zone and the landing zone are where the 2025 book puts them.
     `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e, 6-1-3-b]` — **not yet enforced**,
     [#46](https://github.com/knissley/football-manager/issues/46): the dynamic kickoff is
     not in the engine, which has one touchback spot and no zones at all
 84. A kick that reaches the end zone without coming down in the landing zone first is a
-    touchback at the receiving team's 35; one that lands in the landing zone and then goes
-    into the end zone is a touchback at its 20. `[2025 · 6-1-5, 6-1-5-a]` —
-    **not yet enforced**, [#41](https://github.com/knissley/football-manager/issues/41) and
-    [#46](https://github.com/knissley/football-manager/issues/46): `Rules` carries one
-    touchback spot and it is still the 2024 value, the 30
+    touchback at the receiving team's 35. `[2025 · 6-1-5]` —
+    `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`. The
+    book's other touchback, at the 20 for a kick that comes down in the landing zone first
+    `[2025 · 6-1-5-a]`, is **not yet enforced** and no issue carries it: the crude resolver
+    returns every kick it puts in the landing zone, so it never reaches that case, and the
+    spatial resolver is where a kick that bounces into the end zone comes from
 85. A kick that goes out of bounds or comes down short of the landing zone hands the
     receiving team its choice of spots, 25 yards on from the kick being the usual one, and
     30 on a safety kick. `[2025 · 6-2-4]` — **not yet enforced**,

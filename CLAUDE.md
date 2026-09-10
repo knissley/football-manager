@@ -39,8 +39,9 @@ The fixes are an issue backlog, tracked in **#1**. Read that issue and
 engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
 status table and links every open one to its issue.
 
-The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024
-values until issue D1 lands.
+The target rulebook is the **2025 season**, and `Rules.rulebookSeason` records it. A
+later book is a different game and adopting one of its rules is a defect, not an
+improvement: moving seasons is deliberate work, because it moves engine calibration.
 
 ## The rules that matter
 

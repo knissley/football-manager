@@ -30,10 +30,10 @@ while let argument = arguments.next() {
     case "--games": games = Int(arguments.next() ?? "") ?? games
     case "--seed": seed = UInt64(arguments.next() ?? "") ?? seed
     case "--rulebook":
-        guard let season = Int(arguments.next() ?? ""), rules(forRulebook: season) != nil else {
+        guard let season = Int(arguments.next() ?? ""), Rules.rulebook(season) != nil else {
             print(
                 "--rulebook takes one of: "
-                    + supportedRulebooks.map(String.init).joined(separator: ", "))
+                    + Rules.supportedRulebooks.map(String.init).joined(separator: ", "))
             exit(1)
         }
         rulebookOption = season
@@ -50,7 +50,7 @@ while let argument = arguments.next() {
               --games <n>          games to simulate (default 40)
               --seed <n>           world seed (default 2030)
               --rulebook <season>  play under that season's rules and compare against the
-                                   rows sourced under them (\(supportedRulebooks.map(String.init).joined(separator: " or ")));
+                                   rows sourced under them (\(Rules.supportedRulebooks.map(String.init).joined(separator: " or ")));
                                    the default plays Rules.standard and compares against the
                                    \(engineRulebookSeason) targets
               --no-timing          leave out the Budget block at the end, so two runs of
@@ -73,7 +73,7 @@ while let argument = arguments.next() {
 // `Rules.standard` and is measured against the targets for the season it is supposed to
 // implement; the rows sourced under an older rulebook then warn, which is the point.
 let rulebookSeason = rulebookOption ?? engineRulebookSeason
-let rulesInForce = rulebookOption.flatMap(rules(forRulebook:)) ?? .standard
+let rulesInForce = rulebookOption.flatMap(Rules.rulebook) ?? .standard
 let staleTargets = CalibrationTarget.stale(under: rulebookSeason)
 
 func pad(_ value: String, _ width: Int) -> String {
@@ -255,9 +255,13 @@ print("  Rulebook")
 print(
     "    compared against            \(rulebookSeason)"
         + (rulebookOption == nil
-            ? " (the engine's target; Rules.standard still carries 2024 values until D1 #41)"
+            ? " (Rules.rulebookSeason, the book the engine plays)"
             : rulebookSeason == engineRulebookSeason ? "" : " (--rulebook)"))
 print("    kickoff touchback spot      own \(rulesInForce.kickoffTouchbackOwnYard)")
+print(
+    "    onside kick from             "
+        + (rulesInForce.onsideKickEarliestQuarter <= 1
+            ? "any period, trailing" : "Q\(rulesInForce.onsideKickEarliestQuarter), trailing"))
 if staleTargets.isEmpty {
     print("    every row was sourced under this rulebook")
 } else {

@@ -134,7 +134,7 @@ public struct Rules: Sendable, Hashable, Codable {
     public var regularSeasonTiesAllowed: Bool
 
     public init(
-        rulebookSeason: Int = 2024,
+        rulebookSeason: Int = 2025,
         quarters: UInt8 = 4,
         quarterLength: UInt16 = 900,
         twoMinuteWarning: UInt16 = 120,
@@ -159,10 +159,10 @@ public struct Rules: Sendable, Hashable, Codable {
         endZoneDepth: UInt8 = 10,
         fieldGoalSnapDepth: UInt8 = 7,
         kickoffFromOwnYard: UInt8 = 35,
-        kickoffTouchbackOwnYard: UInt8 = 30,
+        kickoffTouchbackOwnYard: UInt8 = 35,
         puntTouchbackOwnYard: UInt8 = 20,
         safetyKickoffOwnYard: UInt8 = 20,
-        onsideKickEarliestQuarter: UInt8 = 4,
+        onsideKickEarliestQuarter: UInt8 = 1,
         regularSeasonOvertimeLength: UInt16 = 600,
         postseasonOvertimeLength: UInt16 = 900,
         regularSeasonTiesAllowed: Bool = true
