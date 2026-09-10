@@ -105,16 +105,17 @@ the untagged-test problem this issue set out to fix.
 
 **Generation makes almost no claim about the sport, and mostly should not.** A generated
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
-determinism, structure, and a plausible spread — which is why 38% of FMGeneration is
-`.contract`, the highest share anywhere. Nearly `0.0%` football is the right answer there,
-not a gap.
+determinism, structure, and a plausible spread — which is why `.contract` is
+FMGeneration's largest share after `.unit`, and the highest anywhere: 38.2% in the census
+above, and 44.2% — 87 of 197 — as this paragraph is written. Nearly `0.0%` football is
+the right answer there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be
 made up like a real one.** [#67](https://github.com/knissley/football-manager/issues/67)
-found a quarter of every roster in its first season, and no test in that 38% could have
-said so, because a fence written from the output said `< 0.30` and passed. What replaced it
-is a `.football` band — the share of a roster in its first season, from three seasons of
-week-1 rosters, with the derivation in
+found a quarter of every roster in its first season, and no test in that `.contract` share
+could have said so, because a fence written from the output said `< 0.30` and passed. What
+replaced it is a `.football` band — the share of a roster in its first season, from three
+seasons of week-1 rosters, with the derivation in
 [`reference/calibration-sources.md`](reference/calibration-sources.md#bands-the-harness-cannot-measure).
 An aggregate about a *roster* is exactly as sourceable as one about a game, and the harness
 cannot see it, so it is the test that has to. Nobody's name, club or number is in the repo

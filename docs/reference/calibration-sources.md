@@ -2,7 +2,10 @@
 
 **Status: built.** Every row below exists in
 `Tools/simharness/Sources/simharness/Targets.swift` today, and
-`InvariantsTraceabilityTests` fails if one named here does not.
+`InvariantsTraceabilityTests` fails if one named here does not. The exception is the last
+section, [bands the harness cannot measure](#bands-the-harness-cannot-measure): those are
+not rows and have no verdict in a harness run, so each names the `test:` that checks it
+instead.
 
 This is the external truth for the *rates*, the way
 [`playing-rules.md`](playing-rules.md) is the external truth for the rules. CLAUDE.md's
@@ -315,15 +318,27 @@ policy widens the span of the three by 5% of their mean, which is larger than tw
 standard error of the measurement the test makes (eight generated leagues, 13,568 men), and
 so is what governs: **0.145 to 0.171**.
 
-Two more numbers come off the same three files, and are recorded here because they were
-measured rather than assumed even though nothing asserts them. A week-1 roster's mean age
-was 26.04, 26.20 and 26.34 in those three seasons, against 26.33 in a generated league
-([#67](https://github.com/knissley/football-manager/issues/67)) — a fifth of a year outside
-the top of the real range, and inside it before rounding at the edges. And first-season
-players were about a seventh twenty-one, a quarter to a third twenty-two, about a third
-twenty-three and a seventh to a quarter twenty-four; `DraftHistory.entryAge` draws 20/45/25/10
-across the same four ages, which is a year young. Neither is banded: a mean nobody asserts
-is a note, not a target.
+Three more numbers come off the same three files, and are recorded here because they were
+measured rather than assumed even though nothing asserts them.
+
+**How old a roster is.** A week-1 roster's mean age was 26.04, 26.19 and 26.34 in those
+three seasons, against 26.33 in a generated league over seeds 1, 5, 7 and 11
+([#67](https://github.com/knissley/football-manager/issues/67)) — inside the real range, at
+the top of it. Before that issue it was 25.75, below every one of the three.
+
+**How wide that is.** The same rosters' age standard deviation was 3.16, 3.19 and 3.31.
+A generated league's is 3.29 to 3.37 across those four seeds, straddling the top of the real
+range; before #67 it was 3.57 to 3.71, entirely above it. That pair of moves is the argument
+for flooring a reserve's age centre two seasons above the entry age rather than truncating
+the old centres alone. Truncating alone was measured at the same four seeds: mean 26.06, at
+the bottom of the real range, spread 3.31 to 3.42, still above its top, and a first-season
+share of 0.19 — outside the band above.
+
+**When a first-season player arrives.** They were about a seventh twenty-one, a quarter to a
+third twenty-two, about a third twenty-three and a seventh to a quarter twenty-four;
+`DraftHistory.entryAge` draws 20/45/25/10 across the same four ages, which is a year young.
+
+None of the three is banded: a number nobody asserts is a note, not a target.
 
 ## Where the harness measures something else
 
