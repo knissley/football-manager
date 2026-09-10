@@ -114,7 +114,8 @@ public enum RivalryGenerator {
             return result
         }
 
-        return enforcingOneTitleGamePerSeason(seeded, using: &random)
+        let reconciled = enforcingOneTitleGamePerSeason(seeded, using: &random)
+        return enforcingTheCeiling(reconciled, in: currentSeason)
     }
 
     /// Only one pair can have met for the championship in a given season.
@@ -143,6 +144,103 @@ public enum RivalryGenerator {
             }
         }
         return result
+    }
+
+    /// A new world tops out at heated, and this is the last word on it.
+    ///
+    /// The seeded past gives texture; the first genuine blood feud should be one the
+    /// player caused. Nothing in the draw enforces that — weighting a storied pair's years
+    /// is not a ceiling, and measured over the first sixty seeds through
+    /// `WorldGenerator.generate`, nine worlds opened with a bitter rivalry in them, the
+    /// hottest at 76.042 against a `bitter` floor of 65.
+    ///
+    /// **Last, after the reconciliation above, and that ordering is the rule.** Applying
+    /// the ceiling inside `history(for:)` looked equivalent and was not: the reconciliation
+    /// demotes every title game after the first claim on a season, so a pair whose title
+    /// game the ceiling had already dropped freed that season and the next claimant *kept*
+    /// a title game it would otherwise have lost — four points of undecayed weight, on a
+    /// pair the ceiling had already been past. On seed 51 that promoted pair 2-3's 2027
+    /// event back to a title game and the pair from 51.356 to 53.812. Nothing crossed the
+    /// band in those sixty worlds, but 13 of their 3,720 pairs sit in [61, 65), where a
+    /// promotion crosses it — which would leave decision 170 true of a sample rather than
+    /// true as a rule. Running last, no stage can raise a pair after the ceiling has
+    /// spoken.
+    private static func enforcingTheCeiling(
+        _ rivalries: [Rivalry], in season: Int
+    ) -> [Rivalry] {
+        rivalries.map { rivalry in
+            var result = rivalry
+            result.history = cappedBelowBitter(rivalry, in: season)
+            return result
+        }
+    }
+
+    /// The least history that satisfies the ceiling.
+    ///
+    /// Applied to the invented log rather than to `heat(in:)`, and that is the whole
+    /// point: clamping the projection would clamp lived history too, and the band the
+    /// player is playing towards would be unreachable. Nothing downstream can tell a
+    /// capped history from any other, because a capped history is just a shorter one.
+    ///
+    /// What goes is the *smallest* event that brings the pair under the band — the cut
+    /// that leaves it hottest while still short of bitter — because the memorable years
+    /// are what the seeded past is for, and taking the biggest one is the maximal cut:
+    /// dropping the event doing the most work landed seed 48 at 51.284 and seed 15 at
+    /// 56.101, mid-band, having removed exactly the event that made the pair worth
+    /// reading about. Should no single event be enough — no drawn history has come close,
+    /// the hottest being 76.042 against a heaviest single event of 20 — the heaviest goes
+    /// and the search runs again, so the set grows from the largest and stays as small as
+    /// the arithmetic allows. Ties go to the earliest event.
+    ///
+    /// Dropped rather than downgraded: a lighter event invented in place of a heavier one
+    /// is a fabrication, where a shorter history is just a shorter history. The event that
+    /// earned an earned origin is never dropped, or the origin becomes an assertion with
+    /// nothing behind it — which also bounds the loop, since an origin's floor plus its
+    /// founding event is 22 at most, well under the band.
+    ///
+    /// No draw happens here, so the substream is exactly where it would have been and a
+    /// pair the ceiling does not reach keeps the history it already had.
+    private static func cappedBelowBitter(_ rivalry: Rivalry, in season: Int) -> [RivalryEvent] {
+        let founding = foundingKind(for: rivalry.origin)
+        var kept = rivalry.history
+
+        func folded(_ history: [RivalryEvent]) -> Rivalry {
+            Rivalry(pair: rivalry.pair, origin: rivalry.origin, history: history)
+        }
+
+        while folded(kept).heat(in: season) == .bitter {
+            let evidence = founding.flatMap { kind in kept.firstIndex { $0.kind == kind } }
+
+            // Measured as what the log is worth without each event rather than by the
+            // event's own weight, so decay is accounted for without a second copy of the
+            // fold. `sufficient` keeps the gentlest cut that finishes the job — the one
+            // leaving the pair hottest — and `heaviest` the one that makes the most
+            // progress when nothing single is enough.
+            var sufficient: (index: Int, intensity: Double)?
+            var heaviest: (index: Int, intensity: Double)?
+            for index in kept.indices where index != evidence {
+                var without = kept
+                without.remove(at: index)
+                let trimmed = folded(without)
+                let intensity = trimmed.intensity(in: season)
+
+                if trimmed.heat(in: season) == .bitter {
+                    if let best = heaviest, best.intensity <= intensity { continue }
+                    heaviest = (index, intensity)
+                } else {
+                    if let best = sufficient, best.intensity >= intensity { continue }
+                    sufficient = (index, intensity)
+                }
+            }
+
+            // Unreachable given the floors above. Written as a stop rather than a
+            // precondition because the alternative to being wrong about that is a
+            // generator that never returns.
+            guard let dropped = sufficient ?? heaviest else { break }
+            kept.remove(at: dropped.index)
+        }
+
+        return kept
     }
 
     /// Pairs that could plausibly become something, and why.
@@ -178,9 +276,11 @@ public enum RivalryGenerator {
     /// rare. A history where every year produced a controversial finish is not a history,
     /// it is a highlight reel, and every pairing in the league would open as a blood feud.
     ///
-    /// Capped at the end, because weighting the draw is not a ceiling: a storied pair can
-    /// still come out of a decade of January hot enough to open `bitter`. See
-    /// `cappedBelowBitter(_:for:in:)`.
+    /// Uncapped, deliberately: weighting the draw is not a ceiling, and a storied pair can
+    /// come out of a decade of January hot enough to open `bitter`. What brings it back is
+    /// `enforcingTheCeiling`, which runs after the whole league's history has been
+    /// reconciled rather than here — see its note for why the ordering is the rule and not
+    /// a detail.
     public static func history(
         for rivalry: Rivalry,
         currentSeason: Int,
@@ -224,71 +324,7 @@ public enum RivalryGenerator {
                             ? rivalry.pair.lower : rivalry.pair.higher) : nil))
         }
 
-        let ordered = events.sorted {
-            ($0.season, $0.kind.rawValue) < ($1.season, $1.kind.rawValue)
-        }
-        return cappedBelowBitter(ordered, for: rivalry, in: currentSeason)
-    }
-
-    /// The seeded past stops one band short of a blood feud.
-    ///
-    /// A new world tops out at heated: the invented past gives texture, and the first
-    /// genuine blood feud should be one the player caused. Nothing in the draw enforced
-    /// that — measured over the first sixty seeds through `WorldGenerator.generate`, nine
-    /// worlds opened with a bitter rivalry in them, the hottest at 76.0 against a `bitter`
-    /// floor of 65 — so the ceiling is applied to the log the draw produced.
-    ///
-    /// Here rather than in `heat(in:)`, and that is the whole point: clamping the
-    /// projection would clamp lived history too, and the band the player is playing
-    /// towards would be unreachable. Nothing downstream can tell that this history was
-    /// capped, because a capped history is just a shorter one.
-    ///
-    /// What it takes away is what the pair does not get to have been through: the event
-    /// doing the most work *now* — decay means that is a recent heavy one, not simply the
-    /// heaviest — dropped one at a time until the pair opens below `bitter`. Dropped
-    /// rather than downgraded, because a lighter event invented in place of a heavier one
-    /// is a fabrication, where a shorter history is just a shorter history. The event that
-    /// earned an earned origin is never dropped, or the origin becomes an assertion with
-    /// nothing behind it.
-    ///
-    /// Two properties worth stating. No draw happens here, so the substream is exactly
-    /// where it would have been and a pair the cap does not reach keeps the history it
-    /// already had. And `enforcingOneTitleGamePerSeason` runs after this and only ever
-    /// swaps a title game for a playoff elimination, which weighs less — so it cannot push
-    /// a capped pair back over the line.
-    private static func cappedBelowBitter(
-        _ events: [RivalryEvent], for rivalry: Rivalry, in season: Int
-    ) -> [RivalryEvent] {
-        let founding = foundingKind(for: rivalry.origin)
-        var kept = events
-
-        while Rivalry(pair: rivalry.pair, origin: rivalry.origin, history: kept)
-            .heat(in: season) == .bitter
-        {
-            let evidence = founding.flatMap { kind in kept.firstIndex { $0.kind == kind } }
-
-            // Chosen by what the log is worth without it rather than by the event's own
-            // weight, so decay is accounted for without a second copy of the fold. Ties
-            // go to the earliest index, which keeps the choice stable.
-            var candidate: (index: Int, intensity: Double)?
-            for index in kept.indices where index != evidence {
-                var without = kept
-                without.remove(at: index)
-                let intensity = Rivalry(
-                    pair: rivalry.pair, origin: rivalry.origin, history: without
-                ).intensity(in: season)
-                if let best = candidate, best.intensity <= intensity { continue }
-                candidate = (index, intensity)
-            }
-
-            // Unreachable: an origin's floor plus its founding event is 22 at most, well
-            // under the band. Written as a stop rather than a precondition because the
-            // alternative to being wrong about that is a generator that never returns.
-            guard let dropped = candidate else { break }
-            kept.remove(at: dropped.index)
-        }
-
-        return kept
+        return events.sorted { ($0.season, $0.kind.rawValue) < ($1.season, $1.kind.rawValue) }
     }
 
     private static func foundingKind(for origin: RivalryOrigin) -> RivalryEventKind? {
