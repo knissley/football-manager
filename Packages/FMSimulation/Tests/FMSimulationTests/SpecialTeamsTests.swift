@@ -181,9 +181,9 @@ struct PuntingTests {
     /// 2025 rulebook, 11-6-2-c: a scrimmage kick the receivers have not touched beyond
     /// the line is a touchback once it touches the ground on or behind their goal line.
     /// 9-5-1 Note (a): the dead-ball spot for a scrimmage kick that ends in a touchback is
-    /// the 20-yard line. 9-4-4: a kick that goes out of bounds between the goal lines or
-    /// lies in the field of play with nobody trying to recover it is the receivers' ball
-    /// at the dead-ball spot.
+    /// the 20-yard line. 9-4-4: a scrimmage kick that crosses a sideline short of either
+    /// goal line, or that comes to rest with nobody going after it, is the receiving
+    /// team's where it died.
     ///
     /// So from the opponent's 40 a punter who places it at the 8 has bought twelve yards
     /// that a punter who hits it into the end zone has not, and the average takeover has

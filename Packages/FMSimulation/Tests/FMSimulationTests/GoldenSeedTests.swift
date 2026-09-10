@@ -151,10 +151,12 @@ struct GoldenSeedTests {
             // than the label its preset carried. All three change who is on the field,
             // and the personnel and package draws move the stream on every snap.
             //
-            // And moved by interference. Both kinds are drawn at the throw, on the
-            // target's matchup, because 8-5-1 says interference can only occur when a
-            // forward pass is thrown from behind the line; the coverage loop keeps the
-            // fouls whose restrictions begin at the snap. A sack, a scramble and a
+            // And moved by interference. Both kinds are drawn at the throw because
+            // 8-5-1 makes a forward pass from behind the line the thing interference
+            // needs before it can exist at all; the coverage loop keeps the fouls whose
+            // restrictions begin at the snap. Confining the draw to the target's matchup
+            // is the engine's own simplification and not that article's, which protects
+            // every eligible receiver. A sack, a scramble and a
             // throwaway carry no interference at all now, a deep flag is enforced from
             // the catch point rather than from a re-drawn depth, and the draw moved from
             // four reads a play to one.

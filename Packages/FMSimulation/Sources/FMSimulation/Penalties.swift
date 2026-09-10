@@ -232,11 +232,19 @@ enum Penalties {
     ///
     /// 8-5-1: interference needs a forward pass thrown from behind the line to exist, the
     /// defence's restrictions run from the throw until the ball is touched, and the foul
-    /// itself is hindering an eligible receiver's chance at the ball. So there is exactly
-    /// one matchup it can be drawn on — the target's — and a down with no throw in it has
-    /// none at all. It used
-    /// to be drawn per read in the coverage loop, before the quarterback had decided
-    /// anything, which put it on sacks and on receivers nobody looked at.
+    /// itself is hindering an eligible receiver's chance at the ball. So a down with no
+    /// throw in it has no interference at all. It used to be drawn per read in the
+    /// coverage loop, before the quarterback had decided anything, which put it on sacks
+    /// and on receivers nobody looked at.
+    ///
+    /// **Drawing it on the target's matchup and on no other is this engine's
+    /// simplification, not 8-5-1's.** The article protects *any* eligible receiver and
+    /// gives both sides the same right to the ball, so a real foul is available on a
+    /// receiver the throw was never going to — a defender hooking the man on the far
+    /// side, or an offensive pick well away from the catch. The engine picks one target
+    /// and keeps no separation for anybody else after the throw, so the target's is the
+    /// only matchup it has to draw on. What that loses is interference away from the
+    /// ball, which a resolver that carried every matchup through the throw would have.
     ///
     /// `catchPoint` is where the ball is going, in the offence's frame with zero meaning
     /// the end zone: the defence's is a spot foul (8-6-1-b) and this is the spot.
@@ -264,9 +272,10 @@ enum Penalties {
         guard random.nextBool(probability: max(0.004, min(0.45, chance))) else { return nil }
 
         // Sometimes the separation was made with a hand in the chest and the flag goes
-        // the other way — 8-5-1's "initiating contact with an opponent by shoving or
-        // pushing off, thus creating separation", which is a foul on the man the ball was
-        // thrown to and on nobody else.
+        // the other way. 8-5-2 lists a shove or a push-off that buys a receiver room
+        // among the acts either side can be flagged for while the ball is in the air.
+        // Charging it to the target rather than to whichever receiver did it is the
+        // simplification described above, not something the article says.
         if random.nextBool(probability: offensiveShareOfInterference) {
             return record(
                 .offensivePassInterference, by: [receiver], personnel, context, &random,
