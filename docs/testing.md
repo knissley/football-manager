@@ -84,14 +84,21 @@ resolver**, which is what CLAUDE.md asks to watch between milestones.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 25 — 30.5% | 4 | 52 | 1 | 82 |
 | Rules conformance — the scripted games (FMSimulation) | 54 — 98.2% | 0 | 0 | 1 | 55 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds and punting (FMSimulation) | 2 — 8.7% | 11 | 10 | 0 | 23 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds and punting (FMSimulation) | 2 — 8.0% | 11 | 10 | 2 | 25 |
 | Generation (FMGeneration) | 0 — 0.0% | 66 | 107 | 0 | 173 |
 
 Three findings come straight off that table.
 
-**The resolver asserts almost no football.** Two of its twenty-three tests do, both added
+**The resolver asserts almost no football.** Two of its twenty-five tests do, both added
 by wave 3: where a play ends laterally is a clock decision (4-3-2-a) and a punt from plus
-territory beats the touchback (11-6-2-c, 9-5-1 Note a). Its parametric rates — completion
+territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those two asserts only
+what its articles actually say — the *direction* of the sideline lever, and that a placed
+punt leaves the receivers short of the 20 a touchback would give them. The magnitudes
+that shipped inside them (a trailing offence reaching the sideline twice as often as a
+leading one, above a fifth of its tackles; fewer than 15% of plus-territory punts
+reaching the end zone) came from the issues that built those levers rather than from an
+article or a sourced season, so they are pinned beside the football tests instead of
+inside them, and are the two `.pin` in that row. Its parametric rates — completion
 percentage, sack rate, interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
 as a football test for a rate, and it does; but the census cannot see it, because

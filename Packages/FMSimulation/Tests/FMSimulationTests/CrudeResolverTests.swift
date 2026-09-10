@@ -367,15 +367,40 @@ struct OutOfBoundsTests {
     /// minutes of the second. So late in a game the sideline is the only place a trailing
     /// offence's clock stays stopped, and it is the one place a leading offence must not
     /// go.
+    ///
+    /// The article gives the direction of that and nothing else. It says which way each
+    /// bench wants the ball to end; it says nothing about how often either gets its way,
+    /// and no season this repo has sourced does either. So the football claim here is the
+    /// sign of the difference. How big the difference is is a modelling choice and is
+    /// pinned separately.
     @Test(
-        "football · Rule 4-3-2-a · a trailing offence inside two minutes reaches the sideline far more often than one protecting a lead late",
+        "football · Rule 4-3-2-a · a trailing offence inside two minutes reaches the sideline more often than one protecting a lead late",
         .tags(.football))
     func theSidelineIsAClockDecision() {
         let trailing = sidelineShare(resolved(.quickPass, Self.trailingLate))
         let leading = sidelineShare(resolved(.quickPass, Self.leadingLate))
         #expect(
-            trailing > leading * 2,
+            trailing > leading,
             "trailing \(trailing) against leading \(leading): the clock is not a lever")
+    }
+
+    /// How big that lever is, which is ours and not the rulebook's.
+    ///
+    /// Nothing in 4-3-2-a, and no sourced season, says a two-minute drill ends a fifth of
+    /// its tackles out of bounds or that an offence killing the clock ends fewer than a
+    /// tenth of them there. Those three numbers are conventions, chosen when the lever was
+    /// built. They are pinned rather than dropped because a lever that quietly shrank to
+    /// nothing would still satisfy the football test above, and a two-minute offence that
+    /// cannot get out of bounds is the bug this suite was written for.
+    @Test(
+        "pin: the size of the sideline lever — trailing late over twice leading late, above 20% against under 10%, all three conventions rather than sourced",
+        .tags(.pin))
+    func theSidelineLeverKeepsItsSize() {
+        let trailing = sidelineShare(resolved(.quickPass, Self.trailingLate))
+        let leading = sidelineShare(resolved(.quickPass, Self.leadingLate))
+        #expect(
+            trailing > leading * 2,
+            "trailing \(trailing) against leading \(leading): the lever shrank")
         #expect(trailing > 0.20, "a two-minute drill that cannot get out of bounds: \(trailing)")
         #expect(leading < 0.10, "a clock-burning offence still running to the sideline: \(leading)")
     }

@@ -187,17 +187,37 @@ struct PuntingTests {
     ///
     /// So from the opponent's 40 a punter who places it at the 8 has bought twelve yards
     /// that a punter who hits it into the end zone has not, and the average takeover has
-    /// to be nearer the goal than the 20 the touchback hands back.
+    /// to be nearer the goal than the 20 the touchback hands back. That last sentence is
+    /// what the three articles give: the 20 is the floor a touchback puts under the
+    /// receivers, and anything placed short of their goal line beats it. How often a
+    /// punter with touch avoids the end zone from there is not in any of them, and is
+    /// pinned separately.
     @Test(
         "football · Rule 11-6-2-c, 9-5-1 Note a, 9-4-4 · a punt from inside the opponent's 45 leaves the receivers nearer their goal than the 20 a touchback gives them",
         .tags(.football))
     func plusTerritoryPuntsBeatTheTouchback() {
         let outcomes = punts(from: 40, touch: 68)
         #expect(outcomes.count > 2_000, "only \(outcomes.count) punts were actually kicked")
-        let touchbacks = touchbackShare(outcomes)
         let start = averageStart(outcomes)
-        #expect(touchbacks < 0.15, "touchbacks from the 40: \(touchbacks)")
         #expect(start < 20, "the receivers averaged their own \(start), worse than a touchback")
+    }
+
+    /// How often the corner is actually found, which is ours and not the rulebook's.
+    ///
+    /// Fewer than a sixth of these punts reaching the end zone is a convention, taken
+    /// from the plan that built the aimed punt rather than from an article or a sourced
+    /// season. It is pinned rather than dropped because the average-start test above
+    /// would still pass with a touchback rate that made the aim pointless, and every punt
+    /// being struck at full distance from the opponent's 40 is exactly the behaviour this
+    /// suite was written for.
+    @Test(
+        "pin: a punter with touch puts fewer than 15% of his plus-territory punts in the end zone (a convention, not a sourced rate)",
+        .tags(.pin))
+    func plusTerritoryTouchbacksStayRare() {
+        let outcomes = punts(from: 40, touch: 68)
+        #expect(outcomes.count > 2_000, "only \(outcomes.count) punts were actually kicked")
+        let touchbacks = touchbackShare(outcomes)
+        #expect(touchbacks < 0.15, "touchbacks from the 40: \(touchbacks)")
     }
 
     /// The call itself, before anybody kicks anything.
