@@ -216,6 +216,38 @@ func concept(_ calls: Calls) -> String {
     }
 }
 
+/// Whether this call is a free kick — the plays that belong to the sequence between
+/// drives rather than to a drive, and that are not snapped at a down and distance
+/// (2025 rulebook, 6-1-1).
+///
+/// **Written as a switch over every case with no `default`, deliberately.** The same
+/// question used to be asked as two `==` comparisons, and when the deep kickoff became
+/// its own family the comparisons went on answering `false` for it: a free kick was
+/// printed at first and ten, and the drive chart opened a drive on it and immediately
+/// closed it as a period boundary that was not one. An exhaustive switch turns the next
+/// family into a build failure here instead of a trace that quietly lies about the
+/// football.
+func isFreeKickFamily(_ family: PlayFamily) -> Bool {
+    switch family {
+    case .kickoff, .onsideKick, .deepKickoff:
+        return true
+    case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
+        .punt, .fieldGoal, .kneel, .spike, .extraPoint, .twoPointConversion:
+        return false
+    }
+}
+
+/// Whether this call is a try. Exhaustive for the same reason as the free kick above.
+func isTryFamily(_ family: PlayFamily) -> Bool {
+    switch family {
+    case .extraPoint, .twoPointConversion:
+        return true
+    case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
+        .punt, .fieldGoal, .kneel, .spike, .kickoff, .onsideKick, .deepKickoff:
+        return false
+    }
+}
+
 func coverageName(_ coverage: Coverage) -> String {
     switch coverage {
     case .coverZero: return "cover 0"
@@ -485,8 +517,8 @@ struct Broadcast {
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
         let family = CrudePlaybook.family(of: play.calls.offense.design)
-        let isTry = family == .extraPoint || family == .twoPointConversion
-        let isKickoff = family == .kickoff || family == .onsideKick
+        let isTry = family.map(isTryFamily) ?? false
+        let isKickoff = family.map(isFreeKickFamily) ?? false
 
         // A kickoff and a try belong to the sequence between drives rather than to a
         // drive, so both close whatever was open — as does the ball changing hands.
