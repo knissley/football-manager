@@ -39,11 +39,13 @@
 # same.
 #
 # `Packages/FMGeneration` is deliberately *not* in the list, because it is the whole
-# point: generation reaches the harness only through the world it builds, and the
-# checksum sees the whole of that world. The exception is `WeatherGenerator.swift`, which
-# the harness calls directly for every game — the weather is drawn per game from the
-# stadium and the week, so a change there reaches a snap without changing a rating, and
-# no checksum of a world would notice.
+# point: generation reaches the harness only through the world it builds, and the checksum
+# covers every part a `GeneratedWorld` stores — the players map the engine is handed
+# included, and every variable-length group with its length. The exception is
+# `WeatherGenerator.swift`, which the harness calls directly for every game: the weather is
+# drawn per game from the stadium, the week and a seed, so a change there reaches a snap
+# without changing anything a world stores, and no checksum of a world could notice. Its
+# manifest is watched with it.
 #
 # ## What it does not check
 #
@@ -56,13 +58,15 @@
 #
 # `--self-test` is the test for this script, in the shape `lint-sim.sh --self-test` uses.
 # It copies the working tree into a scratch repository, commits it as a base, and then
-# applies four scripted changes whose answers are known: an engine constant (`run`), a
+# applies six scripted changes whose answers are known: an engine constant (`run`), a
 # docs-only edit (`skip`), a generator constant the harness world shows (`run`, and it
-# must come from the checksum rather than the file list), and a generator constant the
-# harness world never draws (`skip`). It builds two harnesses — about a minute on a warm
-# Linux container, longer from cold — so run it when you change this script. CI does not,
-# deliberately: the determinism step in the `test` job is the cheap guard that runs on
-# every push.
+# must come from the checksum rather than the file list), a generator constant the
+# harness world never draws (`skip`), and the two the first review round of #72 found —
+# the players map diverging from the rosters, and a depth chart repartitioned over the
+# same men (`run`, both by the checksum). It builds a harness per scenario that reaches
+# one — a few minutes on a warm Linux container, longer from cold — so run it when you
+# change this script. CI does not, deliberately: the determinism step in the `test` job is
+# the cheap guard that runs on every push.
 
 set -euo pipefail
 
@@ -81,6 +85,10 @@ engine_paths=(
     Packages/FMRandom/Package.swift
     Tools/simharness/Package.swift
     Packages/FMGeneration/Sources/FMGeneration/WeatherGenerator.swift
+    # WeatherGenerator is compiled by FMGeneration's manifest, and a build setting reaches
+    # the output as surely as source does, so the manifest is watched even though the rest
+    # of that package's sources deliberately are not.
+    Packages/FMGeneration/Package.swift
 )
 
 # The seeds the backlog's before-and-after rule names.
@@ -155,7 +163,7 @@ world_checksum() {
 
 # A worktree of the base ref, extracted from the object database rather than checked out,
 # so nothing touches the caller's index or working tree. HARNESS_REACH_CACHE keeps it
-# between invocations, which is how the self-test builds the base once for four scenarios.
+# between invocations, which is how the self-test builds the base once for all of them.
 base_tree() {
     local sha=$1 dir
     if [ -n "${HARNESS_REACH_CACHE-}" ]; then
@@ -300,7 +308,7 @@ self_test() {
     # One extraction and one build of the base serves every scenario.
     export HARNESS_REACH_CACHE="$scratch/base-cache"
 
-    note "harness-reach: four scenarios; the three that reach a build take a minute or two"
+    note "harness-reach: six scenarios; the five that reach a build take a few minutes"
     scenario "an engine constant changed" run "sources moved" \
         "$(
             cat <<'EDIT'
@@ -324,9 +332,26 @@ substitute Packages/FMGeneration/Sources/FMGeneration/RivalryGenerator.swift \
     's/eventsPerPairPerSeason: Double = 0.55/eventsPerPairPerSeason: Double = 0.75/'
 EDIT
         )"
+    # The two the first review round found. Both are changes the checksum used to call
+    # identical while the harness moved by hundreds of lines, so both belong here rather
+    # than in a reviewer's memory.
+    scenario "the players map diverging from the rosters" run "world at seed" \
+        "$(
+            cat <<'EDIT'
+substitute Packages/FMGeneration/Sources/FMGeneration/WorldGenerator.swift \
+    's/for player in roster { players\[player.id\] = player }/for player in roster { var quicker = player; quicker.ratings[.speed] = min(99, (quicker.ratings[.speed] ?? 60) + 5); players[player.id] = quicker }/'
+EDIT
+        )"
+    scenario "a depth chart repartitioned over the same men" run "world at seed" \
+        "$(
+            cat <<'EDIT'
+substitute Packages/FMGeneration/Sources/FMGeneration/RosterGenerator.swift \
+    's/return DepthChart(order: order)/return DepthChart(order: { () -> [Position: [PlayerID]] in var moved = order; let filled = Position.allCases.filter { !(moved[$0] ?? []).isEmpty }; if filled.count > 1, let last = moved[filled[0]]?.last { moved[filled[0]]?.removeLast(); moved[filled[1]]?.insert(last, at: 0) }; return moved }())/'
+EDIT
+        )"
 
     if [ "$self_test_failures" -eq 0 ]; then
-        note "harness-reach: self-test clean — four scenarios, all as expected."
+        note "harness-reach: self-test clean — six scenarios, all as expected."
         exit 0
     fi
     note "harness-reach: SELF-TEST FAILED — $self_test_failures scenario(s) answered wrongly."

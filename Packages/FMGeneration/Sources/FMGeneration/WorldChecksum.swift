@@ -11,15 +11,21 @@ import FMCore
 ///
 /// FNV-1a rather than `Hasher`, whose seed is randomised per process — using `Hasher`
 /// here would make both callers unable to detect the thing they exist to detect
-/// ([ADR-0003](../../../../docs/adr/0003-deterministic-seeded-simulation.md)). Every
-/// string is terminated with a byte that cannot appear in UTF-8, so two adjacent fields
-/// cannot slide into each other and produce a world's number for a world it is not.
+/// ([ADR-0003](../../../../docs/adr/0003-deterministic-seeded-simulation.md)).
+///
+/// Two rules hold everywhere in it, and both exist because a checksum that concatenates
+/// is a checksum that can be fooled. Every string is terminated with a byte that cannot
+/// appear in UTF-8, and **every variable-length group is followed by its length** — so
+/// neither two adjacent fields nor two adjacent groups can slide into one another and
+/// give a world the number of a world it is not.
 ///
 /// ## What it covers
 ///
+/// Every stored part of a `GeneratedWorld`:
+///
 /// - The seed and the season the world was generated for.
 /// - The league: its identifier and name, and every conference and division by
-///   identifier, name and membership.
+///   identifier, name and membership, each list with its length.
 /// - The number of teams and the number of colleges.
 /// - Every team, in identifier order: identifier, full name, abbreviation, region,
 ///   market; the stadium in full — name, capacity, roof, surface, climate, altitude and
@@ -27,11 +33,14 @@ import FMCore
 ///   offence; the scheme it plays, on both sides and every component of each; the
 ///   strength offset it was drawn at; and the schemes its roster was *built for* against
 ///   the one it is played in.
-/// - Every player on every roster, in roster order: identifier, position and secondary
-///   positions, overall and every rating, the whole physical profile, the hidden
-///   attributes, traits, roster status, name, college, birth season, first season, the
-///   draft record, and his scheme fit against the team's scheme.
-/// - Every team's depth chart, position by position.
+/// - Every roster: who is on it, in order, how many, and each man's fit in the scheme his
+///   club plays, taken from the roster's own copy of him.
+/// - Every team's depth chart, position by position, each position's men followed by how
+///   many of them there are — the chart is a partition, and without the lengths a man
+///   moved from the tail of one position to the head of the next is invisible.
+/// - `world.players`, the map the engine is actually handed: every man in it, in full, in
+///   identifier order, and how many. It is stored beside the rosters rather than derived
+///   from them, so it is checksummed on its own account.
 /// - The draft pipeline, when the world was generated with one: each class's season,
 ///   strength and prospect roll, and each generated player's identifier, overall and
 ///   ceiling.
@@ -40,11 +49,13 @@ import FMCore
 ///
 /// ## What it does not cover
 ///
-/// Anything that is not *in* the world. The rules in force, the weather drawn for a
-/// particular game, the play caller and the resolver are all inputs the caller supplies
-/// alongside the world, and a change to any of them leaves this number where it was —
-/// which is why `scripts/harness-reach.sh` reads the engine's source trees as well as
-/// this checksum before it will say a change cannot reach the harness.
+/// Nothing a `GeneratedWorld` stores — but plenty that reaches a snap beside it. The
+/// rules in force, the weather drawn for a particular game (a pure function of the
+/// stadium, the week and a seed, so a change to `WeatherGenerator` moves a game without
+/// moving this number), the play caller and the resolver are all supplied by the caller
+/// alongside the world. That is why `scripts/harness-reach.sh` reads the engine's source
+/// trees, and `WeatherGenerator.swift` with them, as well as this checksum before it will
+/// say a change cannot reach the harness.
 public struct WorldChecksum: Sendable, Hashable {
 
     /// The FNV-1a 64-bit offset basis and prime.
@@ -111,8 +122,11 @@ public struct WorldChecksum: Sendable, Hashable {
                 sum.mix(division.id.rawValue)
                 sum.mix(division.name)
                 for team in division.teams { sum.mix(team.rawValue) }
+                sum.mix(division.teams.count)
             }
+            sum.mix(conference.divisions.count)
         }
+        sum.mix(world.league.conferences.count)
 
         // `world.teams` is ordered by identifier, so this walk is stable.
         for team in world.teams {
@@ -133,18 +147,43 @@ public struct WorldChecksum: Sendable, Hashable {
             sum.mix(identity?.played ?? .balanced)
             sum.mix(identity?.builtFor ?? .balanced)
 
-            for player in world.roster(of: team.id) {
-                sum.mix(player, fitting: team.scheme)
+            // Who is on this roster, in what order, and how each of them fits the scheme
+            // his club plays. The men themselves are checksummed once, below, out of
+            // `world.players`; what this walk adds is the membership and the order, which
+            // that map does not carry, and the fit, which needs the club's scheme.
+            let roster = world.roster(of: team.id)
+            for player in roster {
+                sum.mix(player.id.rawValue)
+                // Scheme fit is the value that was actually wrong once: it is a rounded
+                // weighted average, and the weighting used to be summed in hash order.
+                // It is taken from the roster's copy of the man, so a roster that stopped
+                // agreeing with the players map moves this even where the map does not.
+                sum.mix(player.schemeFit(team.scheme))
             }
+            sum.mix(roster.count)
 
             // The depth chart is a projection over the roster, so it is checksummed
             // separately: a chart that stopped agreeing with the overalls would not move
-            // any of the numbers above.
+            // any of the numbers above. Each position's length is mixed after its men,
+            // because the chart is a *partition* — without the lengths, moving the last
+            // man at one position to the head of the next leaves the concatenation
+            // identical and the lineup completely different.
             let chart = world.depthChart(of: team.id)
             for position in Position.allCases {
                 for id in chart[position] { sum.mix(id.rawValue) }
+                sum.mix(chart[position].count)
             }
         }
+
+        // The map the engine is handed. `GameSetup` takes this dictionary, not the
+        // rosters, and `GeneratedWorld` stores the two separately — so a man who is
+        // faster here than on his roster plays faster, and nothing above would say so.
+        // Walked in identifier order, never in hash order (rule 2).
+        for id in world.players.keys.sorted() {
+            sum.mix(id.rawValue)
+            if let player = world.players[id] { sum.mix(player) }
+        }
+        sum.mix(world.players.count)
 
         for generated in world.draftPipeline {
             sum.mix(generated.draftClass.season)
@@ -154,19 +193,21 @@ public struct WorldChecksum: Sendable, Hashable {
             for group in PositionGroup.allCases {
                 sum.mix(generated.draftClass.strength.byGroup[group] ?? 0)
             }
-            sum.mix(generated.draftClass.prospects.count)
             for prospect in generated.draftClass.prospects {
                 sum.mix(prospect.player.rawValue)
                 sum.mix(prospect.collegeYear.rawValue)
                 sum.mix(prospect.declaration.rawValue)
                 sum.mix(prospect.eligibleSeason)
             }
+            sum.mix(generated.draftClass.prospects.count)
             for player in generated.players {
                 sum.mix(player.id.rawValue)
                 sum.mix(player.overall)
                 sum.mix(player.hidden.ceiling)
             }
+            sum.mix(generated.players.count)
         }
+        sum.mix(world.draftPipeline.count)
 
         for rivalry in world.rivalries {
             sum.mix(rivalry.pair.lower.rawValue)
@@ -177,7 +218,9 @@ public struct WorldChecksum: Sendable, Hashable {
                 sum.mix(event.kind.rawValue)
                 sum.mix(event.aggrievedTeam?.rawValue ?? 0)
             }
+            sum.mix(rivalry.history.count)
         }
+        sum.mix(world.rivalries.count)
 
         return sum.value
     }
@@ -216,13 +259,14 @@ public struct WorldChecksum: Sendable, Hashable {
         mix(scheme.defense.pressure.rawValue)
     }
 
-    /// A player, and his fit in the scheme his club plays.
+    /// A player, in full.
     ///
     /// `secondaryPositions` and `hidden.durability` are mixed because the engine reads
     /// them — the first decides whether a man can fill a hole in the lineup, the second
     /// how long he is out when he goes down — and a checksum that skipped them would call
-    /// two different leagues the same one.
-    mutating func mix(_ player: Player, fitting scheme: TeamScheme) {
+    /// two different leagues the same one. His scheme fit is not here: it depends on the
+    /// club, and it is mixed where the club is known, in the roster walk.
+    mutating func mix(_ player: Player) {
         mix(player.id.rawValue)
         mix(player.position.rawValue)
         for position in player.secondaryPositions { mix(position.rawValue) }
@@ -261,8 +305,5 @@ public struct WorldChecksum: Sendable, Hashable {
         mix(player.draft?.round ?? 0)
         mix(player.draft?.pick ?? 0)
         mix(player.draft?.overallPick ?? 0)
-        // Scheme fit is the value that was actually wrong: it is a rounded weighted
-        // average, and the weighting used to be summed in hash order.
-        mix(player.schemeFit(scheme))
     }
 }

@@ -164,13 +164,16 @@ The header names the league the run was played in, as one number:
 ```text
 simharness — 400 games, seed 7
   32 teams, strength offset -8.4 to 7.5
-  world checksum 648488dc57a38115  (no target: it names the league, it does not grade it)
+  world checksum bb034c43d9254a63  (no target: it names the league, it does not grade it)
 ```
 
 It is `WorldChecksum` in `FMGeneration` — the same function `GoldenWorldTests` pins to a
-checked-in constant, covering the whole world: every team and stadium, every roster and
-depth chart, the schemes, the strength offsets, and the draft pipeline and rivalries when
-a world has them. The doc comment on the type lists what it reads. The number here is not
+checked-in constant, covering every part a generated world stores: every team and stadium,
+every roster and depth chart, the map of players the engine is handed, the schemes, the
+strength offsets, and the draft pipeline and rivalries when a world has them. Every
+variable-length group carries its length, so a depth chart repartitioned over the same men
+is a different number. The doc comment on the type lists what it reads and what it
+does not. The number here is not
 the golden's constant, because the harness generates a smaller world without the optional
 parts, but it is the same function over it — which is what makes two *branches'* numbers
 comparable.
@@ -180,7 +183,7 @@ and it prints in `--no-timing` output too.
 
 ```bash
 swift run --package-path Tools/simharness simharness --world-checksum-only --seed 7
-# world checksum 648488dc57a38115
+# world checksum bb034c43d9254a63
 ```
 
 `--world-checksum-only` generates the world, prints that one line and exits without
@@ -376,7 +379,7 @@ to paste into a PR body.
 
 ```text
 run  the engine's own sources moved against origin/main — 1 file(s): Packages/FMSimulation/Sources/FMSimulation/Fumbles.swift — run the harness
-skip  no engine source moved against origin/main and the world is identical at seeds 7 11 (648488dc57a38115 ddda22896f3ac3ba) — the harness cannot see this change
+skip  no engine source moved against origin/main and the world is identical at seeds 7 11 (bb034c43d9254a63 85c82634e3d87e7e) — the harness cannot see this change
 ```
 
 Every fix in the backlog runs `simharness --games 400` at two seeds, before and after, and
@@ -400,11 +403,15 @@ It says `skip` only when both of these hold:
    It builds the base in a scratch directory extracted with `git archive` — nothing
    touches your index or working tree — and asks both with `--world-checksum-only`.
 
-`FMGeneration` is deliberately absent from that first list. Generation reaches the harness
-only through the world it builds, and the checksum sees the whole of that world, so a
-generator change that moves nothing the harness plays is exactly the case this tool exists
-to wave through. What it cannot speak for is the toolchain: it compares two builds made
-minutes apart on one machine, which is the case it is for.
+`FMGeneration`'s sources are deliberately absent from that first list. Generation reaches
+the harness only through the world it builds, and the checksum covers every part a
+`GeneratedWorld` stores — including `world.players`, the map the engine is handed, and the
+length of every variable-length group — so a generator change that moves nothing the
+harness plays is exactly the case this tool exists to wave through. What it cannot speak
+for is anything the world does not store: the weather drawn per game is why
+`WeatherGenerator.swift` and that package's manifest are watched by name. Nor can it speak
+for the toolchain — it compares two builds made minutes apart on one machine, which is the
+case it is for.
 
 ### Its self-test
 
@@ -413,7 +420,7 @@ minutes apart on one machine, which is the case it is for.
 ```
 
 The test for the script, in the shape [`lint-sim.sh --self-test`](#the-self-test) uses. It
-copies the working tree into a scratch repository, commits it as a base, and applies four
+copies the working tree into a scratch repository, commits it as a base, and applies six
 scripted changes whose answers are known:
 
 | Scripted change | Expected | Which arm decides |
@@ -422,14 +429,20 @@ scripted changes whose answers are known:
 | A line appended to `docs/tools.md` | `skip` | both, having found nothing |
 | `WorldGenerator.strengthSpread` | `run` | the checksum — no watched file moved |
 | `RivalryGenerator`'s events per season | `skip` | the checksum — the harness draws no rivalries |
+| `world.players` given five points of speed the rosters do not have | `run` | the checksum |
+| A depth chart repartitioned over the same men | `run` | the checksum |
 
-A scenario that answers wrongly, or answers rightly for the wrong reason — the third and
-fourth cases are the ones that distinguish the two arms — fails the run and prints what it
-got. If a fixture edit stops applying because the constant it names has moved, that fails
-too, loudly, rather than turning into a scenario that tests nothing.
+A scenario that answers wrongly, or answers rightly for the wrong reason — every case but
+the first two is decided by the checksum with no watched file moved — fails the run and
+prints what it got. If a fixture edit stops applying because the constant it names has
+moved, that fails too, loudly, rather than turning into a scenario that tests nothing.
 
-It builds two harnesses — about a minute on a warm Linux container, longer from cold — so
-run it when you change the script. CI does not run it, deliberately: the determinism step in the `test` job is the cheap guard
+The last two are the first review round's findings on #72, kept as scenarios rather than
+as a reviewer's memory: both moved the harness by hundreds of lines while the checksum
+called the two leagues identical.
+
+It builds a harness per scenario that reaches one — a few minutes on a warm Linux
+container, longer from cold — so run it when you change the script. CI does not run it, deliberately: the determinism step in the `test` job is the cheap guard
 that runs on every push.
 
 ## Formatting

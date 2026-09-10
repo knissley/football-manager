@@ -44,7 +44,7 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process",
         arguments: [
-            (UInt64(1), UInt64(5_309_901_189_866_683_564)),
+            (UInt64(1), UInt64(14_214_372_360_801_669_875)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -55,11 +55,18 @@ struct GoldenWorldTests {
             // this file: it now covers what the engine reads and this file did not — the
             // stadium beyond its name and noise, both schemes in full rather than their
             // pass lean, secondary positions, the hidden attributes, traits and status —
-            // and terminates each string so two adjacent fields cannot slide. Wider
+            // and terminates each string so two adjacent fields cannot slide.
+            //
+            // And once more in review of #72, which found two ways the checksum still
+            // called two different leagues one league: it read the rosters but not
+            // `world.players`, the map the engine is actually handed, and it concatenated
+            // variable-length groups without their lengths, so a depth chart repartitioned
+            // over the same men was invisible. Both are now covered, both had moved the
+            // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(6_661_586_569_847_320_592)),
-            (UInt64(7), UInt64(12_123_553_620_895_380_564)),
+            (UInt64(5), UInt64(739_023_233_666_568_453)),
+            (UInt64(7), UInt64(16_728_311_166_745_480_593)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)
