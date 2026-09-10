@@ -1,4 +1,5 @@
 import FMCore
+import FMRandom
 import Testing
 
 @testable import FMSimulation
@@ -291,5 +292,155 @@ struct ContestCurveTests {
         #expect(resolver.contest(80, 80, edge: -0.35) < 0.5)
         #expect(resolver.contest(99, 20, edge: 0.9) <= 0.93)
         #expect(resolver.contest(20, 99, edge: -0.9) >= 0.07)
+    }
+}
+
+/// Getting out of bounds is a decision the man with the ball makes, and the reason he
+/// makes it is a clock rule.
+///
+/// A tackle used to end out of bounds at a flat 14% whatever the play was and whatever
+/// the clock was doing, and a carrier who beat every tackler was out of bounds by
+/// construction. So the two-minute drill had no lever for stopping the clock and the
+/// offence protecting a lead had none for keeping it running.
+@Suite("Out of bounds")
+struct OutOfBoundsTests {
+
+    private func context(seed: UInt64 = 12) -> PlayContext {
+        let (_, chart, players) = TestWorld.team(seed: seed)
+        let rotation = chart.rotation()
+        return PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: players,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: .standard)
+    }
+
+    private static let neutral = Situation(
+        quarter: 2, clockRemaining: 800, down: .first, distance: 10, ballOn: 65,
+        possession: TeamID(1), scoreDifferential: 0, offensePersonnel: .eleven,
+        defensePackage: .nickel)
+    /// Two minutes, a score down: the sideline is where the clock stops.
+    private static let trailingLate = Situation(
+        quarter: 4, clockRemaining: 100, down: .first, distance: 10, ballOn: 65,
+        possession: TeamID(1), scoreDifferential: -6, offensePersonnel: .eleven,
+        defensePackage: .nickel)
+    /// Late, a touchdown up: the sideline is the last place he wants to be.
+    private static let leadingLate = Situation(
+        quarter: 4, clockRemaining: 200, down: .first, distance: 10, ballOn: 65,
+        possession: TeamID(1), scoreDifferential: 10, offensePersonnel: .eleven,
+        defensePackage: .nickel)
+
+    private func resolved(
+        _ concept: PlayConcept, _ situation: Situation, count: Int = 3_000, seed: UInt64 = 41
+    ) -> [(outcome: Outcome, decisions: [DecisionPoint])] {
+        let context = context()
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept), defense: .nickelTwoMan,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: seed)
+        return (0..<count).map { _ in
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
+            return CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
+        }
+    }
+
+    /// Of the plays that ended with the man down somewhere on the field, the share that
+    /// ended on the sideline.
+    private func sidelineShare(
+        _ plays: [(outcome: Outcome, decisions: [DecisionPoint])]
+    ) -> Double {
+        let down = plays.filter {
+            $0.outcome.endedIn == .tackled || $0.outcome.endedIn == .outOfBounds
+        }
+        guard !down.isEmpty else { return 0 }
+        return Double(down.filter { $0.outcome.endedIn == .outOfBounds }.count)
+            / Double(down.count)
+    }
+
+    /// The clock rule that makes the sideline worth reaching, and the same rule read from
+    /// the other bench.
+    ///
+    /// 2025 rulebook, 4-3-2-a: a runner going out of bounds on a scrimmage down leaves
+    /// the clock to restart on the referee's ready signal — **except** that it starts on the
+    /// snap after the two-minute warning of the first half and inside the last five
+    /// minutes of the second. So late in a game the sideline is the only place a trailing
+    /// offence's clock stays stopped, and it is the one place a leading offence must not
+    /// go.
+    ///
+    /// The article gives the direction of that and nothing else. It says which way each
+    /// bench wants the ball to end; it says nothing about how often either gets its way,
+    /// and no season this repo has sourced does either. So the football claim here is the
+    /// sign of the difference. How big the difference is is a modelling choice and is
+    /// pinned separately.
+    @Test(
+        "football · Rule 4-3-2-a · a trailing offence inside two minutes reaches the sideline more often than one protecting a lead late",
+        .tags(.football))
+    func theSidelineIsAClockDecision() {
+        let trailing = sidelineShare(resolved(.quickPass, Self.trailingLate))
+        let leading = sidelineShare(resolved(.quickPass, Self.leadingLate))
+        #expect(
+            trailing > leading,
+            "trailing \(trailing) against leading \(leading): the clock is not a lever")
+    }
+
+    /// How big that lever is, which is ours and not the rulebook's.
+    ///
+    /// Nothing in 4-3-2-a, and no sourced season, says a two-minute drill ends a fifth of
+    /// its tackles out of bounds or that an offence killing the clock ends fewer than a
+    /// tenth of them there. Those three numbers are conventions, chosen when the lever was
+    /// built. They are pinned rather than dropped because a lever that quietly shrank to
+    /// nothing would still satisfy the football test above, and a two-minute offence that
+    /// cannot get out of bounds is the bug this suite was written for.
+    @Test(
+        "pin: the size of the sideline lever — trailing late over twice leading late, above 20% against under 10%, all three conventions rather than sourced",
+        .tags(.pin))
+    func theSidelineLeverKeepsItsSize() {
+        let trailing = sidelineShare(resolved(.quickPass, Self.trailingLate))
+        let leading = sidelineShare(resolved(.quickPass, Self.leadingLate))
+        #expect(
+            trailing > leading * 2,
+            "trailing \(trailing) against leading \(leading): the lever shrank")
+        #expect(trailing > 0.20, "a two-minute drill that cannot get out of bounds: \(trailing)")
+        #expect(leading < 0.10, "a clock-burning offence still running to the sideline: \(leading)")
+    }
+
+    /// Where the ball ends is drawn, never assumed.
+    ///
+    /// A carrier who beat all three men chasing him used to end out of bounds by
+    /// construction — the ending was written into the code rather than drawn — so a
+    /// breakaway could not finish any other way. It is a rare carry, about one in a
+    /// thousand, which is why the probe counts them explicitly rather than trusting a
+    /// share to show it.
+    @Test(
+        "A carrier who breaks every tackle is not out of bounds by construction",
+        .tags(.contract))
+    func breakawaysAreNotSidelineByConstruction() {
+        let breakaways = resolved(.outsideRun, Self.neutral, count: 8_000).filter { play in
+            let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
+            guard attempts.count == 3,
+                attempts.allSatisfy({ $0.detail == TackleResult.broken.rawValue })
+            else { return false }
+            return play.outcome.endedIn == .tackled || play.outcome.endedIn == .outOfBounds
+        }
+        #expect(breakaways.count > 0, "no carry beat everybody: the case was never exercised")
+        let inBounds = breakaways.filter { $0.outcome.endedIn == .tackled }.count
+        #expect(
+            inBounds > 0,
+            "all \(breakaways.count) breakaways ended out of bounds — construction, not a draw")
+    }
+
+    /// A run outside the tackles is already headed for the sideline; one between them is
+    /// twenty-odd yards from it.
+    @Test("An outside run reaches the sideline more often than an inside run", .tags(.unit))
+    func theSidelineDependsOnTheCall() {
+        let outside = sidelineShare(resolved(.outsideRun, Self.neutral))
+        let inside = sidelineShare(resolved(.insideRun, Self.neutral))
+        #expect(
+            outside > inside * 2,
+            "outside \(outside) against inside \(inside): the call makes no difference")
     }
 }

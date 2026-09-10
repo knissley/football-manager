@@ -9,7 +9,7 @@
 /// edited, replaced, or has yet to exist. Until M6 the identifier is `nil` and the concept
 /// is the whole call; a caller decides on it and a resolver acts on it.
 ///
-/// Fifteen cases, because the crude engine resolves fifteen kinds of snap. A play format
+/// Sixteen cases, because the crude engine resolves sixteen kinds of snap. A play format
 /// with routes in it does not retire these: a concept is what a tendency table, a box
 /// score and a gameplan rule key off, and none of them wants a route tree.
 public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
@@ -29,17 +29,24 @@ public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case spike = 10
     case kickoff = 11
     case extraPoint = 12
-    case twoPointConversion = 13
+    /// A try thrown from the two. The rule allows a pass *or* a run (11-3-1), and the two
+    /// are different plays with different personnel on both sides, so they are different
+    /// concepts rather than one concept the resolver reinterprets.
+    case twoPointPass = 13
     /// A kick deliberately kept short so the kicking team can fight for it. Its own
     /// concept because it is a different play, not a kickoff with a flag on it: different
     /// personnel, a different decision, and a different distribution of outcomes.
     case onsideKick = 14
+    /// The other half of 11-3-1: a try carried in from the two.
+    case twoPointRun = 15
 
-    public var isRun: Bool { self == .insideRun || self == .outsideRun }
+    public var isRun: Bool {
+        self == .insideRun || self == .outsideRun || self == .twoPointRun
+    }
 
     public var isPass: Bool {
         switch self {
-        case .quickPass, .mediumPass, .deepPass, .screen, .playAction, .twoPointConversion:
+        case .quickPass, .mediumPass, .deepPass, .screen, .playAction, .twoPointPass:
             return true
         default:
             return false
@@ -66,7 +73,7 @@ public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
         case .spike: return .spike
         case .kickoff, .onsideKick: return .kickoff
         case .extraPoint: return .extraPoint
-        case .twoPointConversion: return .twoPointConversion
+        case .twoPointPass, .twoPointRun: return .twoPointConversion
         }
     }
 }

@@ -86,6 +86,74 @@ struct PenaltyTests {
         #expect(checked > 0, "no interference calls to check")
     }
 
+    /// There is no such thing as interference on a play nobody threw.
+    ///
+    /// 2025 rulebook, 8-5-1. Interference of either kind needs a forward pass thrown
+    /// from behind the line to exist at all, legal or not and whether or not it gets
+    /// past the line. The article fixes the window too — the defence's restrictions run
+    /// from the throw until the ball is touched — and says what contact nearer the line
+    /// than a yard is instead, which is holding by one side or the other.
+    ///
+    /// So a sack, a scramble and a throwaway can carry defensive holding or illegal
+    /// contact and cannot carry interference of either kind.
+    @Test(
+        "football · Rule 8-5-1 · interference cannot be called on a down with no forward pass",
+        .tags(.football))
+    func noInterferenceWithoutAThrow() {
+        var withoutAThrow = 0
+        var flagged = 0
+        for (play, flag) in flags(seeds: 1...30) {
+            let noThrow = play.outcome.kind == .sack || play.outcome.kind == .scramble
+            guard noThrow else { continue }
+            withoutAThrow += 1
+            if flag.foul == .defensivePassInterference || flag.foul == .offensivePassInterference {
+                flagged += 1
+            }
+        }
+        // The count itself falls when the fix lands, because the interference flags on
+        // these downs stop being drawn rather than becoming some other foul. It is here
+        // to prove the case was exercised at all, not as a rate.
+        #expect(withoutAThrow > 10, "only \(withoutAThrow) flags on downs with no throw")
+        #expect(flagged == 0, "\(flagged) interference calls on downs where nobody threw it")
+    }
+
+    /// And interference is on the man the ball was thrown to.
+    ///
+    /// 8-5-1 again: interference is hindering an eligible receiver's chance at the ball,
+    /// and 8-5-4's version of the offence's is a block near whoever the pass is going to.
+    /// A flag on a receiver the quarterback never looked at is a flag with no ball near
+    /// it.
+    @Test("Interference is on the target's matchup, not on somebody else's", .tags(.contract))
+    func interferenceIsOnTheTarget() {
+        var checked = 0
+        for (play, flag) in flags(seeds: 1...30) {
+            guard
+                flag.foul == .defensivePassInterference
+                    || flag.foul == .offensivePassInterference
+            else { continue }
+            guard
+                let target = play.outcome.participants.first(where: { $0.role == .target })
+            else {
+                Issue.record("interference on a play with no target at all")
+                continue
+            }
+            checked += 1
+            if flag.foul == .offensivePassInterference {
+                #expect(
+                    flag.offender == target.slot,
+                    "offensive interference by a receiver who was not the target")
+                continue
+            }
+            let covering = play.decisions.first {
+                $0.kind == .coverageAssignment && $0.secondary == target.slot
+            }
+            #expect(
+                covering?.primary == flag.offender,
+                "interference by a defender who was covering somebody else")
+        }
+        #expect(checked > 10, "only \(checked) interference calls to check")
+    }
+
     /// A flag names a slot, and the record resolves every slot: `onField` carries the
     /// twenty-two men, so a receiver running a decoy route, a rusher who never reached
     /// the kicker or a blocker on a return is as identifiable as the man who made the

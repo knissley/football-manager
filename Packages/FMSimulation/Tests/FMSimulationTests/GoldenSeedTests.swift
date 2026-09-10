@@ -141,6 +141,65 @@ struct GoldenSeedTests {
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
             //
+            // And moved by rotation. A position the sport does not rotate — the
+            // quarterback, the five line spots, the kicker, the punter and the long
+            // snapper — is no longer drawn against a snap share on every snap; the man
+            // highest on the chart who is available simply takes it. That is six draws
+            // fewer on every snap of every game — the quarterback and the five line
+            // spots, or the specialist, the snapper and four linemen on a kick — so every
+            // checksum moves for that reason alone, and with them goes the substitution
+            // that had the backup quarterback taking a dropback mid-drive with the
+            // starter fit.
+            //
+            // And moved by the sideline. Where a play ends laterally is now drawn against
+            // the concept and the clock rather than at a flat 14% — an outside run
+            // reaches the boundary, an inside run does not, a trailing offence inside two
+            // minutes is coached to get out and a leading one to stay in (4-3-2-a) — and
+            // a carrier who beat everybody chasing him draws his ending like anybody
+            // else instead of being written out of bounds. One extra draw on a broken-
+            // tackle sequence moves every stream after it.
+            //
+            // And moved by the punt. A punt from inside the opponent's 45 is now aimed —
+            // a pooch between the 5 and the 10, or the corner inside the 5 for a punter
+            // with the touch to be trusted with it — and the punter's accuracy is the
+            // scatter around that target rather than a modifier on whether the returner
+            // fields it. A touchback is a miss now (11-6-2-c, 9-5-1 Note a) rather than
+            // what happened whenever a team punted from plus territory, so drives after
+            // one start much nearer their own goal, and an aimed punt spends two draws
+            // where a struck one spends one.
+            //
+            // And moved by the try and the package. A two-point conversion is now a run
+            // or a pass at the caller's choice (11-3-1), substituted for like the
+            // scrimmage down it is; the defence on a try is its goal-line eleven rather
+            // than whatever was on the field for the touchdown; and the package a
+            // defensive call names is the substitution the caller actually made rather
+            // than the label its preset carried. All three change who is on the field,
+            // and the personnel and package draws move the stream on every snap.
+            //
+            // And moved by interference. Both kinds are drawn at the throw because
+            // 8-5-1 makes a forward pass from behind the line the thing interference
+            // needs before it can exist at all; the coverage loop keeps the fouls whose
+            // restrictions begin at the snap. Confining the draw to the target's matchup
+            // is the engine's own simplification and not that article's, which protects
+            // every eligible receiver. A sack, a scramble and a
+            // throwaway carry no interference at all now, a deep flag is enforced from
+            // the catch point rather than from a re-drawn depth, and the draw moved from
+            // four reads a play to one.
+            //
+            // And moved once more by the correction that followed reading the harness:
+            // the three constants the interference move introduced are set so the fouls
+            // it did not touch keep the rates it found them at — defensive holding was
+            // doubling and offensive interference tripling as a side effect — and a
+            // conversion's run-or-pass call is made once with its spot rather than
+            // re-asked before a replay.
+            //
+            // And moved at seed 1 alone by the merge with A13. The late out-of-bounds
+            // window is judged from the clock where the ball became dead rather than
+            // from where the play before it ended (4-3-2-a-2, 4-3-2-a-3), and the
+            // sideline is now something a trailing offence reaches on purpose — so the
+            // two meet on the plays that matter most to both. Seeds 5 and 12 played the
+            // same game either way; seed 1 did not.
+            //
             // And moved again by the enforcement stoppage, by the engine. A flag on a down
             // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
             // clock starts again on the ready-for-play signal, or on the snap inside the
@@ -166,6 +225,17 @@ struct GoldenSeedTests {
             // spent at the same moments and the clock runs as it did, and `Tools/gamelog`
             // prints the same plays before and after, with the dead ball now written
             // above them and a kick's gross and return beside it.
+            //
+            // And moved by the merge of those two sets of changes, which is where the
+            // constants below come from. Neither side's could survive it: each was
+            // computed without the other's mechanism, and the checksum on this side
+            // mixes five facts the other side's did not. The football did not move —
+            // `Tools/gamelog --seed 7 --home 3 --away 11` prints the same hundred and
+            // seventy-nine plays with the same 35-41 either side of the merge, and every
+            // line that differs is a kick or a dead ball printing detail the record only
+            // just started carrying. The run-or-pass conversion moved type rather than
+            // meaning: it is a case of `PlayConcept`, which the checksum mixes, where it
+            // was a case of the now-deleted `PlayFamily`, which it did not.
             //
             // The enforcement stoppage and those dead-ball decision points then met in a
             // merge of their own, and the constants below are again the union: the
@@ -227,9 +297,26 @@ struct GoldenSeedTests {
             // next and how much clock is left for the rest of the half. Neither parent's
             // constants could survive, because each was computed without the other's
             // mechanism, and no subset of the mechanisms above reproduces these numbers.
-            (UInt64(1), UInt64(4_527_532_202_504_413_039)),
-            (UInt64(5), UInt64(9_245_522_178_510_744_962)),
-            (UInt64(12), UInt64(12_825_918_046_467_577_611)),
+            //
+            // And the two tracks above then met in this merge, which is where the
+            // constants below come from. On one side a two-point try is a run or a pass
+            // and is substituted for, a punt from plus territory is aimed, where a play
+            // ends laterally is drawn from the concept and the clock, interference is
+            // drawn at the throw, and a position the sport does not rotate is not drawn
+            // for on every snap. On the other, a flag stops the clock at the end of its
+            // down, the baseline caller decides what is snapped, every player carries
+            // every rating key, and a try's every exit is recorded as the try. The two
+            // reach each other on the same snaps: what the caller calls decides how often
+            // a punt is struck from plus territory at all, a receiver who now breaks a
+            // tackle on his own number rather than his overall reaches the boundary the
+            // sideline draw is deciding about, and the clock a flag no longer spends
+            // changes which snaps fall inside the late window the sideline lever reads.
+            // Neither parent's constants could survive, because each was computed without
+            // the other's mechanisms, and no subset of the mechanisms above reproduces
+            // these numbers.
+            (UInt64(1), UInt64(12_156_296_766_544_450_395)),
+            (UInt64(5), UInt64(564_713_015_476_453_462)),
+            (UInt64(12), UInt64(4_243_842_629_444_179_288)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

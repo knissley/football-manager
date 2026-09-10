@@ -357,6 +357,12 @@ below are what it is held to.
   `test:everyFoulIsCalled`
 - **8-4-6** — Defensive holding: five yards and an automatic first down. —
   `test:defensiveHoldingAtTheThreeIsHalfTheDistance`
+- **8-5-1** — Interference of either kind needs a forward pass thrown from behind the
+  line to exist at all, legal or not and whether or not it gets past the line: the foul is
+  contact past the first yard downfield that spoils an eligible receiver's chance at the
+  ball. The defence's restrictions run from the throw until the ball is touched and the
+  offence's from the snap; contact nearer the line than that is holding instead. —
+  `test:noInterferenceWithoutAThrow`, `test:interferenceIsOnTheTarget`
 - **8-5-4** — Pass interference. The defence's is a first down at the spot of the foul; in
   the end zone it is first down at the 1, or half the distance to the goal when the previous
   spot was inside the 2. The offence's is ten from the previous spot and the down is

@@ -11,6 +11,43 @@
 /// what makes a season's snap counts add up to a season.
 public enum RotationProfile {
 
+    /// Whether a position shares its snaps at all.
+    ///
+    /// A share is not the same claim at every position. A defensive line's third man
+    /// really does take four snaps in ten, drawn play by play; a left tackle's backup
+    /// takes none until the left tackle cannot play. Drawing both the same way put the
+    /// second quarterback on the field for one dropback in fifty, mid-drive, with the
+    /// starter standing on the sideline for one snap and back for the next.
+    public enum Kind: Sendable, Hashable {
+        /// One man's job. He takes every snap he is available for, and the man behind him
+        /// takes them only while he is not — which is what the ordering already says, so
+        /// no draw is made at all.
+        case starterOnly
+        /// A group that splits the work, drawn against `shares(for:)` on every snap.
+        case rotates
+    }
+
+    /// How this position's snaps are handed out.
+    ///
+    /// Starter-only is the quarterback, the five line spots and the three specialists:
+    /// positions the sport substitutes at only for injury, ineffectiveness or the end of
+    /// a game. Everything else rotates.
+    ///
+    /// Note what this does *not* change: `shares(for:)` still decides who is in the
+    /// rotation at all, so the man behind a starter-only spot keeps a share above zero
+    /// and is there to come on. Below the starter the number says he is next up, not how
+    /// often he plays.
+    public static func kind(for position: Position) -> Kind {
+        switch position {
+        case .quarterback, .leftTackle, .leftGuard, .center, .rightGuard, .rightTackle,
+            .kicker, .punter, .longSnapper:
+            return .starterOnly
+        case .runningBack, .fullback, .wideReceiver, .tightEnd, .edge, .defensiveTackle,
+            .linebacker, .cornerback, .safety:
+            return .rotates
+        }
+    }
+
     /// Share of snaps for the player at `depth`, where 0 is the starter.
     ///
     /// Zero past the end of the rotation: a fourth tight end does not play on offence,

@@ -50,7 +50,7 @@ struct StalemateResolver: PlayResolver {
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])
@@ -77,7 +77,7 @@ struct GrinderResolver: PlayResolver {
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])
@@ -554,5 +554,28 @@ struct GameSimulatorTests {
             regular.plays.contains { $0.situation.quarter > 5 } == false,
             "the period is never extended: one, and no more")
         #expect(regular.isTie, "level at the end of it, the game is a tie")
+    }
+
+    /// The defence on the field and the defence the call names are the same eleven.
+    ///
+    /// [ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md) holds both calls
+    /// by value in the record precisely so a reader years later can ask what was called;
+    /// a record whose call says nickel while the situation says base cannot answer the
+    /// question at all. The preset calls each carried their own package label and the
+    /// situation carried the substitution the caller actually made, so the two disagreed
+    /// on about half the snaps in a game.
+    @Test(
+        "The package the defence has on the field is the package the call names", .tags(.contract))
+    func theCallAndTheFieldAgreeOnThePackage() {
+        var mismatches = 0
+        var checked = 0
+        for seed in UInt64(1)...40 {
+            for play in TestWorld.game(seed: seed, game: GameID(seed)).plays {
+                checked += 1
+                if play.calls.defense.package != play.situation.defensePackage { mismatches += 1 }
+            }
+        }
+        #expect(checked > 1_000, "only \(checked) snaps to check")
+        #expect(mismatches == 0, "\(mismatches) of \(checked) snaps disagreed about the package")
     }
 }

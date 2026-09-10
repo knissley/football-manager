@@ -103,8 +103,9 @@ was authored. The contract that is supposed not to move would have moved with M6
 So a call now carries what the reference always stood for: `OffensiveCall.concept`, a
 `PlayConcept` in `FMCore`, held by value, and `OffensiveCall.design` is `PlayDesignID?`,
 `nil` until there is a playbook to name a design in. The concept is the coarse vocabulary
-a caller decides on and a resolver acts on — fifteen cases, the kinds of snap the crude
-engine resolves — and it is what a tendency table, a box score and a gameplan rule key
+a caller decides on and a resolver acts on — sixteen cases, the kinds of snap the crude
+engine resolves, the sixteenth being the two-point run that 11-3-1 makes a different play
+from the two-point pass — and it is what a tendency table, a box score and a gameplan rule key
 off; the design is the authored artifact the concept was run from. Both stay on the call
 once designs exist: editing a design changes the playbook, and the record still says what
 kind of play was called. `PlayRecord.schemaVersion`, set to 1, landed alongside so that a

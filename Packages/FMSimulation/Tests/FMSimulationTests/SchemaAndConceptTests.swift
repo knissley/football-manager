@@ -57,7 +57,7 @@ struct SchemaAndConceptTests {
     /// games and 3.2% of those is one intercepted try per sixty-odd games, which is why
     /// twenty games saw none.
     private static func sweepSize(_ concept: PlayConcept) -> Int {
-        concept == .twoPointConversion ? 2_000 : 400
+        concept.kind == .twoPointConversion ? 2_000 : 400
     }
 
     /// The concept↔kind contract, over the resolver's own exits rather than over
@@ -101,7 +101,7 @@ struct SchemaAndConceptTests {
         .tags(.contract))
     func theTwoPointSweepReachesTheInterception() {
         let resolutions = TestWorld.resolved(
-            .twoPointConversion, count: Self.sweepSize(.twoPointConversion))
+            .twoPointPass, count: Self.sweepSize(.twoPointPass))
         let picks = resolutions.filter { $0.outcome.endedIn == .intercepted }
         #expect(
             picks.count >= 20,

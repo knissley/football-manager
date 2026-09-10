@@ -480,11 +480,15 @@ struct PlayRecordTests {
         #expect(PlayConcept.kickoff.kind == .kickoff)
         #expect(PlayConcept.onsideKick.kind == .kickoff)
         #expect(PlayConcept.extraPoint.kind == .extraPoint)
-        #expect(PlayConcept.twoPointConversion.kind == .twoPointConversion)
+        #expect(PlayConcept.twoPointPass.kind == .twoPointConversion)
+        #expect(PlayConcept.twoPointRun.kind == .twoPointConversion)
         #expect(PlayConcept.kneel.kind == .kneel)
         #expect(PlayConcept.spike.kind == .spike)
         #expect(PlayConcept.scrimmage.allSatisfy { $0.isRun || $0.isPass })
-        #expect(PlayConcept.twoPointConversion.isPass)
+        // The two halves of 11-3-1: a conversion is a run or a pass, and the kind cannot
+        // tell them apart because both produce a two-point conversion.
+        #expect(PlayConcept.twoPointPass.isPass && !PlayConcept.twoPointPass.isRun)
+        #expect(PlayConcept.twoPointRun.isRun && !PlayConcept.twoPointRun.isPass)
         #expect(PlayConcept.punt.isRun == false && PlayConcept.punt.isPass == false)
     }
 

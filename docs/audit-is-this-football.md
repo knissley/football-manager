@@ -747,18 +747,21 @@ chase individual rows.
   against a real rate near a third. Anything that reads it as pressure will explain three
   of every four stalled drives the same way.
   ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
-- **Interference is drawn before the throw.** Both kinds are drawn per read in the coverage
-  loop, so in 40 games 4 of 58 defensive interference flags were on sacks and 26 on
-  receivers nobody threw to. Interference requires a pass toward that receiver.
+- **Interference is drawn before the throw** — **fixed.** Both kinds were drawn per read
+  in the coverage loop, so in 40 games 4 of 58 defensive interference flags were on sacks
+  and 26 on receivers nobody threw to. Interference requires a pass toward that receiver
+  (2025 rulebook, 8-5-1), and both kinds are now drawn at the throw on the target's
+  matchup; holding and illegal contact stay in the coverage loop where they belong.
   ([C2 · #38](https://github.com/knissley/football-manager/issues/38))
 - **A blitz rushes four.** Rushers come from `Lineup.front`, which holds four men in
   nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the
   five linemen. A blitz in this engine changes the label and not the count.
   ([C5 · #45](https://github.com/knissley/football-manager/issues/45))
-- **The backup quarterback takes about 4% of dropbacks, at random.** `Lineup.fill` draws
-  every slot per snap against rotation shares, so the quarterback changed 125 times between
-  consecutive dropbacks in 40 games with nobody hurt. Any per-player number off this engine
-  is measured on a team that substitutes mid-drive for no reason.
+- **The backup quarterback takes about 4% of dropbacks, at random** — **fixed.**
+  `Lineup.fill` drew every slot per snap against rotation shares, so the quarterback
+  changed 125 times between consecutive dropbacks in 40 games with nobody hurt. Rotation
+  is now a property of the position: the quarterback, the five line spots and the three
+  specialists are not drawn at all, and the probe counts zero changes with nobody hurt.
   ([C6 · #27](https://github.com/knissley/football-manager/issues/27))
 - **ADR-0013's rating premise was inverted, and is now true.** It assumed `overall(at:)`
   penalised a player for the ratings he lacked; `PositionWeights.overall` dropped the
@@ -820,10 +823,13 @@ argument for watching a game.
   emitted even on a play where a fumble was forced.
   ([#39](https://github.com/knissley/football-manager/issues/39))
 - **C7** — every two-point try is a pass, and the defensive call's package disagrees with
-  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable.
+  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable —
+  **fixed.** The caller chooses run or pass for the try and the package on a call is the
+  substitution the caller made; the probe counts zero mismatches over forty games.
   ([#40](https://github.com/knissley/football-manager/issues/40))
 - **C8** — a tackle ends out of bounds 14% of the time, flat, whatever the play and
-  whatever the clock is doing.
+  whatever the clock is doing — **fixed.** The sideline is drawn against the concept and
+  the clock now, and a breakaway is no longer written out of bounds.
   ([#28](https://github.com/knissley/football-manager/issues/28))
 - **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
   it, `afterThePlay` is called from the run path only, and roughing the kicker on a made
@@ -833,7 +839,9 @@ argument for watching a game.
   description: `isPassingDown` includes second and 8 and third and 4, and the caller never
   runs on them. ([#37](https://github.com/knissley/football-manager/issues/37))
 - **C11** — a punt is always hit at full distance, so from inside the opponent's 45 it is a
-  touchback 78 to 86% of the time and no punter's touch decides anything.
+  touchback 78 to 86% of the time and no punter's touch decides anything — **fixed.** The
+  caller asks for a pooch or the corner from there, the punter's accuracy is the scatter
+  around it, and a touchback is a miss.
   ([#26](https://github.com/knissley/football-manager/issues/26))
 - **C12** — a team up eight kneels once at 1:52 with the defence holding timeouts, then
   runs two ordinary plays and kicks a field goal. Too early to kneel, and a team that has

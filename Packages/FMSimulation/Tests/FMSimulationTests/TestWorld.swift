@@ -82,7 +82,7 @@ enum TestWorld {
             ballOn = rules.extraPointSnapYard
             down = .first
             distance = max(1, rules.extraPointSnapYard)
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             ballOn = rules.twoPointSnapYard
             down = .first
             distance = max(1, rules.twoPointSnapYard)
@@ -94,7 +94,7 @@ enum TestWorld {
         return Situation(
             quarter: 4, clockRemaining: 300, down: down, distance: distance, ballOn: ballOn,
             possession: TeamID(1), offensePersonnel: .eleven,
-            defensePackage: concept == .twoPointConversion || concept == .extraPoint
+            defensePackage: concept.kind == .twoPointConversion || concept == .extraPoint
                 ? .goalLine : .base)
     }
 
@@ -121,7 +121,7 @@ enum TestWorld {
         let situation = situation(for: concept, rules: rules)
         let calls = Calls(
             offense: OffensiveCall(concept: concept),
-            defense: concept == .twoPointConversion ? .goalLineStop : .baseCoverThree,
+            defense: concept.kind == .twoPointConversion ? .goalLineStop : .baseCoverThree,
             offensiveCaller: .coordinator(PersonnelID(1)), defensiveCaller: .automatic)
 
         var random = SplittableRandom(seed: seed)

@@ -616,6 +616,35 @@ print(
         + "   (no target: two a game by rule, 3-41, plus one for each regular-season overtime period that reaches 2:00; a rule, not a rate)"
 )
 
+// Where a play ends laterally, which after the two-minute warning of the first half and
+// inside the last five minutes of the second is a clock decision rather than an accident
+// (2025 rulebook, 4-3-2-a: out of bounds leaves the clock stopped until the snap in those
+// windows and restarts it on the ready signal everywhere else). No target on any of the
+// three: nothing in docs/reference/calibration-sources.md bands where a play ends
+// laterally, and a sourced band would land with E2 (#42).
+print("")
+print("  Ending on the sideline   (no target: unsourced, a band belongs to #42)")
+func sidelineShare(_ plays: [PlayRecord]) -> String {
+    let down = plays.filter {
+        $0.outcome.endedIn == .tackled || $0.outcome.endedIn == .outOfBounds
+    }
+    guard !down.isEmpty else { return "—" }
+    let out = down.filter { $0.outcome.endedIn == .outOfBounds }.count
+    return oneDecimal(Double(out) / Double(down.count) * 100) + "%"
+}
+let sidelineClassified = scrimmage.map {
+    (play: $0, classified: SituationClass($0.situation, rules: rulesInForce))
+}
+let trailingLate = sidelineClassified.filter { $0.classified.isDesperation }.map(\.play)
+let leadingLate = sidelineClassified.filter { $0.classified.isClockBurn }.map(\.play)
+print("    \(pad("all scrimmage plays", 30))\(sidelineShare(scrimmage))")
+print(
+    "    \(pad("trailing inside two minutes", 30))\(sidelineShare(trailingLate))"
+        + "   \(trailingLate.count) plays")
+print(
+    "    \(pad("protecting a lead late", 30))\(sidelineShare(leadingLate))"
+        + "   \(leadingLate.count) plays")
+
 print("")
 print("  Not measured here")
 report("winTotalSigma", nil)
@@ -650,6 +679,7 @@ var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
 
 var twoPointTries = 0
 var twoPointGood = 0
+var twoPointRuns = 0
 var drivePlays: [Int] = []
 var threeAndOuts = 0
 var shortDriveEndings: [String: Int] = [:]
@@ -730,6 +760,9 @@ for result in results {
         case .twoPointConversion:
             twoPointTries += 1
             if outcome.endedIn == .touchdown { twoPointGood += 1 }
+            if play.calls.offense.concept == .twoPointRun {
+                twoPointRuns += 1
+            }
         default:
             break
         }
@@ -980,6 +1013,101 @@ report("twoPointTries", Double(twoPointTries) / teamGames)
 report(
     "twoPointConversion",
     twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
+// How the conversions were attempted. A try may be by pass *or run* (2025 rulebook,
+// 11-3-1) and every one of them used to be a throw. No target: nothing in
+// docs/reference/calibration-sources.md bands the split, and a sourced band belongs to
+// E2 (#42).
+print(
+    "    \(pad("two-point tries run", 30))"
+        + "\(twoPointTries == 0 ? "—" : oneDecimal(Double(twoPointRuns) / Double(twoPointTries) * 100) + "%")"
+        + "   \(twoPointRuns) of \(twoPointTries)   (no target: unsourced, a band belongs to #42)"
+)
+
+// Where punters put the ball, which from plus territory is the whole of a punter's value:
+// a scrimmage kick that reaches the end zone untouched is a touchback (2025 rulebook,
+// 11-6-2-c) and comes out to the 20 (9-5-1 Note a), while one that stops short of it is
+// the receivers' ball where it stopped (9-4-4). No target on any of these rows: nothing in
+// docs/reference/calibration-sources.md bands them, and a sourced band belongs to E2 (#42).
+// Their net is measured with a touchback spotted at the 20, which is *not* how the
+// `netPunt` row above measures it — that one spots it at the goal line, a harness bug
+// recorded in calibration-sources.md — so the two are not comparable by construction.
+print("")
+print("  Punting   (no target: unsourced, a band belongs to #42)")
+let puntPlays = allPlays.filter { $0.outcome.kind == .punt }
+let plusTerritoryPunts = puntPlays.filter { $0.situation.ballOn <= 45 }
+
+/// Where the receiving team took over, as its own yard line, or `nil` when it never did.
+func receiversStart(_ play: PlayRecord) -> Int? {
+    switch play.outcome.endedIn {
+    case .touchback: return 20
+    case .downed, .outOfBounds, .fairCatch, .tackled: return Int(play.outcome.finalSpot ?? 20)
+    default: return nil
+    }
+}
+
+func shareOfTouchbacks(_ plays: [PlayRecord]) -> String {
+    guard !plays.isEmpty else { return "—" }
+    let touchbacks = plays.filter { $0.outcome.endedIn == .touchback }.count
+    return oneDecimal(Double(touchbacks) / Double(plays.count) * 100) + "%"
+}
+
+func averageTakeover(_ plays: [PlayRecord]) -> String {
+    let spots = plays.compactMap(receiversStart)
+    guard !spots.isEmpty else { return "—" }
+    return "own " + oneDecimal(Double(spots.reduce(0, +)) / Double(spots.count))
+}
+
+print(
+    "    \(pad("touchbacks, from inside their 45", 34))\(shareOfTouchbacks(plusTerritoryPunts))"
+        + "   \(plusTerritoryPunts.count) punts")
+print(
+    "    \(pad("drive start after those punts", 34))\(averageTakeover(plusTerritoryPunts))")
+print("    \(pad("touchbacks, all punts", 34))\(shareOfTouchbacks(puntPlays))")
+
+// Net punting by the punter's touch, which is the row that says whether the rating
+// decides anything at all. Tiers are terciles of the punts actually kicked rather than
+// fixed rating bands, so a league whose punters are all alike still splits into three.
+let byTouch: [(play: PlayRecord, touch: Int)] = puntPlays.compactMap { play in
+    guard let kicker = play.outcome.participants.first(where: { $0.role == .kicker }),
+        let touch = players[kicker.player]?.ratings[.puntAccuracy]
+    else { return nil }
+    return (play, Int(touch))
+}
+let touchLadder = byTouch.map(\.touch).sorted()
+if touchLadder.count >= 3 {
+    let lower = touchLadder[touchLadder.count / 3]
+    let upper = touchLadder[touchLadder.count * 2 / 3]
+    func net(_ plays: [PlayRecord]) -> String {
+        let nets = plays.compactMap { play -> Int? in
+            guard let start = receiversStart(play) else { return nil }
+            return Int(play.situation.ballOn) - start
+        }
+        guard !nets.isEmpty else { return "—" }
+        return oneDecimal(Double(nets.reduce(0, +)) / Double(nets.count))
+    }
+    func tier(_ test: (Int) -> Bool, kickedFrom inRange: (UInt8) -> Bool) -> [PlayRecord] {
+        byTouch.filter { test($0.touch) && inRange($0.play.situation.ballOn) }.map(\.play)
+    }
+    // Two ladders, because they answer different questions. Over all punts a punter's
+    // touch is swamped by his leg and by where he is kicking from — most punts are from
+    // a team's own end, where there is nothing to aim at and distance is the whole play.
+    // From inside the opponent's 45 placement *is* the play, and that is where the rating
+    // has to show.
+    let ranges: [(String, (UInt8) -> Bool)] = [
+        ("all punts", { _ in true }), ("from inside their 45", { $0 <= 45 }),
+    ]
+    for (title, inRange) in ranges {
+        print("    net punt by the punter's touch, \(title)   (a touchback spotted at the 20)")
+        let bottom = tier({ $0 < lower }, kickedFrom: inRange)
+        let middle = tier({ $0 >= lower && $0 < upper }, kickedFrom: inRange)
+        let top = tier({ $0 >= upper }, kickedFrom: inRange)
+        print("      \(pad("touch under \(lower)", 32))\(net(bottom))   \(bottom.count) punts")
+        print(
+            "      \(pad("touch \(lower) to \(upper - 1)", 32))\(net(middle))"
+                + "   \(middle.count) punts")
+        print("      \(pad("touch \(upper) and up", 32))\(net(top))   \(top.count) punts")
+    }
+}
 
 print("")
 print("  Kicking")

@@ -59,6 +59,12 @@ extension GameSimulator {
         /// scoring side goes for two. Chosen once, so a flag on the try replays it from
         /// the enforced spot rather than from the standard one.
         var tryGoesForTwo: Bool?
+        /// Whether the conversion is carried rather than thrown (11-3-1 allows either),
+        /// and the grouping sent out to do it. Decided once alongside the spot, for the
+        /// same reason: a try replayed after a flag is the same try, and re-asking on
+        /// every step would let the offence change the play between a flag and its
+        /// replay without anybody deciding to.
+        var tryRuns: Bool?
         /// A defensive foul has moved the try inside the two, which is a decision worth
         /// putting to the caller again: two from the one is a different question.
         var tryNeedsRedecision = false
@@ -293,6 +299,12 @@ extension GameSimulator {
             tryNeedsRedecision = false
             down = .first
             distance = max(1, ballOn)
+        }
+
+        /// How the conversion will be attempted, decided once with the spot.
+        mutating func chooseTryPlay(runs: Bool, personnel: PersonnelGroup) {
+            tryRuns = runs
+            offensePersonnel = personnel
         }
 
         /// The situation as it reads when a flag flies before the snap: the interval
@@ -794,6 +806,7 @@ extension GameSimulator {
             if pendingTry {
                 pendingTry = false
                 tryGoesForTwo = nil
+                tryRuns = nil
                 tryNeedsRedecision = false
                 pendingKickoff = true
                 ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)

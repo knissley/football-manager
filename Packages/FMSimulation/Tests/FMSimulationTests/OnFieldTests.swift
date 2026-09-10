@@ -144,8 +144,15 @@ struct OnFieldTests {
     /// One quarterback takes every snap from scrimmage, and he is the possessing team's:
     /// so the snap counts of a team's quarterbacks sum to its plays from scrimmage, which
     /// is the arithmetic a snap count has to satisfy before it can be believed.
+    ///
+    /// And it is the *starter's* count, not the position's, whenever he came through the
+    /// game fit. The quarterback is not a rotation: he is one man's job until he cannot
+    /// do it, so a backup taking a dropback mid-drive with the starter available is a
+    /// substitution nobody made. That half used to be pinned rather than asserted,
+    /// because every slot including his was redrawn against a snap share on every snap.
     @Test("A team's quarterback snaps sum to its plays from scrimmage", .tags(.contract))
     func quarterbackSnapsSumToScrimmagePlays() {
+        var checkedStarters = 0
         for result in Self.sample {
             let players = TestWorld.world(seed: result.game.rawValue).players
             for (team, roster) in result.rosters.sorted(by: { $0.key < $1.key }) {
@@ -167,41 +174,21 @@ struct OnFieldTests {
                         "play \(play.index): slot 0 is \(String(describing: underCentre)), not a quarterback"
                     )
                 }
-            }
-        }
-    }
 
-    /// Pins the redraw: `Lineup.fill` draws every slot per snap against the rotation
-    /// shares, so the backup takes about one snap in fifty with nobody hurt, and the
-    /// starter's count is *most* of his team's plays rather than all of them. The plan
-    /// for the record says a starting quarterback's snap count equals his team's
-    /// scrimmage plays while he was available; that is the sentence
-    /// [#27](https://github.com/knissley/football-manager/issues/27) makes true, and when
-    /// it lands this pin comes out and the equality goes into the test above.
-    @Test(
-        "pin: the starting quarterback takes most but not all of his team's snaps, because slot 0 is redrawn per snap (#27)",
-        .tags(.pin))
-    func startingQuarterbackTakesMostSnaps() {
-        var starterSnaps = 0
-        var teamSnaps = 0
-        for result in Self.sample {
-            let world = TestWorld.world(seed: result.game.rawValue)
-            for (team, _) in result.rosters.sorted(by: { $0.key < $1.key }) {
-                guard let starter = world.depthChart(of: team).starter(at: .quarterback) else {
-                    continue
-                }
-                let scrimmage = result.plays.filter {
-                    $0.outcome.kind.isScrimmagePlay && $0.situation.possession == team
-                }
-                let counts = scrimmage.snapCounts(rosters: result.rosters)
-                starterSnaps += counts[starter] ?? 0
-                teamSnaps += scrimmage.count
+                // And every one of them is the starter's, in the games he finished.
+                let hurt = Set(result.injuries.map(\.player))
+                guard
+                    let starter = TestWorld.world(seed: result.game.rawValue)
+                        .depthChart(of: team).starter(at: .quarterback),
+                    !hurt.contains(starter)
+                else { continue }
+                checkedStarters += 1
+                #expect(
+                    counts[starter] == scrimmage.count,
+                    "game \(result.game), \(team): the starter took \(counts[starter] ?? 0) of \(scrimmage.count) snaps with nobody hurt"
+                )
             }
         }
-        let share = Double(starterSnaps) / Double(max(1, teamSnaps))
-        #expect(share > 0.9, "the starter took \(starterSnaps) of \(teamSnaps) snaps")
-        #expect(
-            share < 1.0,
-            "the starter took every snap — #27 landed: delete this pin and assert equality above")
+        #expect(checkedStarters > 0, "no game in the sample had a quarterback finish it")
     }
 }

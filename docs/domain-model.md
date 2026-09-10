@@ -289,6 +289,13 @@ player allowed to appear at more than one. `RotationProfile` turns that order in
 shares, `rotation(unavailable:)` drops anyone who cannot play, and
 `unmannedPositions(unavailable:)` names any position nobody is left to play.
 
+`RotationProfile.kind(for:)` says whether a position shares its snaps at all. The
+quarterback, the five line spots and the three specialists are `.starterOnly`: the man
+highest on the chart who is available takes every snap, and no draw is made. Everything
+else `.rotates`, drawn against the curve play by play. Below a starter-only spot the
+share still has to be above zero, because that is what keeps the next man in the rotation
+to come on with.
+
 *Designed, not built:* **keying by package** (base, nickel, dime, goal line, 3-WR,
 heavy) and a **validity checker** — every slot filled by an eligible, healthy, active
 player, as an enforced `FMCore` invariant. `unmannedPositions` answers a narrower

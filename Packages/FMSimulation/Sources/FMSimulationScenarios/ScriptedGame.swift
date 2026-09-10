@@ -60,7 +60,9 @@ public struct Snap: Sendable {
     public var isScrimmage: Bool {
         PlayConcept.scrimmage.contains(concept) || concept == .kneel || concept == .spike
     }
-    public var isTry: Bool { concept == .extraPoint || concept == .twoPointConversion }
+    public var isTry: Bool {
+        concept == .extraPoint || concept == .twoPointPass || concept == .twoPointRun
+    }
     public var isKickoff: Bool { concept == .kickoff || concept == .onsideKick }
 
     /// The seconds the offence takes between the end of one play and the snap of the
@@ -86,7 +88,7 @@ extension Snap {
         case .punt: return .puntTouchback
         case .fieldGoal: return .fieldGoal(good: true)
         case .extraPoint: return .extraPoint(good: true)
-        case .twoPointConversion: return .twoPoint(converted: false)
+        case .twoPointPass, .twoPointRun: return .twoPoint(converted: false)
         case .kneel: return Outcome(kind: .kneel, yards: -1, endedIn: .tackled, clockRunoff: 2)
         case .spike: return .spike
         default:

@@ -81,6 +81,30 @@ struct RotationProfileTests {
         #expect(RotationProfile.snapShare(.runningBack, depth: 1) > 0.25)
     }
 
+    /// Which positions share their snaps at all, which is a different question from how
+    /// they share them. A line spot and a defensive line spot both have a curve; only one
+    /// of them is drawn against play by play.
+    @Test("Only the groups the sport rotates are drawn against a share", .tags(.unit))
+    func rotationKinds() {
+        let starterOnly: [Position] = [
+            .quarterback, .leftTackle, .leftGuard, .center, .rightGuard, .rightTackle,
+            .kicker, .punter, .longSnapper,
+        ]
+        for position in Position.allCases {
+            let expected: RotationProfile.Kind =
+                starterOnly.contains(position) ? .starterOnly : .rotates
+            #expect(
+                RotationProfile.kind(for: position) == expected,
+                "\(position) is drawn the wrong way")
+        }
+
+        // The share behind a starter-only spot is not a share of snaps, but it still has
+        // to be above zero or the man behind him is not in the rotation to come on at all.
+        for position in starterOnly where RotationProfile.shares(for: position).count > 1 {
+            #expect(RotationProfile.snapShare(position, depth: 1) > 0, "\(position) has no backup")
+        }
+    }
+
     /// A fourth tight end does not play on offence, and giving him a share would put
     /// statistics on a player who never took the field.
     @Test("Past the end of the rotation, nobody plays", .tags(.unit))

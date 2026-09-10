@@ -43,11 +43,18 @@ struct CompletionTests {
     }
 
     /// Every pass says how it ended as a pass, and nothing that was not a pass does.
+    ///
+    /// A two-point conversion is a run or a pass at the caller's choice (11-3-1) and both
+    /// are `PlayKind.twoPointConversion`, so the concept on the call is what says which.
+    /// Reading the kind alone made every conversion a throw, which is the rule the engine
+    /// used to have wrong.
     @Test("Every pass attempt carries a pass result and no other play does", .tags(.contract))
     func passResultsAreWherePassesAre() {
         for play in Self.plays {
             let kind = play.outcome.kind
-            let isThrow = kind == .pass || kind == .twoPointConversion || kind == .spike
+            let isThrow =
+                kind == .pass || kind == .spike
+                || (kind == .twoPointConversion && play.calls.offense.concept == .twoPointPass)
             if isThrow {
                 #expect(
                     play.outcome.passResult != nil,

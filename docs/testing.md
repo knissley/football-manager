@@ -87,19 +87,19 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on wave 2's record and ratings tracks, at 852 tests. `./scripts/test-census.sh`
-reprints it; if this table and that output disagree, the output is right and this table is
-stale.
+Taken on the merge of wave 2's record and ratings tracks with wave 3's small track, at
+886 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
+the output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 40 — 11.2% | 31 — 8.7% | 284 — 79.3% | 3 | 358 |
+| FMCore | 40 — 11.1% | 31 — 8.6% | 286 — 79.4% | 3 | 360 |
 | FMGeneration | 1 — 0.5% | 94 — 45.9% | 110 — 53.7% | 0 | 205 |
-| FMSimulation | 91 — 38.1% | 80 — 33.5% | 63 — 26.4% | 5 | 239 |
+| FMSimulation | 105 — 38.7% | 88 — 32.5% | 70 — 25.8% | 8 | 271 |
 | simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **132 — 15.5%** | **222 — 26.1%** | **490 — 57.5%** | **8** | **852** |
+| **all** | **146 — 16.5%** | **230 — 26.0%** | **499 — 56.3%** | **11** | **886** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -112,18 +112,29 @@ The areas are sums over named suites of the census above, so the grouping can be
 against `./scripts/test-census.sh` rather than taken on trust. The rules layer is *Down
 and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
 forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement* and *Tries and
-touchbacks*; the resolver is *Crude resolver* and *Contest curve*.
+touchbacks*; the resolver is *Crude resolver*, *Contest curve*, *Out of bounds* and
+*Punting* — the last two are the resolver's own suites, split out when wave 3 gave it the
+sideline and the aimed punt.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
-| Rules conformance — the scripted games (FMSimulation) | 86 — 97.7% | 0 | 0 | 2 | 88 |
-| The resolver — `CrudeResolver` and the contest curve (FMSimulation) | 0 — 0.0% | 10 | 6 | 0 | 16 |
+| Rules conformance — the scripted games (FMSimulation) | 93 — 97.9% | 0 | 0 | 2 | 95 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds and punting (FMSimulation) | 2 — 8.0% | 11 | 10 | 2 | 25 |
 | Generation (FMGeneration) | 1 — 0.5% | 94 | 110 | 0 | 205 |
 
 Three findings come straight off that table.
 
-**The resolver asserts no football at all.** Its parametric rates — completion
+**The resolver asserts almost no football.** Two of its twenty-five tests do, both added
+by wave 3: where a play ends laterally is a clock decision (4-3-2-a) and a punt from plus
+territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those two asserts only
+what its articles actually say — the *direction* of the sideline lever, and that a placed
+punt leaves the receivers short of the 20 a touchback would give them. The magnitudes
+that shipped inside them (a trailing offence reaching the sideline twice as often as a
+leading one, above a fifth of its tackles; fewer than 15% of plus-territory punts
+reaching the end zone) came from the issues that built those levers rather than from an
+article or a sourced season, so they are pinned beside the football tests instead of
+inside them, and are the two `.pin` in that row. Its parametric rates — completion
 percentage, sack rate, interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
 as a football test for a rate, and it does; but the census cannot see it, because
@@ -145,7 +156,7 @@ the untagged-test problem this issue set out to fix.
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
 FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
-the first census, and 44.2% — 87 of 197 — now. Nearly `0.0%` football is the right answer
+the first census, and 45.9% — 94 of 205 — now. Nearly `0.0%` football is the right answer
 there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be

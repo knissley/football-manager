@@ -164,4 +164,101 @@ struct PersonnelTests {
             againstBase > againstGoalLine,
             "seven in the box: \(againstBase) against the goal line's \(againstGoalLine)")
     }
+
+    // MARK: - Rotation follows the sport
+
+    /// Forty games, the way the probe counts them: every pairing of one world's eight
+    /// clubs, over five seeds.
+    private static func fortyGames() -> [GameResult] {
+        (1...5).flatMap { seed in
+            (0..<8).map { home in
+                TestWorld.game(
+                    seed: UInt64(seed), game: GameID(UInt64(home + 1)), home: home,
+                    away: (home + 1) % 8)
+            }
+        }
+    }
+
+    /// A quarterback leaves the field because he is hurt, and for no other reason.
+    ///
+    /// Drawing every slot against a snap share on every snap made the backup's 2% share a
+    /// 2% chance *per snap*: he took a dropback mid-drive, gave it back on the next one,
+    /// and the starter's day was interrupted more than a hundred times in forty games
+    /// with nothing having happened to him.
+    @Test(
+        "The quarterback does not change between dropbacks unless he was hurt",
+        .tags(.contract))
+    func quarterbackDoesNotRotate() {
+        var changes = 0
+        for result in Self.fortyGames() {
+            let hurt = Set(result.injuries.filter(\.leavesTheGame).map(\.player))
+            var lastTaker: [TeamID: PlayerID] = [:]
+            for play in result.plays {
+                let kind = play.outcome.kind
+                guard kind.isDropback || kind == .kneel || kind == .spike else { continue }
+                guard
+                    let taker = play.outcome.participants.first(where: {
+                        $0.slot == SlotLayout.quarterback
+                    })
+                else { continue }
+                let team = play.situation.possession
+                defer { lastTaker[team] = taker.player }
+                guard let previous = lastTaker[team], previous != taker.player else { continue }
+                guard !hurt.contains(previous), !hurt.contains(taker.player) else { continue }
+                changes += 1
+            }
+        }
+        #expect(changes == 0, "\(changes) quarterback changes with nobody hurt")
+    }
+
+    /// Lineups drawn from one club's chart, with whoever is named unavailable removed.
+    private func lineups(
+        _ count: Int, group: PersonnelGroup = .eleven, package: DefensivePackage = .nickel,
+        unavailable: Set<PlayerID> = [], seed: UInt64 = 5
+    ) -> [Lineup] {
+        let (_, chart, players) = TestWorld.team(seed: 12)
+        let rotation = chart.rotation(unavailable: unavailable)
+        let context = PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: players,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: .standard)
+        let situation = Situation(
+            quarter: 1, clockRemaining: 800, down: .first, distance: 10, ballOn: 65,
+            possession: TeamID(1), offensePersonnel: group, defensePackage: package)
+        var random = SplittableRandom(seed: seed)
+        return (0..<count).map { _ in
+            Lineup.onField(context, concept: .insideRun, situation: situation, random: &random)
+        }
+    }
+
+    /// The five line spots, the quarterback and the specialists are one man's job until he
+    /// cannot do it. The groups the sport rotates go on rotating.
+    @Test("A starter-only position plays its starter, and next man up when he is out", .tags(.unit))
+    func starterOnlyPositionsDoNotRotate() {
+        let (_, chart, _) = TestWorld.team(seed: 12)
+        let leftTackle = chart.starter(at: .leftTackle)
+        let quarterback = chart.starter(at: .quarterback)
+        let drawn = lineups(400)
+
+        #expect(
+            drawn.allSatisfy { $0[PlayerSlot(6)] == leftTackle },
+            "the left tackle came off the field")
+        #expect(
+            drawn.allSatisfy { $0[SlotLayout.quarterback] == quarterback },
+            "the quarterback came off the field")
+
+        // Next man up, and nobody else: the share behind a starter-only spot says who
+        // inherits it, not how often he plays.
+        let backup = chart[.leftTackle].dropFirst().first
+        let depleted = lineups(200, unavailable: Set([leftTackle].compactMap { $0 }))
+        #expect(
+            depleted.allSatisfy { $0[PlayerSlot(6)] == backup },
+            "the backup left tackle did not inherit every snap")
+
+        // And the groups that do rotate still do, which is the other half of the claim.
+        #expect(Set(drawn.compactMap { $0[PlayerSlot(11)] }).count > 1, "the edge stopped rotating")
+        #expect(Set(drawn.compactMap { $0[PlayerSlot(1)] }).count > 1, "the backs stopped rotating")
+    }
 }

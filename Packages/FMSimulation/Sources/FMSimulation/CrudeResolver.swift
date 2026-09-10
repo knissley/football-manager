@@ -51,8 +51,10 @@ public struct CrudeResolver: PlayResolver {
             return punt(situation, context, personnel, &random)
         case .fieldGoal, .extraPoint:
             return kick(concept, situation, context, personnel, &random)
-        case .twoPointConversion:
+        case .twoPointPass:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
+        case .twoPointRun:
+            return run(.insideRun, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
             return kickoff(situation, context, personnel, &random)
         case .onsideKick:
@@ -349,10 +351,11 @@ public struct CrudeResolver: PlayResolver {
                     secondary: receiver, detail: UInt8(index + 1), value: Int16(separation)))
             reads.append((receiver, defender, separation))
 
+            // Only the fouls whose restrictions start at the snap. Interference needs a
+            // forward pass to exist at all (8-5-1), so it waits for the throw.
             if penalty == nil {
                 penalty = Penalties.whenBeatenInCoverage(
                     defender: defender, receiver: receiver, separationCentimetres: separation,
-                    routeDepth: depth.yards, lineOfScrimmage: situation.ballOn,
                     personnel: personnel, context: context, random: &random)
             }
         }
@@ -389,6 +392,9 @@ public struct CrudeResolver: PlayResolver {
                 let scramble = tackleSequence(
                     carrier: SlotLayout.quarterback, pursuit: SlotLayout.scramblePursuit,
                     personnel: personnel, context: context,
+                    // A quarterback who took off runs the same way an outside run does:
+                    // towards the boundary, where the play ends with him upright.
+                    sideline: sidelineChance(.outsideRun, situation, context),
                     decisions: &decisions, participants: &participants, startTick: 30,
                     random: &random)
                 var gained = Int16(
@@ -501,6 +507,18 @@ public struct CrudeResolver: PlayResolver {
                 primary: target.receiver, secondary: target.defender,
                 detail: placement.rawValue, value: Int16(target.separation)))
 
+        // The ball is in the air, so interference exists now and did not before (8-5-1),
+        // and it exists on exactly one matchup: the man the pass was thrown to and the
+        // man covering him. The defence's is a spot foul (8-6-1-b) and the spot is where
+        // the ball was going, in the offence's frame with zero meaning the end zone.
+        if penalty == nil {
+            penalty = Penalties.onTheThrow(
+                defender: target.defender, receiver: target.receiver,
+                separationCentimetres: target.separation, routeDepth: depth.yards,
+                catchPoint: Int(situation.ballOn) - depth.yards,
+                personnel: personnel, context: context, random: &random)
+        }
+
         let catchResult = catchOutcome(
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
@@ -540,7 +558,10 @@ public struct CrudeResolver: PlayResolver {
         case .caught, .contestedCatch:
             let afterCatch = yardsAfterCatch(
                 carrier: target.receiver, coveredBy: target.defender, personnel: personnel,
-                context: context, separation: target.separation, decisions: &decisions,
+                context: context, separation: target.separation,
+                sideline: sidelineChance(
+                    isTry ? .twoPointPass : concept, situation, context),
+                decisions: &decisions,
                 participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
@@ -589,7 +610,8 @@ public struct CrudeResolver: PlayResolver {
         _ calls: Calls,
         _ context: PlayContext,
         _ personnel: Lineup,
-        _ random: inout SplittableRandom
+        _ random: inout SplittableRandom,
+        isTry: Bool = false
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var decisions: [DecisionPoint] = []
         var participants: [Participation] = []
@@ -667,7 +689,14 @@ public struct CrudeResolver: PlayResolver {
         // actually comes from.
         var yards = Int(Double(quality) * 0.075 + (vision - 60) * 0.04 + 1.3)
         yards += Int(random.next(upperBound: 5)) - 2
-        if quality > 30 {
+        // A carry from the two is a play into a phone booth: there is no second level to
+        // reach and no grass behind the defence, so the crease pays nothing. That is the
+        // run's half of the adjustment the conversion pass carries, and it is the whole
+        // of it — the goal-line package the try is now answered with already puts eight
+        // men in the box against six or seven blockers, and subtracting yards on top of
+        // that counted the same crowd twice: it converted the try at 10% against the
+        // pass's 72% on the same eighty games.
+        if quality > 30, !isTry {
             // A hole that opens gets him to the second level. It does not by itself make
             // a long run — what does is beating the man waiting there, which the tackle
             // sequence below already decides. Paying the whole bonus here put 19% of
@@ -686,6 +715,7 @@ public struct CrudeResolver: PlayResolver {
                 ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
             personnel: personnel,
             context: context,
+            sideline: sidelineChance(isTry ? .twoPointRun : concept, situation, context),
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
@@ -694,8 +724,13 @@ public struct CrudeResolver: PlayResolver {
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
         // The ball on the ground, before the play is allowed to have been a gain.
+        // A try is left alone, exactly as the conversion pass is. 11-3-2-b and 11-3-2-c
+        // give the defence its own ways to score on a try, and none of them is enforced
+        // yet, so a try that put the ball on the ground here could only be resolved as a
+        // failed try — which is a wrong outcome dressed as a right one. It does not
+        // fumble at all until the defence's half of the try exists.
         var fumble: LooseBall?
-        if !reachesEndZone && !intoOwnEndZone {
+        if !reachesEndZone && !intoOwnEndZone && !isTry {
             fumble = looseBall(
                 carrier: SlotLayout.back,
                 tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
@@ -709,7 +744,9 @@ public struct CrudeResolver: PlayResolver {
 
         if penalty == nil {
             penalty = Penalties.afterThePlay(
-                Outcome(kind: .rush, yards: gained, endedIn: tackle.ending),
+                Outcome(
+                    kind: isTry ? .twoPointConversion : .rush, yards: gained,
+                    endedIn: tackle.ending),
                 personnel: personnel, context: context, random: &random)
         }
 
@@ -733,7 +770,7 @@ public struct CrudeResolver: PlayResolver {
 
         return (
             Outcome(
-                kind: .rush,
+                kind: isTry ? .twoPointConversion : .rush,
                 yards: reachesEndZone ? Int16(situation.ballOn) : gained,
                 endedIn: fumble?.ending
                     ?? (reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending)),
@@ -886,10 +923,6 @@ public struct CrudeResolver: PlayResolver {
         _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let power =
-            42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60) * 0.25
-        let distance = Int(power) + Int(random.next(upperBound: 14)) - 7
-        let landing = Int(situation.ballOn) - distance
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
         var decisions: [DecisionPoint] = []
 
@@ -905,6 +938,37 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
+        // Accuracy is what turns distance into field position: the punter who can place
+        // it inside the ten is worth more than the one who simply hits it a long way.
+        let placement = rating(.puntAccuracy, SlotLayout.specialist, personnel, context)
+        // How far he can hit it at all. This bounds the intent rather than being it: a
+        // weak leg from his own end nets short whatever anybody asked for.
+        let reach =
+            42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60)
+            * 0.25
+        let plan = PuntPlan.chosen(from: situation.ballOn, touch: placement)
+        let landing: Int
+        if let band = plan.aimedAt {
+            let target = band.lowerBound + Int(random.next(upperBound: UInt64(band.count)))
+            // The scatter around the target is his touch, and it is not symmetric: the
+            // long half of it grows with his leg. That is why a strong leg with poor
+            // hands is the man who overkicks a pooch into the end zone and a modest leg
+            // with good hands is the one who drops it on the 8.
+            let short = max(2, Int(14 - (placement - 40) * 0.20))
+            let long = max(1, short + Int((reach - 68) * 0.12))
+            let miss = Int(random.next(upperBound: UInt64(short + long + 1))) - long
+            // Aiming does not lengthen a leg: he still cannot place it beyond what he can
+            // hit, which is what makes a pooch from midfield a different play from a
+            // pooch from the opponent's 40.
+            landing = max(target + miss, Int(situation.ballOn) - Int(reach) - 7)
+        } else {
+            let struck = Int(reach) + Int(random.next(upperBound: 14)) - 7
+            landing = Int(situation.ballOn) - struck
+        }
+
+        // A touchback is now a *miss*: the scatter carried the ball into the end zone
+        // (11-6-2-c) and the receivers snap at their 20 (9-5-1 Note a). It used to be
+        // what happened whenever the punter was asked to kick from plus territory.
         if landing <= 0 {
             return (
                 Outcome(
@@ -914,9 +978,6 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
-        // Accuracy is what turns distance into field position: the punter who can place
-        // it inside the ten is worth more than the one who simply hits it a long way.
-        let placement = rating(.puntAccuracy, SlotLayout.specialist, personnel, context)
         let pinned = landing <= 12
 
         // What the man back there does with it. Close to his own goal he lets it go and
@@ -1067,6 +1128,57 @@ public struct CrudeResolver: PlayResolver {
 
     // MARK: - Shared pieces
 
+    /// How hard the man with the ball works to reach the sideline, as a probability the
+    /// play ends there rather than in the field.
+    ///
+    /// Two things decide it, and neither of them used to: the concept, and the clock.
+    ///
+    /// The concept, because a run outside the tackles is already headed for the boundary
+    /// and one between them is twenty-odd yards from it, and because a go route runs the
+    /// sideline while a crossing route runs away from it.
+    ///
+    /// The clock, because of 4-3-2-a: a runner who goes out of bounds normally leaves the
+    /// clock to restart on the ready-for-play signal, but after the two-minute warning of
+    /// the first half and inside the last five minutes of the second it does not start
+    /// again until the snap. That is the whole reason the sideline is worth reaching, and
+    /// the same rule read from the other bench is why an offence protecting a lead stays
+    /// in. Without it a two-minute drill had no way to stop the clock and a clock-burning
+    /// offence had no way to keep it running.
+    ///
+    /// The per-concept numbers are a modelling convention, not a sourced rate: nothing in
+    /// `docs/reference/calibration-sources.md` bands where a play ends laterally.
+    private func sidelineChance(
+        _ concept: PlayConcept, _ situation: Situation, _ context: PlayContext
+    ) -> Double {
+        var chance: Double
+        switch concept {
+        case .outsideRun: chance = 0.26
+        case .insideRun: chance = 0.05
+        case .screen: chance = 0.20
+        case .quickPass: chance = 0.15
+        case .mediumPass: chance = 0.12
+        // The one dropback whose route tree runs away from the boundary: play-action sells
+        // the run and then throws the crosser and the deep over behind it.
+        case .playAction: chance = 0.07
+        case .deepPass: chance = 0.20
+        // From the two there is no field to run to, and the try is untimed anyway
+        // (4-3-2-h), so nobody is chasing the clock.
+        case .twoPointPass, .twoPointRun, .extraPoint: chance = 0.02
+        default: chance = 0.12
+        }
+
+        let classified = SituationClass(situation, rules: context.rules)
+        if classified.isDesperation {
+            // Trailing inside two minutes: he is coached to get out, and takes the
+            // sideline over the extra yard.
+            chance += 0.22
+        } else if classified.isClockBurn {
+            // Leading and late: he stays in, and takes the tackle over the sideline.
+            chance *= 0.35
+        }
+        return min(0.75, max(0.01, chance))
+    }
+
     private struct RouteDepth {
         var yards: Int
         let timeMillis: Int
@@ -1147,7 +1259,7 @@ public struct CrudeResolver: PlayResolver {
 
     private func yardsAfterCatch(
         carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Lineup, context: PlayContext,
-        separation: Int,
+        separation: Int, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (yards: Int, ending: PlayEnding) {
@@ -1173,7 +1285,7 @@ public struct CrudeResolver: PlayResolver {
         let pursuit = [(coveredBy, 5.0)] + SlotLayout.catchPursuit.filter { $0.0 != coveredBy }
         let tackle = tackleSequence(
             carrier: carrier, pursuit: pursuit, personnel: personnel, context: context,
-            decisions: &decisions,
+            sideline: sideline, decisions: &decisions,
             participants: &participants, startTick: startTick, random: &random)
         // A receiver who caught it in stride is already past somebody. Separation earned
         // before the catch is worth yards after it.
@@ -1191,9 +1303,14 @@ public struct CrudeResolver: PlayResolver {
     ///
     /// The tackler credited here is the one the outcome names. Nothing else can be, and
     /// that is asserted rather than assumed.
+    ///
+    /// `sideline` is the chance the play ends out of bounds rather than in the field —
+    /// see `sidelineChance`. It is drawn on every ending this function produces, the
+    /// broken-everybody one included: a breakaway that always ended out of bounds was a
+    /// fact about the code.
     private func tackleSequence(
         carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Lineup,
-        context: PlayContext,
+        context: PlayContext, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (extraYards: Int, ending: PlayEnding) {
@@ -1229,7 +1346,7 @@ public struct CrudeResolver: PlayResolver {
             credit(defender, broken ? .other : .tackler, personnel, into: &participants)
 
             if !broken {
-                return (extra, random.nextBool(probability: 0.14) ? .outOfBounds : .tackled)
+                return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
             }
             extra += 2 + Int(random.next(upperBound: 5))
             broke += 1
@@ -1247,6 +1364,9 @@ public struct CrudeResolver: PlayResolver {
             extra += max(4, burst)
         }
 
-        return (extra, .outOfBounds)
+        // He beat everybody and is eventually run down. Where that happens is drawn like
+        // any other tackle: writing `.outOfBounds` here made every breakaway a sideline
+        // play by construction, which is a fact about the code rather than about the run.
+        return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
     }
 }

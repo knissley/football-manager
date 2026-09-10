@@ -264,6 +264,37 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             state.defensePackage = caller.package(
                 for: showing, classified: SituationClass(showing), random: &random)
             declared = call
+        } else if state.pendingTry, state.tryGoesForTwo == true, state.tryRuns == nil {
+            // A conversion is a scrimmage down, so it is substituted for like one: the
+            // offence sends out a grouping from the two and then decides whether to throw
+            // it or hand it off (11-3-1 allows either), and the defence answers with its
+            // goal-line eleven. Decided once, with the spot, for the reason A7 made the
+            // spot a single decision: a try replayed after a flag is the same try.
+            let before = state.situation()
+            let personnel = caller.personnel(
+                for: .insideRun, situation: before, classified: SituationClass(before),
+                random: &random)
+            var showing = before
+            showing.offensePersonnel = personnel
+            state.chooseTryPlay(
+                runs: caller.runsTheTwoPointTry(
+                    situation: showing, classified: SituationClass(showing), random: &random),
+                personnel: personnel)
+        }
+
+        // The package a defence has on the field is the package its call names. They are
+        // the same eleven, and ADR-0010 makes their agreement a testable property of the
+        // record — it holds both by value so a reader years later can ask what was
+        // called. Of the two ways to make them agree, the substitution wins over the
+        // preset's label: `caller.package(for:)` is a decision made after seeing the
+        // offence's personnel, while the package on a named call is a default carried
+        // along by a convenience layer over the composition. Filtering the preset list by
+        // package would also collapse the menu — `goalLineStop` is the only goal-line
+        // call there is, so every goal-line snap would be the same call.
+        if state.pendingKickoff {
+            state.defensePackage = DefensiveCall.preventShell.package
+        } else if state.pendingTry {
+            state.defensePackage = DefensiveCall.goalLineStop.package
         }
 
         let situation = state.situation()
@@ -278,12 +309,15 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
         } else if state.pendingTry {
-            calls = tryCalls(goesForTwo: state.tryGoesForTwo ?? false)
+            calls = tryCalls(
+                goesForTwo: state.tryGoesForTwo ?? false, runs: state.tryRuns ?? false)
         } else {
+            var defense = caller.defensiveCall(
+                for: situation, classified: classified, context: context, random: &random)
+            defense.package = state.defensePackage
             calls = Calls(
                 offense: declared ?? OffensiveCall(concept: .insideRun),
-                defense: caller.defensiveCall(
-                    for: situation, classified: classified, context: context, random: &random),
+                defense: defense,
                 offensiveCaller: .coordinator(PersonnelID(1)),
                 defensiveCaller: .coordinator(PersonnelID(2)))
         }
@@ -371,10 +405,13 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     ///
     /// The call is built from the decision the state already holds, which is the one
     /// the spot was chosen for; asking the caller a second time here could disagree
-    /// with where the ball is.
-    private func tryCalls(goesForTwo: Bool) -> Calls {
-        Calls(
-            offense: OffensiveCall(concept: goesForTwo ? .twoPointConversion : .extraPoint),
+    /// with where the ball is. Whether the conversion is thrown or carried is the
+    /// caller's second decision (11-3-1), and the concept carries it so the record says
+    /// which play was called rather than leaving it to be inferred from who was credited.
+    private func tryCalls(goesForTwo: Bool, runs: Bool) -> Calls {
+        let concept: PlayConcept = goesForTwo ? (runs ? .twoPointRun : .twoPointPass) : .extraPoint
+        return Calls(
+            offense: OffensiveCall(concept: concept),
             defense: .goalLineStop,
             offensiveCaller: goesForTwo ? .coordinator(PersonnelID(1)) : .automatic,
             defensiveCaller: .automatic)
