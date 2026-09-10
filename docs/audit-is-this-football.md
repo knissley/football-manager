@@ -817,9 +817,13 @@ argument for watching a game.
 - **D2** — the kickoff is a touchback coin flip that ignores where the kick is taken from,
   so a penalty on the kicking team changes nothing about the kick.
   ([#46](https://github.com/knissley/football-manager/issues/46))
-- **F2** — `PlayContext.effective` substitutes `player.overall` for any rating the player
-  lacks, so a running back's route running is his overall.
-  ([#34](https://github.com/knissley/football-manager/issues/34))
+- **F2** — `PlayContext.effective` substituted `player.overall` for any rating the player
+  lacked, so a running back's route running was his overall. **Fixed** by
+  [#34](https://github.com/knissley/football-manager/issues/34): both fallbacks are gone,
+  a missing key is a debug assertion naming the player and the key and the untrained
+  floor in release, and the unknown-player fallback stays as the separate case it is.
+  Once F1 had given every player every key there was nothing left to fall back from, so
+  the harness after this change is byte-identical to the harness after F1.
 
 ### Still deferred, deliberately
 

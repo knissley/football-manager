@@ -1168,10 +1168,7 @@ public struct CrudeResolver: PlayResolver {
             guard let index = random.weightedIndex(remaining.map(\.1)) else { break }
             let defender = remaining.remove(at: index).0
             guard let id = personnel[defender] else { continue }
-            let tackling =
-                context.player(id).map {
-                    Double($0.ratings[.tackling] ?? $0.overall)
-                } ?? 60
+            let tackling = context.player(id).map { context.rating(.tackling, of: $0) } ?? 60
 
             // A flat base with a rating swing on top, rather than a contest: a contest
             // at parity breaks four tackles in ten, which turned every carry into seven
