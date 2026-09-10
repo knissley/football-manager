@@ -173,9 +173,38 @@ struct GoldenSeedTests {
             // mixed in. Neither side's constants could survive it, for the same reason as
             // before — each was computed without the other's mechanism — so all three are
             // regenerated here from the merged tree.
-            (UInt64(1), UInt64(5_095_708_524_204_018_338)),
-            (UInt64(5), UInt64(12_636_836_632_572_896_539)),
-            (UInt64(12), UInt64(7_002_894_031_168_806_763)),
+            //
+            // And moved by the baseline caller, deliberately. Down and distance now
+            // buckets at three and six on every down, fourth included; a passing down is
+            // third or fourth and seven or more and nothing else; and the caller reads
+            // all of it as a lean rather than an instruction, so it runs a small share of
+            // third and longs instead of none. It also goes for it on fourth and goal
+            // from inside the three, kneels out the first half when a snap can only cost
+            // it, and stops spending defensive timeouts three scores down. Every one of
+            // those changes what is called on some snap, and a different call is a
+            // different game from there on.
+            //
+            // And moved again by the kneel-down, at seed 12 alone: the caller now counts
+            // the play clocks it can actually spend and the ones a defensive timeout
+            // takes back, so a lead that can be knelt out is knelt out to the end of the
+            // game instead of two knees and then an ordinary play.
+            //
+            // The caller's changes and the record's met in a merge, and all three
+            // constants below are the union: the caller's games, hashed with the
+            // record's dead-ball decision points mixed in. Neither side's constants
+            // could survive, because each was computed without the other's mechanism.
+            //
+            // And the caller and the clock then met in this merge. The constants below
+            // are regenerated from the merged tree, which has both: the caller decides
+            // what is snapped, the clock decides how much of a period each snap leaves,
+            // and each reaches the other — a knee that ends a half depends on how much
+            // clock a flag or a runoff left, and what is called after the two-minute
+            // warning depends on which side has the ball there. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism.
+            (UInt64(1), UInt64(2_971_130_586_435_342_245)),
+            (UInt64(5), UInt64(13_648_739_027_376_666_008)),
+            (UInt64(12), UInt64(18_092_658_582_545_090_295)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
