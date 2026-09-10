@@ -1,9 +1,10 @@
 # Audit: is this football?
 
 **Status: built** — this is a record of an audit of code that exists, not a design doc.
-Every finding and every number in it is measured. S1 through S8 are fixed; S9 through S15
-are open and are why the rules layer does not yet finish a game correctly. The backlog
-tracker (#1) is the live state of each; the table at the end is a snapshot.
+Every finding and every number in it is measured. S1 through S8 are fixed, and so are
+S9 through S13 and S15 as of wave 1 of the backlog; S14, the completion-percentage row,
+is the one still open. The backlog tracker (#1) is the live state of each; the table at
+the end is a snapshot.
 
 A deliberate pass over the engine asking one question — *does this behave like the sport?*
 — rather than *do the units work?* Separate from the end-of-M1 systems inventory, which
@@ -607,9 +608,10 @@ extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
 ## Where this leaves the engine
 
-**Fifteen findings: eight fixed, seven open.** S1 through S8 are the original pass and are
-fixed. S9 through S15 were added by the September 2026 external audit, are open, and are
-why the rules layer does not yet finish a game correctly. The backlog in
+**Fifteen findings: fourteen fixed, one open.** S1 through S8 are the original pass and
+are fixed. S9 through S15 were added by the September 2026 external audit; the seven
+rules-layer findings among them were fixed by wave 1 of the backlog, and S14 — the
+harness row, not the engine — is the one still open. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot.
 
