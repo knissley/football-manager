@@ -313,7 +313,11 @@ public struct WorldChecksum: Sendable, Hashable {
         // stopped being drawn at all. It is mixed here for the same reason the depth
         // chart is: a stage the checksum does not read is a stage the golden cannot
         // speak for.
-        mix(player.firstSeason)
+        // Whether he has arrived at all and, if he has, when. The flag is mixed on its own
+        // account so that a man with no first season is not the same world as one who
+        // arrived in season zero.
+        mix(player.firstSeason != nil)
+        mix(player.firstSeason ?? 0)
         mix(player.draft?.season ?? 0)
         mix(player.draft?.round ?? 0)
         mix(player.draft?.pick ?? 0)

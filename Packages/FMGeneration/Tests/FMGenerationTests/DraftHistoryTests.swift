@@ -53,10 +53,16 @@ struct DraftHistoryTests {
             let undrafted = everyone(seed: seed).filter { $0.draft == nil }
             #expect(!undrafted.isEmpty, "seed \(seed) had nobody undrafted")
             for player in undrafted {
-                #expect(player.firstSeason <= season, "\(player.name.full) arrives in the future")
+                // A man on a roster has arrived, whoever did or did not draft him. Only a
+                // prospect carries no first season, and no prospect is on a roster.
+                guard let arrived = player.firstSeason else {
+                    Issue.record("\(player.name.full) is on a roster without having arrived")
+                    continue
+                }
+                #expect(arrived <= season, "\(player.name.full) arrives in the future")
                 #expect(
-                    player.firstSeason >= player.birthSeason + 20,
-                    "\(player.name.full) arrived at \(player.firstSeason - player.birthSeason)")
+                    arrived >= player.birthSeason + 20,
+                    "\(player.name.full) arrived at \(arrived - player.birthSeason)")
             }
         }
     }

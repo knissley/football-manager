@@ -65,6 +65,29 @@ struct RosterAgeTests {
             "seed \(seed) has a hole at the floor: \(atFloor) at 21 against \(above) at 22")
     }
 
+    /// Two numbers that must be the same number. The age draw's floor is not a bound of its
+    /// own: it is the youngest age anybody enters the league at, because a league cannot
+    /// hold a man younger than that. Moving one without the other puts men in the league who
+    /// arrived before they could have, or leaves a hole at the bottom of the histogram.
+    @Test(
+        "contract: the youngest a generated player can be is the youngest age anybody enters at",
+        .tags(.contract))
+    func theFloorIsTheEntryAge() {
+        #expect(RosterGenerator.youngestAge == DraftHistory.youngestEntryAge)
+
+        var random = SplittableRandom(seed: 9)
+        for _ in 0..<5_000 {
+            #expect(DraftHistory.entryAge(using: &random) >= DraftHistory.youngestEntryAge)
+        }
+
+        for seed in seeds {
+            let young = everyone(seed: seed).filter {
+                $0.age(in: season) < DraftHistory.youngestEntryAge
+            }
+            #expect(young.isEmpty, "seed \(seed) has \(young.count) men under the entry age")
+        }
+    }
+
     /// The same claim about the draw itself rather than about a league built from it, at the
     /// youngest slot any roster has: the third cornerback, whose group peaks at
     /// twenty-six and who is drawn four years under it.

@@ -161,11 +161,22 @@ struct PenaltyTests {
     /// Noise raises the visiting offence's pre-snap fouls, drives stall, and the
     /// advantage *emerges* — rather than a bonus applied after the fact, which the
     /// engine's honesty pillar would have to swallow.
+    ///
+    /// **Sixty games a side, not twelve.** Twelve games hold about twenty road pre-snap
+    /// fouls, and the lift being measured is a fifth of that — so the comparison was
+    /// reading the sample rather than the mechanism, and it passed on the size of a
+    /// rounding error. [#67](https://github.com/knissley/football-manager/issues/67) moved
+    /// the generated world (older rosters, ratings with them) and the twelve-game counts
+    /// came out 19 quiet against 18 loud while the same games at sixty seeds gave 106
+    /// against 126. On the tree before that change the two samples were 30 against 36 and
+    /// 117 against 151: the mechanism is the same size on both, and only the small sample
+    /// disagrees with it. Paired — the same seeds, the same games, one thing different — so
+    /// what is left after the pairing is the noise and nothing else.
     @Test("A loud stadium raises the road team's procedural fouls", .tags(.unit))
     func crowdNoiseIsTheMechanism() {
         func roadPreSnapFouls(noise: UInt8) -> Int {
             var count = 0
-            for seed in UInt64(1)...12 {
+            for seed in UInt64(1)...60 {
                 let result = game(seed: seed, noise: noise)
                 for play in result.plays {
                     for flag in play.outcome.penalties

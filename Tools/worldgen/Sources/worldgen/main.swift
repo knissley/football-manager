@@ -128,7 +128,12 @@ func fortyString(_ hundredths: UInt16) -> String {
 /// Where a player came from, the way a roster page writes it: round, pick and the season
 /// he was drafted, or the season an undrafted player signed.
 func draftString(_ player: Player) -> String {
-    guard let draft = player.draft else { return "UDFA \(player.firstSeason)" }
+    guard let draft = player.draft else {
+        // A man with no first season has not arrived: a prospect, printed by `--show class`
+        // rather than by a roster.
+        guard let arrived = player.firstSeason else { return "college" }
+        return "UDFA \(arrived)"
+    }
     return "R\(draft.round)-\(draft.pick) \(draft.season)"
 }
 
@@ -273,7 +278,9 @@ case "roster":
     print("  mean overall \(oneDecimal(mean(roster.map { Int($0.overall) })))")
     // The target for the first is about three quarters of the league, league-wide rather
     // than team by team, so a good roster is meant to read above it and a poor one below.
-    // The second has no target beyond being a minority: see DraftHistory.
+    // The second is league-wide too, and sourced: about a sixth of a roster, 0.145 to
+    // 0.171, from three seasons of week-1 rosters — eight or nine of fifty-three, with
+    // clubs either side of it (docs/reference/calibration-sources.md).
     print("  drafted \(roster.filter { $0.draft != nil }.count) of \(roster.count)")
     print("  in their first season \(roster.filter { $0.isRookie(in: season) }.count)")
 

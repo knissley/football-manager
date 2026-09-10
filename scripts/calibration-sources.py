@@ -12,10 +12,14 @@ Usage:
 
     scripts/calibration-sources.py <dir with play_by_play_<season>.csv.gz and
                                     pbp_participation_<season>.csv>
+    scripts/calibration-sources.py --rosters <dir with roster_weekly_<season>.csv>
 
 Input files are the release assets `pbp/play_by_play_<season>.csv.gz` and
 `pbp_participation/pbp_participation_<season>.csv` of the nflverse-data project. They are
-not checked in (about 20 MB per season compressed).
+not checked in (about 20 MB per season compressed). `--rosters` reads
+`weekly_rosters/roster_weekly_<season>.csv` from the same project and derives what a roster
+is made of rather than what a game does — a band the harness cannot measure, and so one that
+lives in a test rather than in `Targets.swift`.
 
 Band policy, in one place:
 
@@ -564,7 +568,66 @@ def round_out(low, high, decimals):
     return math.floor(low * scale) / scale, math.ceil(high * scale) / scale
 
 
+ROSTER_SEASONS = [2023, 2024, 2025]
+# A club's opening roster: week 1 of the regular season, the active list plus that week's
+# inactives — the fifty-three it carries — and never the practice squad, which is DEV.
+ROSTER_STATUS = {"ACT", "INA"}
+
+
+def week_one_roster(directory, season):
+    """Every man on an opening roster in a season, from the weekly roster release."""
+    path = os.path.join(directory, f"roster_weekly_{season}.csv")
+    with open(path, newline="") as handle:
+        return [
+            row
+            for row in csv.DictReader(handle)
+            if row["game_type"] == "REG"
+            and row["week"] == "1"
+            and row["status"] in ROSTER_STATUS
+        ]
+
+
+def roster_age(row, season):
+    """Age on 1 September of the season, the way a week-1 roster page prints it."""
+    birth = row.get("birth_date") or ""
+    if len(birth) < 10:
+        return None
+    year, month, day = int(birth[0:4]), int(birth[5:7]), int(birth[8:10])
+    return season - year - (1 if (month, day) > (9, 1) else 0)
+
+
+def rosters(directory):
+    """The world's own bands: what a roster is made of, rather than what a game does.
+
+    Nothing here is a row in `Targets.swift` — the harness plays games and never looks at
+    a roster's shape — so the band this prints lives in the test that measures it. See
+    docs/reference/calibration-sources.md, "Bands the harness cannot measure".
+    """
+    shares = []
+    print("season\tmen\tfirst-season\tshare\tmean age\tage sd")
+    for season in ROSTER_SEASONS:
+        men = week_one_roster(directory, season)
+        rookies = sum(1 for row in men if row["years_exp"] == "0")
+        share = rookies / len(men)
+        shares.append(share)
+        ages = [age for age in (roster_age(row, season) for row in men) if age is not None]
+        print(
+            f"{season}\t{len(men)}\t{rookies}\t{share:.4f}"
+            f"\t{statistics.mean(ages):.2f}\t{statistics.pstdev(ages):.2f}"
+        )
+
+    # The band policy, with the 5%-of-the-mean margin: the measurement the test makes is
+    # eight generated leagues of 1,696 men, whose standard error is smaller than that, so
+    # the 5% governs and the second half of the policy does not bind.
+    mean = sum(shares) / len(shares)
+    low, high = round_out(min(shares) - 0.05 * mean, max(shares) + 0.05 * mean, 3)
+    print(f"first-season share band\t{low:.3f}\t{high:.3f}\tseasons {'+'.join(map(str, ROSTER_SEASONS))}")
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--rosters":
+        rosters(sys.argv[2])
+        return
     if len(sys.argv) != 2:
         print(__doc__)
         sys.exit(2)
