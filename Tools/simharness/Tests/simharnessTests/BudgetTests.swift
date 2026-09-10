@@ -39,7 +39,7 @@ struct BudgetTests {
         #expect(budget.ratioToBudget == 0)
     }
 
-    @Test("unit: the block is one section, four lines of prose and five labelled numbers")
+    @Test("contract: the block is one section, four lines of prose and five labelled numbers")
     func blockShape() {
         let lines = Budget(games: 400, seconds: 8).lines
         #expect(lines.first == "  Budget")

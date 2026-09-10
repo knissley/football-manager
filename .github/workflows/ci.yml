@@ -138,6 +138,13 @@ jobs:
       - name: FMSimulation
         run: swift test --package-path Packages/FMSimulation
 
+      - name: simharness
+        # The harness is a tool, but its tests guard two things nothing else does: that
+        # the calibration table in docs/match-engine.md is the one Targets.swift
+        # generates, and the shape of the Budget block the summary step below parses.
+        # Without this step neither runs in CI at all.
+        run: swift test --package-path Tools/simharness
+
       - name: playsize
         # Also the proof that the FM* modules link standalone, outside a test bundle.
         run: swift run --package-path Tools/playsize

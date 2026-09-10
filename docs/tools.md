@@ -233,6 +233,10 @@ swift test --package-path Tools/simharness          # the calibration table cann
 swift test -c release --package-path Packages/FMRandom
 ```
 
+Every one of these is a hard-failing step of the `test` job in
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
+`Tools/simharness` included, since #9, because nothing else compiles its tests.
+
 ## lint-sim — the determinism and purity lint
 
 ```bash
