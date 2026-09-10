@@ -4,9 +4,10 @@ An offline-first American football management sim for iOS. You're the GM and the
 coach: draft and develop players, manage the cap, set the scheme, and call the shots —
 or sim a rebuilding season in about a minute.
 
-The hook is **a simulation you can interrogate**. A spatial match engine puts twenty-two
-players on a field and lets outcomes emerge from geometry, so when a drive stalls the
-game can show you which matchup lost rather than narrating a dice roll.
+The hook is **a simulation you can interrogate**. A spatial match engine — designed, and
+not yet built; see the status below — will put twenty-two players on a field and let
+outcomes emerge from geometry, so when a drive stalls the game can show you which matchup
+lost rather than narrating a dice roll.
 
 Everything — leagues, teams, players — is fictional and generated from a seed. No real
 names, no licensing entanglements, infinite worlds.

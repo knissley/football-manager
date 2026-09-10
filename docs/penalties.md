@@ -4,7 +4,9 @@
 procedural fouls drawn from `discipline`, noise and tempo, and desperation fouls drawn at
 the matchup that beat the man committing them, with accept/decline evaluated on both
 branches. The harness prints the per-foul rates and the road-versus-home pre-snap ratio.
-*Not built:* officiating crews with tendencies. *Known wrong:* live-ball fouls are
+*Not built:* officiating in any form — there is no `OfficiatingProfile`, no per-category
+tightness and no crew, so the whole [Officiating](#officiating) section is design. Nor is
+there an officiating slider. *Known wrong:* live-ball fouls are
 enforced from the previous spot (#18), a flag on a try does not move the try (#19), and
 fouls after a score are not enforced on the kickoff (#48).
 
@@ -45,6 +47,10 @@ the grass.
 
 ## Cadence
 
+**Partly built.** The second half is built and is how fouls are drawn today: a hold or an
+interference comes out of losing a matchup rather than a separate roll. *Designed, not
+built:* Hard Count, and every other trait — nothing in `FMSimulation` reads a trait.
+
 **Hard Count** is a quarterback trait that raises the opponent's offside and
 neutral-zone rate — and raises his own line's false-start and delay-of-game risk.
 A good trait with a real cost, which is what the [traits](traits.md) design asks
@@ -82,6 +88,12 @@ quality determines how often he takes the better branch, which is one more small
 place a good staff is visible.
 
 ## Officiating
+
+**Designed, not built.** No `OfficiatingProfile` type exists and no official is
+`Personnel` today; foul rates come from the player, his coaching and the situation, with
+nothing officiating them. The point of recording it now is the last paragraph: the
+representation is chosen so that dropping named crews later deletes a generator rather
+than unpicking a feature.
 
 The engine reads an **`OfficiatingProfile`** — per-category tightness, known
 before kickoff so it is a gameplanning input rather than a random tax, and modest

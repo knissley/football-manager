@@ -1,7 +1,7 @@
 # Tools
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
-`playsize`, `simharness` and `scripts/lint-sim.sh`. Nothing here is a plan.
+`playsize`, `simharness`, `gamelog` and `scripts/lint-sim.sh`. Nothing here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask

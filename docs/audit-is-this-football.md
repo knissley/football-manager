@@ -1,9 +1,9 @@
 # Audit: is this football?
 
 **Status: built** — this is a record of an audit of code that exists, not a design doc.
-Its findings and their fixes are real and measured. Its *closing* sections predate the
-external audit of September 2026 and overstate what is fixed; the backlog tracker (#1) is
-what is current, and issue #11 is bringing this doc up to date.
+Every finding and every number in it is measured. S1 through S8 are fixed; S9 through S15
+are open and are why the rules layer does not yet finish a game correctly. The backlog
+tracker (#1) is the live state of each; the table at the end is a snapshot.
 
 A deliberate pass over the engine asking one question — *does this behave like the sport?*
 — rather than *do the units work?* Separate from the end-of-M1 systems inventory, which

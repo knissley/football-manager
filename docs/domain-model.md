@@ -13,7 +13,6 @@ Identifiers are typed wrappers over a stable `UInt64` (`PlayerID`, `TeamID`, …
 allocated by a counter in the world, **not** `UUID` — UUIDs are non-deterministic and
 banned in the sim ([ADR-0003](adr/0003-deterministic-seeded-simulation.md)).
 
-
 > **Positions are not fixed.** A player has a *personnel position* — what he is paid and
 > traded as — and a *lineup position*, which is where he plays and which decides how he
 > performs. Overall is position-relative: "a 99 receiver" means 99 as a receiver. See
@@ -52,9 +51,14 @@ It splits along one line that matters:
   fatigue, and noise is the mechanism behind home field advantage rather than a bonus
   applied on top of one ([penalties.md](penalties.md)).
 
-Plus `MarketSize`, `Scheme`, and — still to come — `Roster`, `DepthChart`, `Contracts`,
-`CoachingStaff`, `Finances`, `TeamStrategy` (the AI's rebuild-vs-contend posture), and
-season record.
+Plus `MarketSize` and `Scheme`, and — still to come — `Roster`, `DepthChart`,
+`Contracts`, `CoachingStaff`, `Finances`, `TeamStrategy` (the AI's rebuild-vs-contend
+posture), and season record.
+
+*What is on `Team` today:* `id`, `region`, `identity`, `stadium`, `market` and `scheme`,
+and nothing else. `DepthChart` is a built type but it does not hang off `Team` — the
+engine is handed one per side — and a roster, a staff and a set of contracts exist only
+as what generation returns alongside a team.
 
 **League / Conference / Division** — the structure, fixed at world creation
 ([decision 105](design-decisions.md)). A division holds its members and a team does not
@@ -156,7 +160,6 @@ wrong and every wrong answer is player-visible.
 and generation fills a staff. Nothing reads a coach: the engine's callers are the same
 hardcoded pair for every team, and hiring, firing and the carousel are M3.
 
-
 Head coach, offensive coordinator, defensive coordinator, special teams coordinator,
 position coaches, scouts, trainers.
 
@@ -175,16 +178,27 @@ which ratings matter for scheme fit and what the roster *should* look like.
 fourth down, blitz rate, coverage shell mix, targets to attack, and matchups to
 avoid. This is the main weekly decision surface.
 
-**DepthChart** maps each position and package (base, nickel, dime, goal line,
-3-WR, heavy) to an ordered list of `PlayerID`. Validity — every slot filled by an
-eligible, healthy, active player — is a `FMCore` invariant with a checker, because
-an invalid depth chart is the most likely source of sim crashes.
+*Designed, not built:* there is no `Gameplan` type. Scheme is built —
+`Scheme`, `SchemeFit` and `SchemeIdentity` exist and the resolver reads fit — and the
+gameplan half arrives with the weekly loop at M4. See
+[gameplan.md](gameplan.md).
+
+**DepthChart** is an ordered list of `PlayerID` **per position**, best to worst, with a
+player allowed to appear at more than one. `RotationProfile` turns that order into snap
+shares, `rotation(unavailable:)` drops anyone who cannot play, and `unfilled(...)` names
+any position nobody is left to fill.
+
+*Designed, not built:* **keying by package** (base, nickel, dime, goal line, 3-WR,
+heavy) and a **validity checker** — every slot filled by an eligible, healthy, active
+player, as an enforced `FMCore` invariant. `unfilled` answers a narrower question and
+nothing enforces anything. Both arrive with the rekeying at
+[M3.5](roadmap.md), where the chart becomes keyed by role and the checker is shared with
+the play designer ([ADR-0013](adr/0013-fluid-positions.md)).
 
 ## Season calendar
 
 **Designed, not built.** M3. There is no schedule, no week, no phase and no calendar
 type; a game today is an arbitrary matchup with no season around it.
-
 
 The phase machine that drives everything. Advancing is always "advance to next phase
 or week," never an arbitrary date jump.
@@ -212,7 +226,6 @@ Preseason ─→ RegularSeason (18 weeks, 1 bye per team)
 **Designed, not built.** M2. Statistics are a query over the stream and nothing performs
 that query yet — the harness computes its own aggregates and is the only reader.
 
-
 Three levels, because they have different retention rules:
 
 - **`PlayRecord` stream** — every play's situation, both calls, engine decision points,
@@ -235,7 +248,6 @@ score can't drift from the play log.
 
 **Partly built.** `OffensiveCall` and `DefensiveCall` exist as composed data and the
 engine calls with them. `PlayDesign` and the playbook they point at are M6.
-
 
 A `Play` is data the engine executes and the designer edits: a formation, personnel,
 and a per-player `Assignment` — a route with landmarks and timing, a blocking rule, or
@@ -277,7 +289,6 @@ league has your grudges.
 
 **Designed, not built.** M3.
 
-
 The player is a `CareerProfile`, not a team. It holds employment history, a record, and
 a `reputation` that AI owners read when hiring.
 
@@ -293,7 +304,6 @@ team.
 **Designed, not built.** Generation writes a hidden ceiling and a `DevelopmentTrait`;
 nothing grows or declines. See [development.md](development.md).
 
-
 Player development is player-driven and you nudge it
 ([decision 21](design-decisions.md#development-and-progression)). Traits, personality,
 and `developmentTrait` do the work; your levers are indirect:
@@ -306,6 +316,10 @@ Progression resolves at training camp. How much authorship this actually deliver
 [an open question](design-decisions.md#open-questions).
 
 ## Appearance and identity
+
+**Designed, not built.** Nothing here exists: no `AppearanceEvent`, no appearance
+generation, no gear and no jersey numbers. `PersonName` and the team's own
+`TeamIdentityEvent` are the only pieces of this in the tree. M8.
 
 Cosmetic, editable, and outside the simulation entirely — the engine never reads it, and
 it is not part of the replay tuple.
@@ -320,6 +334,11 @@ week ([ADR-0009](adr/0009-event-sourcing-by-default.md)).
 Name changes, gear, and jersey numbers are all the same kind of event.
 
 ## Invariants worth enforcing in code
+
+**Designed, not built.** Two of these have anything behind them today:
+`League.structureFailures` checks the league's shape, and `DepthChart.unfilled` names
+positions nobody can fill. There is no checker for the rest and no debug assertion
+anywhere, and several of them are about a season that does not exist yet.
 
 These are the ones that will bite. Each gets a checker in `FMCore` and an assertion
 in debug builds:

@@ -73,4 +73,3 @@ on x86_64 and arm64, in a job that uploads its output and writes the calibration
 into the job summary and **does not gate a merge**. Calibration is practical, exactly as
 the decision predicted; the scale in that sentence is aspirational and the job is
 reporting.
-

@@ -218,8 +218,9 @@ would otherwise be built against a league missing them:
 - ✅ Weather beyond the kicking game. `Conditions` makes the ball harder to hold and
   harder to throw accurately in rain, snow, cold and wind, and the harness checks
   combined points in heavy rain against a dry game.
-- Traits, as engine hooks rather than cosmetic modifiers. `Trait` exists on `Player` and
-  nothing in `FMSimulation` reads it.
+- Traits, as engine hooks rather than cosmetic modifiers. `Player.traits` is a
+  `[TraitID]` that generation never fills and `FMSimulation` never reads, and there is no
+  `Trait` type behind those identifiers yet.
 
 **Deferred to M5, and still needed** — these want the spatial engine to be meaningful, not
 merely to be wired up:

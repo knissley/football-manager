@@ -16,7 +16,6 @@ minigame with a sweet spot you learn once and never think about again.
 **Designed, not built** — and so is every section below it. The structures exist as types
 in `FMCore`; the negotiation is M7.
 
-
 The same total value can be built a dozen ways, and players want different ones.
 
 | He is | He wants |

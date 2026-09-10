@@ -307,18 +307,24 @@ having a good day and made him better would be the engine authoring a narrative.
 variance in *capability*, not in *outcomes* — every play still resolves through identical
 physics, and form only changes what a player brings to it.
 
+*Designed, not built:* `Form` draws a **per-player** day from the game's seed and the
+player's identifier, and that is all it draws. There is no team-wide component and none
+of the reasons behind one — travel, a short week, a hostile crowd, the game before —
+because none of those exists before there is a schedule to travel on (M3). The team-days
+paragraph below is the design for that half.
+
 **Form is visible after the fact, never before.** The analysis layer can say *he was off
 all day* as an observation drawn from the stream, the same way it reports pressure or
 separation, because a performance nobody can account for is exactly what the interrogation
 hook promises not to produce. It is not visible before kickoff, where it would become a
 lineup cheat and tell the player the answer before asking the question.
 
-**Teams have days too, and they have reasons.** Part of each player's day comes from a
-team-wide component, so a squad can be collectively flat or collectively electric — which
-is real, and is a direct lever on the spread of team win totals, the row the calibration
-table calls the most important number. That component is driven by things with causes:
-travel, a short week, a hostile crowd, the game before. A shared draw with no reason
-behind it would be indistinguishable from an excuse.
+**Teams have days too, and they have reasons.** *Designed, not built — M3.* Part of each
+player's day comes from a team-wide component, so a squad can be collectively flat or
+collectively electric — which is real, and is a direct lever on the spread of team win
+totals, the row the calibration table calls the most important number. That component is
+driven by things with causes: travel, a short week, a hostile crowd, the game before. A
+shared draw with no reason behind it would be indistinguishable from an excuse.
 
 **Explosive plays.** A receiver who beats every defender with an angle on him is in open
 field, not three yards further on. The run game had a burst through the hole from the

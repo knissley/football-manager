@@ -90,7 +90,6 @@ either way. Seniors never had the choice.
 **Designed, not built** — and so is every section below it. `Prospect` carries the true
 values and the noisy production; nothing observes them through a scout. M7.
 
-
 Named characters, like the writers ([news-and-narrative.md](news-and-narrative.md)), and
 built on the same machinery.
 
