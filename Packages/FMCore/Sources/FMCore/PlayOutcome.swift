@@ -420,10 +420,16 @@ public struct Outcome: Sendable, Hashable, Codable {
     ///
     /// It is the basic spot for a foul during a **run** followed by a change of
     /// possession (2025 rulebook, 14-3-5-b), which is the one case `Rules.enforce` reads
-    /// it for. On an interception it is a fact about the play and not an enforcement
+    /// it for — and only where the ball came loose in advance of the line, because a
+    /// basic spot behind the line puts a defensive foul back on the previous spot
+    /// (14-3-6, the exception for the defence; 14-4-6-b for a foul during the fumble
+    /// itself). On an interception it is a fact about the play and not an enforcement
     /// spot: until a forward pass from behind the line is over, a
     /// flag on either side comes off the previous spot, and the down turns into a running
-    /// play only once somebody catches the ball (14-4-5).
+    /// play only once somebody catches the ball (14-4-5), and a defensive personal foul
+    /// before the catch is walked off from the better of two spots for the offence —
+    /// where it snapped, or where the ball was dead at the end of the down (14-4-5-d).
+    /// Neither of those is this field.
     public var possessionLostAt: UInt8?
     /// Seconds taken off the clock, live action and play clock together.
     public var clockRunoff: UInt16

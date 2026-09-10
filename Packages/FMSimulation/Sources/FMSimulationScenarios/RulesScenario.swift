@@ -663,7 +663,7 @@ extension RulesScenario {
             ]
         case .roughnessByTheDefenseBeforeADeepInterception:
             return [
-                "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the previous spot is enforced from the dead-ball spot, whichever of the two is more beneficial to the offence"
+                "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the snap is enforced from the dead-ball spot, which is the better of the two spots the offence may have"
             ]
         case .kickoffFumbledAndReturnedByTheKickers:
             return [

@@ -77,18 +77,18 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on wave 2's record track, at 836 tests. `./scripts/test-census.sh` reprints it; if
+Taken on wave 2's record track, at 839 tests. `./scripts/test-census.sh` reprints it; if
 this table and that output disagree, the output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 39 — 11.0% | 30 — 8.5% | 281 — 79.6% | 3 | 353 |
+| FMCore | 40 — 11.3% | 30 — 8.5% | 281 — 79.4% | 3 | 354 |
 | FMGeneration | 1 — 0.5% | 87 — 44.2% | 109 — 55.3% | 0 | 197 |
-| FMSimulation | 89 — 37.7% | 79 — 33.5% | 63 — 26.7% | 5 | 236 |
+| FMSimulation | 91 — 38.2% | 79 — 33.2% | 63 — 26.5% | 5 | 238 |
 | simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **129 — 15.4%** | **213 — 25.5%** | **486 — 58.1%** | **8** | **836** |
+| **all** | **132 — 15.7%** | **213 — 25.4%** | **486 — 57.9%** | **8** | **839** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -105,8 +105,8 @@ touchbacks*; the resolver is *Crude resolver* and *Contest curve*.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 36 — 37.1% | 4 | 54 | 3 | 97 |
-| Rules conformance — the scripted games (FMSimulation) | 84 — 97.7% | 0 | 0 | 2 | 86 |
+| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
+| Rules conformance — the scripted games (FMSimulation) | 86 — 97.7% | 0 | 0 | 2 | 88 |
 | The resolver — `CrudeResolver` and the contest curve (FMSimulation) | 0 — 0.0% | 10 | 6 | 0 | 16 |
 | Generation (FMGeneration) | 1 — 0.5% | 87 | 109 | 0 | 197 |
 
@@ -122,7 +122,7 @@ that a run lands inside one. A row going `OFF` in CI is reporting, not a failure
 `0.0%` in that row is honest about the suite and unfair to the harness, and both halves
 of that sentence are worth remembering.
 
-**Fifty-four of the rules layer's ninety-seven tests are `.unit`, and many of them are
+**Fifty-four of the rules layer's ninety-eight tests are `.unit`, and many of them are
 football claims with no citation.** Three suites are the clearest: `Tries and touchbacks`
 (11 of 11 — what an extra point is worth, where a kickoff touchback is spotted), the
 uncited fourteen of `Down and possession advancement`, and five of `Clock stoppage`.

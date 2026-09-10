@@ -2131,8 +2131,8 @@ struct RulesConformanceTests {
     /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
     /// and the down does not turn into a running play until somebody catches the ball — so
     /// the catch is never the basic spot for a foul that came before it. But a *personal*
-    /// foul by the defence before the pass is completed has its own answer: the previous
-    /// spot or the dead-ball spot, whichever is more beneficial to the offence
+    /// foul by the defence before the pass is completed has its own answer: the offence
+    /// gets the better of two spots — where it snapped, or where the ball was dead
     /// (14-4-5-d, and the same sentence as 8-6-1-d). An interception is not a completion
     /// (8-1-3), which is what puts a foul that preceded it inside that exception rather
     /// than outside it.
@@ -2161,10 +2161,10 @@ struct RulesConformanceTests {
             "the offence's ball, fifteen past the previous spot, first and ten")
     }
 
-    /// The exception the sack makes common. When the basic spot is behind the line of
-    /// scrimmage and the defence has fouled — behind the line or beyond it — the penalty
-    /// is enforced from the previous spot (14-3-6, the exception for fouls committed by
-    /// the defence), and 14-4-6-b says the same of a foul during the fumble itself. The
+    /// The exception the sack makes common. A basic spot behind the line puts a defensive
+    /// foul back on the previous spot, and where the foul itself was makes no difference:
+    /// behind the line or beyond it, it comes off the snap (14-3-6, the exception for
+    /// fouls by the defence), and 14-4-6-b says the same of a foul during the fumble. The
     /// offence snapped from its own 40 and the quarterback was stripped six yards behind
     /// it, at his own 34; unnecessary roughness by the defence is fifteen and an automatic
     /// first down (12-2-8). So the walk-off is from the own 40 — first and ten at the
@@ -2189,16 +2189,16 @@ struct RulesConformanceTests {
     }
 
     /// The other arm of 14-4-5-d. A personal foul by the defence before a forward pass
-    /// thrown from behind the line is completed is enforced from the previous spot or the
-    /// dead-ball spot, whichever is more beneficial to the offence (14-4-5-d, and the same
-    /// sentence as 8-6-1-d); an interception is not a completion (8-1-3), so a foul that
+    /// thrown from behind the line is completed is walked off from the better of two spots
+    /// for the offence — where it snapped, or where the ball was dead (14-4-5-d, and the
+    /// same sentence as 8-6-1-d); an interception is not a completion (8-1-3), so a foul that
     /// preceded it is inside that exception. Here the dead-ball spot is the better of the
     /// two: the offence snapped at the opponents' 45, the pass was picked off at the
     /// opponents' 20, and the interceptor was dropped at the opponents' 30, still fifteen
     /// yards nearer the goal line than the snap. So the fifteen comes off the opponents'
     /// 30 — first and ten at the opponents' 15 — and not off the opponents' 45.
     @Test(
-        "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the previous spot is enforced from the dead-ball spot, whichever of the two is more beneficial to the offence",
+        "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the snap is enforced from the dead-ball spot, which is the better of the two spots the offence may have",
         .tags(.football)
     )
     func defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot() {

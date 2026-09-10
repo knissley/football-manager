@@ -840,8 +840,8 @@ public enum RulesScenarios {
     /// Until a forward pass from behind the line is over, a flag on
     /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
     /// and the down does not turn into a running play until somebody catches the ball. A
-    /// defensive personal foul before the catch takes the previous spot or the dead-ball
-    /// spot, whichever is more beneficial to the offence (14-4-5-d): the interceptor was
+    /// defensive personal foul before the catch takes the better of two spots for the
+    /// offence — where it snapped, or where the ball was dead (14-4-5-d): the interceptor was
     /// dropped at the offence's own 25, behind where it snapped, so the previous spot is
     /// the better of the two — fifteen from its own 30, and the interception is wiped out.
     /// The offence throws on first down from its own 30 so that the record's concept is
@@ -887,8 +887,8 @@ public enum RulesScenarios {
     /// at the opponents' 30 — fifteen yards nearer the goal line than the snap was.
     ///
     /// The other arm of the same exception. A defensive personal foul before a forward
-    /// pass thrown from behind the line is completed is enforced from the previous spot or
-    /// from the dead-ball spot, whichever is more beneficial to the offence (14-4-5-d, and
+    /// pass thrown from behind the line is completed is walked off from the better of two
+    /// spots for the offence — where it snapped, or where the ball was dead (14-4-5-d, and
     /// the same sentence as 8-6-1-d); an interception is not a completion (8-1-3), which
     /// puts a foul that preceded it inside the exception and not outside it. Here the
     /// dead-ball spot is the better of the two, so it is fifteen from the opponents' 30

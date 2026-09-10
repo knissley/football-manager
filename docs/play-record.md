@@ -291,18 +291,29 @@ from 100, exactly as the rules layer does with `finalSpot`.
 
 **What it is the spot *for* is a rule, not a fact about the record.** It is the basic
 spot for a foul during a **run** followed by a change of possession (14-3-5-b), so a
-defensive personal foul on a run that ends in a fumble lost is walked off from the fumble
-once the ball reverts to the offence (14-4-3-a). It is **not** the spot for a foul on a
-pass that was intercepted: until a forward pass from behind the line is over, a flag on
-either side comes off the previous spot, and the down turns into a running play only once
-somebody catches the ball (14-4-5). `Rules.enforce` reads the field only on a fumble lost
-for that reason. The record carries the spot on every takeaway either way, because where
-a pass was picked off is worth knowing whether or not a flag was thrown on the play.
+defensive personal foul on a run that ends in a fumble lost downfield is walked off from
+the fumble once the ball reverts to the offence (14-4-3-a). It stops being the spot the
+moment the ball comes loose **behind the line of scrimmage**: a basic spot behind the line
+puts a defensive foul — behind the line or beyond it — back on the previous spot (14-3-6,
+the exception for fouls by the defence, and 14-4-6-b for a foul during the fumble itself).
+That is the strip sack, and it is the common half of the field's use rather than the rare
+one.
+
+It is **not** the spot for a foul on a pass that was intercepted: until a forward pass
+from behind the line is over, a flag on either side comes off the previous spot, and the
+down turns into a running play only once somebody catches the ball (14-4-5); a defensive
+personal foul before the catch takes the better of two spots for the offence — where it
+snapped, or where the ball was dead (14-4-5-d) — and neither of those is this field.
+`Rules.enforce` reads the field only on a fumble lost for that reason. The record carries
+the spot on every takeaway either way, because where a pass was picked off is worth
+knowing whether or not a flag was thrown on the play.
 
 The record carries no time within a down, so a foul by the intercepting team during its
 own return is the same record as a foul before the catch, and is walked off the same way:
-right for the second, wrong for the first, and
-[#58](https://github.com/knissley/football-manager/issues/58) is where that is tracked.
+right for the second, wrong for the first. The same silence covers a pass **completed and
+then fumbled away**, which is enforced from the fumble where 14-4-5-d gives the previous
+spot if the foul preceded the catch. The crude resolver reaches neither today, and
+[#58](https://github.com/knissley/football-manager/issues/58) is where both are tracked.
 
 **What happened while the ball was dead is on the next snap.** A charged timeout is not a
 play and produces no record of its own ([decision 192](design-decisions.md)), but it is

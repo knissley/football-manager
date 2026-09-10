@@ -406,11 +406,27 @@ swift run gamelog --scenario injury-inside-two-minutes-with-a-timeout-left | gre
 # first and ten at the opponents' 45.
 swift run gamelog --scenario roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost | head -15
 
-# The same flag on a pass, which is a different rule (14-4-5, 8-6-1). A foul before the
-# ball is caught is enforced from the previous spot, so the offence keeps it at its own
-# 45 and the interception is wiped out. Read the two side by side: same field position,
-# same foul, two answers, and the difference is what kind of play the foul was during.
+# The same flag on a pass, which is a different rule (14-4-5-d, 8-6-1-d). The offence
+# gets the better of two spots, where it snapped or where the ball was dead; here the
+# interceptor was dropped behind where the ball was snapped, so it is the previous spot,
+# the offence keeps it at its own 45, and the interception is wiped out. Read the two
+# side by side: same field position, same foul, two answers, and the difference is what
+# kind of play the foul was during.
 swift run gamelog --scenario roughness-by-the-defense-before-an-interception | head -15
+
+# The exception the strip sack makes common (14-3-6 Exception 1, 14-4-6-b). The ball
+# comes loose behind the line, so the basic spot is behind the line and the fifteen comes
+# off the previous spot wherever the foul was: the offence snapped from its own 40, was
+# stripped at its own 34, and play 3 is first and ten at the opponents' 45 — not the 51
+# that measuring from the fumble gives.
+swift run gamelog --scenario roughness-by-the-defense-on-a-strip-sack | head -14
+
+# And the other arm of 14-4-5-d, where the dead-ball spot is the better of the two. The
+# pick is at the opponents' 20 and the interceptor is dropped at the opponents' 30, still
+# downfield of the snap at the opponents' 45: play 3 is first and ten at the opponents'
+# 15. Read it against the scenario above — one exception, two answers, and what decides
+# is where the man with the ball was when he went down.
+swift run gamelog --scenario roughness-by-the-defense-before-a-deep-interception | head -14
 
 # A kickoff the returner fumbles and the kicking team carries in (8-7-3 Item 1, 11-2-1,
 # 11-3-1, 11-3-4): the kickers' touchdown, the kickers' try, and the kickers kicking off

@@ -416,8 +416,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     **pass** is a different rule: until a forward pass from behind the line is over, a flag
     on either side comes off the previous spot, and the down turns into a running play only
     once somebody catches the ball; and a defensive **personal** foul before that pass is
-    completed takes the previous spot or the dead-ball spot, whichever is more beneficial
-    to the offence. An interception is not a completion, which puts a foul that preceded
+    completed is walked off from the better of two spots for the offence — where it
+    snapped, or where the ball was dead. An interception is not a completion, which puts a
+    foul that preceded
     one inside that exception rather than outside it, so the offence takes the better of
     the two spots: where it snapped when the interceptor was dropped behind that, and where
     he was dropped when he was dropped in front of it.

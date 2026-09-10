@@ -172,8 +172,8 @@ extension Snap {
     /// Where possession was lost is on the record because every takeaway carries it, not
     /// because the flag is enforced from there: until a forward pass from behind the line
     /// is over, a flag on either side comes off the previous spot (2025 rulebook, 14-4-5),
-    /// and a defensive personal foul before the catch comes off the previous spot or the
-    /// dead-ball spot, whichever is more beneficial to the offence (14-4-5-d). The record
+    /// and a defensive personal foul before the catch comes off the better of two spots
+    /// for the offence — where it snapped, or where the ball was dead (14-4-5-d). The record
     /// says nothing about *when* in the down a flag flew, so this is one scripted play and
     /// not two: a foul before the catch and a foul by the intercepting team on its own
     /// return are the same record.

@@ -461,8 +461,8 @@ below are what it is held to.
   The same sentence is Rule 8's, as **8-6-1**. — `test:roughingOnAnIncompletion`
 - **14-4-5-d** — The exception that governs the personal foul. A personal or
   unsportsmanlike foul by the defence before a forward pass thrown from behind the line is
-  *completed* is enforced from the previous spot or the dead-ball spot, whichever is more
-  beneficial to the offence; and if the passing team is fouled and then loses the ball
+  *completed* is walked off from the better of two spots for the offence — where it
+  snapped, or where the ball was dead; and if the passing team is fouled and then loses it
   after a completion, it keeps the ball and the foul comes off the previous spot. An
   interception is not a completion (**8-1-3**), so a defensive personal foul on a play that
   ends in a pick is inside this exception: the offence takes the better of the two spots,
