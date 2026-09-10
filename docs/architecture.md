@@ -2,8 +2,9 @@
 
 **Status: partly built, sections marked.** Four of the nine modules in the map below
 exist — `FMCore`, `FMRandom`, `FMGeneration`, `FMSimulation`, the last of them shipping
-`FMSimulationScenarios` alongside it — and the two rules are enforced today. There is no app target, no SwiftUI, no SwiftData, and no `FMAnalysis`,
-`FMNarrative`, `FMPersistence` or `FMUI`. Sections describing those carry a
+`FMSimulationScenarios` alongside it — and the two rules are enforced today. There is no
+app target, no SwiftUI, no SwiftData, and no `FMAnalysis`, `FMNarrative`,
+`FMPersistence` or `FMUI`. Sections describing those carry a
 `Designed, not built` label.
 
 ## Two rules
@@ -25,9 +26,10 @@ contract that doesn't move.
 ## Module map
 
 **Four of these exist**, and `FMSimulationScenarios` with them. `FMCore`, `FMRandom`,
-`FMGeneration` and `FMSimulation` are built and green. The app target, `FMUI` and `FMPersistence` are M4; `FMAnalysis` and
-`FMNarrative` are M2. The rest of this map is the shape they get built to, not a
-description of the tree — check `Packages/` before assuming a module is there.
+`FMGeneration` and `FMSimulation` are built and green. The app target, `FMUI` and
+`FMPersistence` are M4; `FMAnalysis` and `FMNarrative` are M2. The rest of this map is
+the shape they get built to, not a description of the tree — check `Packages/` before
+assuming a module is there.
 
 ```
 FootballManager.xcodeproj          App target — SwiftUI, composition root

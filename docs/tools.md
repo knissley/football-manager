@@ -272,7 +272,12 @@ usually a handful of plays: read the header, then find them.
 swift run gamelog --scenario safety-free-kick | head -20
 
 # S10: a touchdown as the fourth quarter expires gets its try, at 0:00 of that period.
-swift run gamelog --scenario last-play-touchdown-down-seven | tail -30
+# Down six, the kick wins it and the game ends on the try, so the tail is short.
+swift run gamelog --scenario last-play-touchdown-down-six | tail -10
+
+# The same rule down seven, where the try levels it: the try is at 0:00 of the fourth
+# and a ten-minute overtime period follows, so the play-by-play runs on past it.
+swift run gamelog --scenario last-play-touchdown-down-seven | tail -40
 
 # And the other half of the same rule: a try that could not change the outcome is waived.
 swift run gamelog --scenario last-play-touchdown-down-two | tail -10

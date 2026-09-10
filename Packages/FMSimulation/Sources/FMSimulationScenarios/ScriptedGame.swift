@@ -397,7 +397,7 @@ struct ScenarioResolver: PlayResolver {
         }
     }
 
-    public func resolve(
+    func resolve(
         situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let snap = Snap(
