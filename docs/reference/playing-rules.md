@@ -87,17 +87,20 @@ Which rules must be true of a game, and what checks each, is
 - **4-5-1** — Three charged timeouts per team per half; they do not carry over. —
   `test:timeoutsStayLegal`
 - **4-5-4 Note 3** — An excess timeout for injury against the team in possession carries a
-  ten-second runoff at the defence's choice. — not yet enforced: an injury stops nothing in
-  this engine
+  ten-second runoff at the defence's choice. — not yet enforced,
+  [#76](https://github.com/knissley/football-manager/issues/76):
+  an injury stops nothing in this engine
 - **4-5-4 Note 4** — A half can end on a runoff. — `test:runoffAtEightSecondsEndsTheHalf`
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
 - **4-6-1** — 40 seconds from the end of the previous play, and letting it expire is delay
-  of game. — not yet enforced: `Rules.playClock` carries the number and nothing counts it
-  down
+  of game. — not yet enforced,
+  [#76](https://github.com/knissley/football-manager/issues/76):
+  `Rules.playClock` carries the number and nothing counts it down
 - **4-6-2** — 25 seconds after an administrative stoppage: a change of possession, a
   charged timeout, the two-minute warning, the end of a period, penalty enforcement, a free
-  kick. — not yet enforced: `Rules.playClockAfterStoppage` carries the number and nothing
-  counts it down
+  kick. — not yet enforced,
+  [#76](https://github.com/knissley/football-manager/issues/76):
+  `Rules.playClockAfterStoppage` carries the number and nothing counts it down
 - **4-7-1** — Neither side may conserve time after the two-minute warning of either half by
   any of six acts: a flag between downs by either side that kills a running clock;
   intentional grounding; an illegal forward pass; a backward pass thrown out of bounds; a
@@ -119,12 +122,13 @@ Which rules must be true of a game, and what checks each, is
   and the clock running, is five yards and a runoff. — `test:window`
 - **4-7-3** — In the last 40 seconds of either half, a defensive foul that conserves time,
   or an excess timeout for an injured defensive player, ends the half — unless the defence
-  has timeouts left or the offence would rather play on. — not yet enforced, and no issue
-  carries it yet
+  has timeouts left or the offence would rather play on. — not yet enforced,
+  [#76](https://github.com/knissley/football-manager/issues/76)
 - **4-7-4** — A replay reversal or a nullified foul after the two-minute warning that
   leaves the clock where a correct ruling would not have stopped it runs ten seconds off.
   Neither team may decline it; either may spend a timeout to prevent it. — not yet
-  enforced: there is no replay system
+  enforced, [#76](https://github.com/knissley/football-manager/issues/76): there is no
+  replay system
 - **4-8-1** — A period whose time runs out with the ball still live does not end there:
   the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`
 - **4-8-2** — A period may be extended by one untimed down when something in the down that

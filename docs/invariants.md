@@ -208,9 +208,11 @@ season is what checks one. A band is evidence about a rate and never about a rul
     negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`
 51. The play clock is 40 seconds from the end of the previous play and 25 after an
     administrative stoppage, and letting it expire is delay of game. `[2025 · 4-6-1, 4-6-2]`
-    — **not yet enforced**, and no issue carries it yet: `Rules` holds both numbers, the
-    caller spends tempo against the game clock, and delay of game is drawn as a foul rather
-    than timed. `test:tempoOrdering` pins the tempo model
+    — **not yet enforced**,
+    [#76](https://github.com/knissley/football-manager/issues/76):
+    `Rules` holds both numbers, the caller spends tempo against the game clock, and delay
+    of game is drawn as a foul rather than timed. `test:tempoOrdering` pins the tempo
+    model
 
 ## The ten-second runoff
 
@@ -240,15 +242,18 @@ season is what checks one. A band is evidence about a rate and never about a rul
     running, is five yards and a runoff. `[2025 · 4-7-2]` — `test:window`
 61. In the last 40 seconds of either half a defensive foul that conserves time ends the
     half, unless the defence has a timeout left or the offence would rather play on.
-    `[2025 · 4-7-3]` — **not yet enforced**, and no issue carries it yet; it is named as not
-    modelled in [match-engine.md](match-engine.md#clock-penalties-and-ai)
+    `[2025 · 4-7-3]` — **not yet enforced**,
+    [#76](https://github.com/knissley/football-manager/issues/76); it is named as not modelled in
+    [match-engine.md](match-engine.md#clock-penalties-and-ai)
 62. A replay reversal or a nullified foul after the two-minute warning that leaves the clock
     where a correct ruling would not have stopped it runs ten seconds off, which neither
-    team may decline. `[2025 · 4-7-4]` — **not yet enforced**, and no issue carries it yet:
+    team may decline. `[2025 · 4-7-4]` — **not yet enforced**,
+    [#76](https://github.com/knissley/football-manager/issues/76):
     there is no replay system and no foul is ever nullified after the fact
 63. An excess timeout for injury against the team in possession carries a runoff at the
-    defence's choice. `[2025 · 4-5-4 Note 3]` — **not yet enforced**, and no issue carries
-    it yet: an injury stops nothing in this engine
+    defence's choice. `[2025 · 4-5-4 Note 3]` — **not yet enforced**,
+    [#76](https://github.com/knissley/football-manager/issues/76):
+    an injury stops nothing in this engine
 
 ## Where a foul is enforced from
 
