@@ -357,6 +357,16 @@ public struct BaselineCaller: PlayCaller {
     ) -> Bool {
         let ballOn = Int(situation.ballOn)
 
+        // Fourth and goal from inside the three is a yard or so for a touchdown against
+        // the safest three points in the sport, and taking the kick every single time is
+        // what made a third of this caller's field goal attempts chip shots — against a
+        // sourced 19.1-25.3% of attempts inside thirty yards (2023-24, nflverse
+        // play-by-play; `row:fieldGoalAttemptsUnder30`).
+        if classified.downAndDistance == .goalToGo && ballOn <= 3 {
+            // Unless the lead and the clock make three points worth more than four.
+            return !(inRange && classified.isClockBurn)
+        }
+
         // Backed up inside your own thirty, a stop is worth more to them than the down is
         // to you, whatever the distance.
         if ballOn > 70 { return false }
@@ -383,8 +393,16 @@ public struct BaselineCaller: PlayCaller {
     ) -> PlayFamily {
         // Short yardage is a run unless the clock says otherwise; long yardage is a
         // throw. Everything in between leans on the down.
-        if situation.isMustPass {
-            return passFamily(for: situation, random: &random)
+        //
+        // The clock shrinks the menu further than any distance does, and it outranks the
+        // down: forty seconds behind by four, third and two is a throw. Never all the
+        // way to nothing, though. The classification is a description of the moment, and
+        // a caller that reads it as an instruction — no run at all, ever, from here — is
+        // one a defence can play the pass against for free.
+        if situation.isMustPass && situation.time.isTwoMinute {
+            return random.nextBool(probability: 0.05)
+                ? (random.nextBool(probability: 0.62) ? .insideRun : .outsideRun)
+                : passFamily(for: situation, random: &random)
         }
         if situation.downAndDistance.isShortYardage {
             // Short yardage on the goal line is not the same as short yardage at
@@ -399,6 +417,11 @@ public struct BaselineCaller: PlayCaller {
                 ? (random.nextBool(probability: 0.65) ? .insideRun : .outsideRun) : .quickPass
         }
 
+        // A lean per bucket, and **every bucket is nonzero**: the sport runs on third and
+        // eight often enough that a defence has to keep a body in the box for it, and a
+        // caller whose third-and-long share is exactly zero is a caller a tendency table
+        // can read off a single snap. These are modelling conventions rather than sourced
+        // rates; the run and pass rows in `Tools/simharness` are what grade the balance.
         let runShare: Double
         switch situation.downAndDistance {
         case .firstDown: runShare = 0.61
@@ -409,7 +432,12 @@ public struct BaselineCaller: PlayCaller {
         case .goalToGo: runShare = 0.38
         case .secondShort, .thirdShort, .fourthShort: runShare = 0.70
         case .secondMedium: runShare = 0.53
-        case .secondLong, .thirdMedium, .thirdLong, .fourthLong: runShare = 0.22
+        case .secondLong: runShare = 0.22
+        // Third and five is a down the sport runs on constantly; third and eight is one
+        // it hardly ever does, and the gap between them is the whole point of splitting
+        // the bucket at six.
+        case .thirdMedium, .fourthMedium: runShare = 0.20
+        case .thirdLong, .fourthLong: runShare = 0.08
         }
 
         if random.nextBool(probability: runShare) {
@@ -453,7 +481,7 @@ public struct BaselineCaller: PlayCaller {
     private func shouldKneel(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
     ) -> Bool {
-        guard classified.score.isLeading, classified.time.isEndgame else { return false }
+        guard endingIsWorthMoreThanASnap(classified) else { return false }
         guard situation.down != .fourth else { return false }
 
         let kneelsAvailable = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
@@ -463,6 +491,19 @@ public struct BaselineCaller: PlayCaller {
         let clawedBack = Int(situation.defenseTimeouts) * secondsPerKneel
         let burnable = kneelsAvailable * secondsPerKneel - clawedBack
         return Int(situation.clockRemaining) <= burnable
+    }
+
+    /// Whether a snap can only cost this offence, so that ending the period is the
+    /// better outcome.
+    ///
+    /// Ending the *game* needs a lead: level or behind, a snap is the only thing that
+    /// can still change the scoreboard. Ending the *half* needs a lead too — or your own
+    /// goal line right behind you, where the only points a snap can produce are the
+    /// other side's, and the break is worth more than the field position.
+    private func endingIsWorthMoreThanASnap(_ classified: SituationClass) -> Bool {
+        if classified.time.isEndgame { return classified.score.isLeading }
+        guard classified.time == .twoMinuteFirstHalf else { return false }
+        return classified.score.isLeading || classified.field == .ownDeep
     }
 
     /// Throw it at the ground to stop the clock.
@@ -495,9 +536,13 @@ public struct BaselineCaller: PlayCaller {
             return situation.clockRemaining <= 100
         }
 
-        // The defence spends them to get the ball back. `scoreDifferential` is the
-        // offence's, so a positive number means the team without the ball is behind.
-        guard classified.time.isEndgame, situation.scoreDifferential > 0 else { return false }
+        // The defence spends them to get the ball back — in a game it can still win.
+        // `scoreDifferential` is the offence's, so `score.isLeading` means the team
+        // without the ball is the one behind, and three scores down is further than a
+        // timeout can reach: it buys a possession nobody can use, and burning all three
+        // to shorten a loss is not football.
+        guard classified.time.isEndgame, classified.score.isLeading else { return false }
+        guard classified.score != .leadingThreeScores else { return false }
         return situation.clockRemaining <= 200
     }
 

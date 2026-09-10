@@ -101,12 +101,18 @@ tables, analysis, and the news — so **the classification lives in one place**:
 
 ```
 SituationClass
-  downAndDistance   firstDown · 2nd/3rd short-medium-long · 4th short-long · goalToGo
+  downAndDistance   firstDown · 2nd/3rd/4th short-medium-long · goalToGo
   field             ownDeep → goalLine
   score             trailing/leading by one, two or three scores, or tied
   time              opening · middle · twoMinuteFirstHalf · thirdQuarter ·
                     fourthQuarter · clockBurn · twoMinuteGame · overtime
 ```
+
+Short is one to three, medium four to six, long seven or more — the same three widths on
+second, third and fourth down. Seven is where the ground stops being a realistic answer
+to the distance, which is why `isPassingDown` is **third or fourth and seven or more and
+nothing else**: second and eight has a whole extra play behind it, and third and four is
+a down the sport runs on constantly.
 
 Plus the reads that are composed from all four and used everywhere: `isMustPass`,
 `isClockBurn`, `isDesperation`, `isFourthDownTerritory`, `isHighLeverageForDefense`.
@@ -115,7 +121,20 @@ Two properties matter more than the buckets themselves:
 
 **It decides nothing.** It is a description. A gameplan rule, an AI policy and a
 post-game report all key off it, which is what stops a tendency report from quietly
-contradicting a play-by-play because two systems drew the line at seven yards and eight.
+contradicting a play-by-play because two systems drew the line at six yards and seven.
+
+**And a caller consumes it as a lean, never as a law.** `isMustPass` says the menu
+shrank, not that it is down to one item. The baseline caller therefore carries a run
+share for *every* down-and-distance bucket, and none of them is zero: it throws the great
+majority of third and longs and still runs some, and inside two minutes needing points it
+throws nearly everything and still runs the occasional draw. A caller whose share in some
+bucket is exactly zero is a caller a tendency table can read off a single snap, and a
+defence that has seen the table can stop defending the run for free. The same rule
+applies to the other reads: `isDesperation` is true inside two minutes of *either* half,
+and the fourth-down chart deliberately treats the two halves differently rather than
+acting on the description alike. The run shares themselves are modelling conventions; the
+sourced rows in `Tools/simharness` are what grade the balance, and a retune is what moves
+them.
 
 **There is one per snap, not one per sideline.** Like `Situation`, it reads from the
 offence's point of view — `isMustPass` means *the team with the ball* has to throw,

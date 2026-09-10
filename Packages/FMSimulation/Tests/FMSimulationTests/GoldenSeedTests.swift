@@ -115,9 +115,19 @@ struct GoldenSeedTests {
             // the whole play clock rather than the huddle, and a huddle after a runoff or a
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
-            (UInt64(1), UInt64(10_997_765_792_780_390_008)),
-            (UInt64(5), UInt64(6_618_904_821_654_125_080)),
-            (UInt64(12), UInt64(502_004_049_860_331_307)),
+            //
+            // And moved by the baseline caller, deliberately. Down and distance now
+            // buckets at three and six on every down, fourth included; a passing down is
+            // third or fourth and seven or more and nothing else; and the caller reads
+            // all of it as a lean rather than an instruction, so it runs a small share of
+            // third and longs instead of none. It also goes for it on fourth and goal
+            // from inside the three, kneels out the first half when a snap can only cost
+            // it, and stops spending defensive timeouts three scores down. Every one of
+            // those changes what is called on some snap, and a different call is a
+            // different game from there on.
+            (UInt64(1), UInt64(13_909_574_298_202_381_945)),
+            (UInt64(5), UInt64(77_035_360_226_662_895)),
+            (UInt64(12), UInt64(4_871_049_930_809_324_504)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
