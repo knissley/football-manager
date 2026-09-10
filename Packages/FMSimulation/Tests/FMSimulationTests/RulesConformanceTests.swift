@@ -1783,10 +1783,10 @@ struct RulesConformanceTests {
             "the offence's ball, fifteen past where it lost possession, first and ten")
     }
 
-    /// The same flag on a pass is a different rule. A foul by either team between the snap
-    /// and the end of a forward pass thrown from behind the line is enforced from the
-    /// previous spot (14-4-5, and the same sentence as 8-6-1); the passing play ends and a
-    /// running play begins at the instant the pass is caught, so a foul before the catch
+    /// The same flag on a pass is a different rule. Until a forward pass from behind
+    /// the line is over, a flag on either side comes off the previous
+    /// spot (14-4-5, and the same sentence as 8-6-1), and the down does not turn into a
+    /// running play until somebody catches the ball — so a foul that came before the catch
     /// is never measured from it. The offence snapped from its 30 and gets the ball there
     /// plus fifteen, at its own 45, first and ten (12-2-8), and the interception is wiped
     /// out. Not fifteen past the catch, which is the running rule applied to a pass.

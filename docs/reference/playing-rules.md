@@ -278,8 +278,9 @@ below are what it is held to.
 - **8-6-1-d** — A personal foul by the defence before a completion is enforced from the
   dead-ball spot or the previous spot, whichever favours the offence; if the play scores,
   on the try. — `test:roughingOnACompletion`
-- **8-7-3 Item 1** — Any player of either team may recover a fumble and advance it, except
-  on fourth down, after the two-minute warning, or during a try. —
+- **8-7-3 Item 1** — Whoever comes up with a fumble may run with it, whichever side he is
+  on, and whether or not the ball has already touched the ground. Three downs are the
+  exception — a try, a fourth down, and any down after the warning at two minutes. —
   `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown` for the kicking team carrying in
   a fumbled kickoff; **modelling**: the crude resolver never fumbles a kick, and the
   fourth-down, two-minute and try exceptions are not modelled
@@ -390,16 +391,16 @@ below are what it is held to.
 - **14-4-1** — A foul before the snap is enforced from the succeeding spot and the down
   stays; a foul at the snap from the previous spot, and the down is repeated. —
   `test:preSnapKillsThePlay`, `test:falseStartAtTheOwnThreeIsHalfTheDistance`
-- **14-4-3** — When a **run** with a foul in it is followed by a change of possession the
-  basic spot is where possession was lost, and the three-and-one method applies: a
+- **14-4-3** — When a **run** with a foul in it ends in a change of possession, the spot
+  possession went is the basic spot and the three-and-one method applies: a
   defensive foul gives the ball back to the offence before enforcement (**14-4-3-a**); an
   offensive foul must be declined by the defence to keep the ball, unless it was a personal
   or unsportsmanlike foul (**14-4-3-b**), in which case the defence keeps the ball and the
   foul is enforced from the dead-ball spot. — `test:facemaskByTheFormerOffenseOnAReturn`,
   `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`
-- **14-4-5** — A foul by either team between the snap and the end of a forward pass thrown
-  from behind the line is enforced from the previous spot; the passing play ends and a
-  running play begins at the instant the pass is caught. So a defensive personal foul
+- **14-4-5** — Until a forward pass from behind the line is over, a
+  flag on either side comes off the previous spot, and the down turns into a running play
+  only once somebody catches the ball. So a defensive personal foul
   *before* an interception is enforced from the previous spot and not from the catch, and
   the offence keeps the ball there. The same sentence is Rule 8's, as **8-6-1**. —
   `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**: the

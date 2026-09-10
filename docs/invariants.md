@@ -377,11 +377,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
     before enforcement. `[2025 · 14-3-5-b, 14-4-3-a]` —
     `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`; the
     record's half of it — every takeaway says where possession was lost — is
-    `test:takeawaysCarryTheSpot`. The same flag on a **pass** is a different rule: a foul
-    between the snap and the end of a forward pass from behind the line is enforced from
-    the previous spot, and the pass ends and a running play begins at the catch — so a
-    defensive personal foul before an interception leaves the offence the ball where it
-    snapped, not where the ball was caught. `[2025 · 14-4-5, 8-6-1]` —
+    `test:takeawaysCarryTheSpot`. The same flag on a **pass** is a different rule: until a
+    forward pass from behind the line is over, a flag on either side
+    comes off the previous spot, and the down turns into a running play only once somebody
+    catches the ball — so a defensive personal foul before an interception leaves the
+    offence the ball where it snapped, not where the ball was caught.
+    `[2025 · 14-4-5, 8-6-1]` —
     `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**:
     the record says nothing about *when* in a down a flag flew, so a foul by the
     intercepting team during its own return is the same record as one before the catch and

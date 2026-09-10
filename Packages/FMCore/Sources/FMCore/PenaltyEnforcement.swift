@@ -215,12 +215,13 @@ extension Rules {
                     // walked off from depends on what kind of play the foul was during,
                     // and only a *run* is measured from the takeaway: a run followed by a
                     // change of possession has the spot where possession was lost as its
-                    // basic spot (14-3-5-b). A forward pass does not — a foul between the
-                    // snap and the end of the pass is enforced from the previous spot, and
-                    // the pass ends and a running play begins at the instant the ball is
-                    // caught (14-4-5), so an interception is never the spot for a foul
-                    // that preceded it. A kick carries no takeaway spot either, and
-                    // neither does a fumble written by a resolver that recorded none.
+                    // basic spot (14-3-5-b). A forward pass does not. Until such a pass,
+                    // thrown from behind the line, is over, a flag on either
+                    // side comes off the previous spot, and the down turns into a running
+                    // play only once somebody catches the ball (14-4-5) — so an
+                    // interception is never the spot for a foul that came before it. A
+                    // kick carries no takeaway spot either, and neither does a fumble
+                    // written by a resolver that recorded none.
                     let lost =
                         outcome.endedIn == .fumbleLost
                         ? (outcome.possessionLostAt.map(Int.init) ?? previous)

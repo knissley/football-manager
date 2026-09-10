@@ -733,11 +733,12 @@ public enum RulesScenarios {
     /// unnecessary roughness on before it is picked off ten yards downfield — at the
     /// offence's 40 — and run back to its 25.
     ///
-    /// A foul between the snap and the end of a forward pass thrown from behind the line
-    /// is enforced from the previous spot (14-4-5, the same sentence as 8-6-1), because
-    /// the passing play does not end until the ball is caught: fifteen from its own 30,
-    /// and the interception is wiped out. The offence throws on first down from its own 30
-    /// so that the record's concept is the play the script gives it.
+    /// Until a forward pass from behind the line is over, a flag on
+    /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
+    /// and the down does not turn into a running play until somebody catches the ball:
+    /// fifteen from its own 30, and the interception is wiped out. The offence throws on
+    /// first down from its own 30 so that the record's concept is the play the script
+    /// gives it.
     static var roughnessByTheDefenseBeforeAnInterception: ScriptedGame {
         ScriptedGame(
             caller: ScriptedCaller(offensiveConcept: {

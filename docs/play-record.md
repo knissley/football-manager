@@ -293,10 +293,10 @@ from 100, exactly as the rules layer does with `finalSpot`.
 spot for a foul during a **run** followed by a change of possession (14-3-5-b), so a
 defensive personal foul on a run that ends in a fumble lost is walked off from the fumble
 once the ball reverts to the offence (14-4-3-a). It is **not** the spot for a foul on a
-pass that was intercepted: a foul between the snap and the end of a forward pass thrown
-from behind the line is enforced from the previous spot, and the passing play ends and a
-running play begins at the instant the ball is caught (14-4-5). `Rules.enforce` reads the
-field only on a fumble lost for that reason. The record carries the spot on every
+pass that was intercepted: until a forward pass from behind the line
+is over, a flag on either side comes off the previous spot, and the
+down turns into a running play only once somebody catches the ball (14-4-5).
+`Rules.enforce` reads the field only on a fumble lost for that reason. The record carries the spot on every
 takeaway either way, because where a pass was picked off is worth knowing whether or not
 a flag was thrown on the play.
 
