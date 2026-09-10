@@ -114,6 +114,13 @@ jobs:
         # Sources trees, framework imports, and Hasher in a golden. See docs/tools.md.
         run: ./scripts/lint-sim.sh
 
+      - name: Sim lint self-test
+        # The lint strips comments before matching, and that stripper is the part of it
+        # most likely to be quietly wrong. This lints scripts/lint-sim-fixtures/ — a
+        # Swift file per rule, never compiled and never scanned by the step above — and
+        # fails on any difference from the expected hit list (issue #53).
+        run: ./scripts/lint-sim.sh --self-test
+
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom
 

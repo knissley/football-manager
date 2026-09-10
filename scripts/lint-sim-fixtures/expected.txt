@@ -1,0 +1,123 @@
+# Every hit the fixture tree must produce, as `path:line: rule-id`.
+#
+# `scripts/lint-sim.sh --self-test` lints scripts/lint-sim-fixtures/ instead of
+# the packages and compares what fired against this list. A line here that does
+# not fire, and a hit that is not here, both fail it. So a new rule needs a
+# fixture file and a line in this list, and a change to the comment stripper that
+# moves a hit has to say so here.
+#
+# Lines starting with # and blank lines are ignored. Order does not matter; the
+# comparison sorts both sides by file then line number.
+#
+# The fixtures are Swift files that are never compiled and never scanned by the
+# real lint — they hold banned tokens on purpose. sources/ stands in for a
+# package's Sources/ tree and gets every rule; goldens/ stands in for a
+# *Golden*Tests.swift and gets only the Hasher check, which is where the real
+# tree's golden tests live too.
+#
+# Every expected line below is also marked in the fixture itself with a trailing
+# `// EXPECT: <rule-id>` (or `// EXPECT-NEXT:` where the hit has to end the
+# line), so the two can be checked against each other by eye.
+
+# --- one file per rule: the plain hit, and nothing from the comment forms -----
+#
+# Each rule- file also carries the same token behind a `//` line comment and
+# inside a `/* */` block comment. Neither may fire; that is the whole point of
+# the stripper, and no line below names those.
+
+scripts/lint-sim-fixtures/sources/rule-random.swift:7: random
+scripts/lint-sim-fixtures/sources/rule-sysrng.swift:7: sysrng
+scripts/lint-sim-fixtures/sources/rule-shuffle.swift:8: shuffle
+scripts/lint-sim-fixtures/sources/rule-shuffle.swift:9: shuffle
+scripts/lint-sim-fixtures/sources/rule-shuffle-using.swift:9: shuffle-using
+scripts/lint-sim-fixtures/sources/rule-shuffle-using.swift:10: shuffle-using
+scripts/lint-sim-fixtures/sources/rule-random-element.swift:8: random-element
+scripts/lint-sim-fixtures/sources/rule-uuid.swift:7: uuid
+scripts/lint-sim-fixtures/sources/rule-date.swift:7: date
+scripts/lint-sim-fixtures/sources/rule-hasher.swift:8: hasher
+
+# One line per alternative in the clock pattern: ContinuousClock,
+# SuspendingClock, DispatchTime, ProcessInfo, getenv, clock_gettime.
+scripts/lint-sim-fixtures/sources/rule-clock.swift:8: clock
+scripts/lint-sim-fixtures/sources/rule-clock.swift:9: clock
+scripts/lint-sim-fixtures/sources/rule-clock.swift:10: clock
+scripts/lint-sim-fixtures/sources/rule-clock.swift:11: clock
+scripts/lint-sim-fixtures/sources/rule-clock.swift:12: clock
+scripts/lint-sim-fixtures/sources/rule-clock.swift:14: clock
+
+# import Foundation, import FoundationEssentials, import class
+# Foundation.NSString, @preconcurrency import Foundation, and the same import
+# with nothing after it on the line.
+scripts/lint-sim-fixtures/sources/rule-foundation.swift:8: foundation
+scripts/lint-sim-fixtures/sources/rule-foundation.swift:9: foundation
+scripts/lint-sim-fixtures/sources/rule-foundation.swift:10: foundation
+scripts/lint-sim-fixtures/sources/rule-foundation.swift:11: foundation
+scripts/lint-sim-fixtures/sources/rule-foundation.swift:17: foundation
+
+scripts/lint-sim-fixtures/sources/rule-dispatch.swift:6: dispatch
+scripts/lint-sim-fixtures/sources/rule-dispatch.swift:7: dispatch
+
+# One line per framework in the platform pattern: SwiftData, SwiftUI, UIKit,
+# AppKit, Combine, CoreGraphics, Glibc, Darwin, os.
+scripts/lint-sim-fixtures/sources/rule-platform.swift:7: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:8: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:9: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:10: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:11: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:12: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:13: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:14: platform
+scripts/lint-sim-fixtures/sources/rule-platform.swift:15: platform
+
+# --- the stripper's own workout ----------------------------------------------
+#
+# What fires, and why:
+#
+#   15  a clock read with a trailing comment that names UUID() — date only
+#   16  code after a block comment that closed mid-line
+#   17  code before a block comment that opened mid-line
+#   19  code after that block closed on a later line
+#   20  a banned name inside a plain string literal — strings are not stripped
+#   21  real code after a string literal containing "//"
+#   22  real code after a string literal containing "/*"
+#   23  a banned name in a string whose escaped quote does not end it
+#   25  a banned name inside a multi-line string
+#
+# What must NOT fire, and is therefore absent:
+#
+#   8-10   a doc comment naming Int.random(in:using:), UUID() and Hasher()
+#   12-14  a multi-line block comment naming UUID(), Date(), ProcessInfo and
+#          SystemRandomNumberGenerator()
+#   18     the inside of the block comment opened on line 17, naming Date()
+#   30     `Date/* still a clock read */()` — the documented gap in the stripper.
+#          It is not airtight and does not try to be; see the script header. If
+#          someone ever closes this, the self-test fails here and this list is
+#          what they update.
+
+scripts/lint-sim-fixtures/sources/stripper.swift:15: date
+scripts/lint-sim-fixtures/sources/stripper.swift:16: uuid
+scripts/lint-sim-fixtures/sources/stripper.swift:17: uuid
+scripts/lint-sim-fixtures/sources/stripper.swift:19: uuid
+scripts/lint-sim-fixtures/sources/stripper.swift:20: date
+scripts/lint-sim-fixtures/sources/stripper.swift:21: uuid
+scripts/lint-sim-fixtures/sources/stripper.swift:22: date
+scripts/lint-sim-fixtures/sources/stripper.swift:23: date
+scripts/lint-sim-fixtures/sources/stripper.swift:25: date
+
+# --- the negative control ----------------------------------------------------
+#
+# Every banned name in the table, written in a doc comment, a `//` comment and a
+# `/* */` block comment. Not one of those fires, so lines 8-27 are absent from
+# this list. The one hit is line 32: a banned name inside a string literal, which
+# the script reports on purpose — interpolation can hold real code, and literal
+# text that reads like a banned call is a false positive worth looking at.
+
+scripts/lint-sim-fixtures/sources/negative-control.swift:32: date
+
+# --- the golden-test check ---------------------------------------------------
+#
+# goldens/ is scanned only for Hasher, the way the real tree's *Golden*Tests
+# files are. The doc comment on lines 7-8 says the checksum is deliberately not
+# `Hasher`; saying so must not fire, so only the use on line 14 is here.
+
+scripts/lint-sim-fixtures/goldens/FixtureGoldenSeedTests.swift:14: golden-hasher
