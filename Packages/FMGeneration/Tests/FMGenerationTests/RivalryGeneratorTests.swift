@@ -239,15 +239,17 @@ struct RivalryGeneratorTests {
     /// generation takes, which moved the sample.
     ///
     /// So the expectation stays, recorded as a known issue rather than weakened or
-    /// deleted: it is the design's claim, and it is worth failing when someone caps
-    /// seeded heat and this stops being an issue at all.
+    /// deleted: it is the design's claim.
+    /// [#64](https://github.com/knissley/football-manager/issues/64) is the issue that
+    /// caps seeded heat, and whoever lands it takes the wrapper off — this test goes red
+    /// for having no issue to record, which is exactly the reminder it should give.
     @Test("Bitter is out of reach at creation and reachable through lived history")
     func bitterIsEarnedNotSeeded() {
         guard let world = world() else {
             Issue.record("generation failed")
             return
         }
-        withKnownIssue("decision 170 is not enforced: seeded history can reach bitter") {
+        withKnownIssue("decision 170 is not enforced (#64): seeded history can reach bitter") {
             #expect(
                 world.rivalries.allSatisfy { $0.heat(in: 2030) != .bitter },
                 "a brand-new world should not open with a blood feud")
