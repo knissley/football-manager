@@ -4,14 +4,33 @@ import Testing
 
 @testable import FMGeneration
 
+/// Building a league: the structure, and the clubs in it.
+///
+/// Half of what is asserted here used to be asserted about a *drawn* league, because
+/// there was no other kind. Since [decision 215](../../../../docs/design-decisions.md)
+/// there are two paths — the curated thirty-two a career starts from, and the pool
+/// randomiser behind `FranchiseSource.randomised` — and a test has to say which one it
+/// means. The sweeps over eight and twelve seeds are the randomiser's: they are what
+/// [#4](https://github.com/knissley/football-manager/issues/4) left behind, they only
+/// mean anything where a seed still changes the names, and running them on the default
+/// would be the same league checked twelve times. The curated table's own version of
+/// each is in `FranchiseSetTests`.
 @Suite("League generation")
 struct LeagueGeneratorTests {
 
     private func generate(
-        shape: LeagueShape = .standard, seed: UInt64 = 7
+        shape: LeagueShape = .standard, franchises: FranchiseSource = .curated, seed: UInt64 = 7
     ) -> LeagueGenerator.GeneratedLeague? {
         var random = SplittableRandom(seed: seed)
-        return try? LeagueGenerator.league(shape: shape, using: &random).get()
+        return try? LeagueGenerator.league(shape: shape, franchises: franchises, using: &random)
+            .get()
+    }
+
+    /// A drawn league, which is what every sweep below wants.
+    private func drawn(
+        shape: LeagueShape = .standard, seed: UInt64 = 7
+    ) -> LeagueGenerator.GeneratedLeague? {
+        generate(shape: shape, franchises: .randomised, seed: seed)
     }
 
     @Test("A generated league satisfies its own structure validator", .tags(.contract))
@@ -39,9 +58,29 @@ struct LeagueGeneratorTests {
         #expect(first.teams == second.teams)
     }
 
-    @Test("Different seeds produce different leagues", .tags(.contract))
-    func seedsDiverge() {
+    /// Rewritten by [#69](https://github.com/knissley/football-manager/issues/69), which
+    /// did not so much break this test as answer it the other way. Two seeds used to
+    /// name two different sets of clubs, and that was the bug: a league that re-rolled
+    /// its identities every seed is why a calibration run could not tell an engine
+    /// change from a re-roll ([decision 215](../../../../docs/design-decisions.md)).
+    /// What two seeds owe each other now is the same thirty-two franchises and a
+    /// different league inside them — here, different schemes; in a world,
+    /// different rosters too. The old assertion is kept where it is still true, on the
+    /// randomiser.
+    @Test("Different seeds produce the same franchises playing differently", .tags(.contract))
+    func seedsShareFranchisesAndDiverge() {
         guard let a = generate(seed: 1), let b = generate(seed: 2) else {
+            Issue.record("generation failed")
+            return
+        }
+        #expect(a.teams.map(\.identity.fullName) == b.teams.map(\.identity.fullName))
+        #expect(a.teams.map(\.stadium) == b.teams.map(\.stadium))
+        #expect(a.teams.map(\.scheme) != b.teams.map(\.scheme))
+    }
+
+    @Test("Different seeds produce different leagues from the randomiser", .tags(.contract))
+    func drawnSeedsDiverge() {
+        guard let a = drawn(seed: 1), let b = drawn(seed: 2) else {
             Issue.record("generation failed")
             return
         }
@@ -98,7 +137,7 @@ struct LeagueGeneratorTests {
     @Test("Every team's colours are legible", .tags(.unit))
     func colorsAreLegible() {
         for seed in UInt64(1)...12 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             for team in world.teams {
                 #expect(
                     team.identity.colors.hasReadableContrast,
@@ -162,7 +201,7 @@ struct LeagueGeneratorTests {
     @Test("City names do not share a stem", .tags(.contract))
     func cityStemsAreDistinct() {
         for seed in UInt64(1)...8 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             let stems = world.teams.map { $0.identity.city.split(separator: " ")[0] }
             #expect(
                 Set(stems).count == stems.count,
@@ -175,7 +214,7 @@ struct LeagueGeneratorTests {
     @Test("No two teams share an abbreviation", .tags(.contract))
     func abbreviationsAreUnique() {
         for seed in UInt64(1)...8 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             let abbreviations = world.teams.map(\.identity.abbreviation)
             #expect(
                 Set(abbreviations).count == abbreviations.count,
@@ -205,7 +244,7 @@ struct LeagueGeneratorTests {
     @Test("Indoor stadiums are climate-neutral and louder", .tags(.unit))
     func domesAreNeutral() {
         for seed in UInt64(1)...10 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             for team in world.teams where team.stadium.isIndoors {
                 #expect(team.stadium.climate == .temperate)
                 #expect(team.stadium.weatherIsDecidedByClimate == false)
@@ -216,7 +255,7 @@ struct LeagueGeneratorTests {
     @Test("Capacities and noise stay in plausible ranges", .tags(.unit))
     func plausibleStadiums() {
         for seed in UInt64(1)...10 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             for team in world.teams {
                 #expect(team.stadium.capacity >= 50_000 && team.stadium.capacity <= 85_000)
                 #expect(team.stadium.noise >= 35 && team.stadium.noise <= 100)
@@ -232,7 +271,7 @@ struct LeagueGeneratorTests {
         var highAltitudeTeams = 0
         var total = 0
         for seed in UInt64(1)...8 {
-            guard let world = generate(seed: seed) else { continue }
+            guard let world = drawn(seed: seed) else { continue }
             total += world.teams.count
             highAltitudeTeams += world.teams.filter { $0.stadium.isHighAltitude }.count
         }
@@ -288,7 +327,7 @@ struct LeagueGeneratorTests {
         "contract: a stadium feature word names one ground in a world", .tags(.contract),
         arguments: Array(UInt64(1)...12))
     func stadiumFeatureWordsAreUsedOnce(seed: UInt64) {
-        guard let world = generate(seed: seed) else {
+        guard let world = drawn(seed: seed) else {
             Issue.record("seed \(seed) did not generate")
             return
         }
@@ -317,7 +356,7 @@ struct LeagueGeneratorTests {
         "contract: a nickname never repeats the city it plays in", .tags(.contract),
         arguments: Array(UInt64(1)...12) + [UInt64(14), UInt64(42)])
     func nicknamesDoNotEchoTheirCity(seed: UInt64) {
-        guard let world = generate(seed: seed) else {
+        guard let world = drawn(seed: seed) else {
             Issue.record("seed \(seed) did not generate")
             return
         }
@@ -342,7 +381,7 @@ struct LeagueGeneratorTests {
         "contract: no two teams share a nickname stem", .tags(.contract),
         arguments: Array(UInt64(1)...12))
     func nicknameStemsAreDistinct(seed: UInt64) {
-        guard let world = generate(seed: seed) else {
+        guard let world = drawn(seed: seed) else {
             Issue.record("seed \(seed) did not generate")
             return
         }

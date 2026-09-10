@@ -58,6 +58,16 @@ It splits along one line that matters:
   fatigue, and noise is the mechanism behind home field advantage rather than a bonus
   applied on top of one ([penalties.md](penalties.md)).
 
+*Where both come from:* not from the seed. A world's thirty-two clubs are the curated
+table in `FMGeneration.FranchiseSet` — identity, market, the city's climate and altitude,
+and the building down to its roof, surface, capacity and noise
+([decisions 215 and 216](design-decisions.md#world-generation)). A `Franchise` is
+generation's shape for that row and never leaves `FMGeneration`; what a world holds is
+`Team`. The seed still draws everything a club is *doing* — its scheme, its roster, its
+depth chart and the strength it was built at — so two careers are two leagues in the same
+buildings. The old pool randomiser is still there behind `FranchiseSource.randomised`, as
+a last resort rather than a default.
+
 Plus `MarketSize` and `TeamScheme`, and — still to come — `Roster`, `DepthChart`,
 `Contracts`, `CoachingStaff`, `Finances`, `TeamStrategy` (the AI's rebuild-vs-contend
 posture), and season record.

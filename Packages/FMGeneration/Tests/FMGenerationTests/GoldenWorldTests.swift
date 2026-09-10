@@ -44,7 +44,27 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process", .tags(.contract),
         arguments: [
-            (UInt64(1), UInt64(14_214_372_360_801_669_875)),
+            // All three moved for the last time they can move for this reason in #69,
+            // which took the initial world off the identity pools: the thirty-two clubs,
+            // their cities, colours, markets and grounds are now `FranchiseSet`'s curated
+            // table rather than a draw, and the checksum reads every one of those fields.
+            // Two consequences beyond the names. The league is dealt from the front of
+            // each region rather than popped off the back, so which franchise is which
+            // team identifier changed; and a team no longer draws its identity, so the
+            // league substream reaches the scheme draw in a different place — schemes
+            // moved, and with them the roster each club was built for. From here a seed
+            // moves the rosters, the strengths and the schemes, and nothing moves the
+            // franchises ([decision 215](../../../../docs/design-decisions.md)).
+            //
+            // And all three once more in review of #69, which found real marks in eight
+            // cells of that table: six stadium names that were a real arena, two real
+            // bowl games, a demolished venue, an 1860s ballpark and a corporate sponsor,
+            // and two abbreviations that are corporate marks holding real stadium naming
+            // rights (rule 8, [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)).
+            // Renamed, and nothing else about the identity touched. Every one of the
+            // eight is a string the engine never reads — `GoldenSeedTests` did not move
+            // — but the world checksum covers the identity, so it did.
+            (UInt64(1), UInt64(9_640_392_912_359_852_668)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -65,8 +85,8 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(739_023_233_666_568_453)),
-            (UInt64(7), UInt64(16_728_311_166_745_480_593)),
+            (UInt64(5), UInt64(207_628_132_540_486_439)),
+            (UInt64(7), UInt64(2_330_269_064_591_620_310)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

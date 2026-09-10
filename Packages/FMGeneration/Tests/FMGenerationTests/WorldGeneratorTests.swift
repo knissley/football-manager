@@ -172,11 +172,23 @@ struct WorldGeneratorTests {
         }
     }
 
-    @Test("contract: different seeds build different worlds", .tags(.contract))
+    /// What "a different world" means changed with
+    /// [decision 215](../../../../docs/design-decisions.md): the clubs are curated, so
+    /// two seeds field the same franchises and everything a career is played *with*
+    /// differs. Asserted as both halves rather than as `first.teams != second.teams`,
+    /// which would still pass on the schemes alone and would stop noticing if the
+    /// rosters ever stopped moving.
+    @Test(
+        "contract: different seeds build different worlds in the same buildings",
+        .tags(.contract))
     func differentSeedsDifferentWorlds() throws {
         let first = try #require(generated(seed: 21))
         let second = try #require(generated(seed: 22))
-        #expect(first.teams != second.teams)
+
+        #expect(first.teams.map(\.identity) == second.teams.map(\.identity))
+        #expect(first.teams.map(\.stadium) == second.teams.map(\.stadium))
+
+        #expect(first.teams.map(\.scheme) != second.teams.map(\.scheme))
         #expect(teamMeanOveralls(first) != teamMeanOveralls(second))
     }
 

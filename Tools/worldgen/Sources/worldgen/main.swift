@@ -27,6 +27,7 @@ var teamCount = 32
 var teamIndex = 0
 var mode = "roster"
 var season = 2030
+var franchises = FranchiseSource.curated
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
@@ -36,6 +37,14 @@ while let argument = arguments.next() {
     case "--team": teamIndex = Int(arguments.next() ?? "") ?? teamIndex
     case "--show": mode = arguments.next() ?? mode
     case "--season": season = Int(arguments.next() ?? "") ?? season
+    case "--franchises":
+        switch arguments.next() ?? "" {
+        case "curated": franchises = .curated
+        case "random", "randomised": franchises = .randomised
+        case let other:
+            print("--franchises takes curated or random, not \(other)")
+            exit(1)
+        }
     case "--help", "-h":
         print(
             """
@@ -48,6 +57,11 @@ while let argument = arguments.next() {
               --season <n>    season number (default 2030)
               --show <mode>   roster | starters | league | teams | standings
                               | class | pipeline | rivalries | colleges
+              --franchises    curated (default) | random. Curated is the thirty-two
+                              a career starts from — the same clubs in the same
+                              buildings at every seed, with the rosters generated.
+                              Random is the old pool draw, kept as a last resort
+                              and not refined.
 
             Same seed, same world, every time.
             """)
@@ -165,7 +179,7 @@ func shape(forTeams requested: Int) -> LeagueShape {
 }
 
 let generated = WorldGenerator.generate(
-    seed: seed, shape: shape(forTeams: teamCount), season: season)
+    seed: seed, shape: shape(forTeams: teamCount), franchises: franchises, season: season)
 
 let world: WorldGenerator.GeneratedWorld
 switch generated {
@@ -318,7 +332,11 @@ case "league":
             + "\(signedOneDecimal(offsets.reduce(0, +) / Double(max(1, offsets.count))))")
 
 case "teams", "standings":
-    print("\(world.league.name), seed \(seed)")
+    // Which league this is, and where its clubs came from: at a glance, the curated
+    // header is the tell that two seeds are meant to print the same thirty-two.
+    print(
+        "\(world.league.name), seed \(seed) — "
+            + (franchises == .randomised ? "randomised franchises" : "curated franchises"))
     print("")
     for conference in world.league.conferences {
         print("\(conference.name) Conference")

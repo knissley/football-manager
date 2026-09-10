@@ -83,9 +83,20 @@ struct GoldenSeedTests {
     @Test(
         "A seed produces the same game in every process", .tags(.contract),
         arguments: [
-            (UInt64(1), UInt64(12_324_255_037_165_177_066)),
-            (UInt64(5), UInt64(5_395_087_517_990_643_814)),
-            (UInt64(12), UInt64(6_863_213_026_828_125_501)),
+            // Moved by #69, and by the world rather than by the engine: nothing in
+            // `FMSimulation` changed. `TestWorld` is `WorldGenerator.generate`, so the
+            // eight clubs it plays between are now `FranchiseSet`'s curated ones
+            // ([decision 215](../../../../docs/design-decisions.md)). Three things the
+            // engine reads moved with them — the ground the game is played in (roof,
+            // surface, noise and altitude are curated now, and the home side's stadium
+            // is the one this game is played in), the schemes, which are still drawn but
+            // from a league substream that no longer spends draws on identities, and
+            // therefore the rosters, because a roster is built for the scheme its club
+            // inherited. A game between two different clubs in a different building is a
+            // different game.
+            (UInt64(1), UInt64(5_440_315_691_981_408_884)),
+            (UInt64(5), UInt64(546_216_697_121_067_157)),
+            (UInt64(12), UInt64(14_325_656_630_955_244_777)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

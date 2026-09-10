@@ -58,6 +58,40 @@ struct HarnessWorldTests {
         #expect(HarnessWorld.checksumLine(for: seven) != HarnessWorld.checksumLine(for: eleven))
     }
 
+    /// What a two-seed calibration sweep is *for*, since
+    /// [decision 215](../../../../docs/design-decisions.md): seeds 7 and 11 play in one
+    /// league of thirty-two clubs, in one set of buildings, with two different sets of
+    /// players. Before, a seed re-rolled the roofs, the surfaces and the noise as well as
+    /// the rosters, so a row that moved between the two seeds could not be told from a
+    /// row that moved because the weather mix had changed underneath it — which is why
+    /// #4 moved about sixty rows with no engine change at all.
+    ///
+    /// The stadium especially: it is what the weather is drawn from, and the harness
+    /// draws weather per game.
+    @Test(
+        "contract: both calibration seeds play in the same thirty-two buildings", .tags(.contract))
+    func theCalibrationLeagueIsFixed() throws {
+        let seven = try HarnessWorld.generate(seed: 7).get()
+        let eleven = try HarnessWorld.generate(seed: 11).get()
+
+        #expect(seven.teams.count == 32)
+        #expect(seven.teams.map(\.identity) == eleven.teams.map(\.identity))
+        #expect(seven.teams.map(\.stadium) == eleven.teams.map(\.stadium))
+        #expect(seven.teams.map(\.market) == eleven.teams.map(\.market))
+
+        // And the halves that are supposed to move still do, or the two seeds would be
+        // one measurement written down twice.
+        #expect(seven.teams.map(\.scheme) != eleven.teams.map(\.scheme))
+        // On who the players are rather than on their identifiers: a `PlayerID` is
+        // allocated in order and every roster is the same size, so the identifiers are
+        // positional and identical at every seed while the men holding them are not.
+        let sameRosters = seven.teams.allSatisfy { team in
+            seven.roster(of: team.id).map(\.name.full)
+                == eleven.roster(of: team.id).map(\.name.full)
+        }
+        #expect(sameRosters == false)
+    }
+
     /// The case the reach script exists for. Rivalry generation was a hundred lines that
     /// no calibration row could see (#64), and the reason it could not is here: the
     /// harness never generates one.

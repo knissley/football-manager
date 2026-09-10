@@ -30,8 +30,26 @@ struct VocabularyCoverageTests {
         .blocked: "M3 — no rush lane exists on a kick, so nothing can get a hand up."
     ]
 
+    /// Which two clubs of the eight-team world play the *n*-th game.
+    ///
+    /// It used to be team 0 against team 1 in every one of the ninety, which was fine
+    /// while a seed re-rolled the whole league: ninety seeds meant ninety different
+    /// grounds. Since [decision 215](../../../../docs/design-decisions.md) the
+    /// franchises are curated, so that would be the same fixture in the same stadium
+    /// ninety times over, and a sample of one building is thinner than it looks — a punt
+    /// downed inside the ten is the sort of thing noise, altitude and a roof all reach.
+    /// Walking the pairing visits all eight grounds, both domes among them.
+    private static func pairing(_ seed: UInt64) -> (home: Int, away: Int) {
+        let teams = UInt64(TestWorld.shape.totalTeams)
+        // One ahead by at least one and at most `teams - 1`, so the away side is never
+        // the home side and the fixture list is not eight repeats of the same rotation.
+        let home = seed % teams
+        return (Int(home), Int((home + 1 + (seed / teams) % (teams - 1)) % teams))
+    }
+
     private static func result(seed: UInt64) -> GameResult {
-        TestWorld.game(seed: seed)
+        let (home, away) = pairing(seed)
+        return TestWorld.game(seed: seed, home: home, away: away)
     }
 
     /// Enough games that a rare-but-reachable case is not a coin flip.
@@ -40,6 +58,13 @@ struct VocabularyCoverageTests {
     /// roughly a one-in-eleven chance of seeing none — and this suite duly went red for
     /// it once field position improved enough to make being backed up rare. Simulated
     /// once and shared, because six assertions over one stream costs what one used to.
+    ///
+    /// Ninety is not comfortable for the rarest case in here. Illegal touching needs a
+    /// punt that is downed or run out of bounds — about 1.1 a game — and then a 1.8%
+    /// roll on top, so ninety games expect two of them and see none about one time in
+    /// six. Measured on this sample: 101 such punts and two flags. It is the case to
+    /// widen the sample for if this suite goes red on it again, and widening means more
+    /// fixtures rather than only more seeds.
     private static let sampled: [PlayRecord] = (UInt64(1)...90).flatMap { result(seed: $0).plays }
 
     private static func plays() -> [PlayRecord] { sampled }
