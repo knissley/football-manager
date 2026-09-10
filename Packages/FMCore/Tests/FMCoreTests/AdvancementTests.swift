@@ -139,16 +139,25 @@ struct AdvancementTests {
         #expect(short.ballOn == rules.puntTouchbackSpot)
     }
 
-    /// The defence scores, and then *receives* the free kick. Getting that backwards
-    /// gives the ball to the team that just gave up two points.
-    @Test("A safety scores two for the defence and they receive")
+    /// Rewritten for A3 (#16). This test asserted `possessionChanged`, with a comment
+    /// warning against exactly the outcome that produced: under the engine's convention
+    /// the possessing team kicks, so flipping possession at the safety had the team
+    /// that *scored* free-kicking from its own 20 and the team that conceded receiving.
+    /// The sport: the team scored upon keeps the ball to put it in play with a free kick
+    /// from its own 20, and that kick changes hands like every kickoff does.
+    @Test(
+        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety is two points to the defence, and the team scored upon keeps the ball to free-kick from its own 20"
+    )
     func safety() {
         let next = rules.advance(
             from: situation(ballOn: 98), outcome: outcome(-3, .safety, kind: .sack))
         #expect(next.scoring == .safety)
         #expect(next.points == 2)
-        #expect(next.possessionChanged)
+        #expect(next.possessionChanged == false, "the team scored upon keeps the ball to kick")
         #expect(next.requiresKickoff)
+        #expect(
+            next.ballOn == rules.ballOnFromOwnYard(rules.safetyKickoffOwnYard),
+            "the free kick is from its own 20")
     }
 
     // MARK: - Turnovers

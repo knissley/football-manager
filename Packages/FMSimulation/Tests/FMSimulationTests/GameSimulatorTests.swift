@@ -233,25 +233,51 @@ struct GameSimulatorTests {
         #expect(kinds.contains(.extraPoint), "a try should follow the touchdown")
     }
 
-    /// A safety pays the *defence*, and then the defence receives. Paying the wrong side
-    /// is the scoreboard bug this checks for.
-    @Test("A safety pays the team that did not have the ball")
+    /// Rewritten for A3 (#16). This test checked only the points, and the points were
+    /// right while the wrong team kicked off. A safety pays the defence, the team scored
+    /// upon then puts the ball in play with a free kick from its own 20, and the team
+    /// that scored takes the kick and the ball — at the touchback spot here, because the
+    /// scripted kick is a touchback; that spot is `Rules.kickoffTouchbackOwnYard`, the
+    /// 30 until D1 (#41) moves it.
+    @Test(
+        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety pays the defence, the team scored upon free-kicks from its own 20, and the team that scored takes over"
+    )
     func safetyPaysTheDefence() {
         let script = [
             Outcome(kind: .kickoff, yards: 0, endedIn: .touchback),
             Outcome(kind: .sack, yards: -4, endedIn: .safety, clockRunoff: 5),
+            Outcome(kind: .kickoff, yards: 0, endedIn: .touchback),
             Outcome(kind: .rush, yards: 1, endedIn: .tackled, clockRunoff: 6),
         ]
         let result = simulate(ScriptedResolver(script))
+        let rules = Rules.standard
 
-        guard let safetyPlay = result.plays.first(where: { $0.outcome.endedIn == .safety }) else {
-            Issue.record("the script should have produced a safety")
+        guard
+            let index = result.plays.firstIndex(where: { $0.outcome.endedIn == .safety }),
+            result.plays.count > index + 2
+        else {
+            Issue.record("the script should have produced a safety with two plays after it")
             return
         }
-        // The team that was on offence for the safety must not be the one that gained.
-        let conceded = safetyPlay.situation.possession
-        let gained = conceded == TeamID(1) ? result.awayScore : result.homeScore
-        #expect(gained >= 2, "the defence should have been credited")
+        let conceded = result.plays[index].situation.possession
+        let scored = conceded == home ? away : home
+        #expect(
+            (scored == home ? result.homeScore : result.awayScore) >= 2,
+            "two points to the team that did not have the ball")
+
+        let freeKick = result.plays[index + 1]
+        #expect(freeKick.outcome.kind == .kickoff, "the next play is the free kick")
+        #expect(freeKick.situation.possession == conceded, "by the team scored upon")
+        #expect(
+            freeKick.situation.ballOn == rules.ballOnFromOwnYard(rules.safetyKickoffOwnYard),
+            "from its own 20")
+
+        let takeover = result.plays[index + 2]
+        #expect(takeover.situation.possession == scored, "the team that scored takes over")
+        #expect(takeover.situation.down == .first && takeover.situation.distance == 10)
+        #expect(
+            takeover.situation.ballOn == rules.kickoffTouchbackSpot,
+            "at the kickoff touchback spot, its own \(rules.kickoffTouchbackOwnYard)")
     }
 
     /// Points and the play log cannot disagree: the box score *is* the play log, summed.
