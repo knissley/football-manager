@@ -58,6 +58,17 @@ public protocol PlayCaller: Sendable {
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
 
+    /// When the first choice of the two privileges of 4-2-2 is this side's — the second
+    /// half, for the captain who lost the pregame toss; a third postseason overtime
+    /// period, for the captain who lost the toss before overtime (2025 rulebook,
+    /// 16-1-4-e) — whether it elects to receive the kickoff rather than kick off
+    /// (4-2-2-a). The choice of goal (4-2-2-b) is not modelled: a spot is stored
+    /// relative to whoever has the ball, so there is no end of the field to choose.
+    ///
+    /// `situation` is this side's: `possession` is it and `scoreDifferential` is from
+    /// its point of view. The toss itself is not drawn, so a deferral is not on offer.
+    func electsToReceive(situation: Situation, classified: SituationClass) -> Bool
+
     /// Whether the offence spends a charged timeout instead of taking the ten-second
     /// runoff its dead-ball foul has earned (2025 rulebook, 4-7-1 Item 1). The clock
     /// starts on the snap after the timeout rather than on the ready signal.
@@ -227,6 +238,11 @@ extension PlayCaller {
     ) -> Bool {
         let heavy = situation.offensePersonnel.wideReceivers <= 1
         return random.nextBool(probability: heavy ? 0.62 : 0.30)
+    }
+
+    /// Receive, which is what nearly every captain does with the choice.
+    public func electsToReceive(situation: Situation, classified: SituationClass) -> Bool {
+        true
     }
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {

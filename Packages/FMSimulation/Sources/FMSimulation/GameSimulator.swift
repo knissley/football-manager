@@ -160,6 +160,24 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     // MARK: - One snap
 
     private func step(_ state: inout State, random: inout SplittableRandom) {
+        // A half that opens with one side's first choice of 4-2-2's privileges — the
+        // second half, and a third postseason overtime period (16-1-4-e) — puts the
+        // choice to that side's caller before its kickoff, and before anything else in
+        // the step. A period ends on a play, but also between downs — on an injury
+        // timeout's runoff, or on the last-forty-seconds election — and whichever way
+        // the half ended, the kick that follows is the next thing this loop builds.
+        // Settled after `apply` instead, a half ended between downs had its kick played
+        // with the toss loser kicking, and the answer that came a step later handed the
+        // ball back to the kicker. The situation is the chooser's: it has the ball to
+        // kick off with until it answers.
+        if state.firstChoicePending {
+            let opening = state.situation()
+            state.settleFirstChoice(
+                receives: caller.electsToReceive(
+                    situation: opening,
+                    classified: SituationClass(opening, rules: state.setup.rules)))
+        }
+
         // Timeouts first, and both sides get asked. They are not plays, so they happen
         // before one and change the situation the callers then read.
         if !state.pendingKickoff && !state.pendingTry {

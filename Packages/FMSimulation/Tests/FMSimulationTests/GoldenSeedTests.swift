@@ -165,7 +165,14 @@ struct GoldenSeedTests {
             // doubling and offensive interference tripling as a side effect — and a
             // conversion's run-or-pass call is made once with its spot rather than
             // re-asked before a replay.
-            (UInt64(1), UInt64(4_745_756_930_261_563_394)),
+            //
+            // And moved at seed 1 alone by the merge with A13. The late out-of-bounds
+            // window is judged from the clock where the ball became dead rather than
+            // from where the play before it ended (4-3-2-a-2, 4-3-2-a-3), and the
+            // sideline is now something a trailing offence reaches on purpose — so the
+            // two meet on the plays that matter most to both. Seeds 5 and 12 played the
+            // same game either way; seed 1 did not.
+            (UInt64(1), UInt64(16_190_159_873_496_514_374)),
             (UInt64(5), UInt64(9_358_588_685_460_489_739)),
             (UInt64(12), UInt64(4_864_393_250_434_305_262)),
         ])

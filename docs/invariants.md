@@ -68,19 +68,40 @@ season is what checks one. A band is evidence about a rate and never about a rul
 10. Each team has two timeouts in regular-season overtime. `[2025 · 16-1-3-e]` —
     `test:overtimeTimeoutsAreTwo`
 11. A postseason game plays 15-minute overtime periods until somebody wins, so a game level
-    after the fifth period plays a sixth. `[2025 · 16-1-4, 16-1-4-d, 16-1-4-e, 16-1-4-f,
-    16-1-4-i]` — `test:postseasonPlaysASixthPeriod`; **modelling**: the book puts a *third*
-    overtime period back in play with a free kick, because 16-1-4-e gives its first choice
-    of 4-2-2's privileges to the captain who lost the toss before overtime, and 16-1-4-i
-    tosses again after a fourth; at the other boundaries the teams only change goals
-    (16-1-4-f, 4-2-3) and play continues from the same spot. The engine restarts the first
-    overtime period and no later one, which is
-    [#86](https://github.com/knissley/football-manager/issues/86)'s — pinned by
-    `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`
-12. The second half opens with a kickoff by the team that received the opening one.
-    `[2025 · 4-2-2]` — `test:halftimePossession`; **modelling**: the second-half choice
-    belongs to the captain who lost the pregame toss, and neither the toss nor a deferral is
-    modelled — the engine simply alternates
+    after the fifth period plays a sixth, and its periods pair into halves. A third overtime
+    period is put back in play with a free kick, the captain who lost the toss before
+    overtime having the first choice of 4-2-2's privileges, and so is a fifth after the new
+    toss; each side has three timeouts in each half; a second or a fourth period carries on
+    from the spot, the teams changing goals with possession, the down, the ball and the
+    line to gain unchanged. `[2025 · 16-1-4, 16-1-4-d, 16-1-4-e, 16-1-4-f, 16-1-4-g,
+    16-1-4-i, 16-1-2, 4-2-2, 4-2-3]` — `test:postseasonPlaysASixthPeriod`,
+    `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+    `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`,
+    `test:secondPostseasonOvertimePeriodCarriesOn`,
+    `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
+    `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
+    `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`,
+    `test:periodResumesWithKickoffAnswers`, `test:coinTosses`; **modelling**: no toss is
+    drawn — the side that kicks off after one stands for the captain who lost it, and after
+    a fourth overtime period that is the side with the ball, pinned by
+    `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`; the change of ends
+    is not modelled either, for the reason 4-2-3 gives
+12. The second half opens with a kickoff, the captain who lost the pregame toss having the
+    first choice of 4-2-2's privileges: to receive, or to kick off. The kick hands the ball
+    to the receivers however the first half ended — on a play, or between downs on an
+    injury timeout's runoff or the last-forty-seconds election: a touchback is theirs at
+    their restart spot, a return theirs where it ended. `[2025 · 4-2-2, 4-2-2-a, 6-1-1-a,
+    6-1-7, 11-6-2, 11-6-3, 7-6-1, 4-5-4 Note 4]` — `test:halftimePossession`,
+    `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`; the choice is the
+    captain's, a `PlayCaller`
+    decision (`electsToReceive`) that defaults to receive and is read off the stream as
+    the kickoff it decides, the same way a two-point or an onside call is; **modelling**:
+    neither the toss nor a deferral is drawn — the side that kicks off to open the game
+    stands for the captain who lost the toss, so with the default the side that received
+    the opening kick kicks off the second half — and the choice of goal is not modelled,
+    for the reason 4-2-3 gives
 13. The clock only ever runs down within a period. `[2025 · 4-1-1]` —
     `test:clockIsMonotonic`, `test:clockFloor`
 14. A regular-season overtime period has a two-minute warning, because fourth-period timing
@@ -216,13 +237,21 @@ season is what checks one. A band is evidence about a rate and never about a rul
 43. Gaining a first down does not stop the clock: it is not among the stoppages Rule 4
     lists, and the omission is the rule. `[2025 · 4-3, 4-4]` — `test:firstDownDoesNotStop`
 44. A runner going out of bounds stops the clock until the ball is ready for play, except
-    that it waits for the snap once possession has changed, inside the closing two minutes
-    of the first half and inside the closing five of the second. `[2025 · 4-4-c, 4-3-2-a]` —
-    `test:outOfBoundsEarly`, `test:outOfBoundsLate`; **modelling**: where a play ends
-    laterally is drawn against the concept and the clock — an outside run reaches the
-    boundary and an inside run does not, a trailing offence inside two minutes seeks it
-    and one protecting a lead late stays in — `test:theSidelineIsAClockDecision`,
-    `test:theSidelineDependsOnTheCall`,
+    that it waits for the snap once possession has changed, after the two-minute warning
+    of the first half and inside the closing five minutes of the second. The window is
+    judged where the runner stepped out — the clock after the play's own time has come
+    off — and not where the play before him ended: a runner out at 4:50 on a play snapped
+    at 5:07 is inside it. `[2025 · 4-4-c, 4-3-2-a, 4-3-2-a-2, 4-3-2-a-3]` —
+    `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
+    `test:outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+    `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`; in the first
+    half the boundary is the warning's own, taken as the down that crosses 2:00 ends
+    (3-41), so the window and the warning give one answer there —
+    `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`;
+    **modelling**: where a play ends laterally is drawn against the concept and the clock
+    — an outside run reaches the boundary and an inside run does not, a trailing offence
+    inside two minutes seeks it and one protecting a lead late stays in —
+    `test:theSidelineIsAClockDecision`, `test:theSidelineDependsOnTheCall`,
     `test:breakawaysAreNotSidelineByConstruction`
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
@@ -431,88 +460,88 @@ The band and the season are in the [calibration table](match-engine.md#calibrati
 what every one of them was derived from is in
 [`reference/calibration-sources.md`](reference/calibration-sources.md).
 
-89. A team scores about what a real team scores, and the game's points come mostly from
+90. A team scores about what a real team scores, and the game's points come mostly from
     touchdowns and then from field goals. — `row:points`, `row:pointsFromTouchdowns`,
     `row:pointsFromFieldGoals`, `row:gamesWithin3`, `row:gamesWithin7`
-90. Games end tied about as rarely as they really do, reach overtime about as often, and
+91. Games end tied about as rarely as they really do, reach overtime about as often, and
     play about as much of the overtime period. — `row:tiesPerGame`, `row:overtimeRate`,
     `row:overtimeLength`
-91. A team throws for and runs for about what a real team does, at about the same yards a
+92. A team throws for and runs for about what a real team does, at about the same yards a
     carry, a completion, an attempt and a play. — `row:passingYards`, `row:rushingYards`,
     `row:yardsPerCarry`, `row:yardsPerAttempt`, `row:yardsPerCompletion`, `row:yardsPerPlay`
-92. Passes are completed, pressured, sacked and intercepted at about the real rates. —
+93. Passes are completed, pressured, sacked and intercepted at about the real rates. —
     `row:completionPercentage`, `row:sackRate`, `row:interceptionRate`, `row:pressureRate`,
     `row:completionsZeroOrFewer`
-93. A game holds about as many snaps as a real one, and a team runs about as many plays from
+94. A game holds about as many snaps as a real one, and a team runs about as many plays from
     scrimmage. — `row:playsPerGame`, `row:playsFromScrimmage`
-94. Third down comes up at about the real distance and is converted at about the real rate,
+95. Third down comes up at about the real distance and is converted at about the real rate,
     and first down gains about what it really gains. — `row:thirdDownDistance`,
     `row:thirdDownConversion`, `row:firstDownGain`, `row:firstDownsPerTeamGame`
-95. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
+96. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
     or fewer, reach ten, and break twenty. — `row:carriesStuffed`, `row:carries2orFewer`,
     `row:carries10plus`, `row:carries20plus`
-96. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
+97. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
     `row:dropbackLoss`, `row:dropbackNoGain`, `row:dropback10plus`, `row:dropback20plus`,
     `row:dropback40plus`
-97. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
+98. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
     about as many of them a game. — `row:driveEndPunt`, `row:driveEndTouchdown`,
     `row:driveEndDowns`, `row:drivesPerTeamGame`, `row:playsPerDrive`
-98. The shape of a drive is right: three-and-outs, short drives, middling ones and long
+99. The shape of a drive is right: three-and-outs, short drives, middling ones and long
     ones. — `row:drives3orFewer`, `row:drives4to7`, `row:drives8plus`, `row:threeAndOut`
-99. A trip inside the 20 ends in a touchdown about as often as it really does. —
+100. A trip inside the 20 ends in a touchdown about as often as it really does. —
     `row:redZoneTouchdownRate`
-100. Drives start about where they really start, and about as often inside their own half. —
+101. Drives start about where they really start, and about as often inside their own half. —
      `row:averageStart.2025`, `row:averageStart.2024`, `row:ownHalfStarts.2025`,
      `row:ownHalfStarts.2024`, `row:snapsInsideOwn10`
-101. Teams punt about as often, for about the real net, and about as many punts come back. —
+102. Teams punt about as often, for about the real net, and about as many punts come back. —
      `row:puntsPerTeamGame`, `row:netPunt`, `row:puntsReturned`
-102. Field goals are attempted about as often, from about the real spread of distances, and
+103. Field goals are attempted about as often, from about the real spread of distances, and
      made at about the real rate from each. — `row:fieldGoalsPerTeamGame`,
      `row:fieldGoalsUnder30`, `row:fieldGoals30to39`, `row:fieldGoals40to49`,
      `row:fieldGoals50plus`, `row:fieldGoalAttemptsUnder30`, `row:fieldGoalAttempts30to39`,
      `row:fieldGoalAttempts40to49`, `row:fieldGoalAttempts50plus`
-103. Extra points are made, and two-point tries taken and converted, at about the real
+104. Extra points are made, and two-point tries taken and converted, at about the real
      rates. — `row:extraPointsMade`, `row:twoPointTries`, `row:twoPointConversion`
-104. Fourth down is punted, kicked and gone for at about the real rates, and converted at
+105. Fourth down is punted, kicked and gone for at about the real rates, and converted at
      about the real one. — `row:fourthDownPunted`, `row:fourthDownKicked`,
      `row:fourthDownWentForIt`, `row:fourthDownAttempts`, `row:fourthDownConversion`,
      `row:fourthAndOneWentForIt`
-105. The ball is turned over, lost and fallen on at about the real rates, and about as many
+106. The ball is turned over, lost and fallen on at about the real rates, and about as many
      touchdowns are scored by somebody other than the offence. — `row:turnovers`,
      `row:fumblesLost`, `row:fumblesKept`, `row:defensiveReturnTouchdowns`,
      `row:nonOffensiveTouchdowns.2025`, `row:nonOffensiveTouchdowns.2024`,
      `row:kickReturnTouchdowns.2025`, `row:kickReturnTouchdowns.2024`, `row:safeties`
-106. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
+107. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
      produces, and onside kicks are attempted and recovered at about the real rates. —
      `row:kickoffsReturned.2025`, `row:kickoffsReturned.2024`, `row:kickoffTouchbacks.2025`,
      `row:kickoffTouchbacks.2024`, `row:onsideKicks.2025`, `row:onsideKicks.2024`,
      `row:onsideRecovery.2025`, `row:onsideRecovery.2024`
-107. About as many flags fly as really do, spread over the fouls that really get called, and
+108. About as many flags fly as really do, spread over the fouls that really get called, and
      the road team commits a few more pre-snap fouls than the home team. —
      `row:penaltiesPerGame`, `row:penalty.offensiveHolding`, `row:penalty.falseStart`,
      `row:penalty.defensivePassInterference`, `row:penalty.defensiveHolding`,
      `row:penalty.unnecessaryRoughness`, `row:penalty.delayOfGame`, `row:penalty.offside`,
      `row:penalty.illegalFormation`, `row:penalty.roughingThePasser`,
      `row:penalty.neutralZoneInfraction`, `row:preSnapRoadVsHome`
-108. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
+109. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
      against heavier looks, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
      `row:ypcOutnumberedByOne`
-109. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
+110. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
-110. Over a season, team win totals spread about as widely as they really do. —
+111. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
 
 ## What the harness cannot check yet
 
-111. A completion is a completion whether it gained a yard, none, or lost one. The record
+112. A completion is a completion whether it gained a yard, none, or lost one. The record
      cannot say a pass was caught, so the harness infers one from positive yards and reads
      several points low while showing green. — **not yet enforced**,
      [#22](https://github.com/knissley/football-manager/issues/22) and
      [#42](https://github.com/knissley/football-manager/issues/42); S14 in the
      [audit](audit-is-this-football.md)
-112. Players miss games at about the rate they really do, and heavy rain takes points off a
+113. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
