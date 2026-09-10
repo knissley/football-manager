@@ -186,9 +186,10 @@ public enum FranchiseSet {
     /// other, in the same invented register as the cities below. It is no real league's
     /// name and no real club's, its initials are no real league's either, and it claims
     /// nothing national, federal or united — this world has no nation for a league to be
-    /// named after. That review is the reason the name is written here rather than drawn
-    /// from `StructurePools.leagueNames`, which is as unrefined as the rest of the pools
-    /// and holds more than one line that would not survive it.
+    /// named after. That is the bar `StructurePools.leagueNames` is held to as well, line
+    /// for line: a drawn name is as public as a written one, so there is one rule for
+    /// both and the difference between them is only that this one does not move with the
+    /// seed.
     ///
     /// No abbreviation: `League` has no field for one, and inventing one nothing reads
     /// would be a second name to keep true. If it acquires one, it is written down here
