@@ -367,6 +367,24 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.requiresTry)
     }
 
+    /// A live-ball foul by the scorer wipes its own score: an offensive foul on the
+    /// last play of a half means the score does not count (4-8-2-b), and a foul by the
+    /// offence during its own run is enforced by the three-and-one method (14-3-6).
+    /// The spot of the foul is not in the record, so the previous spot stands in.
+    @Test(
+        "football · Rule 14-3-6, 4-8-2-b · a facemask by the offence during its own touchdown run nullifies the score, enforced from the previous spot"
+    )
+    func offensiveContactFoulOnItsOwnScore() {
+        let decision = rules.enforce(
+            penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 20),
+            outcome: outcome(20, .touchdown), offendingTeamHadBall: true)
+        #expect(decision.accepted, "the defence takes the flag over the score")
+        #expect(decision.advancement.scoring == nil)
+        #expect(decision.advancement.ballOn == 35)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 25)
+    }
+
     /// The frame rule: enforcement is computed in the frame of the team that will snap
     /// next. A personal foul by the offence during a play on which it loses the ball
     /// leaves the defence in possession, enforced from the dead-ball spot (14-4-3-b).

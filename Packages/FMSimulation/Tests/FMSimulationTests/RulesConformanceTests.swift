@@ -165,6 +165,19 @@ enum RulesScenarios {
         lastPlayTouchdown(trailingBy: 1, opening: sevenToSix)
     }
 
+    /// Seven for the side that has the ball first, and then two more when the other
+    /// side is tackled in its own end zone on its first snap: a lead of nine.
+    static func leadByNine(_ snap: Snap) -> Outcome? {
+        if snap.index == 1 { return snap.touchdown() }
+        if snap.index == 2, snap.isTry { return .extraPoint(good: true) }
+        if snap.index == 4 { return snap.safety() }
+        return nil
+    }
+
+    static var lastPlayTouchdownDownNine: ScriptedGame {
+        lastPlayTouchdown(trailingBy: 9, opening: leadByNine)
+    }
+
     static var lastPlayTouchdownLevel: ScriptedGame {
         lastPlayTouchdown(trailingBy: 0, opening: { _ in nil })
     }
@@ -214,6 +227,44 @@ enum RulesScenarios {
             play: plod)
     }
 
+    /// The side that receives the overtime kickoff kicks a field goal on its first
+    /// possession and then kicks off; what the kickoff produces is `kick`.
+    static func overtimeFieldGoalThenKickoff(_ kick: Outcome) -> ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveFamily: {
+                $0.quarter >= 5 && $0.down == .fourth ? .fieldGoal : .insideRun
+            })
+        ) { snap in
+            if snap.quarter == 5, snap.isKickoff, snap.differential == 3 { return kick }
+            return plod(snap)
+        }
+    }
+
+    static var overtimeKickoffRecoveredByTheKickersAfterFieldGoal: ScriptedGame {
+        overtimeFieldGoalThenKickoff(.kickoffRecoveredByTheKickers(at: 53))
+    }
+
+    static var overtimeKickoffReturnedForTouchdownAfterFieldGoal: ScriptedGame {
+        overtimeFieldGoalThenKickoff(.kickoffReturnTouchdown)
+    }
+
+    /// The first side to possess in overtime scores a touchdown and kicks the point; the
+    /// second side answers with a touchdown, trails by one, and goes for two.
+    static var overtimeTrailingScorerGoesForTwo: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(twoPointDecision: {
+                $0.quarter == 5 && $0.scoreDifferential == -1
+            })
+        ) { snap in
+            guard snap.quarter == 5 else { return plod(snap) }
+            if snap.isScrimmage, snap.differential == 0 || snap.differential == -7 {
+                return snap.touchdown()
+            }
+            if snap.isTry, snap.differential == -1 { return .twoPoint(converted: true) }
+            return plod(snap)
+        }
+    }
+
     static var overtimeFirstPossessionInterceptionReturned: ScriptedGame {
         ScriptedGame { snap in
             if snap.quarter == 5, snap.isScrimmage, snap.differential == 0 { return .pickSix }
@@ -249,6 +300,12 @@ enum RulesScenarios {
     static var kickoffReturned: ScriptedGame {
         ScriptedGame { snap in
             snap.index == 0 ? .kickoffReturn(toOwn: 25, seconds: 8) : plod(snap)
+        }
+    }
+
+    static var kickoffFairCaught: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 0 ? .kickoffFairCaught(atOwn: 25, seconds: 4) : plod(snap)
         }
     }
 
@@ -330,8 +387,18 @@ enum RulesScenarios {
         lateFlag(window: 40...119)
     }
 
-    static var falseStartOutsideTwoMinutes: ScriptedGame {
+    static var falseStartInTheFourthQuarterOutsideTwoMinutes: ScriptedGame {
         lateFlag(window: 160...400)
+    }
+
+    static var falseStartInTheThirdQuarter: ScriptedGame {
+        lateFlag(quarter: 3, window: 160...400)
+    }
+
+    /// The scoreless walk reaches overtime, and the flag flies inside its last two
+    /// minutes.
+    static var falseStartInsideTwoMinutesOfOvertime: ScriptedGame {
+        lateFlag(quarter: 5, window: 40...119)
     }
 
     static var falseStartWithTheClockStopped: ScriptedGame {
@@ -663,6 +730,20 @@ struct RulesConformanceTests {
         trace.expectScore(trace.opponent(of: touchdown.scorer), 2)
     }
 
+    /// Down nine, the touchdown leaves the side down three: no successful try is worth
+    /// three, so none is played and the game ends on the touchdown.
+    @Test(
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down nine, gets no try because no try could affect the outcome"
+    )
+    func lastPlayTouchdownDownNine() {
+        let trace = RulesScenarios.lastPlayTouchdownDownNine.run()
+        guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
+        trace.expectLastPlay(touchdown.index, "down three with time expired, the try is waived")
+        trace.expectWinner(trace.opponent(of: touchdown.scorer))
+        trace.expectScore(touchdown.scorer, 6)
+        trace.expectScore(trace.opponent(of: touchdown.scorer), 9)
+    }
+
     @Test(
         "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down one, gets no try"
     )
@@ -841,6 +922,93 @@ struct RulesConformanceTests {
         trace.expectScore(trace.opponent(of: kicks[2].element.situation.possession), 3)
     }
 
+    /// A kickoff is the receiving team's opportunity to possess, and a kick the kicking
+    /// team legally recovers still counts as that opportunity (16-1-5-c): after a field
+    /// goal on the opening possession, a muffed kickoff the kickers fall on ends the
+    /// game (A.R. 16.2).
+    @Test(
+        "football · Rule 16-1-3-b, 16-1-5-c, A.R. 16.2 · after a field goal on the opening overtime possession, a kickoff the kicking team recovers ends the game"
+    )
+    func overtimeKickoffRecoveredByTheKickersEndsIt() {
+        let trace = RulesScenarios.overtimeKickoffRecoveredByTheKickersAfterFieldGoal.run()
+        guard reachedOvertime(trace),
+            let kick = trace.first(where: {
+                $0.situation.quarter == 5 && $0.outcome.kind == .kickoff
+                    && $0.outcome.endedIn == .fumbleRecovered
+            })
+        else {
+            Issue.record("the script meant the kicking team to recover its overtime kickoff")
+            return
+        }
+        let kicker = kick.play.situation.possession
+        trace.expectScore(kicker, 3, "the field goal")
+        trace.expectLastPlay(kick.index, "the receivers had their opportunity; the game is over")
+        trace.expectWinner(kicker)
+    }
+
+    /// After the opening-possession field goal the other side's kickoff return is its
+    /// opportunity; a return touchdown puts it ahead once both have possessed, so the
+    /// game ends on the kick, with no try (A.R. 16.4, 4-8-2-c).
+    @Test(
+        "football · Rule 16-1-3-b, 16-1-3-c, 16-1-5-c, A.R. 16.4 · after a field goal on the opening overtime possession, a kickoff returned for a touchdown ends the game with no try"
+    )
+    func overtimeKickoffReturnedForTouchdownEndsIt() {
+        let trace = RulesScenarios.overtimeKickoffReturnedForTouchdownAfterFieldGoal.run()
+        guard reachedOvertime(trace),
+            let kick = trace.first(where: {
+                $0.situation.quarter == 5 && $0.outcome.kind == .kickoff
+                    && $0.outcome.endedIn == .touchdown
+            })
+        else {
+            Issue.record("the script meant the overtime kickoff to be returned for a touchdown")
+            return
+        }
+        let returner = trace.opponent(of: kick.play.situation.possession)
+        trace.expectLastPlay(kick.index, "the touchdown decides it; no try in sudden death")
+        trace.expectWinner(returner)
+        trace.expectScore(returner, 6)
+        trace.expectScore(kick.play.situation.possession, 3)
+    }
+
+    /// Once both have possessed, a touchdown that leaves the scorer behind is not yet
+    /// decisive: its try is played, and the conversion that puts him ahead ends it.
+    @Test(
+        "football · Rule 16-1-3-b, 16-1-3-c, 4-8-2-c, 11-3-1 · once both have possessed in overtime, a touchdown that leaves the scorer behind gets its try, and the conversion that puts him ahead ends it"
+    )
+    func overtimeTrailingScorerTryDecides() {
+        let trace = RulesScenarios.overtimeTrailingScorerGoesForTwo.run()
+        guard reachedOvertime(trace) else { return }
+        let touchdowns = trace.plays.enumerated().filter {
+            $0.element.situation.quarter == 5 && $0.element.outcome.endedIn == .touchdown
+                && $0.element.outcome.kind == .rush
+        }
+        guard touchdowns.count == 2 else {
+            Issue.record("the script meant each side to score a touchdown in overtime")
+            return
+        }
+        let answer = touchdowns[1]
+        let scorer = answer.element.situation.possession
+        #expect(
+            answer.element.situation.scoreDifferential == -7, "the answering side trailed by seven")
+        trace.expectPlay(
+            answer.offset + 1, kind: .twoPointConversion, possession: scorer,
+            "behind by one after the touchdown, the try is played")
+        trace.expectLastPlay(answer.offset + 1, "the conversion puts the scorer ahead and ends it")
+        trace.expectWinner(scorer)
+        trace.expectScore(scorer, 8)
+        trace.expectScore(trace.opponent(of: scorer), 7)
+    }
+
+    @Test("football · Rule 16-1-3-e · each team has two timeouts in regular-season overtime")
+    func overtimeTimeoutsAreTwo() {
+        let trace = RulesScenarios.scoreless.run()
+        guard reachedOvertime(trace),
+            let opening = trace.first(where: { $0.situation.quarter == 5 })
+        else { return }
+        #expect(opening.play.situation.offenseTimeouts == 2)
+        #expect(opening.play.situation.defenseTimeouts == 2)
+    }
+
     /// A defence that intercepts has thereby possessed, so both sides have had their
     /// turn, and a defensive touchdown on the first possession ends it.
     @Test(
@@ -979,6 +1147,36 @@ struct RulesConformanceTests {
         trace.expectPlay(2, clock: 900 - 8 - 6, "the first snap costs only its own six seconds")
     }
 
+    @Test("football · Rule 4-3-1-c · a fair-caught kickoff starts no clock")
+    func fairCaughtKickoffStartsNoClock() {
+        let trace = RulesScenarios.kickoffFairCaught.run()
+        trace.expectPlay(0, kind: .kickoff, endedIn: .fairCatch)
+        trace.expectPlay(
+            1, clock: 900, clockRunning: false,
+            "the clock does not start on a fair catch, and waits for the snap")
+    }
+
+    /// The kicking team recovering its kick before any other legal touching is one of
+    /// the cases in which the clock does not start on a free kick; it then starts on
+    /// the next snap (4-3-2).
+    @Test(
+        "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap"
+    )
+    func kickoffRecoveredByTheKickersStartsNoClock() {
+        let trace = RulesScenarios.onsideKickRecovered.run()
+        guard
+            let onside = trace.first(where: {
+                $0.outcome.kind == .kickoff && $0.outcome.endedIn == .fumbleRecovered
+            })
+        else {
+            Issue.record("the trailing side never recovered an onside kick")
+            return
+        }
+        trace.expectPlay(
+            onside.index + 1, clock: onside.play.situation.clockRemaining, clockRunning: false,
+            "no clock ran on the kick, and it waits for the snap")
+    }
+
     @Test("football · Rule 4-3-1, 4-4-d · a kickoff touchback consumes no time")
     func touchbackConsumesNoTime() {
         let trace = RulesScenarios.scoreless.run()
@@ -1061,9 +1259,38 @@ struct RulesConformanceTests {
             "the huddle, then ten seconds, and the clock restarts on the ready, not the snap")
     }
 
-    @Test("football · Rule 4-7-1 · outside two minutes the same false start carries no runoff")
-    func falseStartOutsideTwoMinutesCostsNoTime() {
-        let trace = RulesScenarios.falseStartOutsideTwoMinutes.run()
+    /// Rewritten from 4-3-2-e (wave 1 review). This scenario used to run in the fourth
+    /// quarter and assert that the clock restarts on the ready-for-play signal after
+    /// the flag, which is wrong football there: an offensive foul during the fourth
+    /// period that stops the clock before a snap has the clock start on the snap
+    /// (4-3-2-e-3). The as-if-never-flown restart holds outside the late-game cases, so
+    /// this case moves to the third quarter, and the fourth-quarter case follows it.
+    @Test(
+        "football · Rule 4-7-1, 4-4-e, 4-3-2-e · outside the late-game windows a false start with the clock running carries no runoff, and the clock restarts as if the foul had not occurred"
+    )
+    func falseStartInTheThirdQuarterCostsNoTime() {
+        let trace = RulesScenarios.falseStartInTheThirdQuarter.run()
+        guard let flag = flag(in: trace, quarter: 3) else { return }
+        let before = flag.play.situation
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
+            "five yards, same down")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: true,
+            "the huddle and nothing else: no play happened, and the clock restarts on the ready as though the flag had never flown"
+        )
+    }
+
+    /// An offensive foul that stops the clock before a snap in the fourth period has
+    /// the clock start on the snap, wherever in the period it comes.
+    @Test(
+        "football · Rule 4-3-2-e-3, 4-4-e · an offensive foul before the snap in the fourth quarter costs the huddle and nothing else, and the clock then starts on the snap"
+    )
+    func offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap() {
+        let trace = RulesScenarios.falseStartInTheFourthQuarterOutsideTwoMinutes.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
         let before = flag.play.situation
         #expect(
@@ -1073,11 +1300,32 @@ struct RulesConformanceTests {
             "the scenario meant the clock to be running when the flag flew")
         trace.expectPlay(
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
+            "five yards, same down, no runoff outside two minutes")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: false,
+            "the huddle and nothing else, and the clock waits for the snap")
+    }
+
+    /// Fourth-quarter timing rules apply in regular-season overtime (16-1-3-e), the
+    /// runoff among them.
+    @Test(
+        "football · Rule 16-1-3-e, 4-7-1 Item 1 · inside two minutes of regular-season overtime a false start with the clock running carries the runoff, and the clock restarts on the ready"
+    )
+    func falseStartInsideTwoMinutesOfOvertimeCostsTenSeconds() {
+        let trace = RulesScenarios.falseStartInsideTwoMinutesOfOvertime.run()
+        guard reachedOvertime(trace), let flag = flag(in: trace, quarter: 5) else { return }
+        let before = flag.play.situation
+        #expect(
+            before.clockRemaining < 120, "the scenario meant the flag to fly inside two minutes")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: true,
-            "the huddle and nothing else: no play happened, and the clock restarts as though the flag had never flown"
-        )
+            flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
+            "the huddle, then ten seconds, and the clock restarts on the ready")
     }
 
     /// The runoff needs a running clock. After an incompletion the clock is stopped, so

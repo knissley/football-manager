@@ -199,6 +199,18 @@ extension Outcome {
     static let kickoffReturnTouchdown = Outcome(
         kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 100, clockRunoff: 14)
 
+    /// Signalled for and fair caught at the returner's own `yard` line.
+    static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {
+        Outcome(
+            kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard, clockRunoff: seconds)
+    }
+
+    /// Muffed by the receivers and fallen on by the kicking team, `ballOn` from the goal
+    /// it is attacking. The same contract as an onside kick the kickers recover.
+    static func kickoffRecoveredByTheKickers(at ballOn: UInt8, seconds: UInt16 = 5) -> Outcome {
+        onsideKick(recoveredAt: ballOn, seconds: seconds)
+    }
+
     /// The kicking team falls on its own kick, `ballOn` from the goal it is attacking.
     /// `.fumbleRecovered` on a kickoff is how the contract says the kick did not change
     /// hands.

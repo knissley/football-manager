@@ -171,11 +171,11 @@ struct TenSecondRunoffTests {
 
     private func carriesRunoff(
         _ foul: Foul, byOffense: Bool = true, quarter: UInt8 = 4, clock: UInt16 = 40,
-        running: Bool = true
+        running: Bool = true, postseason: Bool = false
     ) -> Bool {
         rules.carriesRunoff(
-            foul: foul, byOffense: byOffense, quarter: quarter, clockRemaining: clock,
-            clockWasRunning: running)
+            foul: foul, byOffense: byOffense, quarter: quarter, isPostseason: postseason,
+            clockRemaining: clock, clockWasRunning: running)
     }
 
     @Test("football · Rule 4-7-1 Item 1 · the runoff is ten seconds")
@@ -207,6 +207,12 @@ struct TenSecondRunoffTests {
             carriesRunoff(.falseStart, quarter: 1, clock: 40) == false,
             "no warning in the first period")
         #expect(carriesRunoff(.falseStart, quarter: 3, clock: 40) == false, "nor the third")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 5, clock: 40),
+            "fourth-quarter timing rules apply in regular-season overtime (16-1-3-e)")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false,
+            "not modelled for a postseason period, which the reference does not cover")
         #expect(carriesRunoff(.falseStart, running: false) == false, "with the clock stopped")
         #expect(carriesRunoff(.offside, byOffense: false) == false, "never against the defence")
         #expect(carriesRunoff(.neutralZoneInfraction, byOffense: false) == false)
