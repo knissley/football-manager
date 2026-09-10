@@ -62,7 +62,7 @@ the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 | Free kick or fair catch kick down | Legal touching in the field of play, with exceptions | `4-4-a`, `4-3-1` |
 | Charged timeout | Snap | `4-4-j`, `4-3-2` |
 | **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` |
-| Foul | Generally as if the foul had not occurred; on the snap in the listed late-game cases | `4-4-e`, `4-3-2-e` |
+| Foul | Generally as though the flag had never flown; on the snap in the listed late-game cases | `4-4-e`, `4-3-2-e` |
 | Two-minute warning | Snap | `4-4-h` |
 | Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` |
@@ -236,14 +236,16 @@ nobody moves until the ball comes down.
   down, and nobody but the kicker and the men deep may move until the kick has come down —
   in the end zone, or in the landing zone — or been touched there. `[2025 · 6-1-3-a]`,
   `[2025 · 6-1-3-c]`
-- **A kick that comes down in the landing zone is live and gets returned.** There is no
-  fair catch available: a fair catch is defined only on a scrimmage kick.
-  `[2025 · 6-1-4]`, `[2025 · 10-2-1]`
+- **A kick that comes down in the landing zone is live and gets returned.** No fair catch
+  is available on it, and the reason is the ground: a free kick may be fair caught only
+  while it is still in the air, and this one has already landed. `[2025 · 6-1-4]`,
+  `[2025 · 10-2-1]`
 - **Short, or out of bounds:** a kick that crosses a sideline before reaching a goal line,
   or that first hits the turf or a man in front of the landing zone, hands the receiving
-  team a choice — the ball **twenty-five yards on from where it was kicked**, which is its
-  own 40 when the kick came from the 35, or the spot where it left the field, or wherever
-  it came down. A safety kick pays thirty yards instead. `[2025 · 6-2-4]`
+  team its choice of three spots — the ball **25 yards on from where it was kicked**, at
+  the inbounds line on that side of the field, which is its own 40 from a kick at the 35;
+  or the spot where it left the field; or wherever it came down, but that one only when it
+  is nearer than 25 yards on. A safety kick pays 30 rather than 25. `[2025 · 6-2-4]`
 - **Landing zone, then the end zone:** the ball is live; downed there or out of bounds
   behind the goal line, it is a touchback at the **20**. `[2025 · 6-1-5-a]`
 - **Into the end zone without touching down in the landing zone first** — downed there,
@@ -251,9 +253,9 @@ nobody moves until the ball comes down.
   **35**. This is the 2025 change; it was the 30 in 2024. `[2025 · 6-1-5]`
 - A kickoff or safety kick that reaches the end zone and stays inbounds is still alive:
   the receiving team either brings it out or kills it where it is. `[2025 · 6-1-5]`
-- Once the kick has come down in the end zone or the landing zone, off the turf or off a
-  man, the kicking team may take it; a legal recovery there is its ball where the play
-  died. `[2025 · 6-1-4-c]`, `[2025 · 6-1-4-d]`
+- Once the kick has reached the end zone or the landing zone — landing there, or touched
+  there by a receiving-team player — the kicking team may take it, and a legal recovery is
+  its ball where the play died. `[2025 · 6-1-4-c]`, `[2025 · 6-1-4-d]`
 
 The two touchback spots are the point of the rule: a kicker who will not put the ball in
 the landing zone hands over the 35, so leg strength is a decision rather than a formality.
@@ -286,9 +288,11 @@ declaring at any point when trailing.
 
 - A punt that reaches the end zone untouched by the receivers is a touchback, and the
   receiving team snaps at its own 20. `[2025 · 11-6-2-c]`, `[2025 · 11-6-3]`
-- A fair catch is what a returner gets for signalling properly and then being left alone
-  to take a punt in that has crossed the line. His team snaps from where he caught it, or
-  may ask for a fair catch kick instead. `[2025 · 10-2-1]`, `[2025 · 10-2-4]`
+- A fair catch is what a returner gets for a valid signal and then an unmolested take. It
+  is available on a scrimmage kick past the line — a field goal attempt is one of those —
+  and on a free kick, but either way only while the kick is still airborne: once it has
+  hit the ground it cannot be fair caught. His team snaps where he caught it, or may ask
+  for a fair catch kick instead. `[2025 · 10-2-1]`, `[2025 · 10-2-4]`
 - A ball downed inside the 10 is a significant field-position win and the AI should value
   it. Modelling, not a rule.
 - Blocks and muffs are low-probability branches worth modeling — they're memorable and
@@ -301,7 +305,7 @@ The book's own list of what changed for 2025, with what it touches here.
 | Rule | What changed | Touches |
 | --- | --- | --- |
 | `6` | The 2024 form of the kickoff is made permanent | The kicking game — #46 |
-| `6-1-3` | Where the receiving team stands in the setup zone, on any free kick from a kickoff to a safety kick: three men at most off the restraining line, and only one to a lane across the field | #46 |
+| `6-1-3` | Where the receiving team stands on a kickoff or a safety kick, inside its setup zone: three men at most off the restraining line, and only one to a lane across the field | #46 |
 | `6-1-5` | **Touchback spot moves to the 35** when the kick reaches the end zone without touching down in the landing zone first — downed there, out of bounds behind the goal line, or off the goal post | `Rules.kickoffTouchbackOwnYard` — #41, #46 |
 | `6-1-6` | Where the kicking team stands for an onside kick, **and a trailing team may now call for one in any quarter** | `PlayCaller.kicksOnside` — #41, #46 |
 | `15-9` | Replay assist may advise the on-field crew on more objective aspects of a play | Officiating; not modelled |
