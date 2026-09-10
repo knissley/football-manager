@@ -202,6 +202,7 @@ matchup, any flag and how it was enforced, and the score after anything that sco
 drive summary at each change of possession and a scoreboard at the end of each period.
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
+`--scenario <name>`
 
 `--home` and `--away` are indices into the league at that seed, in identifier order, and
 the header names the two teams it picked. They agree with `worldgen` and `simharness`:
@@ -239,6 +240,47 @@ every snap of a drive, and whether a penalty leaves the ball where the rule puts
 
 Aggregates hid every rules bug the September audit found. Each of them is obvious in
 thirty seconds of this output, which is why it exists.
+
+### --scenario — watch a conformance scenario
+
+```bash
+cd Tools/gamelog && swift run gamelog --scenario list
+cd Tools/gamelog && swift run gamelog --scenario safety-free-kick
+```
+
+The rules-conformance scenarios are the acceptance language for the rules layer: each one
+is a game whose plays are dictated, so that what is left to watch is the clock, the downs,
+possession, scoring, enforcement and overtime. The suite in
+`Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift` asserts on
+them and prints a verdict; `--scenario` prints the game, so a rule can be *shown* to a
+person rather than described to him.
+
+It is the same game and the same printer. The scenario, its world, its caller and its seed
+all come from `FMSimulationScenarios`, the library the suite runs, so what a reader watches
+is what the suite asserts on, and the play-by-play is `printPlayByPlay` — the one a seeded
+game goes through.
+
+`--scenario list` names them all. The name is a slug (`safety-free-kick`) because a shell
+argument cannot be the test's own sentence; under each name the list prints what the suite
+asserts about it, verbatim — the football sentence and the rule it comes from — and the
+same lines head the game itself, so a reader knows what he is looking for before the first
+play goes by. Most scenarios play a *whole* game, and the moment the citation points at is
+usually a handful of plays: read the header, then find them.
+
+```bash
+# The rule the audit's S11 was about: the side scored upon free-kicks from its own 20.
+swift run gamelog --scenario safety-free-kick | head -20
+
+# S10: a touchdown as the fourth quarter expires gets its try, at 0:00 of that period.
+swift run gamelog --scenario last-play-touchdown-down-seven | tail -30
+
+# And the other half of the same rule: a try that could not change the outcome is waived.
+swift run gamelog --scenario last-play-touchdown-down-two | tail -10
+```
+
+The men are not named in a scenario — a scripted outcome credits nobody, so the log says
+"the back" and "the kicker" — and the header says so. Everything else reads exactly as a
+seeded game does.
 
 ## Tests
 

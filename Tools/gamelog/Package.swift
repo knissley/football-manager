@@ -17,6 +17,7 @@ let package = Package(
                 .product(name: "FMGeneration", package: "FMGeneration"),
                 .product(name: "FMRandom", package: "FMRandom"),
                 .product(name: "FMSimulation", package: "FMSimulation"),
+                .product(name: "FMSimulationScenarios", package: "FMSimulation"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         )
