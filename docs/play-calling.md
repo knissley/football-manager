@@ -124,10 +124,14 @@ post-game report all key off it, which is what stops a tendency report from quie
 contradicting a play-by-play because two systems drew the line at six yards and seven.
 
 **And a caller consumes it as a lean, never as a law.** `isMustPass` says the menu
-shrank, not that it is down to one item. The baseline caller therefore carries a run
-share for *every* down-and-distance bucket, and none of them is zero: it throws the great
+shrank, not that it is down to one item. The baseline caller therefore leans one way in
+*every* down-and-distance bucket and commits in none of them: it throws the great
 majority of third and longs and still runs some, and inside two minutes needing points it
-throws nearly everything and still runs the occasional draw. A caller whose share in some
+throws nearly everything and still runs the occasional draw. Not every bucket gets its
+lean from the same place — short yardage and goal to go are answered before the table of
+run shares is reached, by a branch that runs a little over two thirds of the time and
+throws into the end zone the rest, so their entries in that table are unreachable and
+kept only to keep the switch exhaustive. A caller whose share in some
 bucket is exactly zero is a caller a tendency table can read off a single snap, and a
 defence that has seen the table can stop defending the run for free. The same rule
 applies to the other reads: `isDesperation` is true inside two minutes of *either* half,
@@ -175,12 +179,16 @@ which is how a won game gets fumbled away. There is no memory in the caller and 
 needed — the arithmetic is what carries the decision forward.
 
 A knee on fourth down is a turnover on downs, so the caller does not take one — except
-when the period cannot survive the play clock in front of it, where there is no
-fourth-down snap to give away and the knee is the offence standing on the ball while the
-clock runs out. That exception is what lets the count above include the fourth down's
-interval, and it is what an unforeseen stoppage lands on: an injury timeout between downs
-takes an interval away that nothing could have planned for, and the fourth-down knee is
-where the sequence still ends rather than turning into a punt.
+when the period cannot survive the play clock in front of it. **That exception is a
+modelling substitution and not a rule, and it is worth being exact about which.** What
+4-6-1 and 4-8-1 give the offence there is the right to let the forty seconds go, take the
+delay of game, and end the period with no snap at all; a knee is a snap, so the articles
+do not produce one. This engine has no outcome meaning *let the play clock expire*, so
+the caller kneels that down instead, and the record carries a down that was never played
+— about a fifth of a knee a game. The substitution is what lets the count above include
+the fourth down's interval, and it is what an unforeseen stoppage lands on: an injury
+timeout between downs takes an interval away that nothing could have planned for, and the
+fourth-down knee is where the sequence still ends rather than turning into a punt.
 
 None of it applies above the two-minute warning. The warning is a stoppage the defence
 is handed for nothing (4-4), so it is a fourth timeout — and a knee taken into it has its

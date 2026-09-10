@@ -73,7 +73,7 @@ Which rules must be true of a game, and what checks each, is
 - **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`; a
   charged timeout is therefore an interval an offence kneeling the game out does not
   get, which is half of the victory-formation arithmetic —
-  `test:theGameEndsInVictoryFormation`
+  `test:aKneltOutLeadStaysKnelt`
 - **4-3-2-a**, **4-3-2-a-2**, **4-3-2-a-3** — After a runner goes out of bounds it starts
   on the ready for play, except that it starts on the snap after the two-minute warning of
   the first half (a-2) and inside the last five minutes of the second half (a-3), which
@@ -137,13 +137,25 @@ Which rules must be true of a game, and what checks each, is
   `test:injuryRunoffDeclinedByATrailingDefense`
 - **4-5-4 Note 4** — A half can end on a runoff. — `test:runoffAtEightSecondsEndsTheHalf`
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
-- **4-6-1** — 40 seconds from the end of the previous play, and letting it expire is delay
-  of game. — `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
+- **4-6-1** — 40 seconds from the end of the previous play in which to snap, and letting
+  them run out is delay of game. —
+  `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
   `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
-  spend, which is what a knee-down sequence counts and what makes a fourth down the
-  period cannot survive a knee rather than a snap —
-  `test:theGameEndsInVictoryFormation`,
-  `test:fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst`
+  spend, which is what a knee-down sequence counts —
+  `test:aKneltOutLeadStaysKnelt`,
+  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`
+- **4-6-1 in this engine** — The article says nothing about kneeling, and the inference
+  drawn from it here is only this: read with 4-8-1, an offence on fourth down with the
+  clock running and less than a play clock left may let the forty seconds go, take the
+  delay of game, and see the period end with **no snap at all**. That is the sport's
+  answer, and it is not a knee — a knee is a snap. This engine has no outcome meaning
+  *let the play clock expire*, so its caller kneels that down instead. **That is a
+  modelling substitution, not the article**, and it puts a down on the record that was
+  never played, worth about a fifth of a knee a game. —
+  [#101](https://github.com/knissley/football-manager/issues/101) owns the fix and
+  [#49](https://github.com/knissley/football-manager/issues/49) the calibration it
+  moves; `test:fourthDownKneelStandsInForDecliningTheSnap`,
+  `test:theKneltOutGameEndsOnAFourthDownKnee` pin it meanwhile
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
   enforcement, a free kick. —
@@ -191,13 +203,14 @@ Which rules must be true of a game, and what checks each, is
   produce the runoff; `test:noRunoffFollowsAReplay` pins the exclusion
 - **4-8-1** — A period whose time runs out with the ball still live does not end there:
   the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`; the converse
-  is what ends a game in victory formation, since a period that expires *between* downs
-  ends where it stands — `test:fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst`
+  is what ends a knelt-out game, since a period that expires *between* downs ends where
+  it stands and there is no further down —
+  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`. What the engine records at
+  that point is a knee rather than nothing, which is the substitution noted under 4-6-1
 - **4-8-2** — A period may be extended by one untimed down when something in the down that
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
   `test:walkOffTryIsTheCallerChoice`; and nothing extends one that expires between downs,
-  which is what a knee-down sequence is counting on —
-  `test:theGameEndsInVictoryFormation`
+  which is what a knee-down sequence is counting on — `test:aKneltOutLeadStaysKnelt`
 - **4-8-2-c** — A touchdown on the last play of a period still gets its try. It is waived
   only during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. — `test:lastPlayTouchdownDownSeven`,
