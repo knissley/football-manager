@@ -149,6 +149,37 @@ struct RulesConformanceTests {
         trace.expectScore(scorer, 7)
     }
 
+    /// The try the defence takes away. A try is one scrimmage down, and 11-3-2-e closes
+    /// it out at the whistle whether or not anybody scored on it, so a pick finishes it:
+    /// nothing is scored, nothing is
+    /// replayed, and the side that scored the touchdown still kicks off to the side that
+    /// defended the try — the ball does not change hands for the kickoff however far the
+    /// interceptor carried it.
+    ///
+    /// `afterTheTryTheDefendingTeamReceives` above runs a *kick* try, so 11-3-4 was only
+    /// ever asserted on the try that ends in the kicker's own hands.
+    @Test(
+        "football · Rule 11-3-2-e, 11-3-4 · a two-point try the defence intercepts scores nothing, and the side that scored the touchdown still kicks off",
+        .tags(.football)
+    )
+    func aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer() {
+        let trace = RulesScenario.twoPointTryIntercepted.run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectSequence([.kickoff, .rush, .twoPointConversion, .kickoff, .rush], from: 0)
+        trace.expectPlay(
+            2, kind: .twoPointConversion, endedIn: .intercepted, possession: scorer,
+            "the side that scored goes for two and the defence takes it away")
+        trace.expectPlay(
+            3, kind: .kickoff, possession: scorer, "the try is over, and the scorer kicks off")
+        trace.expectPlay(
+            4, possession: trace.opponent(of: scorer), "the side that defended the try receives")
+        trace.expectScore(scorer, 6, "the touchdown and nothing else")
+        trace.expectScore(trace.opponent(of: scorer), 0, "an interception on a try is not a score")
+    }
+
     @Test(
         "football · Rule 11-4-6 · after a successful field goal the team scored upon receives the kickoff",
         .tags(.football)

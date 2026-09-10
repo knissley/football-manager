@@ -759,8 +759,22 @@ struct Broadcast {
             let kicker = credited(outcome, .kicker) ?? "the kicker"
             text = outcome.endedIn == .fieldGoalGood ? "\(kicker) — good" : "\(kicker) — no good"
         case .twoPointConversion:
-            text = outcome.endedIn == .touchdown ? "conversion good" : "conversion failed"
-            if let target = credited(outcome, .target) { text += ", to \(target)" }
+            // How it failed, and not only that it did. A try the defence intercepts is
+            // the try (2025 rulebook, 11-3-2-e) and the record says so, so the line has
+            // to say what a watcher saw, or a pick on the conversion reads the same as a
+            // drop in the end zone.
+            if outcome.endedIn == .touchdown {
+                text = "conversion good"
+                if let target = credited(outcome, .target) { text += ", to \(target)" }
+            } else if outcome.endedIn == .intercepted {
+                let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+                let thief = credited(outcome, .tackler) ?? "the defender"
+                text = "conversion INTERCEPTED by \(thief), returned to "
+                text += yardLine(spot, offense: play.situation.possession)
+            } else {
+                text = "conversion failed"
+                if let target = credited(outcome, .target) { text += ", to \(target)" }
+            }
         case .rush: text = describeRun(play)
         case .pass: text = describePass(play)
         case .sack: text = describeSack(play)

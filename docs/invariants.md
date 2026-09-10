@@ -178,8 +178,13 @@ season is what checks one. A band is evidence about a rate and never about a rul
     scored it, and what would be a safety on a try is one point to the opponent.
     `[2025 · 11-3-2-b, 11-3-2-c]` — **not yet enforced**,
     [#48](https://github.com/knissley/football-manager/issues/48)
-28. After the try, the team that was on defence for it receives the kickoff.
-    `[2025 · 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`
+28. After the try, the team that was on defence for it receives the kickoff — however the
+    try ended, including one the defence intercepts, because the whistle closes the try out
+    whether or not anybody scored on it, and the ball does not change hands for the free
+    kick that follows.
+    `[2025 · 11-3-2-e, 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`,
+    `test:aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer`,
+    `test:aTwoPointTryThatIsInterceptedIsStillTheTry`
 29. A kickoff returned for a touchdown gets its try, and the returning team then kicks off.
     `[2025 · 11-3-1, 11-3-4]` — `test:kickoffReturnTouchdownGetsItsTry`
 
