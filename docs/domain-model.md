@@ -98,12 +98,34 @@ A drafted player's first season *is* his draft season and the type does not let 
 disagree; an undrafted player carries his own, which is what stops accrued seasons being
 guessed from a birthday. `experience(in:)` counts from it and `isRookie(in:)` asks whether
 it is this season — true of an undrafted rookie as well as a drafted one.
+
+The season he first counted against a roster is **optional, and `nil` means he has not
+arrived**: a college prospect has not been drafted and has not been signed, so there is no
+such season, he is not a rookie in any season, and he has accrued nothing. He used to take
+the season he was generated in, which made every prospect a rookie in the season his class
+became eligible — before he had entered the league
+([#67](https://github.com/knissley/football-manager/issues/67)). He gets one when somebody
+takes him, which is a decision in `FMSimulation` and not a fact about him.
 *Designed, not built:* handedness is not on the type.
 
 Generation gives the league you inherit a past: roughly three quarters of every roster was
 drafted, the round coming off the player's ceiling against a league-wide band, and the rest
 arrived undrafted (`FMGeneration.DraftHistory`). It is history, not a draft — nothing picks
 anybody, and the draft you run is a decision in `FMSimulation`.
+
+**How old that league is.** A man's age is drawn once, at world creation, around a centre
+that is his position group's peak for a starter and a few years under it for the men behind
+him — but never under `PlayerGenerator.entryAge + 2`, because the spot behind a starter
+holds a *developing* player and developing happens in the league. The draw is **truncated,
+not clamped**: a value outside 21...38 is redrawn rather than rounded onto the edge, and the
+floor is `DraftHistory.youngestEntryAge` rather than a number of its own, since a league
+cannot hold a man younger than the youngest age anybody enters it at. Clamping instead put
+266 of 1,696 men at seed 7 on exactly twenty-one, all of them rookies by arithmetic, and a
+quarter of every roster was in its first season. It is now about a sixth, which is the
+sourced band in
+[`reference/calibration-sources.md`](reference/calibration-sources.md#bands-the-harness-cannot-measure),
+and a generated league's mean age is 26.3 against 26.0–26.3 in the seasons that band came
+from.
 
 **Physical** — height, weight, and the athletic testing numbers a scout would see:
 40-yard dash, vertical, broad jump, three-cone, bench. Generated correlated with

@@ -69,23 +69,64 @@ public enum RosterGenerator {
         return byDepth + strength.offset * strengthShare + premium
     }
 
+    /// The youngest and oldest a generated player can be.
+    ///
+    /// The floor is `DraftHistory.youngestEntryAge` and not a number of its own: nobody in
+    /// the league can be younger than the youngest age anybody enters it at. A contract test
+    /// holds the two together.
+    static let youngestAge = DraftHistory.youngestEntryAge
+    static let oldestAge = 38
+
+    /// How wide the draw around a centre is, in years.
+    static let ageSpread = 3.0
+
+    /// How long a man drawn into a spot behind a starter has been in the league, at least.
+    ///
+    /// The reserve slots describe a *developing* player, and developing happens in the
+    /// league: the third cornerback is a second- or third-year man, not one who arrived this
+    /// spring. Without this the centre for a group peaking at twenty-six lands on the entry
+    /// age itself, and a draw centred on its own floor puts a third of its mass under the
+    /// floor however the tail is then handled.
+    static let seasonsBehindAStarter = 2
+
     /// Age for a player at a given depth.
     ///
     /// Starters skew toward their prime and depth skews young, because that is
     /// what rosters look like: the spot behind a starter is where a developing
     /// player usually sits. Again a description of the initial league, not a
     /// constraint on what you do with yours.
+    ///
+    /// **The floor is where the distribution starts, not a bin under it.** This used to
+    /// round the draw and then clamp it into `21...38`, so every draw the Gaussian put below
+    /// twenty-one came back as exactly twenty-one: 266 of 1,696 men at seed 7 against 118 at
+    /// twenty-two, and since nobody enters the league younger than twenty-one, every one of
+    /// them was a rookie — a quarter of every roster was in its first season, a floor no
+    /// entry-age distribution could get under
+    /// ([#67](https://github.com/knissley/football-manager/issues/67)). A draw outside the
+    /// range is now *redrawn*, which is the same distribution truncated rather than folded
+    /// onto its own edge.
+    ///
+    /// Twelve attempts. The rejection rate is at most about one draw in eight for the
+    /// youngest centre this produces, so exhausting them needs twelve consecutive draws of
+    /// more than a standard deviation the wrong way — and the fallback is the centre itself,
+    /// never the floor, so even that cannot build the spike this exists to avoid.
     static func age(
         depth: Int, position: Position, using random: inout SplittableRandom
     ) -> Int {
         let peak = Double(position.group.peakAge)
-        let centre: Double
+        let byDepth: Double
         switch depth {
-        case 0: centre = peak
-        case 1: centre = peak - 2
-        default: centre = peak - 4
+        case 0: byDepth = peak
+        case 1: byDepth = peak - 2
+        default: byDepth = peak - 4
         }
-        return Rounding.toNearest(centre + random.nextGaussian() * 3.0, clampedTo: 21...38)
+        let centre = max(byDepth, Double(PlayerGenerator.entryAge + seasonsBehindAStarter))
+
+        for _ in 0..<12 {
+            let drawn = Int(Rounding.toNearest(centre + random.nextGaussian() * ageSpread))
+            if drawn >= youngestAge && drawn <= oldestAge { return drawn }
+        }
+        return Rounding.toNearest(centre, clampedTo: youngestAge...oldestAge)
     }
 
     /// A full roster.

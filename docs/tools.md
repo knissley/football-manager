@@ -74,7 +74,9 @@ swift run worldgen --seed 99 --show roster --team 3
 # UDFA and the season he signed. Watch for: nobody undrafted, a team of first-round
 # picks, a history only one draft deep, a starter who went in the seventh with a
 # ninety ceiling on every roster. The footer counts how many were drafted — about
-# three quarters league-wide, higher on a contender — and how many are rookies.
+# three quarters league-wide, higher on a contender — and how many are in their first
+# season, which is about a sixth of the league, eight or nine of fifty-three
+# (docs/reference/calibration-sources.md).
 swift run worldgen --seed 7 --show roster --team 3
 
 # The league a career starts in. Two seeds, one league: this is the check that
