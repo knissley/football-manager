@@ -2091,4 +2091,101 @@ struct RulesConformanceTests {
             onside.index + 1, kind: .rush, possession: kicker, down: .first, distance: 10,
             ballOn: 53, "the kicking side keeps the ball where it fell on it")
     }
+
+    // MARK: A foul on a play that scored
+
+    /// The audit's version of this play: three points wiped out and the offence given a
+    /// first down for having its kicker run over. 14-2-3 leaves the points alone and
+    /// carries the fifteen to the free kick instead, which is the only place a foul on a
+    /// scoring play can be walked off to.
+    @Test(
+        "football · Rule 14-2-3, 12-2-12 · roughing the kicker on a made field goal scores the three and moves the free kick fifteen yards",
+        .tags(.football)
+    )
+    func roughingOnAMadeFieldGoalMovesTheKickoff() {
+        let trace = RulesScenario.roughingTheKickerOnAMadeFieldGoal.run()
+        guard let kick = trace.first(where: { $0.outcome.kind == .fieldGoal }) else {
+            Issue.record("the script never attempted the field goal")
+            return
+        }
+        let kicker = kick.play.situation.possession
+        trace.expectPlay(kick.index, kind: .fieldGoal, endedIn: .fieldGoalGood)
+        trace.expectScore(kicker, 3, "the points stand")
+        #expect(
+            kick.play.outcome.penalties.first?.wasAccepted == true,
+            "the flag is accepted, not recorded declined")
+        // The kicking team kicks off from its own 35, fifteen yards forward because the
+        // foul was the receiving team's: its own 50, which is spot 50.
+        trace.expectPlay(
+            kick.index + 1, kind: .kickoff, possession: kicker, ballOn: 50,
+            "the free kick is from the 50, fifteen yards on from the 35")
+    }
+
+    /// The other branch of the same draw. Nothing scored, so nothing is carried anywhere:
+    /// a personal foul on the kicker is fifteen yards and a first down from the previous
+    /// spot, and the offence keeps the ball.
+    @Test(
+        "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down",
+        .tags(.football)
+    )
+    func roughingOnAMissedFieldGoalIsAFirstDown() {
+        let trace = RulesScenario.roughingTheKickerOnAMissedFieldGoal.run()
+        guard let kick = trace.first(where: { $0.outcome.kind == .fieldGoal }) else {
+            Issue.record("the script never attempted the field goal")
+            return
+        }
+        let kicker = kick.play.situation.possession
+        trace.expectScore(kicker, 0)
+        #expect(kick.play.outcome.penalties.first?.wasAccepted == true)
+        #expect(kick.play.outcome.penalties.first?.awardedFirstDown == true)
+        trace.expectPlay(
+            kick.index + 1, possession: kicker, down: .first, ballOn: 5,
+            "first and goal at the 5, fifteen on from the 20")
+    }
+
+    /// And the five-yard half of 12-2-12's article, which 6-2-3 spells out: running into
+    /// the kicker is not a personal foul's fifteen and does not carry a first down, so the
+    /// offence takes five yards and kicks again.
+    @Test(
+        "football · Rule 6-2-3 · running into the kicker on a missed field goal is five yards and the down is replayed",
+        .tags(.football)
+    )
+    func runningIntoTheKickerReplaysTheDown() {
+        let trace = RulesScenario.runningIntoTheKickerOnAMissedFieldGoal.run()
+        guard let kick = trace.first(where: { $0.outcome.kind == .fieldGoal }) else {
+            Issue.record("the script never attempted the field goal")
+            return
+        }
+        let kicker = kick.play.situation.possession
+        trace.expectScore(kicker, 0)
+        #expect(kick.play.outcome.penalties.first?.wasAccepted == true)
+        #expect(
+            kick.play.outcome.penalties.first?.awardedFirstDown == false,
+            "five yards carries no first down")
+        trace.expectPlay(
+            kick.index + 1, possession: kicker, down: .fourth, ballOn: 15,
+            "the same down again, five yards on from the 20")
+    }
+
+    /// The wave-1 review's find, and the last of the audit's scoring-play fouls: the point
+    /// came off *and* the try was skipped, so a hold on a made extra point cost a point
+    /// and the chance to kick it again. The book repeats the try.
+    @Test(
+        "football · Rule 11-3-3 Item 3-a · an offensive foul on a successful try repeats the try rather than ending it",
+        .tags(.football)
+    )
+    func holdingOnASuccessfulTryRepeatsIt() {
+        let trace = RulesScenario.holdingOnASuccessfulTry.run()
+        guard let try1 = trace.first(where: { $0.outcome.kind == .extraPoint }) else {
+            Issue.record("the script never attempted the try")
+            return
+        }
+        let scorer = try1.play.situation.possession
+        trace.expectPlay(try1.index, kind: .extraPoint, endedIn: .fieldGoalGood)
+        // Ten yards back from the fifteen, and the try again rather than a kickoff.
+        trace.expectPlay(
+            try1.index + 1, kind: .extraPoint, possession: scorer, ballOn: 25,
+            "the try is repeated from the enforced spot")
+        trace.expectScore(scorer, 6, "the touchdown alone until the try is made")
+    }
 }

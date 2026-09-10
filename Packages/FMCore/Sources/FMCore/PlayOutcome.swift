@@ -267,6 +267,32 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
         }
     }
 
+    /// Whether this is a personal foul (2025 rulebook, Rule 12 Section 2) or an
+    /// unsportsmanlike conduct foul (12-3-1).
+    ///
+    /// The book asks this in one place that matters here: 14-2-3 carries a personal or
+    /// unsportsmanlike foul to the succeeding free kick when the opponent scores a field
+    /// goal or a safety, and leaves every other foul to be declined. It is the section a
+    /// foul is printed in and not its yardage — running into the kicker is 12-2-12 and
+    /// five yards, and it travels to the free kick like the fifteen-yard fouls beside it.
+    ///
+    /// By article: chop block 12-2-5, blindside block 12-2-7, unnecessary roughness
+    /// 12-2-8, impermissible use of the helmet 12-2-10, roughing the passer 12-2-11,
+    /// roughing and running into the kicker 12-2-12, tripping 12-2-14, facemask 12-2-15,
+    /// horse-collar 12-2-16, blocking below the waist 12-2-4, and unsportsmanlike conduct
+    /// and taunting 12-3-1. Holding, the use of hands and a block in the back are Rule 12
+    /// Section 1, and pass interference is Rule 8, so none of them is one of these.
+    public var isPersonalOrUnsportsmanlike: Bool {
+        switch self {
+        case .chopBlock, .illegalBlindsideBlock, .unnecessaryRoughness, .illegalUseOfHelmet,
+            .roughingThePasser, .roughingTheKicker, .runningIntoTheKicker, .tripping,
+            .facemask, .horseCollarTackle, .lowBlock, .unsportsmanlikeConduct, .taunting:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// Where this foul is walked off from. See `EnforcementSpot` for the three families
     /// and the articles behind them.
     public var enforcement: EnforcementSpot {

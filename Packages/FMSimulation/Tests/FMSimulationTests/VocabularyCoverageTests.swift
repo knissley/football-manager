@@ -187,6 +187,25 @@ struct VocabularyCoverageTests {
             "the draw these share no longer produces the one the game sample sees")
     }
 
+    /// A dead-ball foul is drawn after a play worth reacting to, and for a long time "a
+    /// play" meant a run: `afterThePlay` was called from the run path alone, so no
+    /// completion and no sack in the league ever drew a word afterwards. Two thirds of a
+    /// team's snaps are dropbacks, so two thirds of the sport's shoving matches could not
+    /// happen.
+    @Test("Conduct fouls are drawn after passes and sacks, not only after runs", .tags(.contract))
+    func conductFoulsFollowThePassingGame() {
+        let conduct: Set<Foul> = [.unsportsmanlikeConduct, .taunting]
+        var afterADropback = 0
+        var afterARun = 0
+        for play in Self.plays()
+        where play.outcome.penalties.contains(where: { conduct.contains($0.foul) }) {
+            if play.outcome.kind == .pass || play.outcome.kind == .sack { afterADropback += 1 }
+            if play.outcome.kind == .rush { afterARun += 1 }
+        }
+        #expect(afterARun > 0, "no conduct foul followed a run in ninety games")
+        #expect(afterADropback > 0, "no conduct foul followed a pass or a sack in ninety games")
+    }
+
     /// The mirror of an unreachable case: a credit handed to somebody who did not earn
     /// it. Coverage tests cannot see this one — the role *is* produced — so it needs its
     /// own assertion, and the shape that catches it is who the credits land on.

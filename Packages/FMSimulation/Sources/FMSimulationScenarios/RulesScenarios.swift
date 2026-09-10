@@ -793,6 +793,32 @@ public enum RulesScenarios {
         }
     }
 
+    /// A drive to the twenty, then a field goal with a flag on the rush at the kicker.
+    ///
+    /// Whether the kick is good and which of the two kicker fouls it was are the two axes
+    /// 14-2-3 turns on: a made kick carries a personal foul to the free kick, and a missed
+    /// one is enforced on the down like any other.
+    static func kickerFoul(_ foul: Foul, good: Bool) -> ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveFamily: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
+        ) { snap in
+            if snap.index == 1 { return .rush(Int16(snap.ballOn) - 20) }
+            if snap.family == .fieldGoal { return snap.kick(.fieldGoal, good: good, foulBy: foul) }
+            return plod(snap)
+        }
+    }
+
+    /// A touchdown, then a successful extra point with an offensive hold on it.
+    static var holdingOnASuccessfulTry: ScriptedGame {
+        ScriptedGame { snap in
+            if snap.index == 1 { return snap.touchdown() }
+            if snap.family == .extraPoint {
+                return snap.kick(.extraPoint, good: true, foulBy: .offensiveHolding)
+            }
+            return plod(snap)
+        }
+    }
+
     /// A pick-six puts one side up seven; the other kicks a field goal, is down four,
     /// and kicks onside. The kicking team falls on it at its own 47.
     static var onsideKickRecovered: ScriptedGame {

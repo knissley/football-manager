@@ -1,3 +1,17 @@
+/// Where an accepted penalty is walked off, when it is not walked off on the down it was
+/// committed on (2025 rulebook, 14-2-3, 11-3-3).
+///
+/// A score is not given back for a foul during it, and the yardage is not thrown away
+/// either: it is carried to whatever the rules put in play next. Which of the two that is
+/// depends on the score, not on the foul.
+public enum DeferredEnforcement: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// The try that follows a touchdown (14-2-3).
+    case theTry = 0
+    /// The free kick that follows a field goal, a safety, or a try (14-2-3, 11-3-3
+    /// Item 4-a, 11-3-3 Item 7).
+    case theFreeKick = 1
+}
+
 /// What a foul is worth to the team that did not commit it.
 ///
 /// Enforcement is a **choice**, not an automatic yardage adjustment. Both branches are
@@ -13,11 +27,24 @@ public struct PenaltyDecision: Sendable, Hashable {
     public let accepted: Bool
     /// What the down looks like once the choice is made.
     public let advancement: Advancement
+    /// Where the accepted yardage is walked off, when it is not walked off here: the
+    /// score in `advancement` stands and the spot the rules put in play next is moved
+    /// instead. `nil` for every ordinary enforcement.
+    ///
+    /// The rules layer cannot apply it, because the spot it moves does not exist yet —
+    /// the try has not been spotted and the free kick has not been set up. So this is the
+    /// rules layer *telling* the game state what is owed, and `GameState` walks it off
+    /// when it builds that spot.
+    public let deferredTo: DeferredEnforcement?
 
-    public init(penalty: PenaltyRecord, accepted: Bool, advancement: Advancement) {
+    public init(
+        penalty: PenaltyRecord, accepted: Bool, advancement: Advancement,
+        deferredTo: DeferredEnforcement? = nil
+    ) {
         self.penalty = penalty
         self.accepted = accepted
         self.advancement = advancement
+        self.deferredTo = deferredTo
     }
 }
 

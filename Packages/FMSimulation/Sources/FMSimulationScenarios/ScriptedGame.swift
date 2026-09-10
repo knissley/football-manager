@@ -150,6 +150,18 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// A place kick that went where it was told to, with a flag on it.
+    public func kick(
+        _ family: PlayFamily, good: Bool, foulBy foul: Foul, seconds: UInt16 = 5
+    )
+        -> Outcome
+    {
+        Outcome(
+            kind: family == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
+            endedIn: good ? .fieldGoalGood : .fieldGoalMissed, penalties: [record(foul)],
+            clockRunoff: family == .extraPoint ? 0 : seconds)
+    }
+
     private func record(_ foul: Foul) -> PenaltyRecord {
         let byOffense = foul.committedBy == .offense
         return PenaltyRecord(
