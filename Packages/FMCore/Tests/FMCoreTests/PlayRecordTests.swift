@@ -346,7 +346,7 @@ struct PlayRecordTests {
                 quarter: 2, clockRemaining: 480, down: down,
                 distance: distance, ballOn: ballOn, possession: TeamID(1)),
             calls: Calls(
-                offense: OffensiveCall(design: PlayDesignID(100)),
+                offense: OffensiveCall(concept: .mediumPass),
                 defense: .nickelTwoMan,
                 offensiveCaller: .coordinator(PersonnelID(9)),
                 defensiveCaller: .coordinator(PersonnelID(10))),
@@ -410,8 +410,40 @@ struct PlayRecordTests {
     func callsAreCapturedByValue() {
         let play = record()
         #expect(play.calls.defense.coverage == .twoMan)
-        #expect(play.calls.offense.design == PlayDesignID(100))
+        #expect(play.calls.offense.concept == .mediumPass)
         #expect(play.calls.offense.tempo == .normal)
+        // The design is a reference into a playbook that does not exist until M6, and
+        // nothing invents one: a record that named a design nobody authored would be
+        // pointing at a playbook entry that could never be shown.
+        #expect(play.calls.offense.design == nil)
+    }
+
+    /// Old events must still fold correctly, which starts with an event saying which
+    /// shape it is. The version is on every record, and the first shape is 1.
+    @Test("A record carries the schema version it was written under", .tags(.contract))
+    func recordIsVersioned() {
+        #expect(PlayRecord.currentSchemaVersion == 1)
+        #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
+    }
+
+    /// A concept's kind is what a snap of it produces when no flag wipes it out.
+    @Test("Every concept names the kind of play it produces", .tags(.unit))
+    func conceptKinds() {
+        #expect(PlayConcept.insideRun.kind == .rush)
+        #expect(PlayConcept.outsideRun.kind == .rush)
+        #expect(PlayConcept.screen.kind == .pass)
+        #expect(PlayConcept.playAction.kind == .pass)
+        #expect(PlayConcept.punt.kind == .punt)
+        #expect(PlayConcept.fieldGoal.kind == .fieldGoal)
+        #expect(PlayConcept.kickoff.kind == .kickoff)
+        #expect(PlayConcept.onsideKick.kind == .kickoff)
+        #expect(PlayConcept.extraPoint.kind == .extraPoint)
+        #expect(PlayConcept.twoPointConversion.kind == .twoPointConversion)
+        #expect(PlayConcept.kneel.kind == .kneel)
+        #expect(PlayConcept.spike.kind == .spike)
+        #expect(PlayConcept.scrimmage.allSatisfy { $0.isRun || $0.isPass })
+        #expect(PlayConcept.twoPointConversion.isPass)
+        #expect(PlayConcept.punt.isRun == false && PlayConcept.punt.isPass == false)
     }
 
     /// The call selects the package and the situation observes it, so the two must
