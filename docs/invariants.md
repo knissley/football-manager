@@ -403,19 +403,34 @@ season is what checks one. A band is evidence about a rate and never about a rul
     flag is recorded declined
 80. The basic spot when a **run** is followed by a change of possession is the spot where
     possession was lost, and a defensive foul there gives the ball back to the offence
-    before enforcement. `[2025 · 14-3-5-b, 14-4-3-a]` —
-    `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`; the
-    record's half of it — every takeaway says where possession was lost — is
-    `test:takeawaysCarryTheSpot`. The same flag on a **pass** is a different rule: until a
-    forward pass from behind the line is over, a flag on either side comes off the
-    previous spot, and the down turns into a running play only once somebody catches the
-    ball — so a defensive personal foul before an interception leaves the offence the ball
-    where it snapped, not where the ball was caught.
-    `[2025 · 14-4-5, 8-6-1]` —
-    `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**:
-    the record says nothing about *when* in a down a flag flew, so a foul by the
-    intercepting team during its own return is the same record as one before the catch and
-    is walked off the same way, which is right for the second and wrong for the first
+    before enforcement — unless that spot is **behind the line of scrimmage**, in which
+    case a defensive foul, whether it was behind the line or beyond it, comes off the
+    previous spot instead. The strip sack is what makes the exception the common half of
+    this invariant rather than the rare one: measuring from where the ball came loose
+    would take the sack's yards off the offence a second time.
+    `[2025 · 14-3-5-b, 14-4-3-a, 14-3-6 Exception 1, 14-4-6-b]` —
+    `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble` for the
+    gain, `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot` and
+    `test:contactFoulOnAStripSack` for the loss; the record's half of it — every takeaway
+    says where possession was lost — is `test:takeawaysCarryTheSpot`. The same flag on a
+    **pass** is a different rule: until a forward pass from behind the line is over, a flag
+    on either side comes off the previous spot, and the down turns into a running play only
+    once somebody catches the ball; and a defensive **personal** foul before that pass is
+    completed takes the previous spot or the dead-ball spot, whichever is more beneficial
+    to the offence. An interception is not a completion, which puts a foul that preceded
+    one inside that exception rather than outside it, so the offence takes the better of
+    the two spots: where it snapped when the interceptor was dropped behind that, and where
+    he was dropped when he was dropped in front of it.
+    `[2025 · 14-4-5-d, 8-6-1-d, 8-1-3]` —
+    `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot` for the first arm,
+    `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot` for the second;
+    **modelling**, and both cases unreachable by the crude resolver today: the record says
+    nothing about *when* in a down a flag flew, so a foul by the intercepting team during
+    its own return is the same record as one before the catch and is walked off the same
+    way, which is right for the second and wrong for the first; and a pass **completed and
+    then fumbled away** is enforced from the fumble, where 14-4-5-d gives the previous spot
+    if the foul preceded the catch — the record cannot tell the two apart.
+    [#58](https://github.com/knissley/football-manager/issues/58) carries both
 
 ## Kickoffs and onside kicks
 

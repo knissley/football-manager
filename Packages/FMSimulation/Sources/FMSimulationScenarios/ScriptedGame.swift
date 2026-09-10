@@ -131,9 +131,11 @@ extension Snap {
     /// A run of `yards` with a flag on it, at the end of which the ball comes loose and
     /// the other side gets it and takes it back to `spot` in the offence's frame.
     ///
-    /// The fumble is where the run ended, so that is both where possession was lost and
-    /// the basic spot for the flag: a run followed by a change of possession takes the
-    /// spot where possession went (2025 rulebook, 14-3-5-b). The offence's own gain is
+    /// The fumble is where the run ended, so that is where possession was lost, and on a
+    /// gain that is also the basic spot for the flag: a run followed by a change of
+    /// possession takes the spot where possession went (2025 rulebook, 14-3-5-b). On a
+    /// loss it is not — a basic spot behind the line puts a defensive foul back on the
+    /// previous spot (14-3-6, the exception for the defence). The offence's own gain is
     /// nothing once it no longer has the ball, which is the contract the crude resolver
     /// honours for the same event.
     public func rush(
@@ -145,15 +147,36 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// The quarterback sacked `yards` behind the line — `yards` is negative — and stripped
+    /// as he goes down, with a flag on the defence during the down; the other side gets
+    /// the ball and takes it back to `spot` in the offence's frame.
+    ///
+    /// The ball comes loose behind the line, which is the case the strip sack makes
+    /// common and the case the three-and-one method sends back to the previous spot: a
+    /// basic spot behind the line of scrimmage puts a defensive foul on the previous spot
+    /// wherever the foul itself was (2025 rulebook, 14-3-6, the exception for the
+    /// defence; 14-4-6-b for a foul during the fumble). The kind is a sack and the yards
+    /// are nothing, which is what the crude resolver writes for the same event.
+    public func sack(
+        _ yards: Int16, fumbledAndReturnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 7
+    ) -> Outcome {
+        Outcome(
+            kind: .sack, yards: 0, endedIn: .fumbleLost, penalties: [record(foul)],
+            finalSpot: spot, possessionLostAt: UInt8(max(1, Int(ballOn) - Int(yards))),
+            clockRunoff: seconds)
+    }
+
     /// A pass intercepted `depth` yards past the line and returned to `spot` in the
     /// offence's frame, with a flag on the defence during the down.
     ///
     /// Where possession was lost is on the record because every takeaway carries it, not
     /// because the flag is enforced from there: until a forward pass from behind the line
-    /// is over, a flag on either side comes off the previous spot (2025 rulebook, 14-4-5).
-    /// The record says nothing about *when* in the down a flag flew, so this is one
-    /// scripted play and not two: a foul before the catch and a foul by the intercepting
-    /// team on its own return are the same record.
+    /// is over, a flag on either side comes off the previous spot (2025 rulebook, 14-4-5),
+    /// and a defensive personal foul before the catch comes off the previous spot or the
+    /// dead-ball spot, whichever is more beneficial to the offence (14-4-5-d). The record
+    /// says nothing about *when* in the down a flag flew, so this is one scripted play and
+    /// not two: a foul before the catch and a foul by the intercepting team on its own
+    /// return are the same record.
     public func interception(
         caught depth: UInt8, returnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 8
     ) -> Outcome {

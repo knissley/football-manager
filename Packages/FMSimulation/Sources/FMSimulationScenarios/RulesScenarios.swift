@@ -821,6 +821,9 @@ public enum RulesScenarios {
     /// A run followed by a change of possession takes the spot where possession went as
     /// its basic spot (14-3-5-b), and a defensive foul gives the ball back to the offence
     /// before the walk-off (14-4-3-a): fifteen from its own 40, not fifteen from its 30.
+    /// The gain is what makes the fumble the spot — a fumble behind the line would send
+    /// the flag back to the previous spot (14-3-6, the exception for the defence), which
+    /// is the strip-sack scenario below.
     static var roughnessByTheDefenseOnARunThatEndsInAFumbleLost: ScriptedGame {
         ScriptedGame { snap in
             snap.index == 1
@@ -836,10 +839,13 @@ public enum RulesScenarios {
     ///
     /// Until a forward pass from behind the line is over, a flag on
     /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
-    /// and the down does not turn into a running play until somebody catches the ball:
-    /// fifteen from its own 30, and the interception is wiped out. The offence throws on
-    /// first down from its own 30 so that the record's concept is the play the script
-    /// gives it.
+    /// and the down does not turn into a running play until somebody catches the ball. A
+    /// defensive personal foul before the catch takes the previous spot or the dead-ball
+    /// spot, whichever is more beneficial to the offence (14-4-5-d): the interceptor was
+    /// dropped at the offence's own 25, behind where it snapped, so the previous spot is
+    /// the better of the two — fifteen from its own 30, and the interception is wiped out.
+    /// The offence throws on first down from its own 30 so that the record's concept is
+    /// the play the script gives it.
     static var roughnessByTheDefenseBeforeAnInterception: ScriptedGame {
         ScriptedGame(
             caller: ScriptedCaller(offensiveConcept: {
@@ -849,6 +855,58 @@ public enum RulesScenarios {
             snap.index == 1
                 ? snap.interception(caught: 10, returnedTo: 75, foulBy: .unnecessaryRoughness)
                 : plod(snap)
+        }
+    }
+
+    /// A run to the offence's own 40, then a dropback on which a defender is flagged for
+    /// unnecessary roughness and the quarterback is stripped six yards behind the line, at
+    /// his own 34; the defence falls on it and takes it back to the offence's 20.
+    ///
+    /// The ball came loose behind the line, so the basic spot is behind the line, and a
+    /// defensive foul — behind the line or beyond it — is walked off from the previous
+    /// spot instead (14-3-6, the exception for the defence; 14-4-6-b for a foul during the
+    /// fumble itself): fifteen from the own 40, not fifteen from the own 34, which would
+    /// charge the offence for the sack a second time. The dropback is called as a throw so
+    /// that the record's concept is the play it plays.
+    static var roughnessByTheDefenseOnAStripSack: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 60 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 60)
+            case 2: return snap.sack(-6, fumbledAndReturnedTo: 80, foulBy: .unnecessaryRoughness)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// A run to the opponents' 45, then a throw a defender is flagged for unnecessary
+    /// roughness on; it is picked off at the opponents' 20 and the interceptor is dropped
+    /// at the opponents' 30 — fifteen yards nearer the goal line than the snap was.
+    ///
+    /// The other arm of the same exception. A defensive personal foul before a forward
+    /// pass thrown from behind the line is completed is enforced from the previous spot or
+    /// from the dead-ball spot, whichever is more beneficial to the offence (14-4-5-d, and
+    /// the same sentence as 8-6-1-d); an interception is not a completion (8-1-3), which
+    /// puts a foul that preceded it inside the exception and not outside it. Here the
+    /// dead-ball spot is the better of the two, so it is fifteen from the opponents' 30
+    /// and not fifteen from the opponents' 45. The throw is called as a throw so that the
+    /// record's concept is the play it plays.
+    static var roughnessByTheDefenseBeforeADeepInterception: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 45 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 45)
+            case 2:
+                return snap.interception(
+                    caught: 25, returnedTo: 30, foulBy: .unnecessaryRoughness)
+            default: return plod(snap)
+            }
         }
     }
 

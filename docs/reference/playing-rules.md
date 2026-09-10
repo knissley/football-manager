@@ -287,6 +287,11 @@ below are what it is held to.
 
 ## Rule 8 — Forward pass
 
+- **8-1-3** — A forward pass is *completed* when the offence catches it and *intercepted*
+  when the defence does; the article names the two together and the catch is the same act
+  either way. So an interception is a catch but it is not a completion, which is what
+  decides whether a foul before it is inside 8-6-1-d. —
+  `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
 - **8-3-1** — An ineligible player downfield on a pass: five yards from the previous spot. —
   `test:enforcementFamilies`
 - **8-4-4** — Illegal contact: five yards and an automatic first down. —
@@ -301,14 +306,22 @@ below are what it is held to.
 - **8-6-1** — Between the snap and the moment a forward pass from behind the line is over,
   a foul by either team is enforced from the previous spot. The catch is the boundary: with
   the ball in a receiver's hands the down has become a run, and the running rules govern
-  what follows. The same sentence is Rule 14's, as **14-4-5**. —
-  `test:roughingOnAnIncompletion`,
-  `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`
+  what follows. The same sentence is Rule 14's, as **14-4-5**. It is the general rule and
+  not the whole of it — the exceptions below are what govern interference and a personal
+  foul. — `test:roughingOnAnIncompletion`
 - **8-6-1-b** — Interference by the defence is enforced from the spot of the foul. —
   `test:interferenceDownfield`
-- **8-6-1-d** — A personal foul by the defence before a completion is enforced from the
-  dead-ball spot or the previous spot, whichever favours the offence; if the play scores,
-  on the try. — `test:roughingOnACompletion`
+- **8-6-1-d** — A personal or unsportsmanlike foul by the defence before a forward pass
+  thrown from behind the line is *completed* is enforced from the dead-ball spot or the
+  previous spot, whichever favours the offence; if the play scores, on the try. And if the
+  passing team is fouled and then loses the ball after a completion, it keeps the ball and
+  the foul comes off the previous spot. "Before a completion" reaches an interception,
+  because an interception is not a completion (**8-1-3**) — so the choice of the two spots
+  is the rule for a defensive personal foul on a play that ends in a pick, and the general
+  sentence of 8-6-1 is not. The same exception is Rule 14's, as **14-4-5-d**. —
+  `test:roughingOnACompletion`,
+  `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`,
+  `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
 - **8-7-3 Item 1** — Whoever comes up with a fumble may run with it, whichever side he is
   on, and whether or not the ball has already touched the ground. Three downs are the
   exception — a try, a fourth down, and any down after the warning at two minutes. —
@@ -413,16 +426,22 @@ below are what it is held to.
   fumble, and to nothing else. For a foul during a run not followed by a change of
   possession it is the dead-ball spot (**14-3-5-a**); when the run is followed by a change
   of possession it is the spot where possession was lost (**14-3-5-b**); during a backward
-  pass or fumble, the spot of the pass or the fumble. — `test:facemaskAtTheEndOfARun`,
-  `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`; the record
-  carries the spot where possession was lost, `test:takeawaysCarryTheSpot`
+  pass or fumble, the spot of the pass or the fumble. The basic spot is where the
+  three-and-one method starts, not where it always ends: when it is behind the line of
+  scrimmage, **14-3-6**'s exception takes a defensive foul back to the previous spot. —
+  `test:facemaskAtTheEndOfARun`,
+  `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`,
+  `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`; the record carries the
+  spot where possession was lost, `test:takeawaysCarryTheSpot`
 - **14-3-6** — The three-and-one method. A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
   Exceptions: the offence's fouls behind the line of scrimmage are enforced from the
-  previous spot, and so are the defence's when the basic spot is behind the line. —
+  previous spot, and so are the defence's when the basic spot is behind the line — behind
+  or beyond it, the defence's foul comes off the previous spot all the same. —
   `test:blockInTheBackDuringARun`, `test:blockInTheBackBehindTheLine`,
-  `test:contactFoulOnALoss`, `test:holdingOnAGain`
+  `test:contactFoulOnALoss`, `test:holdingOnAGain`, `test:contactFoulOnAStripSack`,
+  `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
 - **14-4-1** — A foul before the snap is enforced from the succeeding spot and the down
   stays; a foul at the snap from the previous spot, and the down is repeated. —
   `test:preSnapKillsThePlay`, `test:falseStartAtTheOwnThreeIsHalfTheDistance`
@@ -431,17 +450,38 @@ below are what it is held to.
   gives the ball back to the offence before enforcement (**14-4-3-a**); an offensive foul
   must be declined by the defence to keep the ball, unless it was a personal or
   unsportsmanlike foul (**14-4-3-b**), in which case the defence keeps the ball and the
-  foul is enforced from the dead-ball spot. — `test:facemaskByTheFormerOffenseOnAReturn`,
-  `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`
+  foul is enforced from the dead-ball spot. The three-and-one method is what applies, so
+  **14-3-6**'s exception applies with it: possession lost behind the line puts a defensive
+  foul back on the previous spot. — `test:facemaskByTheFormerOffenseOnAReturn`,
+  `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`,
+  `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
 - **14-4-5** — Until a forward pass from behind the line is over, a flag on either side
   comes off the previous spot, and the down turns into a running play only once somebody
-  catches the ball. So a defensive personal foul *before* an interception is enforced from
-  the previous spot and not from the catch, and the offence keeps the ball there. The same
-  sentence is Rule 8's, as **8-6-1**. —
-  `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**: the
-  record carries no time within a down, so a foul by the intercepting team on its own
-  return is indistinguishable from one before the catch and is enforced as the latter,
+  catches the ball. So the catch is never the basic spot for a foul that came before it.
+  The same sentence is Rule 8's, as **8-6-1**. — `test:roughingOnAnIncompletion`
+- **14-4-5-d** — The exception that governs the personal foul. A personal or
+  unsportsmanlike foul by the defence before a forward pass thrown from behind the line is
+  *completed* is enforced from the previous spot or the dead-ball spot, whichever is more
+  beneficial to the offence; and if the passing team is fouled and then loses the ball
+  after a completion, it keeps the ball and the foul comes off the previous spot. An
+  interception is not a completion (**8-1-3**), so a defensive personal foul on a play that
+  ends in a pick is inside this exception: the offence takes the better of the two spots,
+  which is the previous spot when the interceptor was dropped behind it and the dead-ball
+  spot when he was dropped in front of it. The same exception is Rule 8's, as **8-6-1-d**.
+  — `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`,
+  `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`; **modelling**:
+  the record carries no time within a down, so a foul by the intercepting team on its own
+  return is indistinguishable from one before the catch and is enforced as the latter, and
+  a pass completed and *then* fumbled away is enforced from the fumble although this
+  article gives the previous spot when the foul preceded the catch — the crude resolver
+  reaches neither today,
   [#58](https://github.com/knissley/football-manager/issues/58)
+- **14-4-6-b** — When the ball comes loose behind the line of scrimmage, every foul, by
+  either side, is enforced from the previous spot; the offence's foul in its own end zone
+  is a safety if the defence takes it there. This is the same answer 14-3-6's exception
+  gives a defensive foul, reached by the article about the fumble rather than the article
+  about the method. — `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`,
+  `test:contactFoulOnAStripSack`
 - **14-5-1** — A double foul with no change of possession offsets, and the down is replayed
   at the previous spot; neither team may decline. — `test:flagsAreEnforced`
 

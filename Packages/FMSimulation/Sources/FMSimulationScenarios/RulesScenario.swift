@@ -140,6 +140,9 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost"
     case roughnessByTheDefenseBeforeAnInterception =
         "roughness-by-the-defense-before-an-interception"
+    case roughnessByTheDefenseOnAStripSack = "roughness-by-the-defense-on-a-strip-sack"
+    case roughnessByTheDefenseBeforeADeepInterception =
+        "roughness-by-the-defense-before-a-deep-interception"
     case kickoffFumbledAndReturnedByTheKickers = "kickoff-fumbled-and-returned-by-the-kickers"
 }
 
@@ -295,6 +298,10 @@ extension RulesScenario {
             return RulesScenarios.roughnessByTheDefenseOnARunThatEndsInAFumbleLost
         case .roughnessByTheDefenseBeforeAnInterception:
             return RulesScenarios.roughnessByTheDefenseBeforeAnInterception
+        case .roughnessByTheDefenseOnAStripSack:
+            return RulesScenarios.roughnessByTheDefenseOnAStripSack
+        case .roughnessByTheDefenseBeforeADeepInterception:
+            return RulesScenarios.roughnessByTheDefenseBeforeADeepInterception
         case .kickoffFumbledAndReturnedByTheKickers:
             return RulesScenarios.kickoffFumbledAndReturnedByTheKickers
         }
@@ -648,7 +655,15 @@ extension RulesScenario {
             ]
         case .roughnessByTheDefenseBeforeAnInterception:
             return [
-                "football · Rule 14-4-5, 8-6-1, 12-2-8 · a defensive personal foul before a forward pass is intercepted is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down"
+                "football · Rule 14-4-5-d, 8-6-1-d, 12-2-8 · a defensive personal foul before a forward pass is intercepted and returned behind the previous spot is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down"
+            ]
+        case .roughnessByTheDefenseOnAStripSack:
+            return [
+                "football · Rule 14-3-6 Exception 1, 14-4-6-b, 12-2-8 · a defensive personal foul on a sack that ends in a fumble lost behind the line is enforced from the previous spot and not from the fumble, and a first down"
+            ]
+        case .roughnessByTheDefenseBeforeADeepInterception:
+            return [
+                "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the previous spot is enforced from the dead-ball spot, whichever of the two is more beneficial to the offence"
             ]
         case .kickoffFumbledAndReturnedByTheKickers:
             return [
