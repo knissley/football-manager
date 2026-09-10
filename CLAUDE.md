@@ -152,8 +152,9 @@ outcome they cannot cite. Details under Conventions → Tests.
 - A harness band with a sourced season counts as a football test for a rate. A scenario
   is the only acceptable test for a rules change; a unit test on the helper alone is not.
 - Balance is measured, not hoped for. `scripts/test-census.sh` counts tags per package
-  and CI prints it. A football share that falls in the rules layer or the resolver between
-  milestones is a finding.
+  and CI prints it; what the kinds mean and what the suite currently looks like when you
+  count it are in [`docs/testing.md`](docs/testing.md). A football share that falls in the
+  rules layer or the resolver between milestones is a finding.
 - Cap math, clock rules, and schedule generation get exhaustive unit tests. They're
   rule-based, player-visible, and easy to get subtly wrong.
 - Engine changes need both a golden-seed test and a statistical check.

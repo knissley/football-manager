@@ -14,7 +14,7 @@ Every `@Test` in every test target carries exactly one kind tag. A test with non
 | `.football` | Something true of the sport | its name or its doc comment **cites** a rule article and rulebook season, or a real-league season and the source the number came from |
 | `.contract` | A promise the engine makes about itself | breaking it breaks replay, the stream, a projection, a golden, or the traceability between the docs and the tests |
 | `.unit` | A unit computes or validates what it should | it is arithmetic or a table's own well-formedness — cap maths, RNG known answers |
-| `.pin` | Current behaviour, pinned | its name says what it pins, why, and which issue owns changing it |
+| `.pin` | Current behaviour, pinned | its name says what it pins and why |
 
 The citation is the whole point of the first row. A test can read like the sport,
 be named like the sport, and still be a claim somebody made from memory — which is
@@ -118,7 +118,7 @@ engine, and three of them asserted wrong football:
 | --- | --- | --- |
 | `GameSimulatorTests.ties` | a level regular-season game ends after four periods | it plays one ten-minute overtime period first (4-1-1, 16-1-3) |
 | `AdvancementTests.safety` | possession changes on a safety | the team scored upon keeps the ball to free-kick from its own 20 (11-5-2) |
-| `ClockStoppageTests.liveBallRuns` | a downed punt keeps the clock running | a downed kick has changed hands, and that stops the clock (4-4-i) |
+| `ClockStoppageTests.liveBallRuns`, suite "Clock stoppage" in `GameClockTests.swift` | a downed punt keeps the clock running | a downed kick has changed hands, and that stops the clock (4-4-i) |
 
 None of them was a slip in the code the test was reading. Each was a sentence about
 football that somebody wrote down from memory, and then made the engine agree with. A

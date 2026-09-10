@@ -24,6 +24,6 @@ extension Tag {
     @Tag static var unit: Self
 
     /// Pins current behaviour because changing it would be surprising. The test's name
-    /// says what it pins and why, and names the issue that owns changing it.
+    /// says what it pins and why.
     @Tag static var pin: Self
 }
