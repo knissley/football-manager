@@ -149,11 +149,13 @@ struct SchemeShapeTests {
     func biasDoesNotInflateOverall() {
         for scheme in [powerRun, airRaid] {
             var random = SplittableRandom(seed: 41)
+            var untrained = SplittableRandom(seed: 42)
             var errors: [Int] = []
             for _ in 0..<300 {
                 let bias = SchemeIdentity.ratingBias(for: .leftGuard, in: scheme)
                 let ratings = PlayerGenerator.ratings(
-                    position: .leftGuard, targetOverall: 78, bias: bias, using: &random)
+                    position: .leftGuard, targetOverall: 78, bias: bias, using: &random,
+                    untrained: &untrained)
                 errors.append(Int(PositionWeights.overall(ratings, at: .leftGuard)) - 78)
             }
             let mean = Double(errors.reduce(0, +)) / Double(errors.count)
@@ -167,7 +169,7 @@ struct SchemeShapeTests {
         #expect(players.count == 53)
         for player in players {
             #expect(player.overall <= player.hidden.ceiling)
-            #expect(player.ratings.matchesKeys(for: player.position))
+            #expect(player.ratings.isComplete)
         }
     }
 

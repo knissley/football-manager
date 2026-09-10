@@ -4,8 +4,7 @@ import Testing
 
 /// A mauler: heavy, strong, technically sound, not remotely athletic.
 private func maulerGuard() -> Ratings {
-    var ratings = Ratings()
-    for key in RatingKey.keys(for: .leftGuard) { ratings[key] = 60 }
+    var ratings = Ratings.uniform(60)
     ratings[.strength] = 92
     ratings[.runBlock] = 88
     ratings[.blockAnchor] = 86
@@ -18,8 +17,7 @@ private func maulerGuard() -> Ratings {
 
 /// An athlete: light, quick, gets to the second level, gets moved backwards.
 private func zoneGuard() -> Ratings {
-    var ratings = Ratings()
-    for key in RatingKey.keys(for: .leftGuard) { ratings[key] = 60 }
+    var ratings = Ratings.uniform(60)
     ratings[.strength] = 62
     ratings[.runBlock] = 74
     ratings[.blockAnchor] = 62
@@ -93,8 +91,7 @@ struct SchemeFitTests {
     @Test("A uniformly rated player is unaffected by scheme", .tags(.contract))
     func uniformPlayerIsSchemeNeutral() {
         for position in Position.allCases {
-            var flat = Ratings()
-            for key in RatingKey.keys(for: position) { flat[key] = 75 }
+            var flat = Ratings.uniform(75)
             for offense in OffensiveScheme.families {
                 for defense in DefensiveScheme.families {
                     let scheme = TeamScheme(offense: offense, defense: defense)
@@ -108,8 +105,7 @@ struct SchemeFitTests {
 
     @Test("Specialists are unaffected by scheme", .tags(.unit))
     func specialistsUnaffected() {
-        var kicker = Ratings()
-        for key in RatingKey.keys(for: .kicker) { kicker[key] = 60 }
+        var kicker = Ratings.uniform(60)
         kicker[.kickPower] = 92
         for offense in OffensiveScheme.families {
             let scheme = TeamScheme(offense: offense, defense: .pressManBlitz)
@@ -119,15 +115,13 @@ struct SchemeFitTests {
 
     @Test("A man-cover corner and a zone corner want different defences", .tags(.unit))
     func cornerbacks() {
-        var manCorner = Ratings()
-        for key in RatingKey.keys(for: .cornerback) { manCorner[key] = 62 }
+        var manCorner = Ratings.uniform(62)
         manCorner[.manCoverage] = 92
         manCorner[.releaseVsPress] = 88
         manCorner[.speed] = 90
         manCorner[.zoneCoverage] = 55
 
-        var zoneCorner = Ratings()
-        for key in RatingKey.keys(for: .cornerback) { zoneCorner[key] = 62 }
+        var zoneCorner = Ratings.uniform(62)
         zoneCorner[.zoneCoverage] = 92
         zoneCorner[.awareness] = 88
         zoneCorner[.manCoverage] = 55
@@ -146,8 +140,7 @@ struct SchemeFitTests {
 
     @Test("A three-man front wants a very different interior lineman", .tags(.unit))
     func noseTackle() {
-        var anchor = Ratings()
-        for key in RatingKey.keys(for: .defensiveTackle) { anchor[key] = 62 }
+        var anchor = Ratings.uniform(62)
         anchor[.strength] = 94
         anchor[.blockShedding] = 88
         anchor[.powerMove] = 60
@@ -164,8 +157,7 @@ struct SchemeFitTests {
     /// offence that does not throw, and what happens when you switch.
     @Test("A deep passer is worth more once you stop running the ball", .tags(.unit))
     func theQuarterbackProblem() {
-        var gunslinger = Ratings()
-        for key in RatingKey.keys(for: .quarterback) { gunslinger[key] = 62 }
+        var gunslinger = Ratings.uniform(62)
         gunslinger[.throwPower] = 95
         gunslinger[.throwAccuracyDeep] = 92
         gunslinger[.throwAccuracyMedium] = 84
@@ -256,22 +248,24 @@ struct SchemeExperienceTests {
 /// The bug this guards against, which shipped once already: modifiers were
 /// multipliers on existing weights, so `agility x 1.7` on a guard did nothing at
 /// all — agility carries no base weight there, and a multiplier on zero is zero.
-/// Deltas fixed that, but a delta on a rating the position does not *carry* is
-/// still silently dropped.
+/// Deltas fixed that. A delta on a rating the position does not *train* is the
+/// other way to write nothing: every player carries every key, and an untrained
+/// one is drawn low for the whole position, so weighing it reads as the scheme
+/// disliking the position rather than as the scheme wanting anything.
 @Suite("Scheme modifier validity")
 struct SchemeModifierTests {
 
-    @Test("Every modifier references a rating its position actually carries", .tags(.contract))
-    func modifiersReferenceCarriedRatings() {
+    @Test("Every modifier references a rating its position actually trains", .tags(.contract))
+    func modifiersReferenceTrainedRatings() {
         for position in Position.allCases {
-            let carried = Set(RatingKey.keys(for: position))
+            let trained = Set(RatingKey.keys(for: position))
             for offense in OffensiveScheme.families {
                 for defense in DefensiveScheme.families {
                     let scheme = TeamScheme(offense: offense, defense: defense)
                     for (key, _) in SchemeFit.modifiers(for: position, in: scheme) {
                         #expect(
-                            carried.contains(key),
-                            "\(position) modified on \(key), which it does not carry")
+                            trained.contains(key),
+                            "\(position) modified on \(key), which it does not train")
                     }
                 }
             }
@@ -298,7 +292,8 @@ struct SchemeModifierTests {
     func everyModifierMatters() {
         func idealPlayer(for position: Position, under scheme: TeamScheme) -> Ratings {
             let adjustments = SchemeFit.modifiers(for: position, in: scheme)
-            var ratings = Ratings()
+            // Complete, at the neutral value, and then shaped on the trained keys.
+            var ratings = Ratings.uniform(68)
             for key in RatingKey.keys(for: position) {
                 let delta = adjustments[key] ?? 0
                 ratings[key] = delta > 0 ? 92 : (delta < 0 ? 48 : 68)
@@ -352,8 +347,7 @@ struct SchemeModifierTests {
     func negativeDeltasClamp() {
         // Quick game drops a guard's pass blocking; it must not go below zero
         // and invert the maths.
-        var ratings = Ratings()
-        for key in RatingKey.keys(for: .leftGuard) { ratings[key] = 50 }
+        var ratings = Ratings.uniform(50)
         ratings[.passBlock] = 99
         let scheme = TeamScheme(offense: .spread, defense: .fourThreeUnder)
         let overall = SchemeFit.effectiveOverall(ratings, at: .leftGuard, in: scheme)

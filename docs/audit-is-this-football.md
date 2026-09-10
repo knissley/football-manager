@@ -760,14 +760,19 @@ chase individual rows.
   consecutive dropbacks in 40 games with nobody hurt. Any per-player number off this engine
   is measured on a team that substitutes mid-drive for no reason.
   ([C6 · #27](https://github.com/knissley/football-manager/issues/27))
-- **ADR-0013's rating premise is inverted.** It assumes `overall(at:)` penalises a player
-  for the ratings he lacks; `PositionWeights.overall` drops the missing weight and
-  renormalises, so absence is a bonus. The issue's measurement at seed 7: receivers average
-  59.7 at receiver and 64.8 at quarterback, and a kicker rates a 67 quarterback. Do not
-  trust an out-of-position overall until this lands.
-  ([F1 · #25](https://github.com/knissley/football-manager/issues/25), with
-  [F3 · #35](https://github.com/knissley/football-manager/issues/35) amending the ADR to
-  say so)
+- **ADR-0013's rating premise was inverted, and is now true.** It assumed `overall(at:)`
+  penalised a player for the ratings he lacked; `PositionWeights.overall` dropped the
+  missing weight and renormalised, so absence was a bonus. The issue's measurement at seed
+  7: receivers averaged 59.7 at receiver and 64.8 at quarterback, and a kicker rated a 67
+  quarterback. **Fixed** by [F1 · #25](https://github.com/knissley/football-manager/issues/25):
+  every player carries every key, a rating his position does not train is drawn low from
+  the untrained table in `PlayerGenerator`, and `overall(at:)` weighs it. The same probe on
+  the tree before and after the fix, both after #67 had moved the ages: receivers 62.2 at
+  receiver and 66.7 at quarterback, now 36.5; kickers 64.2 at quarterback, now 33.8; backs
+  65.9 at linebacker against natives at 61.6, now 35.7; and no mover out-rates the best
+  native at any of the four positions probed. Own-position overall did not move by a
+  digit. [F3 · #35](https://github.com/knissley/football-manager/issues/35) amends the ADR
+  to say so.
 
 #### The open engine findings that have no section above
 
@@ -840,9 +845,13 @@ argument for watching a game.
 - **D2** — the kickoff is a touchback coin flip that ignores where the kick is taken from,
   so a penalty on the kicking team changes nothing about the kick.
   ([#46](https://github.com/knissley/football-manager/issues/46))
-- **F2** — `PlayContext.effective` substitutes `player.overall` for any rating the player
-  lacks, so a running back's route running is his overall.
-  ([#34](https://github.com/knissley/football-manager/issues/34))
+- **F2** — `PlayContext.effective` substituted `player.overall` for any rating the player
+  lacked, so a running back's route running was his overall. **Fixed** by
+  [#34](https://github.com/knissley/football-manager/issues/34): both fallbacks are gone,
+  a missing key is a debug assertion naming the player and the key and the untrained
+  floor in release, and the unknown-player fallback stays as the separate case it is.
+  Once F1 had given every player every key there was nothing left to fall back from, so
+  the harness after this change is byte-identical to the harness after F1.
 
 ### Still deferred, deliberately
 

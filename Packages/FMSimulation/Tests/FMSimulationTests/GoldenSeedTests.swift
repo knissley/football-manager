@@ -194,17 +194,42 @@ struct GoldenSeedTests {
             // record's dead-ball decision points mixed in. Neither side's constants
             // could survive, because each was computed without the other's mechanism.
             //
-            // And the caller and the clock then met in this merge. The constants below
-            // are regenerated from the merged tree, which has both: the caller decides
-            // what is snapped, the clock decides how much of a period each snap leaves,
-            // and each reaches the other — a knee that ends a half depends on how much
-            // clock a flag or a runoff left, and what is called after the two-minute
+            // And the caller and the clock then met in a merge of their own, and the
+            // constants were regenerated from that tree, which has both: the caller
+            // decides what is snapped, the clock decides how much of a period each snap
+            // leaves, and each reaches the other — a knee that ends a half depends on how
+            // much clock a flag or a runoff left, and what is called after the two-minute
             // warning depends on which side has the ball there. Neither parent's
             // constants could survive, because each was computed without the other's
             // mechanism.
-            (UInt64(1), UInt64(2_971_130_586_435_342_245)),
-            (UInt64(5), UInt64(13_648_739_027_376_666_008)),
-            (UInt64(12), UInt64(18_092_658_582_545_090_295)),
+            //
+            // And moved again when every player came to carry every key — by the world,
+            // and by what the engine reads of it. Nothing in the rules layer changed, but a
+            // rating a position does not train is now present and low rather than absent,
+            // so the resolver's fallback for an absent key — the player's overall — has
+            // nothing left to fall back from. A receiver breaks tackles and holds the ball
+            // on his own breakTackle and carrying instead of his overall, a corner strips
+            // on his own hit power, a back in 21 personnel runs his route on his own route
+            // running, a lineman covering a kick pursues on his own pursuit. Each of those
+            // was a number in the sixties or seventies that is now in the twenties or
+            // thirties, so a game between the same men is a different game. The men
+            // themselves did not move: every trained rating is byte-identical.
+            //
+            // And the untrained keys then met the caller and the clock, in this merge. The
+            // constants below are regenerated from the merged tree, which carries both
+            // mechanisms and every one above them. On one side, every player now carries
+            // every rating key, so the resolver's fallback to a man's overall for a key he
+            // lacked never fires, and a receiver breaks a tackle on a number in the
+            // twenties where he used to break it on one in the sixties. On the other, the
+            // caller decides what is snapped and the clock decides how much of a period
+            // each snap leaves. The two reach each other: a weaker cover man changes
+            // whether a third and long is converted, and that changes both what is called
+            // next and how much clock is left for the rest of the half. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism, and no subset of the mechanisms above reproduces these numbers.
+            (UInt64(1), UInt64(4_527_532_202_504_413_039)),
+            (UInt64(5), UInt64(9_245_522_178_510_744_962)),
+            (UInt64(12), UInt64(12_825_918_046_467_577_611)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

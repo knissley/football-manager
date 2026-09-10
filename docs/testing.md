@@ -52,6 +52,16 @@ CI runs the census as a hard-failing step of the `test` job and writes the table
 job summary, so the shares are in front of whoever opens the run rather than in a script
 nobody remembers to call. See [tools.md](tools.md#test-census--what-the-suite-asserts).
 
+The census reads the tags out of the source, so it counts a test that exists only in a
+debug build. Two do: the exit tests that check an assertion fires —
+`PositionWeightsTests.incompleteSetIsCaught` in FMCore and
+`SchemeFitInEngineTests.missingKeyIsCaught` in FMSimulation — sit under `#if DEBUG`, are
+in the table, and are absent from a `-c release` run. That costs nothing, because a
+release run is required only of FMRandom (CI runs it both ways; its integer maths must
+agree with optimisation on), and is run for FMGeneration when its goldens change so the
+constants agree between builds. FMCore and FMSimulation run in debug, which is where
+those two tests live.
+
 ## The first census
 
 Taken on the merge of wave 1, at 717 tests.
@@ -77,18 +87,19 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on wave 2's record track, at 839 tests. `./scripts/test-census.sh` reprints it; if
-this table and that output disagree, the output is right and this table is stale.
+Taken on wave 2's record and ratings tracks, at 852 tests. `./scripts/test-census.sh`
+reprints it; if this table and that output disagree, the output is right and this table is
+stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 40 — 11.3% | 30 — 8.5% | 281 — 79.4% | 3 | 354 |
-| FMGeneration | 1 — 0.5% | 87 — 44.2% | 109 — 55.3% | 0 | 197 |
-| FMSimulation | 91 — 38.2% | 79 — 33.2% | 63 — 26.5% | 5 | 238 |
+| FMCore | 40 — 11.2% | 31 — 8.7% | 284 — 79.3% | 3 | 358 |
+| FMGeneration | 1 — 0.5% | 94 — 45.9% | 110 — 53.7% | 0 | 205 |
+| FMSimulation | 91 — 38.1% | 80 — 33.5% | 63 — 26.4% | 5 | 239 |
 | simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **132 — 15.7%** | **213 — 25.4%** | **486 — 57.9%** | **8** | **839** |
+| **all** | **132 — 15.5%** | **222 — 26.1%** | **490 — 57.5%** | **8** | **852** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -108,7 +119,7 @@ touchbacks*; the resolver is *Crude resolver* and *Contest curve*.
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
 | Rules conformance — the scripted games (FMSimulation) | 86 — 97.7% | 0 | 0 | 2 | 88 |
 | The resolver — `CrudeResolver` and the contest curve (FMSimulation) | 0 — 0.0% | 10 | 6 | 0 | 16 |
-| Generation (FMGeneration) | 1 — 0.5% | 87 | 109 | 0 | 197 |
+| Generation (FMGeneration) | 1 — 0.5% | 94 | 110 | 0 | 205 |
 
 Three findings come straight off that table.
 
