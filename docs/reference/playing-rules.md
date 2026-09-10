@@ -62,10 +62,17 @@ Which rules must be true of a game, and what checks each, is
   `test:touchbackConsumesNoTime`, `test:kickoffRecoveredByTheKickersStartsNoClock`,
   `test:fairCaughtKickoffStartsNoClock`
 - **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`
-- **4-3-2-a** — After a runner goes out of bounds it starts on the ready for play, except
-  in the late windows: the first half's two minutes and the second's five, which overtime
-  carries as Rule 16 times its periods. — `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
-  `test:outOfBoundsInRegularSeasonOvertime`, `test:outOfBoundsInPostseasonOvertime`
+- **4-3-2-a**, **4-3-2-a-2**, **4-3-2-a-3** — After a runner goes out of bounds it starts
+  on the ready for play, except that it starts on the snap after the two-minute warning of
+  the first half (a-2) and inside the last five minutes of the second half (a-3), which
+  overtime carries as Rule 16 times its periods. The window is judged where the runner
+  stepped out: on the clock after the play's own time has come off, not on the clock at
+  the previous whistle, which is up to a huddle and a play earlier. —
+  `test:outOfBoundsEarly`, `test:outOfBoundsLate`, `test:outOfBoundsInRegularSeasonOvertime`,
+  `test:outOfBoundsInPostseasonOvertime`,
+  `test:outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+  `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+  `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
 - **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
@@ -73,7 +80,9 @@ Which rules must be true of a game, and what checks each, is
   inside the last five minutes of the second half, and after an offensive foul that stops
   the clock before the snap anywhere in the fourth period or regular-season overtime. In
   postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
-  names its own periods and does not reach it. —
+  names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
+  the flag, with the interval before it charged to a running clock — the clock where the
+  ball is dead, as for a runner out of bounds. —
   `test:falseStartInTheThirdQuarterCostsNoTime`,
   `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
   `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,

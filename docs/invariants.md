@@ -214,11 +214,19 @@ season is what checks one. A band is evidence about a rate and never about a rul
 43. Gaining a first down does not stop the clock: it is not among the stoppages Rule 4
     lists, and the omission is the rule. `[2025 · 4-3, 4-4]` — `test:firstDownDoesNotStop`
 44. A runner going out of bounds stops the clock until the ball is ready for play, except
-    that it waits for the snap once possession has changed, inside the closing two minutes
-    of the first half and inside the closing five of the second. `[2025 · 4-4-c, 4-3-2-a]` —
-    `test:outOfBoundsEarly`, `test:outOfBoundsLate`; **modelling**: a tackle ends out of
-    bounds at a flat rate whatever the play and whatever the clock is doing,
-    [#28](https://github.com/knissley/football-manager/issues/28)
+    that it waits for the snap once possession has changed, after the two-minute warning
+    of the first half and inside the closing five minutes of the second. The window is
+    judged where the runner stepped out — the clock after the play's own time has come
+    off — and not where the play before him ended: a runner out at 4:50 on a play snapped
+    at 5:07 is inside it. `[2025 · 4-4-c, 4-3-2-a, 4-3-2-a-2, 4-3-2-a-3]` —
+    `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
+    `test:outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+    `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`; in the first
+    half the boundary is the warning's own, taken as the down that crosses 2:00 ends
+    (3-41), so the window and the warning give one answer there —
+    `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`;
+    **modelling**: a tackle ends out of bounds at a flat rate whatever the play and
+    whatever the clock is doing, [#28](https://github.com/knissley/football-manager/issues/28)
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
     `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`,

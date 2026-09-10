@@ -305,10 +305,6 @@ extension GameSimulator {
 
         private mutating func runClock(_ outcome: Outcome, advancement: Advancement, tempo: Tempo) {
             let rules = setup.rules
-            let behavior = rules.clockBehavior(
-                after: outcome.endedIn, possessionChanged: advancement.possessionChanged,
-                quarter: clock.quarter, isPostseason: setup.isPostseason,
-                clockRemaining: clock.secondsRemaining)
 
             let elapsed: GameClock.Elapsed
             if pendingTry {
@@ -340,6 +336,19 @@ extension GameSimulator {
             }
 
             let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
+
+            // What the clock does next is judged where the ball became dead, after the
+            // play's own time has come off it. The late out-of-bounds windows — after the
+            // first half's warning and inside the last five minutes of the second half
+            // (4-3-2-a-2, a-3) — are read off that clock: a runner who steps out at 4:50
+            // on a play snapped at 5:07 is inside them. Read `clock` before the play runs
+            // and the window is judged where the play *before* ended, up to a huddle and
+            // a play early, and the clock restarts on the ready where the book has it
+            // wait for the snap.
+            let behavior = rules.clockBehavior(
+                after: outcome.endedIn, possessionChanged: advancement.possessionChanged,
+                quarter: clock.quarter, isPostseason: setup.isPostseason,
+                clockRemaining: clock.secondsRemaining)
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
         }
 

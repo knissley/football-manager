@@ -367,6 +367,11 @@ swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-o
 # Postseason overtime pairs its periods into halves: a first period has no warning, a
 # second has the first half's. The period label counts them — OT, 2OT, 3OT.
 swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-a-second-postseason-overtime-period | tail -30
+
+# A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
+# play snapped outside 5:00 of the fourth quarter carries him out inside it, and the
+# next snap comes with the clock stopped rather than a huddle later.
+swift run gamelog --scenario runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter | tail -30
 ```
 
 The men are not named in a scenario — a scripted outcome credits nobody, so the log says
