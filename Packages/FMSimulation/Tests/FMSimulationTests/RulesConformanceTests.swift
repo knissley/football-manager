@@ -1773,6 +1773,12 @@ struct RulesConformanceTests {
     /// What is charged *before* the spike is a different question with a different answer:
     /// the clock was running from the play before, nothing had stopped it, and the seconds
     /// the offence spends getting to the line come off it.
+    ///
+    /// The one second is staged input, not a claim about the resolver: a scenario dictates
+    /// each play's outcome, so `clockRunoff == 1` here reads `ScriptedGame`'s own spike
+    /// constant and never `CrudeResolver`'s, which carries the same second separately. What
+    /// this asserts is the clock the rules layer runs on a spike, given that a spike took a
+    /// second — not that a second is what a spike takes.
     @Test(
         "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left",
         .tags(.football)
@@ -1805,6 +1811,9 @@ struct RulesConformanceTests {
         trace.expectPlay(
             spike.index + 1, quarter: 4, clock: 4, down: .fourth,
             "the fourth down is played, one second after the spike was snapped")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false,
+            "and it is snapped on a clock the spike stopped, not one still running into it")
     }
 
     // MARK: The kickoff that opens a half
