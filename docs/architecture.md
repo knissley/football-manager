@@ -166,9 +166,9 @@ architectural. In `FMSimulation`'s hot loop:
 **Designed, not built.** The hot loop the rules above describe is the M5 tick loop, and
 nothing in the tree runs one. There is no benchmark target and no CI step that fails on a
 timing regression — CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs
-the suites, the two lints and the harness — and nothing gates on the budget. Issue H3
-(#9) adds a milliseconds-per-game row to `simharness` and puts it in the job summary: a
-number to read, not a gate.
+the suites, the two lints and the harness — and nothing gates on the budget. Since H3
+(#9), `simharness` times its simulate loop and prints a `Budget` block that the job
+summary carries: a number to read, not a gate.
 
 ## Persistence
 

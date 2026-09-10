@@ -105,8 +105,8 @@ avoid transcendental functions where a cheaper formulation exists.
 
 **Designed, not built.** The budget describes the M5 tick loop, and there is no tick loop
 and no season loop to time. There is no benchmark target and no CI step that fails on a
-timing regression, and nothing gates on the budget. Issue H3 (#9) adds a
-milliseconds-per-game row to `simharness` and puts it in the job summary: a number to
+timing regression, and nothing gates on the budget. Since H3 (#9), `simharness` times
+its simulate loop and prints a `Budget` block that the job summary carries: a number to
 read, not a gate. The rules below are what M5 is written to.
 
 **A season simulates in about 60 seconds.** That is the constraint, and it is
