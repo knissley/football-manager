@@ -631,8 +631,8 @@ chase individual rows.
   of every four stalled drives the same way.
   ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
 - **Interference is drawn before the throw.** Both kinds are drawn per read in the coverage
-  loop, so in 40 games 4 of 58 defensive flags were on sacks and 26 on receivers nobody
-  threw to. Interference requires a pass toward that receiver.
+  loop, so in 40 games 4 of 58 defensive interference flags were on sacks and 26 on
+  receivers nobody threw to. Interference requires a pass toward that receiver.
   ([C2 · #38](https://github.com/knissley/football-manager/issues/38))
 - **A blitz rushes four.** Rushers come from `Lineup.front`, which holds four men in
   nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the
@@ -648,16 +648,27 @@ chase individual rows.
   renormalises, so absence is a bonus. The issue's measurement at seed 7: receivers average
   59.7 at receiver and 64.8 at quarterback, and a kicker rates a 67 quarterback. Do not
   trust an out-of-position overall until this lands.
-  ([F1 · #25](https://github.com/knissley/football-manager/issues/25))
+  ([F1 · #25](https://github.com/knissley/football-manager/issues/25), with
+  [F3 · #35](https://github.com/knissley/football-manager/issues/35) amending the ADR to
+  say so)
 
 #### The open engine findings that have no section above
 
-One line each, with the issue that closes it. None has been re-measured here; each is as
-its issue describes.
+One line each, with the issue that closes it. None was re-measured here; each is as its
+issue describes. Three of them — A9, A10 and C12 — were found by the play-by-play printer's
+author reading one game end to end rather than by any aggregate, which is the whole
+argument for watching a game.
 
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
+- **A9** — a kickoff returned for a touchdown gets no try, and the scoring team keeps the
+  ball: the next play is an ordinary first down from the opponent's 15. A punt return
+  touchdown is not affected. Found by reading `gamelog --seed 7 --home 3 --away 11` end to
+  end. ([#55](https://github.com/knissley/football-manager/issues/55))
+- **A10** — a pre-snap foul on a play that never happened still runs the clock, and a spike
+  is called at normal tempo, so a game ended on eleven seconds charged to a no-play. Found
+  in the same game. ([#56](https://github.com/knissley/football-manager/issues/56))
 - **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
   so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
   snap count is not a query the record can answer.
@@ -671,6 +682,15 @@ its issue describes.
   produces 3 of 5 `ThrowDecision` cases, 2 of 5 `TackleResult`, 2 of 5 `BlockResult` and 2
   of 6 `CoverageTechnique`, and the coverage suite does not look at
   `DecisionPoint.detail`. ([#24](https://github.com/knissley/football-manager/issues/24))
+- **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
+  resolves a slot only through `outcome.participants` and a decoy or a cover man is not
+  credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that
+  asserted the contract passed by luck and is now a pin listing the eight.
+  ([#54](https://github.com/knissley/football-manager/issues/54))
+- **B7** — the record does not carry where a kick was fielded, so gross punt distance, net
+  punt distance and return yardage cannot be recovered from a returned kick; nor does it
+  carry timeouts or the two-minute warning, which are inferences from two consecutive
+  situations. ([#58](https://github.com/knissley/football-manager/issues/58))
 - **C3** — the quarterback always throws to the best-separated receiver on the field. He
   never locks onto his first read, never checks down, never throws it away, and never
   attempts a throw he cannot make.
@@ -695,6 +715,10 @@ its issue describes.
 - **C11** — a punt is always hit at full distance, so from inside the opponent's 45 it is a
   touchback 78 to 86% of the time and no punter's touch decides anything.
   ([#26](https://github.com/knissley/football-manager/issues/26))
+- **C12** — a team up eight kneels once at 1:52 with the defence holding timeouts, then
+  runs two ordinary plays and kicks a field goal. Too early to kneel, and a team that has
+  decided the game is over does not go back to playing. Found in the same game.
+  ([#57](https://github.com/knissley/football-manager/issues/57))
 - **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside
   kicks are fourth quarter only, and nothing records which season the defaults describe.
   ([#41](https://github.com/knissley/football-manager/issues/41))
