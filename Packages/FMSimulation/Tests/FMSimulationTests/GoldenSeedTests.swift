@@ -132,7 +132,7 @@ struct GoldenSeedTests {
             // game instead of two knees and then an ordinary play.
             (UInt64(1), UInt64(13_909_574_298_202_381_945)),
             (UInt64(5), UInt64(77_035_360_226_662_895)),
-            (UInt64(12), UInt64(17_199_625_385_737_701_783)),
+            (UInt64(12), UInt64(7_704_169_033_222_890_371)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

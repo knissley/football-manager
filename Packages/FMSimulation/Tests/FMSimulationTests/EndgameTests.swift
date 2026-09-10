@@ -112,7 +112,8 @@ struct EndgameTests {
     /// A half is worth ending too, and the old guard would not let the caller do it: it
     /// asked for the endgame, which is the last five minutes of the fourth period and
     /// nothing before the break. Up a score with the ball and half a minute to go, the
-    /// snap can only lose it; backed up on your own goal line it can lose it worse.
+    /// snap can only lose it; level and backed up on your own goal line it can lose it
+    /// worse. Behind, never — the half is short but the points still count.
     @Test("A team kneels out the first half when a snap can only cost it", .tags(.unit))
     func kneelsOutTheFirstHalf() {
         #expect(
@@ -122,9 +123,15 @@ struct EndgameTests {
         #expect(
             family(
                 situation(
-                    ballOn: 96, quarter: 2, clock: 30, differential: -7, defenseTimeouts: 0)
+                    ballOn: 96, quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0)
             ) == .kneel,
-            "own four, thirty seconds to the break: a snap here loses more than the half")
+            "level on your own four, thirty seconds to the break: a snap here can only lose it")
+        #expect(
+            family(
+                situation(
+                    ballOn: 96, quarter: 2, clock: 30, differential: -7, defenseTimeouts: 0)
+            ) != .kneel,
+            "seven behind on your own four, the half is still worth playing")
 
         // With the half still there to be used, nobody kneels it away.
         #expect(
@@ -369,20 +376,22 @@ struct EndgameTests {
         "contract · once the baseline kneels, every later snap of that possession is a kneel",
         .tags(.contract))
     func aKneelIsNeverFollowedByALivePlay() {
-        for seed in UInt64(1)...20 {
+        for seed in UInt64(1)...60 {
             var possession: TeamID?
+            var quarter: UInt8 = 0
             var kneeled = false
             for play in game(seed: seed).plays {
-                // A free kick starts a sequence of its own, and the side that kneels a
-                // half out can be the side that kicks off to open the next one — the
-                // kicking team has possession on a kickoff, so nothing else marks the
-                // boundary.
-                if play.outcome.kind == .kickoff {
-                    possession = nil
-                    kneeled = false
-                    continue
-                }
-                if play.situation.possession != possession {
+                // A flag before the snap is not a snap: the down is replayed, and a false
+                // start on a knee changes nothing about the decision.
+                if play.outcome.kind == .penaltyOnly { continue }
+                // A free kick and a new period each start a sequence of their own, and the
+                // side that kneels a half out can be the side that kicks off to open the
+                // next one — the kicking team has possession on a kickoff, so nothing else
+                // marks that boundary.
+                if play.outcome.kind == .kickoff || play.situation.quarter != quarter
+                    || play.situation.possession != possession
+                {
+                    quarter = play.situation.quarter
                     possession = play.situation.possession
                     kneeled = false
                 }

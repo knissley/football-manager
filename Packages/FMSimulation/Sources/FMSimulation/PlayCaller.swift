@@ -489,16 +489,15 @@ public struct BaselineCaller: PlayCaller {
     /// extends one only while the ball is in play, 4-8-2 only for a foul in the down that
     /// expired it.
     ///
-    /// So from this down: one knee per remaining down, an interval before each snap after
-    /// this one, and one more before the snap this offence is already standing over if the
-    /// clock is running into it.
+    /// So from this down: one knee per remaining down and one on fourth, an interval
+    /// before each of those snaps after the first, and one more before the snap this
+    /// offence is already standing over if the clock is running into it. The fourth
+    /// down's interval counts because the fourth down is a knee too — see below — and a
+    /// sequence that stopped a down short would hand the ball to a punter with half a
+    /// play clock left on the game clock.
     ///
-    /// Two things the count deliberately leaves out. The interval before the *fourth*
-    /// down, which a real team also spends — it takes the delay of game rather than snap
-    /// — because declining to snap is not something this engine can express, and a plan
-    /// that leans on that interval ends with the ball in a punter's hands. And any
-    /// generosity at all: getting this wrong upwards hands the other side the ball, and
-    /// getting it wrong downwards costs one ordinary snap.
+    /// What the count does not do is round anything up. Getting it wrong upwards hands
+    /// the other side the ball; getting it wrong downwards costs one ordinary snap.
     ///
     /// Counted this way the decision is monotone, which is what makes a knee stick. The
     /// clock the next snap faces is exactly what this knee leaves — one interval and one
@@ -510,40 +509,70 @@ public struct BaselineCaller: PlayCaller {
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
     ) -> Bool {
         guard endingIsWorthMoreThanASnap(classified) else { return false }
+
+        // The interval before the snap the offence is standing over runs against the play
+        // clock actually in force — twenty-five from the whistle after a stoppage, forty
+        // from the end of a play, forty again from the whistle after a defensive act that
+        // conserved time (4-6-1, 4-6-2, 4-6-3-b) — and those are not the same length.
+        // Every interval after it runs against the forty from the end of the play,
+        // because a knee is an ordinary play that ends and nothing about it is one of the
+        // stoppages 4-6-2 lists. Counting the first at the second's length is how a caller
+        // kneels on a twenty-five, gets nine seconds less than it counted on, and has to
+        // play the next down after all.
+        //
+        // A clock that starts on the ready rather than at the whistle costs the game clock
+        // the officials' spot less than the play clock says, because the play clock has
+        // not started yet while they set the ball. Count what the *game* clock loses, and
+        // never more: counting high hands the ball over, counting low costs one snap.
+        let inForce = context.playClock
+        let spotting = inForce.startsOnTheReady ? Int(GameClock.readyForPlayDelay) : 0
+        let standing = max(0, Int(inForce.intendedSnap(at: .bleedClock)) - spotting)
+        let ordinary = Int(context.rules.playClockAfterAPlay.intendedSnap(at: .bleedClock))
+
         // A knee on fourth down is a turnover on downs — unless the period cannot survive
         // the play clock in front of it, in which case there is no fourth-down snap to
         // give away and the knee is the offence standing on the ball while the clock runs
         // out.
-        let interval = Int(context.rules.playClockAfterAPlay.intendedSnap(at: .bleedClock))
         guard situation.down != .fourth else {
-            return context.clockIsRunning && Int(situation.clockRemaining) <= interval
+            return context.clockIsRunning && Int(situation.clockRemaining) <= standing
         }
 
         let knees = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
         guard knees > 0 else { return false }
 
-        let intervals = knees - 1 + (context.clockIsRunning ? 1 : 0)
-        let stopped = min(Int(situation.defenseTimeouts), intervals)
-        let exhaustible = knees * Self.secondsToTakeAKnee + (intervals - stopped) * interval
+        // A charged timeout erases an interval, since the clock then starts on the next
+        // snap (4-3-2). The longest go first, which is the ordinary ones.
+        let timeouts = Int(situation.defenseTimeouts)
+        let ordinaries = max(0, knees - timeouts)
+        let inHand = context.clockIsRunning && timeouts <= knees ? standing : 0
+        let exhaustible = knees * Self.secondsToTakeAKnee + ordinaries * ordinary + inHand
         return Int(situation.clockRemaining) <= exhaustible
     }
 
     /// Whether a snap can only cost this offence, so that ending the period is the
     /// better outcome.
     ///
-    /// Ending the *game* needs a lead: level or behind, a snap is the only thing that
-    /// can still change the scoreboard, and a lead in range at 0:20 kneels the game out
-    /// rather than pad it.
+    /// Inside two minutes of a half, and no earlier.
     ///
-    /// Ending the *half* is a different question, because the half is not the game and
-    /// the points still count. A team in field goal range plays for them however
-    /// comfortable the lead is; a kneel there throws away three or seven for nothing.
-    /// What is left is a lead with the ball too far out to do anything with before the
-    /// break, or your own goal line right behind you, where the only points a snap can
-    /// produce are the other side's.
+    /// The two-minute warning is a stoppage the defence is handed for nothing (2025
+    /// rulebook, 4-4: the clock stops when the Referee signals it), so above it a lead is
+    /// never safe — the warning is a fourth timeout, and one the count below cannot see.
+    /// Kneeling into it also truncates the interval it was counting on, which is how a
+    /// team kneels at 2:01 and then finds it has to play the down after all.
+    ///
+    /// Behind, never: a snap is the only thing that can still change the scoreboard, and
+    /// that goes for the half as much as the game.
+    ///
+    /// Ending the *game* then needs a lead — level, the snap can still win it. Ending the
+    /// *half* is a different question, because the half is not the game and the points
+    /// still count: a team in field goal range plays for them however comfortable the
+    /// lead is, and a knee there throws away three or seven for nothing. What is left is
+    /// a lead with the ball too far out to do anything with before the break, or your own
+    /// goal line right behind you, where the only points a snap can produce are the other
+    /// side's.
     private func endingIsWorthMoreThanASnap(_ classified: SituationClass) -> Bool {
-        if classified.time.isEndgame { return classified.score.isLeading }
-        guard classified.time == .twoMinuteFirstHalf else { return false }
+        guard classified.time.isTwoMinute, !classified.score.isTrailing else { return false }
+        guard classified.time == .twoMinuteFirstHalf else { return classified.score.isLeading }
         guard !classified.isFieldGoalRange else { return false }
         return classified.score.isLeading || classified.field == .ownDeep
     }

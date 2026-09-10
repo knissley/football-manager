@@ -148,16 +148,24 @@ three a half (4-5-1 Item 1). And nothing extends a period that expires between d
 4-8-1 extends one only while the ball is in play, and 4-8-2 only for a foul in the down
 that expired it.
 
-So, from this down: one knee per down remaining, an interval before every snap after this
-one, and one more before the snap the offence is already standing over if the clock is
-running into it. Take away one interval per defensive timeout. If the clock left is no
-more than that, the lead is safe.
+So, from this down: one knee per down remaining **and one on fourth**, an interval before
+each of those snaps after the first, and one more before the snap the offence is already
+standing over if the clock is running into it. Take away one interval per defensive
+timeout, longest first. If the clock left is no more than that, the lead is safe. The
+fourth down's interval counts because the fourth down is a knee too — see below — and a
+sequence that stopped a down short would hand the ball to a punter with half a play clock
+still on the game clock.
 
-Two things the count leaves out on purpose. The interval before the **fourth** down,
-which a real team also spends — it takes the delay of game rather than snap the ball —
-because declining to snap is not something this engine can express, and a plan that leans
-on that interval ends with the ball in a punter's hands. And any generosity at all:
-counting high hands the other side the ball, counting low costs one ordinary snap.
+The intervals are not all the same length. The one in front of the snap already on the
+board runs against **the play clock actually in force** — twenty-five from the whistle
+after a stoppage (4-6-2), forty from the end of a play (4-6-1) — and the two differ by
+nine seconds. Every interval after it is a forty, because a knee is an ordinary play that
+ends and none of it is one of the stoppages 4-6-2 lists. Counting the first at the
+second's length is how a caller kneels on a twenty-five, gets nine seconds less than it
+counted on, and has to play the next down after all.
+
+The count never rounds anything up. Counting high hands the other side the ball; counting
+low costs one ordinary snap.
 
 Counted this way the decision is **monotone**, which is what makes a knee stick: the clock
 the next snap faces is exactly what this knee leaves, and the count falls by exactly as
@@ -168,13 +176,23 @@ needed — the arithmetic is what carries the decision forward.
 
 A knee on fourth down is a turnover on downs, so the caller does not take one — except
 when the period cannot survive the play clock in front of it, where there is no
-fourth-down snap to give away.
+fourth-down snap to give away and the knee is the offence standing on the ball while the
+clock runs out. That exception is what lets the count above include the fourth down's
+interval, and it is what an unforeseen stoppage lands on: an injury timeout between downs
+takes an interval away that nothing could have planned for, and the fourth-down knee is
+where the sequence still ends rather than turning into a punt.
 
-Both halves are worth ending, but not on the same terms. Ending the game needs a lead —
-level or behind, a snap is the only thing that can still change the scoreboard. Ending
-the half needs a lead *and* the ball too far out to do anything with, or your own goal
-line right behind you: the half is not the game and the points still count, so a team in
-field goal range plays for them however comfortable the lead is.
+None of it applies above the two-minute warning. The warning is a stoppage the defence
+is handed for nothing (4-4), so it is a fourth timeout — and a knee taken into it has its
+interval truncated at 2:00, which is how a team kneels at 2:01 and then finds it has to
+play the down after all. Victory formation starts inside two minutes of a half.
+
+Both halves are worth ending, but not on the same terms, and neither is worth ending from
+behind: a snap is the only thing that can still change the scoreboard. Ending the game
+then needs a lead, because level the snap can still win it. Ending the half needs a lead
+*and* the ball too far out to do anything with, or your own goal line right behind you —
+the half is not the game and the points still count, so a team in field goal range plays
+for them however comfortable the lead is.
 
 **There is one per snap, not one per sideline.** Like `Situation`, it reads from the
 offence's point of view — `isMustPass` means *the team with the ball* has to throw,

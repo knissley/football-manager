@@ -489,17 +489,19 @@ let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
 var kneelsFollowedByALivePlay = 0
 for result in results {
     var possession: TeamID?
+    var quarter: UInt8 = 0
     var kneeled = false
     for play in result.plays {
-        // A free kick starts a sequence of its own, and the side that kneels a half out
-        // can be the side that kicks off to open the next one: the kicking team has
-        // possession on a kickoff, so nothing else marks the boundary.
-        if play.outcome.kind == .kickoff {
-            possession = nil
-            kneeled = false
-            continue
-        }
-        if play.situation.possession != possession {
+        // A flag before the snap is not a snap: the down is replayed, and a false start on
+        // a knee changes nothing about the decision.
+        if play.outcome.kind == .penaltyOnly { continue }
+        // A free kick and a new period each start a sequence of their own, and the side
+        // that kneels a half out can be the side that kicks off to open the next one: the
+        // kicking team has possession on a kickoff, so nothing else marks that boundary.
+        if play.outcome.kind == .kickoff || play.situation.quarter != quarter
+            || play.situation.possession != possession
+        {
+            quarter = play.situation.quarter
             possession = play.situation.possession
             kneeled = false
         }
