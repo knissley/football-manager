@@ -112,10 +112,10 @@ viewer saw.
 
 ## Calibration
 
-Penalties are part of the [match engine's targets](match-engine.md#calibration) —
-10–14 per game across both teams at default sliders. Beyond the total, the
-harness should check that the *mix* is right: pre-snap fouls dominate, holding is
-the most common in-play foul, and interference is rare but enormous.
+Penalties are part of the [match engine's targets](match-engine.md#calibration):
+the accepted total per game across both teams at default sliders, and the mix — a
+band per game for each of the ten most common fouls, sourced from the 2023 and 2024
+seasons. Holding and false starts lead, interference is rare but enormous.
 
 Two effects worth asserting once the engine exists, because they are the point of
 modelling penalties this way rather than as a die roll:

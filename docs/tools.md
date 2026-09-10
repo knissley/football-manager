@@ -82,8 +82,25 @@ swift run --package-path Tools/simharness -- --games 60
 ```
 
 Simulates games headless and prints the [calibration table](match-engine.md#calibration)
-with each row marked `ok` or `OFF`. **Tuning is done against this and never by playing
-the app.**
+with each row marked `ok` or `OFF`, and beside every row the real-league season and the
+source its band came from and the rule areas it depends on. **Tuning is done against this
+and never by playing the app.**
+
+The bands are `Tools/simharness/Sources/simharness/Targets.swift`, and the doc table is
+generated from them: `swift run simharness --targets-markdown` prints it, and the
+package's test fails if the doc and the array disagree. A row marked `stale` was sourced
+under a different rulebook than the run and is never `ok`; one marked `unsourced` keeps a
+band nobody has cited and is never `ok` either.
+
+```bash
+cd Tools/simharness && swift run simharness --games 400 --seed 7 --rulebook 2024
+```
+
+`--rulebook 2024` plays today's `Rules.standard` and compares the kickoff rows against
+the bands sourced from the 2024 season; `--rulebook 2025` plays with the touchback at the
+35 and compares against 2025. If the kickoff rows land under both, the mechanism is right
+rather than tuned. The default run plays `Rules.standard` against the 2025 targets, so
+the 2024-sourced rows warn at startup until D2 lands.
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than
@@ -152,6 +169,7 @@ thirty seconds of this output, which is why it exists.
 swift test --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
+swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
 
 # Integer maths must agree between debug and release
 swift test -c release --package-path Packages/FMRandom
