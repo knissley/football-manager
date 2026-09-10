@@ -118,6 +118,29 @@ struct TryTests {
         trace.expectScore(scorer, 8)
     }
 
+    /// A two-point try is a scrimmage down like any other, and the sport lets it be a run.
+    ///
+    /// 2025 rulebook, 11-3-1: the team that scored puts the ball in play 15 yards from the
+    /// defence's goal line for a try-kick, or **two yards from it for a try by pass or
+    /// run**. Every conversion this engine attempted was a pass, so half the play the rule
+    /// describes did not exist — and with it went the heavy grouping a team sends out for
+    /// it and the goal-line defence that answers.
+    @Test(
+        "football · Rule 11-3-1 · a two-point try may be a run, and some of them are",
+        .tags(.football))
+    func twoPointTriesCanBeRuns() {
+        let tries = Self.plays(1...80).filter { $0.outcome.kind == .twoPointConversion }
+        #expect(tries.count > 10, "only \(tries.count) conversions were attempted")
+        let carried = tries.filter { play in
+            play.outcome.participants.contains { $0.role == .rusher }
+        }
+        let thrown = tries.filter { play in
+            play.outcome.participants.contains { $0.role == .passer }
+        }
+        #expect(!carried.isEmpty, "every conversion was a pass: \(tries.count) of them")
+        #expect(!thrown.isEmpty, "every conversion was a run: \(tries.count) of them")
+    }
+
     /// The point of a rule that can be satisfied: sometimes it is, and sometimes it is
     /// not. A conversion rate of zero and one of a hundred are equally wrong.
     @Test("Conversions are sometimes made and sometimes missed", .tags(.unit))
