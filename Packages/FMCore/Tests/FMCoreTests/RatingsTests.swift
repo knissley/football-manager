@@ -265,4 +265,32 @@ struct PositionWeightsTests {
             PositionWeights.overall(passer, at: .quarterback)
                 > PositionWeights.overall(athlete, at: .quarterback))
     }
+
+    #if DEBUG
+    /// A weight on a rating the player lacks used to be dropped and the rest
+    /// renormalised over what he had, which scored a receiver at quarterback on his
+    /// awareness and speed alone and made him a better quarterback than a receiver.
+    /// Generation fills every key, so an incomplete set is a hand-built one, and an
+    /// overall read from it is a mistake to catch rather than a number to return.
+    ///
+    /// Debug only: the catch is an assertion, and a release build reads the floor
+    /// instead of trapping.
+    @Test(
+        "contract: an incomplete rating set is a caught mistake, not a renormalised overall",
+        .tags(.contract))
+    func incompleteSetIsCaught() async {
+        await #expect(processExitsWith: .failure) {
+            var passer = Ratings()
+            for key in RatingKey.general { passer[key] = 70 }
+            _ = PositionWeights.overall(passer, at: .quarterback)
+        }
+        await #expect(processExitsWith: .failure) {
+            var passer = Ratings()
+            for key in RatingKey.general { passer[key] = 70 }
+            _ = SchemeFit.effectiveOverall(
+                passer, at: .quarterback,
+                in: TeamScheme(offense: .westCoast, defense: .nickelMatch))
+        }
+    }
+    #endif
 }
