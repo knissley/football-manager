@@ -164,26 +164,66 @@ struct DraftHistoryTests {
         #expect(contender < rebuilding, "contender \(contender), rebuilding \(rebuilding)")
     }
 
-    /// Rookies exist and are a minority. A roster where nobody is in his first season has
-    /// no rookie class; one where everybody is has no league before it.
+    /// About a sixth of a roster is in its first season, and the rest of it has been here
+    /// before.
     ///
-    /// **The bounds are a sanity fence, not a sourced target.** The upper one was picked
-    /// knowing the output — the share measures 0.254 over these four seeds — so it says
-    /// only that the number has not run away, and passing it is not evidence the share is
-    /// right. It is not: a quarter of every roster in its first season is high for a
-    /// fifty-three-man team, and the cause is not the draft model but `RosterGenerator.age`,
-    /// which clamps at twenty-one and piles 15.7% of the league on that exact age — a floor
-    /// no entry-age distribution can get under. Issue #67 owns the age model and owns
-    /// replacing this fence with a band from a source.
+    /// **Sourced.** Opening-week rosters — week 1 of the regular season, the active list
+    /// plus that week's inactives, without the practice squad — carried 281 first-season
+    /// players of 1,729 in 2023 (0.1625), 274 of 1,754 in 2024 (0.1562) and 266 of 1,740 in
+    /// 2025 (0.1529), counted from the nflverse weekly roster data set. The band spans those
+    /// three seasons widened by 5% of their mean, which is the band policy in
+    /// [`calibration-sources.md`](../../../../docs/reference/calibration-sources.md), where
+    /// this row and its derivation are recorded.
+    ///
+    /// Pooled over eight leagues rather than asserted seed by seed. One league is 1,696 men
+    /// and its share moves further from seed to seed than the band is wide — 0.130 to 0.169
+    /// over sixteen seeds — so a per-seed bound would be a claim about the seed rather than
+    /// about generation. Eight leagues is 13,568 men.
+    ///
+    /// **This replaces a fence.** The test here before asserted `share < 0.30`, a bound
+    /// picked knowing the output, and it was green while a quarter of every roster was a
+    /// rookie because `RosterGenerator.age` clamped at twenty-one
+    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
     @Test(
-        "contract: a generated league has rookies, and most of it is not rookies", .tags(.contract))
-    func rookiesAreAMinority() {
+        "football: about a sixth of a roster is in its first season, 0.145 to 0.171 (2023-2025 week 1 rosters, nflverse weekly roster data)",
+        .tags(.football))
+    func firstSeasonShare() {
+        var rookies = 0
+        var players = 0
+        for seed in UInt64(1)...8 {
+            let league = everyone(seed: seed)
+            #expect(!league.isEmpty, "seed \(seed) generated nobody")
+            rookies += league.filter { $0.isRookie(in: season) }.count
+            players += league.count
+        }
+        let share = Double(rookies) / Double(max(1, players))
+        #expect(
+            share >= 0.145 && share <= 0.171,
+            "\(rookies) of \(players) are in their first season — \(share)")
+    }
+
+    /// Every club has a rookie class and no club is mostly rookies. Structure rather than a
+    /// rate: the rate is `firstSeasonShare` above, and this is what stops one club carrying
+    /// the whole league's intake.
+    @Test(
+        "contract: every roster has first-season players and none is made of them",
+        .tags(.contract))
+    func everyRosterHasARookieClass() {
         for seed in seeds {
-            let players = everyone(seed: seed)
-            let rookies = players.filter { $0.isRookie(in: season) }
-            let share = Double(rookies.count) / Double(max(1, players.count))
-            #expect(share > 0.05 && share < 0.30, "seed \(seed) rookie share \(share)")
-            #expect(rookies.allSatisfy { $0.experience(in: season) == 0 })
+            guard let world = world(seed: seed) else {
+                Issue.record("seed \(seed) did not produce a world")
+                continue
+            }
+            for team in world.teams {
+                let roster = world.roster(of: team.id)
+                let rookies = roster.filter { $0.isRookie(in: season) }
+                #expect(!rookies.isEmpty, "seed \(seed): \(team.identity.fullName) has no rookies")
+                let makeup = "\(rookies.count) of \(roster.count)"
+                #expect(
+                    rookies.count * 3 <= roster.count * 2,
+                    "seed \(seed): \(team.identity.fullName) is \(makeup) rookies")
+                #expect(rookies.allSatisfy { $0.experience(in: season) == 0 })
+            }
         }
     }
 
