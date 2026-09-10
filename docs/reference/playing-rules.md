@@ -42,6 +42,10 @@ Which rules must be true of a game, and what checks each, is
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
   `test:warningInPostseasonOvertime`; that it was taken is on the record of the first snap
   after it — `test:warningIsOnTheRecord`
+- **3-42** — A T-formation quarterback is a player aligned a yard or less behind the
+  snapper. It is the definition 8-2-1 Item 3 spends on the spike, and it is an alignment,
+  not a grip: hands under centre are one way to satisfy it, not the test. — not modelled:
+  the engine has no quarterback alignment, so nothing it simulates can fail the condition
 
 ## Rule 4 — Game timing
 
@@ -70,7 +74,10 @@ Which rules must be true of a game, and what checks each, is
   kicking team recovers before any other legal touching, or on a fair catch. —
   `test:touchbackConsumesNoTime`, `test:kickoffRecoveredByTheKickersStartsNoClock`,
   `test:fairCaughtKickoffStartsNoClock`
-- **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`
+- **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`; a
+  charged timeout is therefore an interval an offence kneeling the game out does not
+  get, which is half of the victory-formation arithmetic —
+  `test:aKneltOutLeadStaysKnelt`
 - **4-3-2-a**, **4-3-2-a-2**, **4-3-2-a-3** — After a runner goes out of bounds it starts
   on the ready for play, except that it starts on the snap after the two-minute warning of
   the first half (a-2) and inside the last five minutes of the second half (a-3), which
@@ -84,11 +91,21 @@ Which rules must be true of a game, and what checks each, is
   `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
-- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
-  the flag had never flown, except on the snap after the first half's two-minute warning,
-  inside the last five minutes of the second half, and after an offensive foul that stops
-  the clock before the snap anywhere in the fourth period or regular-season overtime. In
-  postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
+- **4-3-2-e** — Where either side's flag has stopped the clock, between downs or at the end
+  of one, the clock starts again once the penalty is settled exactly where it would have
+  started had no flag been thrown. The article covers a declined penalty as well as an
+  enforced one; the engine reads the accepted branch only, and a foul the non-offending
+  side turns down leaves the clock as the play's ending left it. —
+  `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — Its three exceptions, in which the clock
+  waits for the snap: a flag past the first half's warning (e-1); a flag in the closing
+  five minutes of the second half (e-2); and, during the fourth period or regular-season
+  overtime, an offensive foul committed once the officials have marked the ball ready,
+  killing a clock that had not yet reached its snap (e-3). **Inference, not text:** e-3
+  therefore reaches only a flag between downs, since a flag during a down does not stop a
+  clock before a snap — 4-4-e stops that clock as the down ends — so a fourth-quarter
+  holding call on a run restarts on the ready like any other period's.
+  In postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
   names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
   the flag, with the interval before it charged to a running clock — the clock where the
   ball is dead, as for a runner out of bounds. —
@@ -96,15 +113,22 @@ Which rules must be true of a game, and what checks each, is
   `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
   `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,
   `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
-  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`
+  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
+  `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
+  `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 - **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
   `test:falseStartInsideTwoMinutesCostsTenSeconds`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
 - **4-4-a** — A free kick down stops the clock. — `test:returnedKickoffAdvancesTheClock`
 - **4-4-c** — A runner going out of bounds stops it. — `test:outOfBoundsLate`
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
-- **4-4-e** — A foul stops it. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
-- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`
+- **4-4-e** — A flag thrown at any point in a down stops it, and it stops as that down
+  ends. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`
+- **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,
+  stops it there and then: this is the flag before the snap, and it is why no play time is
+  charged for one. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
 - **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
   `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`
 - **4-4-i** — A change of possession stops it. — `test:changeOfPossessionStops`,
@@ -114,8 +138,9 @@ Which rules must be true of a game, and what checks each, is
 - Not in the list, and the omission is the rule: **gaining a first down does not stop the
   clock**. — `test:firstDownDoesNotStop`
 - **4-5-1** — Three charged timeouts per team per half; they do not carry over. —
-  `test:timeoutsStayLegal`; every one charged is on the record of the snap it preceded,
-  with the side that took it — `test:timeoutsAreOnTheRecord`
+  `test:timeoutsStayLegal`, `test:kneelsOnlyWhenTheDefenceCannotStopTheClock`; every one
+  charged is on the record of the snap it preceded, with the side that took it —
+  `test:timeoutsAreOnTheRecord`
 - **4-5-3**, **4-5-4-a**, **4-5-4-b**, **4-5-4 Note 1** — Before the two-minute warning an
   injury timeout leaves the clock as it would have been. After it, the injured player's
   team is charged a team timeout if it has one, and the clock then starts on the snap as
@@ -133,9 +158,25 @@ Which rules must be true of a game, and what checks each, is
   `test:injuryRunoffDeclinedByATrailingDefense`
 - **4-5-4 Note 4** — A half can end on a runoff. — `test:runoffAtEightSecondsEndsTheHalf`
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
-- **4-6-1** — 40 seconds from the end of the previous play, and letting it expire is delay
-  of game. — `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
-  `test:everySnapRecordsItsPlayClock`
+- **4-6-1** — 40 seconds from the end of the previous play in which to snap, and letting
+  them run out is delay of game. —
+  `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
+  `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
+  spend, which is what a knee-down sequence counts —
+  `test:aKneltOutLeadStaysKnelt`,
+  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`
+- **4-6-1 in this engine** — The article says nothing about kneeling, and the inference
+  drawn from it here is only this: read with 4-8-1, an offence on fourth down with the
+  clock running and less than a play clock left may let the forty seconds go, take the
+  delay of game, and see the period end with **no snap at all**. That is the sport's
+  answer, and it is not a knee — a knee is a snap. This engine has no outcome meaning
+  *let the play clock expire*, so its caller kneels that down instead. **That is a
+  modelling substitution, not the article**, and it puts a down on the record that was
+  never played, worth about a fifth of a knee a game. —
+  [#101](https://github.com/knissley/football-manager/issues/101) owns the fix and
+  [#49](https://github.com/knissley/football-manager/issues/49) the calibration it
+  moves; `test:fourthDownKneelStandsInForDecliningTheSnap`,
+  `test:theKneltOutGameEndsOnAFourthDownKnee` pin it meanwhile
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
   enforcement, a free kick. —
@@ -182,10 +223,15 @@ Which rules must be true of a game, and what checks each, is
   there is no replay system and no foul is ever nullified after the fact, so nothing can
   produce the runoff; `test:noRunoffFollowsAReplay` pins the exclusion
 - **4-8-1** — A period whose time runs out with the ball still live does not end there:
-  the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`
+  the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`; the converse
+  is what ends a knelt-out game, since a period that expires *between* downs ends where
+  it stands and there is no further down —
+  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`. What the engine records at
+  that point is a knee rather than nothing, which is the substitution noted under 4-6-1
 - **4-8-2** — A period may be extended by one untimed down when something in the down that
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
-  `test:walkOffTryIsTheCallerChoice`
+  `test:walkOffTryIsTheCallerChoice`; and nothing extends one that expires between downs,
+  which is what a knee-down sequence is counting on — `test:aKneltOutLeadStaysKnelt`
 - **4-8-2-c** — A touchdown on the last play of a period still gets its try. It is waived
   only during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. — `test:lastPlayTouchdownDownSeven`,
@@ -292,6 +338,19 @@ below are what it is held to.
   either way. So an interception is a catch but it is not a completion, which is what
   decides whether a foul before it is inside 8-6-1-d. —
   `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
+- **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
+  intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
+  motion and puts the ball straight into the ground. 3-42 makes that any player aligned a
+  yard or less behind the snapper, so the article is wider than hands under centre. The pass
+  is incomplete, so 4-4-f stops the clock and 4-3-2 holds it to the next snap. The article
+  is about the throw and says nothing about the seconds before the snap: a clock running
+  into a spike keeps running until the ball is snapped. —
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+  `test:spikeAtFiveSecondsIsFollowedByTheNextDown`
+- **8-2-1 Item 4** — A passer who has held the ball for tactical reasons may not then throw
+  it into the ground in front of him, pressure or no pressure. — not modelled: the resolver
+  draws a spike as a called play and never as a late decision by a passer already holding
+  the ball
 - **8-3-1** — An ineligible player downfield on a pass: five yards from the previous spot. —
   `test:enforcementFamilies`
 - **8-4-4** — Illegal contact: five yards and an automatic first down. —

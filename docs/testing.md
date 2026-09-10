@@ -52,6 +52,16 @@ CI runs the census as a hard-failing step of the `test` job and writes the table
 job summary, so the shares are in front of whoever opens the run rather than in a script
 nobody remembers to call. See [tools.md](tools.md#test-census--what-the-suite-asserts).
 
+The census reads the tags out of the source, so it counts a test that exists only in a
+debug build. Two do: the exit tests that check an assertion fires —
+`PositionWeightsTests.incompleteSetIsCaught` in FMCore and
+`SchemeFitInEngineTests.missingKeyIsCaught` in FMSimulation — sit under `#if DEBUG`, are
+in the table, and are absent from a `-c release` run. That costs nothing, because a
+release run is required only of FMRandom (CI runs it both ways; its integer maths must
+agree with optimisation on), and is run for FMGeneration when its goldens change so the
+constants agree between builds. FMCore and FMSimulation run in debug, which is where
+those two tests live.
+
 ## The first census
 
 Taken on the merge of wave 1, at 717 tests.
@@ -77,19 +87,19 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on the merge of wave 2's record track and wave 3's small track, at 854 tests.
-`./scripts/test-census.sh` reprints it; if this table and that output disagree, the output
-is right and this table is stale.
+Taken on the merge of wave 2's record and ratings tracks with wave 3's small track, at
+886 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
+the output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 40 — 11.3% | 30 — 8.5% | 282 — 79.4% | 3 | 355 |
-| FMGeneration | 1 — 0.5% | 87 — 44.2% | 109 — 55.3% | 0 | 197 |
-| FMSimulation | 95 — 37.7% | 83 — 32.9% | 68 — 27.0% | 6 | 252 |
+| FMCore | 40 — 11.1% | 31 — 8.6% | 286 — 79.4% | 3 | 360 |
+| FMGeneration | 1 — 0.5% | 94 — 45.9% | 110 — 53.7% | 0 | 205 |
+| FMSimulation | 105 — 38.7% | 88 — 32.5% | 70 — 25.8% | 8 | 271 |
 | simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **136 — 15.9%** | **217 — 25.4%** | **492 — 57.6%** | **9** | **854** |
+| **all** | **146 — 16.5%** | **230 — 26.0%** | **499 — 56.3%** | **11** | **886** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -109,9 +119,9 @@ sideline and the aimed punt.
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
-| Rules conformance — the scripted games (FMSimulation) | 86 — 97.7% | 0 | 0 | 2 | 88 |
+| Rules conformance — the scripted games (FMSimulation) | 93 — 97.9% | 0 | 0 | 2 | 95 |
 | The resolver — `CrudeResolver`, the contest curve, out of bounds and punting (FMSimulation) | 2 — 8.0% | 11 | 10 | 2 | 25 |
-| Generation (FMGeneration) | 1 — 0.5% | 87 | 109 | 0 | 197 |
+| Generation (FMGeneration) | 1 — 0.5% | 94 | 110 | 0 | 205 |
 
 Three findings come straight off that table.
 
@@ -146,7 +156,7 @@ the untagged-test problem this issue set out to fix.
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
 FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
-the first census, and 44.2% — 87 of 197 — now. Nearly `0.0%` football is the right answer
+the first census, and 45.9% — 94 of 205 — now. Nearly `0.0%` football is the right answer
 there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be

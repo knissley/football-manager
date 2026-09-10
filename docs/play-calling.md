@@ -101,12 +101,18 @@ tables, analysis, and the news — so **the classification lives in one place**:
 
 ```
 SituationClass
-  downAndDistance   firstDown · 2nd/3rd short-medium-long · 4th short-long · goalToGo
+  downAndDistance   firstDown · 2nd/3rd/4th short-medium-long · goalToGo
   field             ownDeep → goalLine
   score             trailing/leading by one, two or three scores, or tied
   time              opening · middle · twoMinuteFirstHalf · thirdQuarter ·
                     fourthQuarter · clockBurn · twoMinuteGame · overtime
 ```
+
+Short is one to three, medium four to six, long seven or more — the same three widths on
+second, third and fourth down. Seven is where the ground stops being a realistic answer
+to the distance, which is why `isPassingDown` is **third or fourth and seven or more and
+nothing else**: second and eight has a whole extra play behind it, and third and four is
+a down the sport runs on constantly.
 
 Plus the reads that are composed from all four and used everywhere: `isMustPass`,
 `isClockBurn`, `isDesperation`, `isFourthDownTerritory`, `isHighLeverageForDefense`.
@@ -115,7 +121,86 @@ Two properties matter more than the buckets themselves:
 
 **It decides nothing.** It is a description. A gameplan rule, an AI policy and a
 post-game report all key off it, which is what stops a tendency report from quietly
-contradicting a play-by-play because two systems drew the line at seven yards and eight.
+contradicting a play-by-play because two systems drew the line at six yards and seven.
+
+**And a caller consumes it as a lean, never as a law.** `isMustPass` says the menu
+shrank, not that it is down to one item. The baseline caller therefore leans one way in
+*every* down-and-distance bucket and commits in none of them: it throws the great
+majority of third and longs and still runs some, and inside two minutes needing points it
+throws nearly everything and still runs the occasional draw. Not every bucket gets its
+lean from the same place — short yardage and goal to go are answered before the table of
+run shares is reached, by a branch that runs a little over two thirds of the time and
+throws into the end zone the rest, so their entries in that table are unreachable and
+kept only to keep the switch exhaustive. A caller whose share in some
+bucket is exactly zero is a caller a tendency table can read off a single snap, and a
+defence that has seen the table can stop defending the run for free. The same rule
+applies to the other reads: `isDesperation` is true inside two minutes of *either* half,
+and the fourth-down chart deliberately treats the two halves differently rather than
+acting on the description alike. The run shares themselves are modelling conventions; the
+sourced rows in `Tools/simharness` are what grade the balance, and a retune is what moves
+them.
+
+### Victory formation, and the arithmetic behind it
+
+The one place where a caller's decision is a piece of clock arithmetic rather than a
+lean, so it is written down here rather than left in the code. A knee ends the down in
+bounds, so the game clock keeps running and the next snap has to come inside the forty
+seconds of the play clock (2025 rulebook, 4-6-1) — every one of which an offence in
+victory formation spends. A charged timeout stops the clock until the next snap instead
+(4-3-2), so each timeout the defence still holds erases one of those intervals; it has
+three a half (4-5-1 Item 1). And nothing extends a period that expires between downs:
+4-8-1 extends one only while the ball is in play, and 4-8-2 only for a foul in the down
+that expired it.
+
+So, from this down: one knee per down remaining **and one on fourth**, an interval before
+each of those snaps after the first, and one more before the snap the offence is already
+standing over if the clock is running into it. Take away one interval per defensive
+timeout, longest first. If the clock left is no more than that, the lead is safe. The
+fourth down's interval counts because the fourth down is a knee too — see below — and a
+sequence that stopped a down short would hand the ball to a punter with half a play clock
+still on the game clock.
+
+The intervals are not all the same length. The one in front of the snap already on the
+board runs against **the play clock actually in force** — twenty-five from the whistle
+after a stoppage (4-6-2), forty from the end of a play (4-6-1) — and the two differ by
+nine seconds. Every interval after it is a forty, because a knee is an ordinary play that
+ends and none of it is one of the stoppages 4-6-2 lists. Counting the first at the
+second's length is how a caller kneels on a twenty-five, gets nine seconds less than it
+counted on, and has to play the next down after all.
+
+The count never rounds anything up. Counting high hands the other side the ball; counting
+low costs one ordinary snap.
+
+Counted this way the decision is **monotone**, which is what makes a knee stick: the clock
+the next snap faces is exactly what this knee leaves, and the count falls by exactly as
+much, so a lead that can be knelt out on first down can still be knelt out on second. A
+count that shrinks faster than the clock kneels twice and then runs an ordinary play,
+which is how a won game gets fumbled away. There is no memory in the caller and none is
+needed — the arithmetic is what carries the decision forward.
+
+A knee on fourth down is a turnover on downs, so the caller does not take one — except
+when the period cannot survive the play clock in front of it. **That exception is a
+modelling substitution and not a rule, and it is worth being exact about which.** What
+4-6-1 and 4-8-1 give the offence there is the right to let the forty seconds go, take the
+delay of game, and end the period with no snap at all; a knee is a snap, so the articles
+do not produce one. This engine has no outcome meaning *let the play clock expire*, so
+the caller kneels that down instead, and the record carries a down that was never played
+— about a fifth of a knee a game. The substitution is what lets the count above include
+the fourth down's interval, and it is what an unforeseen stoppage lands on: an injury
+timeout between downs takes an interval away that nothing could have planned for, and the
+fourth-down knee is where the sequence still ends rather than turning into a punt.
+
+None of it applies above the two-minute warning. The warning is a stoppage the defence
+is handed for nothing (4-4), so it is a fourth timeout — and a knee taken into it has its
+interval truncated at 2:00, which is how a team kneels at 2:01 and then finds it has to
+play the down after all. Victory formation starts inside two minutes of a half.
+
+Both halves are worth ending, but not on the same terms, and neither is worth ending from
+behind: a snap is the only thing that can still change the scoreboard. Ending the game
+then needs a lead, because level the snap can still win it. Ending the half needs a lead
+*and* the ball too far out to do anything with, or your own goal line right behind you —
+the half is not the game and the points still count, so a team in field goal range plays
+for them however comfortable the lead is.
 
 **There is one per snap, not one per sideline.** Like `Situation`, it reads from the
 offence's point of view — `isMustPass` means *the team with the ball* has to throw,

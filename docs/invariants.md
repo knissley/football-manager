@@ -182,8 +182,13 @@ season is what checks one. A band is evidence about a rate and never about a rul
     [#48](https://github.com/knissley/football-manager/issues/48). Until it is, the crude
     resolver does not put the ball on the ground during a try at all: a fumble it could
     only resolve as a failed try would be a wrong outcome dressed as a right one.
-28. After the try, the team that was on defence for it receives the kickoff.
-    `[2025 · 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`
+28. After the try, the team that was on defence for it receives the kickoff — however the
+    try ended, including one the defence intercepts, because the whistle closes the try out
+    whether or not anybody scored on it, and the ball does not change hands for the free
+    kick that follows.
+    `[2025 · 11-3-2-e, 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`,
+    `test:aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer`,
+    `test:aTwoPointTryThatIsInterceptedIsStillTheTry`
 29. A kickoff returned for a touchdown gets its try, and the returning team then kicks off.
     `[2025 · 11-3-1, 11-3-4]` — `test:kickoffReturnTouchdownGetsItsTry`
 
@@ -226,9 +231,17 @@ season is what checks one. A band is evidence about a rate and never about a rul
     recovers. `[2025 · 4-4-i, 4-3-2-a-1]` — `test:changeOfPossessionStops`,
     `test:turnoverOnDownsStopsTheClock`, `test:puntReturnedAndTackledStopsTheClock`,
     `test:fumbleRecoveredByTheDefenseStopsTheClock`
-40. An incomplete pass stops the clock until the snap, a spike included.
-    `[2025 · 4-4-f, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
-    `test:deadBallStops`; the caller's own habit — a spike at hurry-up tempo — is pinned by
+40. An incomplete pass stops the clock until the snap, a spike included. A quarterback
+    who throws the ball into the ground straight off the snap stops it legally, so a spike
+    costs the second the snap and the throw take and no more: the next down is snapped on
+    the clock the spike left, whatever that clock reads, and a spike inside ten seconds
+    does not end the period. What is charged *before* the spike is a separate question the
+    clock rules answer separately — nothing had stopped the clock, so the seconds the
+    offence spends reaching the line come off it.
+    `[2025 · 4-4-f, 8-2-1 Item 3, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
+    `test:deadBallStops`, `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+    `test:spikeAtFiveSecondsIsFollowedByTheNextDown`; the caller's own habit — a spike at
+    hurry-up tempo — is pinned by
     `test:spikeIsCalledAtHurryUpTempo`, which is a modelling convention and not a rule
 41. A ball dead on or behind a goal line stops the clock until the snap, so a kickoff
     touchback consumes no time. `[2025 · 4-4-d, 4-3-1]` — `test:touchbackConsumesNoTime`
@@ -265,13 +278,31 @@ season is what checks one. A band is evidence about a rate and never about a rul
 46. A down under way when the clock runs past 2:00 finishes, and the clock is dead after it.
     `[2025 · 3-41]` — `test:warningDuringADown`, `test:downUnderWayAtTwoMinutesFinishes`,
     `test:twoMinuteWarningDetection`
-47. Outside the late-game windows a foul restarts the clock as though the flag had never
-    flown. `[2025 · 4-4-e, 4-3-2-e]` — `test:falseStartInTheThirdQuarterCostsNoTime`
+47. A foul stops the clock, and where it stops it depends on when it flew: a foul during a
+    down stops the clock at the end of that down (4-4-e), and one with the ball already
+    dead stops it as it flies (4-4-g). Enforcement is not free either way. Outside the
+    late-game windows the clock then restarts as though the flag had never flown — on the
+    ready-for-play signal, if it was running — and inside the window after the first half's
+    warning or the last five minutes of the second it waits for the snap.
+    `[2025 · 4-4-e, 4-4-g, 4-3-2-e, 4-3-2-e-1, 4-3-2-e-2]` —
+    `test:falseStartInTheThirdQuarterCostsNoTime`,
+    `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
+    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`; **modelling**: only the
+    accepted branch is read. 4-4-e stops the clock for a foul during a down whether or not
+    the penalty is taken, and 4-3-2-e restarts it once the penalty is settled either way,
+    but `State.runClock` gates the whole restart on `penalty.wasAccepted`, so a foul the
+    non-offending side turns down leaves the clock as the play's ending left it. That is
+    not a rare corner: the harness's `declined` line under Penalties reads 12.3% at seed 7
+    and 12.7% at seed 11 over four hundred games.
+    [#102](https://github.com/knissley/football-manager/issues/102) owns it
 48. An offensive foul that stops the clock before the snap anywhere in the fourth period
-    restarts it on the snap. `[2025 · 4-3-2-e-3]` —
-    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`
+    restarts it on the snap, and e-3 reaches no further than that: an offensive foul during
+    a fourth-quarter down stops the clock at the end of the down rather than before a snap,
+    so it restarts on the ready like any other period's. `[2025 · 4-3-2-e-3, 4-4-e]` —
+    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
+    `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 49. A foul before the snap charges no play time, because no play happened.
-    `[2025 · 4-4-e]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
+    `[2025 · 4-4-g]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
 50. Three charged timeouts per team per half, they do not carry over, and they never go
     negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`;
@@ -325,7 +356,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`,
     `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`,
     `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft`,
-    `test:lastFortySeconds`, `test:conservingActs`; the election is the offence's, a
+    `test:lastFortySeconds`, `test:conservingActs`; the article's second clause, an excess
+    timeout for an injured defender, ends the half on the same terms (4-5-4-b) —
+    `test:injuryToADefenderInTheLastFortySecondsEndsTheHalf`; the election is the offence's, a
     `PlayCaller` decision written into the play's decision log; **modelling**: the
     defence's option to spend a timeout in lieu of the clock starting (4-7-1 Item 2) is
     not modelled — a defence with a timeout keeps the half alive by having one, and spends

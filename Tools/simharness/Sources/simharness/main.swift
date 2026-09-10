@@ -489,6 +489,37 @@ spread(
 
 let kneels = allPlays.filter { $0.outcome.kind == .kneel }.count
 let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
+
+// Knees that were followed by an ordinary snap on the same possession. A knee is the
+// offence saying the game is over; going back to running plays afterwards means the
+// arithmetic behind it was wrong, and the lead was being handed back one snap at a time.
+// Not a league rate and so not a `row:` — it is a promise the caller makes about itself,
+// and the number to beat is zero.
+var kneelsFollowedByALivePlay = 0
+for result in results {
+    var possession: TeamID?
+    var quarter: UInt8 = 0
+    var kneeled = false
+    for play in result.plays {
+        // A flag before the snap is not a snap: the down is replayed, and a false start on
+        // a knee changes nothing about the decision.
+        if play.outcome.kind == .penaltyOnly { continue }
+        // A free kick and a new period each start a sequence of their own, and the side
+        // that kneels a half out can be the side that kicks off to open the next one: the
+        // kicking team has possession on a kickoff, so nothing else marks that boundary.
+        if play.outcome.kind == .kickoff || play.situation.quarter != quarter
+            || play.situation.possession != possession
+        {
+            quarter = play.situation.quarter
+            possession = play.situation.possession
+            kneeled = false
+        }
+        let isKneel = play.outcome.kind == .kneel
+        if kneeled && !isKneel { kneelsFollowedByALivePlay += 1 }
+        kneeled = kneeled || isKneel
+    }
+}
+
 // Read off the record rather than inferred from two consecutive situations, which
 // could not see a timeout taken with the ball about to change hands: a charged timeout
 // before a snap is a `.timeout` on that snap, and one the rules charged after a play —
@@ -572,6 +603,11 @@ print("")
 print("  The endgame")
 report("scramblesPerGame", Double(scrambles.count) / Double(max(1, results.count)))
 report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
+print(
+    "  " + pad("knees followed by a live play", labelWidth)
+        + pad("\(kneelsFollowedByALivePlay)", 9) + pad("0", 14)
+        + pad(kneelsFollowedByALivePlay == 0 ? "ok" : "OFF", 11) + pad("-", 9) + pad("-", 5)
+        + "a caller contract, not a league rate: test:aKneelIsNeverFollowedByALivePlay")
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
 print(

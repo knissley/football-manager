@@ -149,20 +149,44 @@ fit question, not a separate position. Same idea for `S` (free/strong is usage) 
 *General* (every player has them): awareness, speed, acceleration, agility, strength,
 stamina, toughness, injuryResistance, discipline.
 
-*Positional* (only the ones the position uses): throwPower, throwAccuracyShort/Medium/
-Deep, underPressure, playAction; carrying, vision, breakTackle, elusiveness; catching,
-catchInTraffic, routeRunning, releaseVsPress; runBlock, passBlock, blockAnchor,
-handTechnique; powerMove, finesseMove, blockShedding, pursuit, tackling, hitPower;
-manCoverage, zoneCoverage, ballHawk; kickPower, kickAccuracy, puntPower, puntAccuracy.
+*Positional* (every player carries all of them; a position *trains* the ones its job
+uses): throwPower, throwAccuracyShort/Medium/Deep, underPressure, playAction; carrying,
+vision, breakTackle, elusiveness; catching, catchInTraffic, routeRunning, releaseVsPress;
+runBlock, passBlock, blockAnchor, handTechnique; powerMove, finesseMove, blockShedding,
+pursuit, tackling, hitPower; manCoverage, zoneCoverage, ballHawk; kickPower,
+kickAccuracy, puntPower, puntAccuracy.
 
-A rating a position doesn't use is absent, not zero. `Ratings` is a **flat array indexed
-by `RatingKey.rawValue`, plus a two-word presence bitmap** rather than a dictionary: a
-lookup is an array read with no hashing, and "absent" is representable. Neither reason is
-about the tick loop — `Ratings` is not read there. The engine copies the handful of
-values a play needs into flat entity arrays at the snap and reads those; this type is the
-domain representation. Raw values are gapped so a new key can be inserted without
-renumbering, and a test asserts every key fits the array. Typed accessors mean adding a
-rating doesn't touch every player struct.
+**A rating a position does not train is present and low, never absent.** Generation
+draws it from the untrained table in `PlayerGenerator` — a lineman's throwing centres on
+25, a defensive back's or linebacker's catching on 40, a kicker's punting on 45, and
+elusiveness, pursuit and hit power follow the man's agility, speed and strength — on a
+substream of the player's own, so the ratings he does train are exactly what they would be
+without it. Three readings of that table are the generator's rather than its author's,
+and are stated beside the rows: "linemen" is the offensive line, so a defensive lineman
+carries what he takes away at the defenders' 35; a key the table does not name for a
+position — a receiver's carrying and breakTackle, a back's route running, a corner's
+pass-rush moves — takes its family's row for everyone, which is the family's lowest
+stated centre; and pursuit and hit power are derived from speed and strength for
+*everyone* who does not train them, not only for offensive linemen, so a corner hits at
+half his strength and a receiver covering a kick pursues at half his speed plus ten,
+where the family's row would have put both at 25. `overall(at:)`
+weighs an untrained key like any other, which is what makes a receiver a poor quarterback:
+he is scored on the throwing ratings he carries low. Absence was a free pass. `overall(at:)`
+dropped the weight of any key a player lacked and renormalised over the rest, so a
+receiver evaluated at quarterback was scored on his awareness and speed alone and rated a
+*better* quarterback than a receiver, and the engine substituted a man's overall for any
+rating he lacked. The families the keys fall into (`RatingKey.Family`) are what the
+untrained table is written in.
+
+`Ratings` is a **flat array indexed by `RatingKey.rawValue`, plus a two-word presence
+bitmap** rather than a dictionary: a lookup is an array read with no hashing, and the
+bitmap is how a hand-built set with a hole in it is caught — `isComplete` is the invariant
+for a generated player, and `overall` asserts it in debug. Neither reason is about the
+tick loop — `Ratings` is not read there. The engine copies the handful of values a play
+needs into flat entity arrays at the snap and reads those; this type is the domain
+representation. Raw values are gapped so a new key can be inserted without renumbering,
+and a test asserts every key fits the array. Typed accessors mean adding a rating doesn't
+touch every player struct.
 
 **Hidden attributes** — `HiddenAttributes` carries `ceiling` (a number, 0–99, not a
 band), `developmentTrait` (slow / normal / quick / star), `workEthic` and `durability`.

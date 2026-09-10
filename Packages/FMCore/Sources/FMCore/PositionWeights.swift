@@ -5,8 +5,8 @@
 /// average, and they are what let a single number sort a depth chart.
 ///
 /// Every weight set sums to 1 and references only ratings the position actually
-/// carries — both asserted in tests, because a weight on an absent rating would
-/// silently drag every player at that position down.
+/// trains — both asserted in tests, because a weight on an untrained rating
+/// would score every player at that position on a number generation draws low.
 public enum PositionWeights {
 
     public static func weights(for position: Position) -> [(RatingKey, Double)] {
@@ -90,15 +90,21 @@ public enum PositionWeights {
 
     /// A player's overall at a position, on the same 0...99 scale as a rating.
     ///
-    /// Missing ratings contribute nothing and their weight is dropped, so a
-    /// player evaluated at a position he does not carry ratings for scores from
-    /// what he does have rather than being punished for absences.
+    /// Every weighted key counts, whatever position the player trained for. A
+    /// receiver at quarterback is scored on the throwing ratings he carries low,
+    /// which is what makes him a poor quarterback. This used to drop the weight of
+    /// any key he lacked and renormalise over the rest, and that scored him on his
+    /// awareness and speed alone — a better quarterback than a receiver.
+    ///
+    /// A generated set is complete, so an incomplete one is hand-built and the
+    /// read is asserted in debug; a release build scores the missing key at
+    /// `Ratings.untrainedFloor`, which is a bad player rather than a plausible one.
     public static func overall(_ ratings: Ratings, at position: Position) -> UInt8 {
+        assert(ratings.isComplete, "overall at \(position) read an incomplete rating set")
         var weighted = 0.0
         var applied = 0.0
         for (key, weight) in weights(for: position) {
-            guard let value = ratings[key] else { continue }
-            weighted += Double(value) * weight
+            weighted += Double(ratings.value(key, or: Ratings.untrainedFloor)) * weight
             applied += weight
         }
         guard applied > 0 else { return 0 }

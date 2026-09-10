@@ -199,6 +199,16 @@ struct GoldenSeedTests {
             // sideline is now something a trailing offence reaches on purpose — so the
             // two meet on the plays that matter most to both. Seeds 5 and 12 played the
             // same game either way; seed 1 did not.
+            //
+            // And moved again by the enforcement stoppage, by the engine. A flag on a down
+            // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
+            // clock starts again on the ready-for-play signal, or on the snap inside the
+            // late windows (4-3-2-e). Every accepted foul on a down that ended in bounds
+            // therefore costs the offence one ready-for-play interval less than before, and
+            // one inside the last five minutes of a half costs it none at all, so every
+            // clock reading after the first such flag in each of the three games moves and
+            // the play that fills each period changes with it.
+            //
             // The play clock and the record changes met in a merge, and the constants
             // below are the union: the play clock's games, hashed with the record's
             // schema version, concept, presence, pass result and points mixed in. Neither
@@ -226,9 +236,87 @@ struct GoldenSeedTests {
             // just started carrying. The run-or-pass conversion moved type rather than
             // meaning: it is a case of `PlayConcept`, which the checksum mixes, where it
             // was a case of the now-deleted `PlayFamily`, which it did not.
-            (UInt64(1), UInt64(16_907_398_971_323_122_302)),
-            (UInt64(5), UInt64(3_992_350_416_242_507_068)),
-            (UInt64(12), UInt64(18_252_712_298_602_106_787)),
+            //
+            // The enforcement stoppage and those dead-ball decision points then met in a
+            // merge of their own, and the constants below are again the union: the
+            // enforcement stoppage's games, hashed with the dead-ball decision points
+            // mixed in. Neither side's constants could survive it, for the same reason as
+            // before — each was computed without the other's mechanism — so all three are
+            // regenerated here from the merged tree.
+            //
+            // And moved by the baseline caller, deliberately. Down and distance now
+            // buckets at three and six on every down, fourth included; a passing down is
+            // third or fourth and seven or more and nothing else; and the caller reads
+            // all of it as a lean rather than an instruction, so it runs a small share of
+            // third and longs instead of none. It also goes for it on fourth and goal
+            // from inside the three, kneels out the first half when a snap can only cost
+            // it, and stops spending defensive timeouts three scores down. Every one of
+            // those changes what is called on some snap, and a different call is a
+            // different game from there on.
+            //
+            // And moved again by the kneel-down, at seed 12 alone: the caller now counts
+            // the play clocks it can actually spend and the ones a defensive timeout
+            // takes back, so a lead that can be knelt out is knelt out to the end of the
+            // game instead of two knees and then an ordinary play.
+            //
+            // The caller's changes and the record's met in a merge, and all three
+            // constants below are the union: the caller's games, hashed with the
+            // record's dead-ball decision points mixed in. Neither side's constants
+            // could survive, because each was computed without the other's mechanism.
+            //
+            // And the caller and the clock then met in a merge of their own, and the
+            // constants were regenerated from that tree, which has both: the caller
+            // decides what is snapped, the clock decides how much of a period each snap
+            // leaves, and each reaches the other — a knee that ends a half depends on how
+            // much clock a flag or a runoff left, and what is called after the two-minute
+            // warning depends on which side has the ball there. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism.
+            //
+            // And moved again when every player came to carry every key — by the world,
+            // and by what the engine reads of it. Nothing in the rules layer changed, but a
+            // rating a position does not train is now present and low rather than absent,
+            // so the resolver's fallback for an absent key — the player's overall — has
+            // nothing left to fall back from. A receiver breaks tackles and holds the ball
+            // on his own breakTackle and carrying instead of his overall, a corner strips
+            // on his own hit power, a back in 21 personnel runs his route on his own route
+            // running, a lineman covering a kick pursues on his own pursuit. Each of those
+            // was a number in the sixties or seventies that is now in the twenties or
+            // thirties, so a game between the same men is a different game. The men
+            // themselves did not move: every trained rating is byte-identical.
+            //
+            // And the untrained keys then met the caller and the clock, in this merge. The
+            // constants below are regenerated from the merged tree, which carries both
+            // mechanisms and every one above them. On one side, every player now carries
+            // every rating key, so the resolver's fallback to a man's overall for a key he
+            // lacked never fires, and a receiver breaks a tackle on a number in the
+            // twenties where he used to break it on one in the sixties. On the other, the
+            // caller decides what is snapped and the clock decides how much of a period
+            // each snap leaves. The two reach each other: a weaker cover man changes
+            // whether a third and long is converted, and that changes both what is called
+            // next and how much clock is left for the rest of the half. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism, and no subset of the mechanisms above reproduces these numbers.
+            //
+            // And the two tracks above then met in this merge, which is where the
+            // constants below come from. On one side a two-point try is a run or a pass
+            // and is substituted for, a punt from plus territory is aimed, where a play
+            // ends laterally is drawn from the concept and the clock, interference is
+            // drawn at the throw, and a position the sport does not rotate is not drawn
+            // for on every snap. On the other, a flag stops the clock at the end of its
+            // down, the baseline caller decides what is snapped, every player carries
+            // every rating key, and a try's every exit is recorded as the try. The two
+            // reach each other on the same snaps: what the caller calls decides how often
+            // a punt is struck from plus territory at all, a receiver who now breaks a
+            // tackle on his own number rather than his overall reaches the boundary the
+            // sideline draw is deciding about, and the clock a flag no longer spends
+            // changes which snaps fall inside the late window the sideline lever reads.
+            // Neither parent's constants could survive, because each was computed without
+            // the other's mechanisms, and no subset of the mechanisms above reproduces
+            // these numbers.
+            (UInt64(1), UInt64(12_156_296_766_544_450_395)),
+            (UInt64(5), UInt64(564_713_015_476_453_462)),
+            (UInt64(12), UInt64(4_243_842_629_444_179_288)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

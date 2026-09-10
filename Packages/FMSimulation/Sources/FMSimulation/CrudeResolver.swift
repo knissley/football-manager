@@ -206,6 +206,19 @@ public struct CrudeResolver: PlayResolver {
             self.credit(slot, role, personnel, into: &participants)
         }
 
+        /// What the play *was*, which on a try is the try and nothing else.
+        ///
+        /// A try is one scrimmage down after a touchdown, and the whistle closes it out
+        /// whether or not anybody scored on it (2025 rulebook, 11-3-1, 11-3-2-e), so it is
+        /// the try however it ended — caught, dropped, thrown away, sacked or picked off.
+        /// `PlayEnding` and `Outcome.passResult` say which of those; `PlayKind` says only
+        /// that this was the down after the touchdown. Every exit below goes through
+        /// here, because a kind that varied with the ending is a kind carrying an ending:
+        /// the rules layer reads it to know a kickoff and not a first down comes next
+        /// (11-3-4), and a stream summed downstream cannot see a try the record filed as
+        /// an ordinary pass.
+        func recorded(_ ordinary: PlayKind) -> PlayKind { isTry ? .twoPointConversion : ordinary }
+
         credit(SlotLayout.quarterback, .passer)
 
         // 1. The pocket. Each rusher works a blocker, and the first one home sets the
@@ -349,6 +362,13 @@ public struct CrudeResolver: PlayResolver {
 
         // 3. The decision. Pressure that arrives before the route develops is what turns
         //    a read into a sack or a throwaway.
+        //
+        // A try never gets past this line: its throw is out in 1,500 ms and the first
+        // rusher home is never there sooner, so `pressured` is false on every two-point
+        // snap whatever the reps did, and the scramble and sack exits below are
+        // unreachable for one. They report the try anyway. A resolver whose labelling is
+        // right only because of a timing constant is one edit away from being wrong, and
+        // the constant is a tuning number rather than a rule.
         let timeNeeded = depth.timeMillis
         let pressured = pressureAt.map { $0 < timeNeeded } ?? false
         let best = reads.max { $0.separation < $1.separation }
@@ -391,7 +411,7 @@ public struct CrudeResolver: PlayResolver {
                 if dropped?.ending == .fumbleLost { gained = 0 }
                 return (
                     Outcome(
-                        kind: .scramble,
+                        kind: recorded(.scramble),
                         yards: scores ? Int16(situation.ballOn) : gained,
                         endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
                         participants: participants, penalties: penalty.map { [$0] } ?? [],
@@ -435,7 +455,7 @@ public struct CrudeResolver: PlayResolver {
 
             return (
                 Outcome(
-                    kind: .sack,
+                    kind: recorded(.sack),
                     yards: strip?.ending == .fumbleLost ? 0 : (inOwnEndZone ? Int16(-room) : loss),
                     endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
@@ -448,7 +468,8 @@ public struct CrudeResolver: PlayResolver {
         guard let target = best else {
             return (
                 Outcome(
-                    kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+                    kind: recorded(.pass), yards: 0, endedIn: .incomplete,
+                    passResult: .incomplete,
                     participants: participants),
                 decisions
             )
@@ -526,7 +547,8 @@ public struct CrudeResolver: PlayResolver {
             let spot = UInt8(max(1, min(100, caught + back)))
             return (
                 Outcome(
-                    kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+                    kind: recorded(.pass), yards: 0, endedIn: .intercepted,
+                    passResult: .intercepted,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
                     finalSpot: spot, possessionLostAt: UInt8(max(1, min(99, caught))),
                     clockRunoff: runoff),
@@ -544,7 +566,7 @@ public struct CrudeResolver: PlayResolver {
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
             var gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
-            let kind: PlayKind = isTry ? .twoPointConversion : .pass
+            let kind: PlayKind = recorded(.pass)
 
             // A receiver can put it on the ground too. A try is left alone: it cannot
             // fumble into anything but a failed try.
@@ -571,7 +593,7 @@ public struct CrudeResolver: PlayResolver {
         case .dropped, .brokenUp, .uncatchable:
             return (
                 Outcome(
-                    kind: isTry ? .twoPointConversion : .pass, yards: 0, endedIn: .incomplete,
+                    kind: recorded(.pass), yards: 0, endedIn: .incomplete,
                     passResult: .incomplete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
                     clockRunoff: runoff),
@@ -1308,10 +1330,7 @@ public struct CrudeResolver: PlayResolver {
             guard let index = random.weightedIndex(remaining.map(\.1)) else { break }
             let defender = remaining.remove(at: index).0
             guard let id = personnel[defender] else { continue }
-            let tackling =
-                context.player(id).map {
-                    Double($0.ratings[.tackling] ?? $0.overall)
-                } ?? 60
+            let tackling = context.player(id).map { context.rating(.tackling, of: $0) } ?? 60
 
             // A flat base with a rating swing on top, rather than a contest: a contest
             // at parity breaks four tackles in ten, which turned every carry into seven

@@ -44,8 +44,9 @@ public enum SchemeFit {
             if position == .tightEnd {
                 return [.agility: 0.10, .speed: 0.06, .runBlock: 0.04, .strength: -0.08]
             }
-            // A fullback is a lead blocker, and carries neither vision nor
-            // elusiveness — modifiers naming those would silently do nothing.
+            // A fullback is a lead blocker, and trains neither vision nor
+            // elusiveness — a modifier naming either would weigh a number every
+            // fullback carries low, and read as the scheme disliking fullbacks.
             if position == .fullback {
                 return [.agility: 0.08, .runBlock: 0.05, .strength: -0.06]
             }
@@ -86,7 +87,7 @@ public enum SchemeFit {
                 .speed: -0.08,
             ]
         case (.westCoast, .tightEnd):
-            // A tight end carries no elusiveness rating.
+            // A tight end trains no elusiveness.
             return [.routeRunning: 0.10, .catchInTraffic: 0.07, .speed: -0.06]
 
         case (.quickGame, .quarterback):
@@ -270,10 +271,16 @@ public enum SchemeFit {
     /// A player's overall *as this scheme uses him*.
     ///
     /// Weights are renormalised after modification, so a scheme redistributes
-    /// emphasis rather than inflating or deflating everybody.
+    /// emphasis rather than inflating or deflating everybody. Every weighted key
+    /// counts: a generated set is complete, so an incomplete one is hand-built and
+    /// is asserted in debug, with a release build scoring the missing key at
+    /// `Ratings.untrainedFloor`. Skipping it and renormalising over the rest is
+    /// what let a mover be scored on the keys he happened to have.
     public static func effectiveOverall(
         _ ratings: Ratings, at position: Position, in scheme: TeamScheme
     ) -> UInt8 {
+        assert(
+            ratings.isComplete, "effective overall at \(position) read an incomplete rating set")
         let adjustments = modifiers(for: position, in: scheme)
         guard !adjustments.isEmpty else {
             return PositionWeights.overall(ratings, at: position)
@@ -305,8 +312,7 @@ public enum SchemeFit {
         var applied = 0.0
         for key in weights.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
             guard let weight = weights[key], weight > 0 else { continue }
-            guard let value = ratings[key] else { continue }
-            weighted += Double(value) * weight
+            weighted += Double(ratings.value(key, or: Ratings.untrainedFloor)) * weight
             applied += weight
         }
         guard applied > 0 else { return 0 }

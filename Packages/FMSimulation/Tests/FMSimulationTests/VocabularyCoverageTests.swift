@@ -59,13 +59,22 @@ struct VocabularyCoverageTests {
     /// it once field position improved enough to make being backed up rare. Simulated
     /// once and shared, because six assertions over one stream costs what one used to.
     ///
-    /// Ninety is not comfortable for the rarest case in here. Illegal touching needs a
-    /// punt that is downed or run out of bounds — about 1.1 a game — and then a 1.8%
-    /// roll on top, so ninety games expect two of them and see none about one time in
-    /// six. Measured on this sample: 101 such punts and two flags. It is the case to
-    /// widen the sample for if this suite goes red on it again, and widening means more
-    /// fixtures rather than only more seeds.
-    private static let sampled: [PlayRecord] = (UInt64(1)...90).flatMap { result(seed: $0).plays }
+    /// Ninety was not comfortable for the rarest cases in here, and two of them are
+    /// rarer than illegal touching. Illegal touching needs a punt that is downed or run
+    /// out of bounds — about 1.1 a game — and then a 1.8% roll on top, so ninety games
+    /// expect two of them and see none about one time in six.
+    ///
+    /// The blindside block is thinner still. It is one fifth of the downfield-block
+    /// draw, which is itself about a 1.4% roll on a run that got into space or a kick
+    /// that got returned: measured over 400 games of this fixture walk, sixty-one
+    /// downfield-block fouls, of which eleven were blindside blocks — about one every
+    /// thirty-six games. Ninety of them is a coin flip that any change to the play mix
+    /// re-tosses, and this suite duly went red on it. Two hundred and forty is where the
+    /// expected count is comfortably above one. (The eleven were not evenly spread
+    /// across the four hundred, which nothing here explains and which is worth a look of
+    /// its own; a dedicated fixture that forces the draw would settle it for good, and
+    /// is what this sample should eventually be replaced by for the rare cases.)
+    private static let sampled: [PlayRecord] = (UInt64(1)...240).flatMap { result(seed: $0).plays }
 
     private static func plays() -> [PlayRecord] { sampled }
 

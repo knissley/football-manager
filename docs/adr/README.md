@@ -74,4 +74,4 @@ immutable like any other's.
 | [0010](0010-plays-designs-and-calls.md) | Distinguish play designs, calls, and plays | Accepted | Partly — calls are held by value; `PlayDesign` and the playbook are M6 |
 | [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted | Built — `PlayRef` |
 | [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted | Partly — `GameSimulator` and `CrudeResolver` are built; the `SpatialResolver` the seam exists for is M5 |
-| [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted | Not built — [roadmap M3.5](../roadmap.md) |
+| [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted | Not built — [roadmap M3.5](../roadmap.md). [Amended 2026-09-10](0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found): its rating premise is true since #25, its snap-count premise is #21's on-field record, and the arbitrage is gated until M3.5 |
