@@ -418,6 +418,43 @@ struct PlayRecordTests {
         #expect(record(yards: 45, kind: .punt).gainedFirstDown == false)
     }
 
+    /// A completion is what the record says it is, not what the yardage implies: a ball
+    /// caught behind the line is complete, and a pass with no result is not a completion
+    /// however far it went.
+    @Test("A completion is a fact of the outcome, not an inference from the yards", .tags(.unit))
+    func completionIsAFact() {
+        var caughtForALoss = record(yards: -3)
+        caughtForALoss.outcome.passResult = .complete
+        #expect(caughtForALoss.isCompletion)
+
+        var thrownAway = record(yards: 0, endedIn: .incomplete)
+        thrownAway.outcome.passResult = .incomplete
+        #expect(thrownAway.isCompletion == false)
+
+        var picked = record(yards: 0, endedIn: .intercepted)
+        picked.outcome.passResult = .intercepted
+        #expect(picked.isCompletion == false)
+
+        #expect(record(yards: 12).outcome.passResult == nil, "a result nobody wrote")
+        #expect(record(yards: 12).isCompletion == false)
+        #expect(record(yards: 12, kind: .rush).outcome.passResult == nil)
+    }
+
+    /// The points are on the record, with who scored them, so a scoreboard is a sum.
+    @Test(
+        "An outcome carries its points and its scoring kind, and defaults to neither", .tags(.unit))
+    func pointsAreOnTheRecord() {
+        let play = record()
+        #expect(play.outcome.pointsScored == 0)
+        #expect(play.outcome.scoring == nil)
+
+        var scored = record(yards: 45, endedIn: .touchdown)
+        scored.outcome.pointsScored = 6
+        scored.outcome.scoring = .touchdown
+        #expect(scored.outcome.pointsScored == 6)
+        #expect(scored.outcome.scoring == .touchdown)
+    }
+
     @Test("Decisions are filterable by kind", .tags(.unit))
     func decisionFiltering() {
         var play = record()

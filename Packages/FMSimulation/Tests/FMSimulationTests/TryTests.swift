@@ -131,31 +131,36 @@ struct TryTests {
     /// The scoreboard has to be reconstructible from the stream, because everything above
     /// the engine is a query over it ([ADR-0007]). If the plays say one thing and the
     /// final score says another, one of them is lying.
+    ///
+    /// Summed from what the record says — the points on the play and who scored them —
+    /// and never by running the rules again. This test used to call `Rules.advance` and
+    /// `Rules.enforce` on every play to find out what it scored, which proved the rules
+    /// agree with themselves and nothing about the stream; `pointsScored` sat on every
+    /// record at zero while it passed.
     @Test("The score on the board is the sum of the scoring plays", .tags(.contract))
     func scoreboardMatchesTheStream() {
-        let rules = Rules.standard
         for seed in UInt64(1)...20 {
             let result = Self.game(seed: seed)
             var home: Int16 = 0
             var away: Int16 = 0
+            var scoringPlays = 0
 
             for play in result.plays {
-                let advancement =
-                    play.outcome.penalties.isEmpty
-                    ? rules.advance(from: play.situation, outcome: play.outcome)
-                    : rules.enforce(
-                        play.outcome.penalties[0], on: play.situation, outcome: play.outcome,
-                        offendingTeamHadBall: play.outcome.penalties[0].offendingTeam
-                            == play.situation.possession
-                    ).advancement
-                guard let scoring = advancement.scoring, advancement.points != 0 else { continue }
+                guard let scoring = play.outcome.scoring else {
+                    #expect(play.outcome.pointsScored == 0, "points on a play that did not score")
+                    continue
+                }
+                scoringPlays += 1
+                let points = Int16(play.outcome.pointsScored)
+                #expect(points > 0, "a \(scoring) worth nothing")
 
                 // A safety and a return touchdown pay the side that did not have the ball.
                 let defensive = scoring == .safety || scoring == .defensiveTouchdown
                 let scoredByHome = (play.situation.possession == TeamID(1)) != defensive
-                if scoredByHome { home += advancement.points } else { away += advancement.points }
+                if scoredByHome { home += points } else { away += points }
             }
 
+            #expect(scoringPlays > 0, "seed \(seed): nobody scored")
             #expect(
                 home == result.homeScore && away == result.awayScore,
                 "stream says \(home)-\(away), scoreboard says \(result.homeScore)-\(result.awayScore)"
