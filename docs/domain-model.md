@@ -327,6 +327,14 @@ A brand-new world tops out at **heated**, deliberately. The seeded past gives te
 the first genuine blood feud should be one you caused. `bitter` is reachable in a few
 seasons of real events, and tested to be.
 
+The ceiling is applied to the invented log, never to the fold. Once a pair's history is
+drawn, the event doing the most work *now* is dropped — one at a time, and never the
+event that earned an earned origin — until the pair opens below `bitter`. Clamping the
+fold instead would clamp lived history with it, and the band you are playing towards
+would be unreachable. Nothing downstream can tell a capped history from any other,
+because a capped history is just a shorter one. Weighting the draw is not a ceiling:
+before the cap existed, nine of the first sixty worlds opened with a blood feud in them.
+
 Intensity feeds the news voice, pre-game buildup, and drama detection. Nobody else's
 league has your grudges.
 

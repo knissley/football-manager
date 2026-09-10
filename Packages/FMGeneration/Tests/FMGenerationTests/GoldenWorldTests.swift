@@ -157,7 +157,11 @@ struct GoldenWorldTests {
         "A seed produces the same world in every process",
         arguments: [
             (UInt64(1), UInt64(13_144_663_695_502_856_191)),
-            (UInt64(5), UInt64(4_653_623_164_046_455_189)),
+            // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
+            // bitter rivalry and the pair loses the one event that put it over the band.
+            // Seeds 1 and 7 have no bitter pair in them and did not move, which is the
+            // evidence that the cap reaches nothing else.
+            (UInt64(5), UInt64(3_908_067_820_456_910_341)),
             (UInt64(7), UInt64(7_479_154_857_784_000_233)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
