@@ -167,8 +167,23 @@ enum PalettePools {
 /// Names for the league and its parts.
 enum StructurePools {
 
+    /// Names for a *drawn* league. What a career opens in is `FranchiseSet.leagueName`,
+    /// which is written down rather than drawn
+    /// ([decision 215](../../../../docs/design-decisions.md)); these are the randomiser's,
+    /// and like the rest of the pools they wait on the pre-release revisit of generation
+    /// ([M8](../../../../docs/roadmap.md)) for anything else.
+    ///
+    /// Two lines here were real leagues' names, and were replaced in
+    /// [#82](https://github.com/knissley/football-manager/issues/82). Unrefined is a
+    /// state a pool is allowed to be in; a real mark is not, whoever draws it (rule 8,
+    /// [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)). What
+    /// replaced them was checked the way the curated name was: no league of that name in
+    /// any sport, past or present, no real league's initials, and nothing claiming to be
+    /// national, federal or united — this world has no nation for a league to be named
+    /// after. The three lines left standing are not any league's name; the rest of what
+    /// is asked of a curated name is asked of them at M8, not here.
     static let leagueNames: [String] = [
-        "Continental Football League", "United Football League", "Premier Gridiron League",
+        "Grand Gridiron League", "Kindred Football League", "Premier Gridiron League",
         "National Gridiron Association", "Federal Football League",
     ]
 
