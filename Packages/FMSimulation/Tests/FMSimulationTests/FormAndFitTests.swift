@@ -193,7 +193,11 @@ struct SchemeFitInEngineTests {
         #expect(abs((goodDay - flat) - 7) < 0.001)
     }
 
-    @Test("An unknown player falls back rather than crashing", .tags(.unit))
+    /// Two different cases, and only one of them is survivable. A slot nobody is
+    /// standing in — an identifier the context has no player for — reads as an ordinary
+    /// player, because a play can still be resolved around a hole in a lineup. A key the
+    /// player himself lacks is the other case, below.
+    @Test("An unknown player falls back to an ordinary rating rather than crashing", .tags(.unit))
     func missingPlayer() {
         let player = receiver(id: 3, ratings: [.routeRunning: 80])
         let value = context(
@@ -202,4 +206,56 @@ struct SchemeFitInEngineTests {
         .effective(.routeRunning, for: PlayerID(9_999), onOffense: true)
         #expect(value == 60)
     }
+
+    #if DEBUG
+    /// A rating the player lacks is a caught mistake, never his overall. It used to be:
+    /// a back's route running was his overall, and the best receiver in the league brought
+    /// an 83 run block to a tight end slot. A generated player lacks nothing, so a missing
+    /// key means a hand-built player, and the read is an assertion naming him and the key.
+    ///
+    /// The assertion has to name him and the key, because that is the whole of what a
+    /// reader gets: an overall read from an incomplete set traps too, and a trap that says
+    /// only that leaves which man and which rating to a debugger.
+    ///
+    /// Debug only: a release build reads `Ratings.untrainedFloor` instead of trapping.
+    @Test(
+        "contract: a rating the player lacks is a caught mistake naming him and the key, not his overall",
+        .tags(.contract))
+    func missingKeyIsCaught() async {
+        let result = await #expect(
+            processExitsWith: .failure, observing: [\.standardErrorContent]
+        ) {
+            var ratings = Ratings.uniform(80)
+            ratings[.routeRunning] = nil
+            let player = Player(
+                id: PlayerID(4),
+                name: PersonName(given: "Test", family: "Back"),
+                birthSeason: 2004,
+                college: College(name: "Fallback State", profile: .midMajor),
+                draft: nil,
+                firstSeason: 2026,
+                position: .runningBack,
+                secondaryPositions: [],
+                physical: PhysicalProfile(
+                    heightInches: 71, weightPounds: 215, fortyYardDash: 452, verticalJump: 350,
+                    broadJump: 1200, threeCone: 690, benchReps: 18),
+                ratings: ratings,
+                traits: [],
+                hidden: HiddenAttributes(
+                    ceiling: 90, developmentTrait: .normal, workEthic: 60, durability: 60),
+                status: .active)
+            let scheme = TeamScheme(offense: .airRaid, defense: .nickelMatch)
+            let context = PlayContext(
+                offense: TeamID(1), defense: TeamID(2), offenseRotation: [],
+                defenseRotation: [], players: [player.id: player], offenseScheme: scheme,
+                defenseScheme: scheme, rules: .standard)
+            _ = context.effective(.routeRunning, for: player.id, onOffense: true)
+        }
+        let complaint = String(decoding: result?.standardErrorContent ?? [], as: UTF8.self)
+        #expect(
+            complaint.contains("Test Back"), "the assertion did not name the player: \(complaint)")
+        #expect(
+            complaint.contains("routeRunning"), "the assertion did not name the key: \(complaint)")
+    }
+    #endif
 }
