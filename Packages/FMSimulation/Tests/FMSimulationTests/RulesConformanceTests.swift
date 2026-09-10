@@ -598,6 +598,180 @@ struct RulesConformanceTests {
         trace.expectScore(kicked, 2)
     }
 
+    // MARK: Postseason overtime halves
+
+    /// The first play of `period`; for a period put back in play with a free kick, the
+    /// kickoff.
+    private func opening(of period: UInt8, in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard let found = trace.first(where: { $0.situation.quarter == period }) else {
+            Issue.record("the game never reached period \(period)")
+            return nil
+        }
+        return found
+    }
+
+    /// The last play of `period`.
+    private func closing(of period: UInt8, in trace: Trace) -> PlayRecord? {
+        guard let found = trace.plays.last(where: { $0.situation.quarter == period }) else {
+            Issue.record("the game never reached period \(period)")
+            return nil
+        }
+        return found
+    }
+
+    /// The timeouts each side has at a snap, read off the situation whichever side has
+    /// the ball.
+    private func timeouts(at situation: Situation, in trace: Trace) -> (home: UInt8, away: UInt8) {
+        situation.possession == trace.home
+            ? (situation.offenseTimeouts, situation.defenseTimeouts)
+            : (situation.defenseTimeouts, situation.offenseTimeouts)
+    }
+
+    /// The toss before overtime is not drawn: the side that kicks off to open it stands
+    /// for the captain who lost, and 16-1-4-e gives that captain the first choice of
+    /// 4-2-2's privileges at the third period — receive or kick. Receiving, the other
+    /// side kicks off to it from its own 35, and the touchback puts the ball at its 30.
+    @Test(
+        "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
+        .tags(.football)
+    )
+    func thirdPostseasonOvertimePeriodOpensWithAKickoff() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(7, in: trace), let overtimeKick = opening(of: 5, in: trace),
+            let third = opening(of: 7, in: trace)
+        else { return }
+        trace.expectPlay(
+            overtimeKick.index, kind: .kickoff, quarter: 5, clock: 900,
+            "overtime opened with a kickoff, and the side that kicked it stands for the captain who lost the toss"
+        )
+        let tossLoser = overtimeKick.play.situation.possession
+        trace.expectPlay(
+            third.index, kind: .kickoff, possession: trace.opponent(of: tossLoser), quarter: 7,
+            clock: 900, ballOn: 65,
+            "the third period is put back in play with a free kick from the 35, by the side the toss loser elected to receive from"
+        )
+        trace.expectPlay(
+            third.index + 1, possession: tossLoser, quarter: 7, clock: 900, down: .first,
+            distance: 10, ballOn: 70,
+            "and the toss loser has it, first and ten at its 30 after the touchback, with no time gone"
+        )
+    }
+
+    /// The other boundary of the same half: a first overtime period ends as a first or
+    /// third quarter does. The teams change goals and play on from where the ball lay,
+    /// which in a plod is a yard on and a down later — or, on a fourth down, the other
+    /// side's ball where the plod was stopped.
+    @Test(
+        "football · Rule 16-1-4-f, 4-2-3 · at the end of a first postseason overtime period the teams change goals and play on: possession, the down, the ball and the line to gain are unchanged, and no kick is made",
+        .tags(.football)
+    )
+    func secondPostseasonOvertimePeriodCarriesOn() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(6, in: trace), let second = opening(of: 6, in: trace),
+            let last = trace[second.index - 1]
+        else { return }
+        let before = last.situation
+        #expect(
+            last.outcome.kind == .rush && last.outcome.yards == 1 && before.quarter == 5,
+            "the scenario meant the first overtime period to end on a plod")
+        #expect(second.play.outcome.kind != .kickoff, "no kick opens a second overtime period")
+        if before.down == .fourth {
+            trace.expectPlay(
+                second.index, possession: trace.opponent(of: before.possession), quarter: 6,
+                clock: 900, down: .first, distance: 10, ballOn: 100 - (before.ballOn - 1),
+                "the plod fell short on fourth down, so the other side has it where the runner was stopped"
+            )
+        } else {
+            trace.expectPlay(
+                second.index, possession: before.possession, quarter: 6, clock: 900,
+                down: before.down.next, distance: before.distance - 1, ballOn: before.ballOn - 1,
+                "the same side has it, a yard on and a down later, with the line to gain where it was"
+            )
+        }
+    }
+
+    /// Three timeouts in each half, and 16-1-4-e, f and h make a half two overtime
+    /// periods. A side that spent its three in the first two periods has three again as
+    /// the third opens; a side that spent none has three, not six.
+    @Test(
+        "football · Rule 16-1-4-g · each team has three timeouts in each postseason overtime half: a side that spent its three across the first and second overtime periods has three again when the third opens, and a side that spent none still has three",
+        .tags(.football)
+    )
+    func postseasonOvertimeTimeoutsAreThreePerHalf() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(7, in: trace), let first = opening(of: 5, in: trace),
+            let closing = closing(of: 6, in: trace), let third = opening(of: 7, in: trace)
+        else { return }
+        let atTheStart = timeouts(at: first.play.situation, in: trace)
+        #expect(atTheStart.home == 3 && atTheStart.away == 3, "three each for the first half")
+        let spent = timeouts(at: closing.situation, in: trace)
+        #expect(spent.home == 0, "the scenario meant the home side to spend its three")
+        #expect(spent.away == 3, "and the away side none")
+        let renewed = timeouts(at: third.play.situation, in: trace)
+        #expect(renewed.home == 3, "three again for the new half")
+        #expect(renewed.away == 3, "three, not six: a half's timeouts do not carry over")
+    }
+
+    /// The privilege is a choice, and the other answer is a kick (4-2-2-a).
+    @Test(
+        "football · Rule 16-1-4-e, 4-2-2-a · the captain with the first choice at a third postseason overtime period may elect to kick off, and then kicks off",
+        .tags(.football)
+    )
+    func tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff.run()
+        guard reachedPeriod(7, in: trace), let overtimeKick = opening(of: 5, in: trace),
+            let third = opening(of: 7, in: trace)
+        else { return }
+        let tossLoser = overtimeKick.play.situation.possession
+        trace.expectPlay(
+            third.index, kind: .kickoff, possession: tossLoser, quarter: 7, clock: 900,
+            ballOn: 65, "the toss loser elected to kick off, and does")
+    }
+
+    /// The toss after a fourth period starts the pairing over: a fifth period opens as
+    /// the first did, with a kick, and with a half's timeouts.
+    @Test(
+        "football · Rule 16-1-4-i, 16-1-2, 4-2-2, 16-1-4-g · at the end of a fourth postseason overtime period the coin is tossed again, so a fifth is put back in play with a kickoff and each side has three timeouts for the half it opens",
+        .tags(.football)
+    )
+    func fifthPostseasonOvertimePeriodOpensWithAKickoff() {
+        let trace = RulesScenario.fifthPostseasonOvertimePeriod.run()
+        guard reachedPeriod(9, in: trace), let third = opening(of: 7, in: trace),
+            let fourth = opening(of: 8, in: trace), let closing = closing(of: 8, in: trace),
+            let fifth = opening(of: 9, in: trace)
+        else { return }
+        trace.expectPlay(third.index, kind: .kickoff, quarter: 7, clock: 900)
+        #expect(fourth.play.outcome.kind != .kickoff, "no kick opens a fourth overtime period")
+        let spent = timeouts(at: closing.situation, in: trace)
+        #expect(spent.home == 0, "the scenario meant the home side to spend its three")
+        trace.expectPlay(
+            fifth.index, kind: .kickoff, quarter: 9, clock: 900, ballOn: 65,
+            "the toss is followed by a kickoff from the 35")
+        let renewed = timeouts(at: fifth.play.situation, in: trace)
+        #expect(renewed.home == 3 && renewed.away == 3, "three each for the new half")
+    }
+
+    /// Which side kicks off after that toss is not the book's to say and not drawn
+    /// here: the engine keeps the side with the ball at the end of the fourth period as
+    /// the kicker, as it does at the first overtime period, and that side stands for
+    /// the toss loser two periods on.
+    @Test(
+        "pin · the toss before a fifth postseason overtime period (16-1-4-i) is not drawn: as at the first, the side with the ball at the end of the period before kicks off and stands for the captain who lost it",
+        .tags(.pin)
+    )
+    func fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall() {
+        let trace = RulesScenario.fifthPostseasonOvertimePeriod.run()
+        guard reachedPeriod(9, in: trace), let closing = closing(of: 8, in: trace),
+            let fifth = opening(of: 9, in: trace)
+        else { return }
+        let hadTheBall =
+            closing.situation.down == .fourth
+            ? trace.opponent(of: closing.situation.possession) : closing.situation.possession
+        trace.expectPlay(
+            fifth.index, kind: .kickoff, possession: hadTheBall, quarter: 9,
+            "the side with the ball at the end of the fourth overtime period kicks off the fifth")
+    }
+
     // MARK: The clock
 
     /// The fourth-down stop is a change of possession: the clock stops when the play
@@ -954,6 +1128,90 @@ struct RulesConformanceTests {
             "the next snap costs only the play's own six seconds")
     }
 
+    /// The fourth quarter's own window: inside the last five minutes of the second
+    /// half a runner out of bounds stops the clock until the snap (4-3-2-a-3), here on a
+    /// play that begins and ends inside them, so that nothing turns on where the window
+    /// is judged.
+    @Test(
+        "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds on a play snapped inside the last five minutes of the fourth quarter stops the clock until the snap",
+        .tags(.football)
+    )
+    func outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsInsideFiveMinutesOfTheFourthQuarter.run()
+        guard let out = outOfBounds(in: trace, quarter: 4) else { return }
+        let before = out.play.situation
+        #expect(
+            before.clockRemaining <= 300, "the scenario meant the runner out inside five minutes")
+        trace.expectPlay(
+            out.index + 1, quarter: 4, clock: before.clockRemaining - out.huddle - 6,
+            clockRunning: false,
+            "the huddle and the play came off, and the clock is dead until the snap")
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 4, clock: next.situation.clockRemaining - 6,
+            "the next snap costs only the play's own six seconds")
+    }
+
+    /// Where the window is judged. The article's words are "inside the last five
+    /// minutes of the second half" (4-3-2-a-3), and a runner is inside them when he
+    /// steps out at 4:50 on a play snapped at 5:07: the clock is read where the ball
+    /// became dead. Read where the play *before* ended — up to a huddle and a play
+    /// earlier — the same runner is outside the window, and the clock restarts on the
+    /// ready when the book has it wait for the snap.
+    @Test(
+        "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds inside the last five minutes of the fourth quarter, on a play snapped with more than five minutes left, stops the clock until the snap: the window is judged where the ball became dead",
+        .tags(.football)
+    )
+    func outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter.run()
+        guard let out = outOfBounds(in: trace, quarter: 4) else { return }
+        let before = out.play.situation
+        let running = trace.clockRunning(into: out.index) == true
+        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let dead = snapped - Int(out.play.outcome.clockRunoff)
+        #expect(
+            snapped > 300, "the scenario meant the play snapped with more than five minutes left")
+        #expect(dead < 300 && dead > 120, "and the runner out of bounds inside them")
+        trace.expectPlay(
+            out.index + 1, quarter: 4, clock: UInt16(dead), clockRunning: false,
+            "the runner went out inside five minutes: the clock is dead until the snap")
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 4,
+            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
+            "the next snap costs only the play's own seconds, and no huddle")
+    }
+
+    /// The first half's window is "after the two-minute warning" (4-3-2-a-2), and the
+    /// warning is taken at the conclusion of the last down snapped before 2:00 (3-41).
+    /// A runner who steps out at 1:50 on a play snapped at 2:07 concludes that down: the
+    /// warning stops the clock there (4-4-h), and the snap restarts it — the same answer
+    /// the window gives when it is judged where the ball became dead.
+    @Test(
+        "football · Rule 4-3-2-a-2, 3-41, 4-4-h · a runner out of bounds after the two-minute warning of the second quarter, on a play snapped before it, stops the clock until the snap: the warning is taken as that down ends",
+        .tags(.football)
+    )
+    func outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap() {
+        let trace = RulesScenario.runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter
+            .run()
+        guard let out = outOfBounds(in: trace, quarter: 2) else { return }
+        let before = out.play.situation
+        let running = trace.clockRunning(into: out.index) == true
+        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let dead = snapped - Int(out.play.outcome.clockRunoff)
+        #expect(snapped > 120, "the scenario meant the play snapped before the warning")
+        #expect(dead < 120, "and the runner out of bounds after it")
+        trace.expectPlay(
+            out.index + 1, quarter: 2, clock: UInt16(dead), clockRunning: false,
+            "the down that crossed 2:00 is over, the warning is taken, and the clock is dead until the snap"
+        )
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 2,
+            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
+            "the next snap costs only the play's own seconds, and no huddle")
+    }
+
     // MARK: The ten-second runoff
 
     /// Inside two minutes with the clock running, a false start costs the offence ten
@@ -1303,6 +1561,84 @@ struct RulesConformanceTests {
         #expect(
             hurried < Int(huddle),
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
+    }
+
+    // MARK: The kickoff that opens a half
+
+    /// The play that ended the first half between downs: the one somebody was hurt on,
+    /// carrying the election that ran the clock out.
+    private func injuryEndingTheFirstHalf(in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard let hurt = trace.result.injuries.first,
+            let play = trace[Int(hurt.occurredOn.index)]
+        else {
+            Issue.record("the scenario never hurt anybody")
+            return nil
+        }
+        let index = Int(hurt.occurredOn.index)
+        #expect(
+            play.situation.quarter == 2 && play.situation.clockRemaining < 120,
+            "the scenario meant the injury after the first half's warning")
+        #expect(
+            play.situation.offenseTimeouts == 0, "the scenario meant the offence out of timeouts")
+        #expect(
+            play.decisions.contains { $0.clockElectionValue == .injuryRunoff },
+            "the record says the defence took the runoff")
+        #expect(trace[index + 1]?.situation.quarter == 3, "the runoff ran the half out")
+        return (index, play)
+    }
+
+    /// A half can end on the runoff (4-5-4 Note 4), between downs, and the second half's
+    /// opening kickoff (6-1-1-a) follows it as it follows a half that ended on a play. A free kick ends when a team possesses the
+    /// ball, and a running play begins when the receiving team does (6-1-7); a kick dead
+    /// in the receivers' possession in their end zone is a touchback (11-6-2), after
+    /// which they snap next at their restart spot (11-6-3). The spot is the rules'
+    /// kickoff touchback spot, which still carries a 2024 value.
+    @Test(
+        "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 11-6-2, 11-6-3 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a touchback is the receiving team's ball, and it snaps next at its own restart spot",
+        .tags(.football)
+    )
+    func secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf() {
+        let trace = RulesScenario.secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf.run()
+        guard let hurt = injuryEndingTheFirstHalf(in: trace), let opening = trace[0] else {
+            return
+        }
+        let openingKicker = opening.situation.possession
+        trace.expectPlay(0, kind: .kickoff, "the game opened with a kickoff")
+        trace.expectPlay(
+            hurt.index + 1, kind: .kickoff, endedIn: .touchback,
+            possession: trace.opponent(of: openingKicker), quarter: 3, clock: 900, ballOn: 65,
+            "the second half opens with a kickoff from the 35, by the side that received the opening one"
+        )
+        trace.expectPlay(
+            hurt.index + 2, possession: openingKicker, quarter: 3, clock: 900, down: .first,
+            distance: 10, ballOn: Rules.standard.kickoffTouchbackSpot,
+            "the touchback is the receivers' ball at their restart spot, with no time gone")
+    }
+
+    /// The same half, and the kick is returned: the receiving team established possession
+    /// (6-1-7) and the ball is next put in play where that down ended (7-6-1), the
+    /// return's seconds off the clock.
+    @Test(
+        "football · Rule 4-5-4 Note 4, 6-1-1-a, 6-1-7, 7-6-1 · a first half that ends on an excess injury timeout's runoff is followed by the second-half kickoff, kicked by the side that received the opening one; a returned kick is the receiving team's ball where the return ended, and it snaps next from there",
+        .tags(.football)
+    )
+    func secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf() {
+        let trace = RulesScenario.secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf
+            .run()
+        guard let hurt = injuryEndingTheFirstHalf(in: trace), let opening = trace[0] else {
+            return
+        }
+        let openingKicker = opening.situation.possession
+        trace.expectPlay(
+            hurt.index + 1, kind: .kickoff, endedIn: .tackled,
+            possession: trace.opponent(of: openingKicker), quarter: 3, clock: 900, ballOn: 65,
+            "the second half opens with a kickoff from the 35, by the side that received the opening one"
+        )
+        trace.expectPlay(
+            hurt.index + 2, possession: openingKicker, quarter: 3, clock: 892, down: .first,
+            distance: 10, ballOn: 75,
+            "the return is the receivers' ball where it ended, at their 25, and its eight seconds came off"
+        )
     }
 
     // MARK: The play clock

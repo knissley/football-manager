@@ -68,19 +68,40 @@ season is what checks one. A band is evidence about a rate and never about a rul
 10. Each team has two timeouts in regular-season overtime. `[2025 · 16-1-3-e]` —
     `test:overtimeTimeoutsAreTwo`
 11. A postseason game plays 15-minute overtime periods until somebody wins, so a game level
-    after the fifth period plays a sixth. `[2025 · 16-1-4, 16-1-4-d, 16-1-4-e, 16-1-4-f,
-    16-1-4-i]` — `test:postseasonPlaysASixthPeriod`; **modelling**: the book puts a *third*
-    overtime period back in play with a free kick, because 16-1-4-e gives its first choice
-    of 4-2-2's privileges to the captain who lost the toss before overtime, and 16-1-4-i
-    tosses again after a fourth; at the other boundaries the teams only change goals
-    (16-1-4-f, 4-2-3) and play continues from the same spot. The engine restarts the first
-    overtime period and no later one, which is
-    [#86](https://github.com/knissley/football-manager/issues/86)'s — pinned by
-    `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`
-12. The second half opens with a kickoff by the team that received the opening one.
-    `[2025 · 4-2-2]` — `test:halftimePossession`; **modelling**: the second-half choice
-    belongs to the captain who lost the pregame toss, and neither the toss nor a deferral is
-    modelled — the engine simply alternates
+    after the fifth period plays a sixth, and its periods pair into halves. A third overtime
+    period is put back in play with a free kick, the captain who lost the toss before
+    overtime having the first choice of 4-2-2's privileges, and so is a fifth after the new
+    toss; each side has three timeouts in each half; a second or a fourth period carries on
+    from the spot, the teams changing goals with possession, the down, the ball and the
+    line to gain unchanged. `[2025 · 16-1-4, 16-1-4-d, 16-1-4-e, 16-1-4-f, 16-1-4-g,
+    16-1-4-i, 16-1-2, 4-2-2, 4-2-3]` — `test:postseasonPlaysASixthPeriod`,
+    `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+    `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`,
+    `test:secondPostseasonOvertimePeriodCarriesOn`,
+    `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
+    `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
+    `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`,
+    `test:periodResumesWithKickoffAnswers`, `test:coinTosses`; **modelling**: no toss is
+    drawn — the side that kicks off after one stands for the captain who lost it, and after
+    a fourth overtime period that is the side with the ball, pinned by
+    `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`; the change of ends
+    is not modelled either, for the reason 4-2-3 gives
+12. The second half opens with a kickoff, the captain who lost the pregame toss having the
+    first choice of 4-2-2's privileges: to receive, or to kick off. The kick hands the ball
+    to the receivers however the first half ended — on a play, or between downs on an
+    injury timeout's runoff or the last-forty-seconds election: a touchback is theirs at
+    their restart spot, a return theirs where it ended. `[2025 · 4-2-2, 4-2-2-a, 6-1-1-a,
+    6-1-7, 11-6-2, 11-6-3, 7-6-1, 4-5-4 Note 4]` — `test:halftimePossession`,
+    `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`; the choice is the
+    captain's, a `PlayCaller`
+    decision (`electsToReceive`) that defaults to receive and is read off the stream as
+    the kickoff it decides, the same way a two-point or an onside call is; **modelling**:
+    neither the toss nor a deferral is drawn — the side that kicks off to open the game
+    stands for the captain who lost the toss, so with the default the side that received
+    the opening kick kicks off the second half — and the choice of goal is not modelled,
+    for the reason 4-2-3 gives
 13. The clock only ever runs down within a period. `[2025 · 4-1-1]` —
     `test:clockIsMonotonic`, `test:clockFloor`
 14. A regular-season overtime period has a two-minute warning, because fourth-period timing
@@ -214,11 +235,19 @@ season is what checks one. A band is evidence about a rate and never about a rul
 43. Gaining a first down does not stop the clock: it is not among the stoppages Rule 4
     lists, and the omission is the rule. `[2025 · 4-3, 4-4]` — `test:firstDownDoesNotStop`
 44. A runner going out of bounds stops the clock until the ball is ready for play, except
-    that it waits for the snap once possession has changed, inside the closing two minutes
-    of the first half and inside the closing five of the second. `[2025 · 4-4-c, 4-3-2-a]` —
-    `test:outOfBoundsEarly`, `test:outOfBoundsLate`; **modelling**: a tackle ends out of
-    bounds at a flat rate whatever the play and whatever the clock is doing,
-    [#28](https://github.com/knissley/football-manager/issues/28)
+    that it waits for the snap once possession has changed, after the two-minute warning
+    of the first half and inside the closing five minutes of the second. The window is
+    judged where the runner stepped out — the clock after the play's own time has come
+    off — and not where the play before him ended: a runner out at 4:50 on a play snapped
+    at 5:07 is inside it. `[2025 · 4-4-c, 4-3-2-a, 4-3-2-a-2, 4-3-2-a-3]` —
+    `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
+    `test:outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+    `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`; in the first
+    half the boundary is the warning's own, taken as the down that crosses 2:00 ends
+    (3-41), so the window and the warning give one answer there —
+    `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`;
+    **modelling**: a tackle ends out of bounds at a flat rate whatever the play and
+    whatever the clock is doing, [#28](https://github.com/knissley/football-manager/issues/28)
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
     `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`,

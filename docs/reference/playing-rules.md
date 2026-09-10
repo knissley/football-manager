@@ -48,24 +48,42 @@ Which rules must be true of a game, and what checks each, is
   16. — `test:quarters`, `test:structure`, `test:regulationTieGoesToOvertime`
 - **4-1-2**, **4-1-3** — Halftime is 13 minutes; the other intermissions are at least two.
   — not modelled: the engine has no intermission clock
-- **4-2-2** — The coin toss, not more than three minutes before the first-half kickoff. The
-  second-half first choice belongs to the captain who lost the pregame toss, unless the
-  winner deferred. — `test:halftimePossession`; neither the toss nor a deferral is modelled
+- **4-2-2**, **4-2-2-a** — The coin toss, not more than three minutes before the first-half
+  kickoff; the winner takes one of two privileges — to receive the kickoff or to kick off
+  (a), or the choice of goal (b) — and the loser the other. The second-half first choice
+  belongs to the captain who lost the pregame toss, unless the winner deferred. —
+  `test:halftimePossession`, `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`, `test:coinTosses`; the
+  choice of (a) is the captain's, `PlayCaller.electsToReceive`, defaulting to receive; the
+  toss itself, a deferral and the choice of goal are not modelled — the side that kicks
+  off after a toss stands for the captain who lost it
 - **4-2-3** — The teams change goals at the end of the first and third periods; possession,
-  the down, the position of the ball and the line to gain are unchanged. — not modelled, and
-  it need not be: a spot is stored relative to whoever has the ball, so there is no end of
-  the field to swap. `test:ownYardConversion`, `test:scoreIsPossessionRelative`
+  the down, the position of the ball and the line to gain are unchanged. — the change of
+  ends is not modelled, and it need not be: a spot is stored relative to whoever has the
+  ball, so there is no end of the field to swap. `test:ownYardConversion`,
+  `test:scoreIsPossessionRelative`; that play carries on across such a boundary is
+  `test:secondPostseasonOvertimePeriodCarriesOn`
 - **4-3-1** — A free kick starts the game clock when the ball is legally touched in the
   field of play. — `test:returnedKickoffAdvancesTheClock`
 - **4-3-1-a**, **4-3-1-b**, **4-3-1-c** — It does not start on a touchback, on a kick the
   kicking team recovers before any other legal touching, or on a fair catch. —
   `test:touchbackConsumesNoTime`, `test:kickoffRecoveredByTheKickersStartsNoClock`,
   `test:fairCaughtKickoffStartsNoClock`
-- **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`
-- **4-3-2-a** — After a runner goes out of bounds it starts on the ready for play, except
-  in the late windows: the first half's two minutes and the second's five, which overtime
-  carries as Rule 16 times its periods. — `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
-  `test:outOfBoundsInRegularSeasonOvertime`, `test:outOfBoundsInPostseasonOvertime`
+- **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`; a
+  charged timeout is therefore an interval an offence kneeling the game out does not
+  get, which is half of the victory-formation arithmetic —
+  `test:theGameEndsInVictoryFormation`
+- **4-3-2-a**, **4-3-2-a-2**, **4-3-2-a-3** — After a runner goes out of bounds it starts
+  on the ready for play, except that it starts on the snap after the two-minute warning of
+  the first half (a-2) and inside the last five minutes of the second half (a-3), which
+  overtime carries as Rule 16 times its periods. The window is judged where the runner
+  stepped out: on the clock after the play's own time has come off, not on the clock at
+  the previous whistle, which is up to a huddle and a play earlier. —
+  `test:outOfBoundsEarly`, `test:outOfBoundsLate`, `test:outOfBoundsInRegularSeasonOvertime`,
+  `test:outOfBoundsInPostseasonOvertime`,
+  `test:outOfBoundsInsideFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+  `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
+  `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
 - **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
@@ -73,7 +91,9 @@ Which rules must be true of a game, and what checks each, is
   inside the last five minutes of the second half, and after an offensive foul that stops
   the clock before the snap anywhere in the fourth period or regular-season overtime. In
   postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
-  names its own periods and does not reach it. —
+  names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
+  the flag, with the interval before it charged to a running clock — the clock where the
+  ball is dead, as for a runner out of bounds. —
   `test:falseStartInTheThirdQuarterCostsNoTime`,
   `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
   `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,
@@ -96,7 +116,7 @@ Which rules must be true of a game, and what checks each, is
 - Not in the list, and the omission is the rule: **gaining a first down does not stop the
   clock**. — `test:firstDownDoesNotStop`
 - **4-5-1** — Three charged timeouts per team per half; they do not carry over. —
-  `test:timeoutsStayLegal`
+  `test:timeoutsStayLegal`, `test:kneelsOnlyWhenTheDefenceCannotStopTheClock`
 - **4-5-3**, **4-5-4-a**, **4-5-4-b**, **4-5-4 Note 1** — Before the two-minute warning an
   injury timeout leaves the clock as it would have been. After it, the injured player's
   team is charged a team timeout if it has one, and the clock then starts on the snap as
@@ -116,7 +136,11 @@ Which rules must be true of a game, and what checks each, is
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
 - **4-6-1** — 40 seconds from the end of the previous play, and letting it expire is delay
   of game. — `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
-  `test:everySnapRecordsItsPlayClock`
+  `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
+  spend, which is what a knee-down sequence counts and what makes a fourth down the
+  period cannot survive a knee rather than a snap —
+  `test:theGameEndsInVictoryFormation`,
+  `test:fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst`
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
   enforcement, a free kick. —
@@ -163,10 +187,14 @@ Which rules must be true of a game, and what checks each, is
   there is no replay system and no foul is ever nullified after the fact, so nothing can
   produce the runoff; `test:noRunoffFollowsAReplay` pins the exclusion
 - **4-8-1** — A period whose time runs out with the ball still live does not end there:
-  the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`
+  the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`; the converse
+  is what ends a game in victory formation, since a period that expires *between* downs
+  ends where it stands — `test:fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst`
 - **4-8-2** — A period may be extended by one untimed down when something in the down that
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
-  `test:walkOffTryIsTheCallerChoice`
+  `test:walkOffTryIsTheCallerChoice`; and nothing extends one that expires between downs,
+  which is what a knee-down sequence is counting on —
+  `test:theGameEndsInVictoryFormation`
 - **4-8-2-c** — A touchdown on the last play of a period still gets its try. It is waived
   only during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. — `test:lastPlayTouchdownDownSeven`,
@@ -185,6 +213,12 @@ no landing zone, no setup zone and no second touchback spot. That is
 [#46](https://github.com/knissley/football-manager/issues/46)'s problem, and the entries
 below are what it is held to.
 
+- **6-1-1-a** — Each half opens with a kickoff, and so does play after a try and after a
+  field goal that scores. —
+  `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
+  `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+  `test:touchdownAsTheSecondQuarterExpires`, `test:afterTheTryTheDefendingTeamReceives`,
+  `test:afterAFieldGoalTheTeamScoredUponReceives`
 - **6-1-1-b** — The kick after a safety may be a punt as well as a drop kick or a place
   kick. — `test:afterASafetyTheTeamScoredUponKicks`
 - **6-1-1-c**, **6-1-6** — Only a trailing team may attempt an onside kick, and it must
@@ -233,6 +267,11 @@ below are what it is held to.
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
   and costs the kicking team 15 yards. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
+- **6-1-7** — A free kick ends once a side has the ball, or once the ball is dead with
+  nobody having it; from the moment the receivers secure it, a running play has begun. —
+  `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+  `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
+  `test:onsideRecoveryKeepsPossession`
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
   the turf or a man in front of the landing zone, hands the receiving team its choice of
   three spots: the ball 25 yards on from where it was kicked, at the inbounds line; the spot
@@ -251,6 +290,9 @@ below are what it is held to.
   `test:offsideOnTheConversionMovesItIn`
 - **7-4-8** — Illegal motion: five yards. — `test:everyFoulIsCalled`
 - **7-5-1** — Illegal formation by the offence: five yards. — `test:everyFoulIsCalled`
+- **7-6-1** — The next snap comes from wherever the last down finished, moved only by an
+  enforced penalty, or brought in to the inbounds line when the down ended outside it. —
+  `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`
 
 ## Rule 8 — Forward pass
 
@@ -317,6 +359,10 @@ below are what it is held to.
   `test:afterAFieldGoalTheTeamScoredUponReceives`
 - **11-5-2** — After a safety the team scored upon puts the ball in play with a free kick
   from its own 20. — `test:afterASafetyTheTeamScoredUponKicks`
+- **11-6-2-a**, **11-6-3** — A kickoff dead in the receivers' possession in their end zone
+  is a touchback, and they snap next at their restart spot for a free kick. —
+  `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`, `test:touchbackConsumesNoTime`;
+  the spot is `Rules.kickoffTouchbackOwnYard`, a 2024 value until D1
 - **11-6-2-c**, **11-6-3** — A punt that reaches the end zone untouched by the receivers is
   a touchback, and they snap at their own 20. — `test:touchbacksDiffer`
 
@@ -418,22 +464,30 @@ below are what it is held to.
   `test:postseasonPlaysASixthPeriod`
 - **16-1-4-d** — Level at the end of a period, or a second team's initial possession
   unfinished, means another period. — `test:postseasonPlaysASixthPeriod`
-- **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Three timeouts per half, two-minute
-  intermissions between periods, and a fresh coin toss after the fourth. 16-1-4-e also
-  gives the beginning of the **third** overtime period the first choice of 4-2-2's two
-  privileges to the captain who lost the toss before overtime, so a third period is put
-  back in play with a free kick, as is a fifth after the toss of 16-1-4-i. — not
-  modelled: the engine restarts only the first overtime period and plays on from the same
-  spot at every later boundary, which is
-  [#86](https://github.com/knissley/football-manager/issues/86)'s and is pinned by
-  `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`. Not modelled either is the
-  toss itself, though the one after a fourth overtime period is read as restarting the
-  pairing 16-1-4-h describes, so a fifth period is timed as a first: a reading, pinned by
+- **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Two-minute intermissions between periods and
+  no halftime after the second; three timeouts per half; a fresh coin toss at the end of a
+  fourth overtime period. 16-1-4-e gives the beginning of the **third** overtime period
+  the first choice of 4-2-2's two privileges to the captain who lost the toss before
+  overtime, so a third period is put back in play with a free kick, as is a fifth after
+  the toss of 16-1-4-i; a half being two periods (16-1-4-e, f, h), the three timeouts are
+  renewed at the third and the fifth. —
+  `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`,
+  `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
+  `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`, `test:coinTosses`; the
+  intermissions are not modelled, nor is the toss itself: the side that kicks off after
+  one stands for the captain who lost it, and after a fourth overtime period that is the
+  side with the ball, pinned by
+  `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`. Past the fourth the
+  pairing repeats — a seventh period opens as a third does — which is a reading rather
+  than a sentence in the book, pinned by
   `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`
 - **16-1-4-f** — The teams change goals at the end of the first and third overtime
   periods, under 4-2-3: possession, the down, the ball and the line to gain are
-  unchanged. — `test:periodResumesWithKickoffAsModelledAnswers`; the change of ends
-  itself is not modelled, for the reason 4-2-3 gives
+  unchanged. — `test:secondPostseasonOvertimePeriodCarriesOn`,
+  `test:periodResumesWithKickoffAnswers`; the change of ends itself is not modelled, for
+  the reason 4-2-3 gives
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
   half does and a fourth as the fourth period does, so the warning, the out-of-bounds
   windows and the runoff belong to those two and a first or third overtime period has
