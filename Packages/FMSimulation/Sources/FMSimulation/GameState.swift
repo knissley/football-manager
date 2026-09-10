@@ -260,9 +260,18 @@ extension GameSimulator {
                 pendingTry = false
                 pendingKickoff = true
                 ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
-            } else if pendingKickoff {
+                return
+            }
+
+            // A kickoff is consumed by the play that was the kickoff, and *then* the
+            // advancement is read: a kick returned for a touchdown owes the returning
+            // team its try (11-3-1) and a kickoff after it, like any other score. Reading
+            // the kickoff flag as an alternative to the advancement is how that try was
+            // swallowed and the returner kept the ball at the fifteen.
+            if pendingKickoff {
                 pendingKickoff = false
-            } else if advancement.requiresTry {
+            }
+            if advancement.requiresTry {
                 pendingTry = true
             } else if advancement.requiresKickoff {
                 pendingKickoff = true
