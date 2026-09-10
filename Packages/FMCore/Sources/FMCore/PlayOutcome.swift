@@ -272,20 +272,27 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
     ///
     /// The book asks this in one place that matters here: 14-2-3 carries a personal or
     /// unsportsmanlike foul to the succeeding free kick when the opponent scores a field
-    /// goal or a safety, and leaves every other foul to be declined. It is the section a
-    /// foul is printed in and not its yardage — running into the kicker is 12-2-12 and
-    /// five yards, and it travels to the free kick like the fifteen-yard fouls beside it.
+    /// goal or a safety, and leaves every other foul to be declined.
+    ///
+    /// **The article decides this, not the section heading it is printed under**, and
+    /// 12-2-12 is where the two answers come apart: it prints two fouls with a penalty
+    /// each, and each penalty says which it is in parentheses. Roughing the kicker is
+    /// fifteen and is marked a personal foul; running into the kicker is five and is
+    /// marked as not one. So a foul in the middle of Rule 12 Section 2 is not carried
+    /// anywhere, and reading the heading alone puts a free kick five yards down the field
+    /// on a play the offended team would have declined.
     ///
     /// By article: chop block 12-2-5, blindside block 12-2-7, unnecessary roughness
     /// 12-2-8, impermissible use of the helmet 12-2-10, roughing the passer 12-2-11,
-    /// roughing and running into the kicker 12-2-12, tripping 12-2-14, facemask 12-2-15,
+    /// roughing the kicker 12-2-12 Item 1, tripping 12-2-14, facemask 12-2-15,
     /// horse-collar 12-2-16, blocking below the waist 12-2-4, and unsportsmanlike conduct
     /// and taunting 12-3-1. Holding, the use of hands and a block in the back are Rule 12
-    /// Section 1, and pass interference is Rule 8, so none of them is one of these.
+    /// Section 1, and pass interference is Rule 8, so none of them is one of these; nor
+    /// is running into the kicker, 12-2-12 Item 2.
     public var isPersonalOrUnsportsmanlike: Bool {
         switch self {
         case .chopBlock, .illegalBlindsideBlock, .unnecessaryRoughness, .illegalUseOfHelmet,
-            .roughingThePasser, .roughingTheKicker, .runningIntoTheKicker, .tripping,
+            .roughingThePasser, .roughingTheKicker, .tripping,
             .facemask, .horseCollarTackle, .lowBlock, .unsportsmanlikeConduct, .taunting:
             return true
         default:
