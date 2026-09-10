@@ -41,6 +41,10 @@ Which rules must be true of a game, and what checks each, is
   fourth postseason overtime period (16-1-4-h). — `test:warningBetweenDowns`,
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
   `test:warningInPostseasonOvertime`
+- **3-42** — A T-formation quarterback is a player aligned a yard or less behind the
+  snapper. It is the definition 8-2-1 Item 3 spends on the spike, and it is an alignment,
+  not a grip: hands under centre are one way to satisfy it, not the test. — no test: the
+  engine models no quarterback alignment, so nothing it simulates can fail the condition
 
 ## Rule 4 — Game timing
 
@@ -93,9 +97,10 @@ Which rules must be true of a game, and what checks each, is
   waits for the snap: a flag past the first half's warning (e-1); a flag in the closing
   five minutes of the second half (e-2); and, during the fourth period or regular-season
   overtime, an offensive foul committed once the officials have marked the ball ready,
-  killing a clock that had not yet reached its snap (e-3). e-3 is thus about a flag between
-  downs. A flag during a down is left to 4-4-e, which stops that clock as the down ends,
-  so a fourth-quarter holding call on a run restarts on the ready like any other period's.
+  killing a clock that had not yet reached its snap (e-3). **Inference, not text:** e-3
+  therefore reaches only a flag between downs, since a flag during a down does not stop a
+  clock before a snap — 4-4-e stops that clock as the down ends — so a fourth-quarter
+  holding call on a run restarts on the ready like any other period's.
   In postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
   names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
   the flag, with the interval before it charged to a running clock — the clock where the
@@ -115,11 +120,11 @@ Which rules must be true of a game, and what checks each, is
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
 - **4-4-e** — A flag thrown at any point in a down stops it, and it stops as that down
   ends. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`
 - **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,
   stops it there and then: this is the flag before the snap, and it is why no play time is
   charged for one. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
-- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
-  `test:spikeCostsItsOwnSecondAndStopsTheClock`
 - **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
   `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`
 - **4-4-i** — A change of possession stops it. — `test:changeOfPossessionStops`,
@@ -301,10 +306,11 @@ below are what it is held to.
 
 ## Rule 8 — Forward pass
 
-- **8-2-1 Item 3** — A quarterback under centre may stop the clock without fouling for
+- **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
   intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
-  motion and puts the ball straight into the ground. The pass is incomplete, so 4-4-f stops
-  the clock and 4-3-2 holds it to the next snap. The article is about the throw and says
+  motion and puts the ball straight into the ground. 3-42 makes that any player aligned a
+  yard or less behind the snapper, so the article is wider than hands under centre. The pass
+  is incomplete, so 4-4-f stops the clock and 4-3-2 holds it to the next snap. The article is about the throw and says
   nothing about the seconds before the snap: a clock running into a spike keeps running
   until the ball is snapped. — `test:spikeCostsItsOwnSecondAndStopsTheClock`,
   `test:spikeAtFiveSecondsIsFollowedByTheNextDown`
