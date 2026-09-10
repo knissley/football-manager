@@ -315,8 +315,15 @@ public enum RulesScenarios {
 
     /// A walk down `quarter` in which the first play that can be is stretched to end at
     /// `second` with the clock running, and everything else is a yard at a time.
-    static func playStretchedToEnd(quarter: UInt8, at second: UInt16) -> ScriptedGame {
-        ScriptedGame { snap in
+    ///
+    /// A postseason walk needs an end: a postseason game level at the end of a period
+    /// plays another (16-1-4-d), so a scoreless one never finishes. With `decidedIn` set
+    /// the game is the postseason's, and the side with the ball in that period kicks a
+    /// field goal on its first fourth down, which in sudden death wins it.
+    static func playStretchedToEnd(
+        quarter: UInt8, at second: UInt16, postseasonDecidedIn decidedIn: UInt8? = nil
+    ) -> ScriptedGame {
+        ScriptedGame(isPostseason: decidedIn != nil, caller: decider(decidedIn)) { snap in
             guard snap.isScrimmage, snap.quarter == quarter, snap.down != .fourth,
                 let huddle = snap.huddle
             else { return snap.neutral }
@@ -324,6 +331,38 @@ public enum RulesScenarios {
             guard snapped > Int(second), snapped - Int(second) <= 130 else { return snap.neutral }
             return .rush(1, seconds: UInt16(snapped - Int(second)))
         }
+    }
+
+    /// A walk down `quarter` in which a runner goes out of bounds: on each snap taken
+    /// with the clock running and `window` on it, except one straight after another such
+    /// play, so that what follows the first is a plod and the restart can be read off
+    /// it. Everything else is a yard at a time. `decidedIn` is as for
+    /// `playStretchedToEnd`.
+    ///
+    /// The window is on the clock as the play's situation records it — the end of the
+    /// play before — and a scenario about a clock window keeps the whole play inside
+    /// it: the huddle and the six seconds of the play come off that reading, so the
+    /// runner is out of bounds inside the window whether it is judged at the snap or
+    /// where the ball died.
+    static func runnerOutOfBounds(
+        quarter: UInt8, window: ClosedRange<UInt16>, postseasonDecidedIn decidedIn: UInt8? = nil
+    ) -> ScriptedGame {
+        ScriptedGame(isPostseason: decidedIn != nil, caller: decider(decidedIn)) { snap in
+            guard snap.isScrimmage, snap.quarter == quarter, snap.down != .fourth,
+                snap.clockIsRunning, window.contains(snap.clock),
+                snap.previous?.outcome.endedIn != .outOfBounds
+            else { return snap.neutral }
+            return .rush(1, endedIn: .outOfBounds)
+        }
+    }
+
+    /// A caller that plods until `period`, when it kicks a field goal on fourth down:
+    /// the way a scoreless postseason walk is brought to an end. With no period it never
+    /// kicks.
+    static func decider(_ period: UInt8?) -> ScriptedCaller {
+        ScriptedCaller(offensiveFamily: {
+            $0.quarter == period && $0.down == .fourth ? .fieldGoal : .insideRun
+        })
     }
 
     // MARK: Fouls before the snap late in a half
@@ -342,10 +381,11 @@ public enum RulesScenarios {
         by differential: Int16? = nil,
         flagAt target: UInt16? = nil,
         stopped: Bool = false,
+        isPostseason: Bool = false,
         opening: @escaping @Sendable (Snap) -> Outcome? = { _ in nil },
         caller: ScriptedCaller = ScriptedCaller()
     ) -> ScriptedGame {
-        ScriptedGame(caller: caller) { snap in
+        ScriptedGame(isPostseason: isPostseason, caller: caller) { snap in
             if let staged = opening(snap) { return staged }
             guard snap.isScrimmage, snap.quarter == quarter else { return snap.neutral }
             let rightSide = differential.map { $0 == snap.differential } ?? true
@@ -403,6 +443,25 @@ public enum RulesScenarios {
     /// minutes.
     static var falseStartInsideTwoMinutesOfOvertime: ScriptedGame {
         lateFlag(quarter: 5, window: 40...119)
+    }
+
+    /// The scoreless walk reaches overtime, and the flag flies with more than five
+    /// minutes left in it — outside every window, so that what decides the restart is
+    /// the period's own timing and not a window's.
+    static var falseStartInOvertimeOutsideTwoMinutes: ScriptedGame {
+        lateFlag(quarter: 5, window: 340...500)
+    }
+
+    /// A postseason walk to a second overtime period, and the flag flies inside its last
+    /// two minutes; a field goal in the third period ends the game.
+    static var falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod: ScriptedGame {
+        lateFlag(quarter: 6, window: 40...119, isPostseason: true, caller: decider(7))
+    }
+
+    /// A postseason walk, and the flag flies in the first overtime period with more than
+    /// five minutes left in it; a field goal in the second period ends the game.
+    static var falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes: ScriptedGame {
+        lateFlag(quarter: 5, window: 340...500, isPostseason: true, caller: decider(6))
     }
 
     static var falseStartWithTheClockStopped: ScriptedGame {

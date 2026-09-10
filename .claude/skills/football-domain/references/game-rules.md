@@ -51,8 +51,11 @@ game — including the rules the engine does not enforce yet — is `docs/invari
   `[2025 · 4-1-3]`
 - The two-minute warning stops the game without anyone asking: whichever down is under way
   when the clock runs past 2:00 finishes, and then the clock is dead. It belongs to the
-  **second and fourth periods** only, not to every half of every kind of period.
-  `[2025 · 3-41]`
+  **second and fourth periods**, and to the periods Rule 16 times as them: the
+  regular-season overtime period, which is played under the fourth quarter's timing rules,
+  and in the postseason a second or a fourth overtime period, whose ends are timed as the
+  halves' are — never a first or a third. `[2025 · 3-41]`, `[2025 · 16-1-3-e]`,
+  `[2025 · 16-1-4-h]`
 - Play clock: 40 seconds from the end of the previous play; 25 seconds after an
   administrative stoppage — change of possession, charged timeout, two-minute warning, end
   of a period, penalty enforcement, a free kick. `[2025 · 4-6-1]`, `[2025 · 4-6-2]`
@@ -70,9 +73,9 @@ the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 | Free kick or fair catch kick down | Legal touching in the field of play — not on a touchback, a kick the kicking team recovers before any other legal touching, or a fair catch; the down over, the clock waits for the snap | `4-4-a`, `4-3-1-a` to `4-3-1-c`, `4-3-2` · `test:returnedKickoffAdvancesTheClock`, `test:fairCaughtKickoffStartsNoClock`, `test:kickoffRecoveredByTheKickersStartsNoClock` |
 | Charged timeout | Snap | `4-4-j`, `4-3-2` · `test:timeoutsAreSpentAndVisible` |
 | **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` · `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`, `test:puntReturnedAndTackledStopsTheClock` |
-| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e` · `test:falseStartInTheThirdQuarterCostsNoTime`, `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap` |
-| Two-minute warning | Snap | `4-4-h` · `test:twoMinuteWarningStopsAtTwoMinutes` |
-| Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` · `test:outOfBoundsEarly`, `test:outOfBoundsLate` |
+| Foul | As though the flag had never flown — except on the snap after the two-minute warning of the first half, inside the last five minutes of the second half, or after an offensive foul that stops the clock before the snap anywhere in the fourth period or regular-season overtime. The first two follow the halves Rule 16 makes of postseason overtime; the third names its periods, and a first, second or third postseason overtime period is not among them by its own words — whether 16-1-4-h carries it into a fourth outside five minutes the book does not settle, and the engine's reading that it does not is pinned by `test:offensiveFoulInAFourthPostseasonOvertimePeriodOutsideFiveMinutes` | `4-4-e`, `4-3-2-e-1` to `4-3-2-e-3`, `16-1-3-e`, `16-1-4-h` · `test:falseStartInTheThirdQuarterCostsNoTime`, `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`, `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`, `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady` |
+| Two-minute warning | Snap — in the second and fourth periods, in regular-season overtime, and in a second or fourth postseason overtime period | `4-4-h`, `3-41`, `16-1-3-e`, `16-1-4-h` · `test:twoMinuteWarningStopsAtTwoMinutes`, `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`, `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`, `test:firstPostseasonOvertimePeriodHasNoWarning` |
+| Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five; overtime carries the window of the half Rule 16 times it as | `4-4-c`, `4-3-2-a`, `16-1-3-e`, `16-1-4-h` · `test:outOfBoundsEarly`, `test:outOfBoundsLate`, `test:outOfBoundsInRegularSeasonOvertime`, `test:outOfBoundsInPostseasonOvertime` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` · `test:falseStartInsideTwoMinutesCostsTenSeconds` |
 | During the Try | The Try is untimed | `4-3-2-h`, `11-3-1` · `test:touchdownAsTheSecondQuarterExpires` |
 | First down gained | Does not stop the clock | not in `4-4` · `test:firstDownDoesNotStop` |
@@ -177,7 +180,8 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
   it under (b). `[2025 · 16-1-5-b]`
 - **The period is never extended**, not even for a second team that has not possessed or a
   possession still running. Level at the end is a tie. `[2025 · 16-1-3-d]`
-- Two timeouts each; fourth-quarter timing rules otherwise apply. `[2025 · 16-1-3-e]`
+- Two timeouts each; fourth-quarter timing rules otherwise apply — the two-minute warning,
+  the five-minute out-of-bounds window and the runoff among them. `[2025 · 16-1-3-e]`
 
 **Postseason** — 15-minute periods, as many as it takes. `[2025 · 16-1-4]`
 
@@ -186,6 +190,12 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
   another period. `[2025 · 16-1-4-d]`
 - Three timeouts per half, two-minute intermissions between periods, and a fresh coin toss
   after the fourth. `[2025 · 16-1-4-e]`, `[2025 · 16-1-4-g]`, `[2025 · 16-1-4-i]`
+- **Timing pairs the periods into halves.** At the end of a second overtime period the
+  timing rules are the first half's, and at the end of a fourth the fourth period's — so
+  the two-minute warning, the out-of-bounds window and the runoff belong to a second and a
+  fourth overtime period, and a first or a third has none of them. `[2025 · 16-1-4-h]`
+  What happens past a fourth is not in the book; the engine reads the new toss there as
+  restarting the pairing, and says so as a modelling reading.
 
 On kicking plays the opportunity to possess is defined for you: a kickoff is the receiving
 team's opportunity, and if the kicking team legally recovers it the receiving team is

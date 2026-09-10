@@ -344,6 +344,14 @@ swift run gamelog --scenario last-play-touchdown-down-seven | tail -40
 
 # And the other half of the same rule: a try that could not change the outcome is waived.
 swift run gamelog --scenario last-play-touchdown-down-two | tail -10
+
+# A11 (#74): the overtime period has a two-minute warning. A play ends at OT 2:01 with
+# the clock running, and the next snap comes at 2:00 rather than a huddle later.
+swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-overtime | tail -30
+
+# Postseason overtime pairs its periods into halves: a first period has no warning, a
+# second has the first half's. The period label counts them — OT, 2OT, 3OT.
+swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-a-second-postseason-overtime-period | tail -30
 ```
 
 The men are not named in a scenario — a scripted outcome credits nobody, so the log says

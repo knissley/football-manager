@@ -466,9 +466,9 @@ kickoff cases: a kickoff that scores, or that the kicking team recovers, ends th
 receivers' opportunity, so after an opening-possession field goal either one ends the
 game (16-1-5-c, A.R. 16.2, A.R. 16.4), and each side has two timeouts in a
 regular-season overtime period (16-1-3-e). The engine's overtime scenarios are in
-`RulesConformanceTests`, eleven of them, one per clause. Not yet modelled: the
-two-minute warning in overtime, which the fourth quarter's timing (16-1-3-e) implies
-and `Rules.isEndOfHalf` does not give — [A11 · #74](https://github.com/knissley/football-manager/issues/74).
+`RulesConformanceTests`, eleven of them, one per clause. The two-minute warning in
+overtime, which the fourth quarter's timing (16-1-3-e) implies and `Rules.isEndOfHalf`
+did not give, landed with [A11 · #74](https://github.com/knissley/football-manager/issues/74).
 
 ## S10 — A touchdown at the end of a half gets no try — **fixed**
 
@@ -542,9 +542,12 @@ with the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2; regular-season ov
 included, 16-1-3-e), the offence's timeout and the defence's decline as `PlayCaller`
 decisions with baseline defaults, and a half that can end on it (4-5-4 Note 4). Article
 3, the defensive foul in the last forty seconds, is not modelled and the `Rules` doc
-comment says so; neither are the postseason overtime clock cases (16-1-4-h), which are
-[A11 · #74](https://github.com/knissley/football-manager/issues/74) with the overtime
-two-minute warning. Twenty clock scenarios in `RulesConformanceTests` cover the three.
+comment says so. The postseason overtime clock cases (16-1-4-h) landed with the
+overtime two-minute warning in
+[A11 · #74](https://github.com/knissley/football-manager/issues/74): every clock case
+reads `Rules.periodTiming`, which pairs postseason overtime periods into halves. Twenty
+clock scenarios in `RulesConformanceTests` cover the three, and nine more the overtime
+clock.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -636,11 +639,11 @@ harness row, not the engine — is the one still open. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
-two-minute warning and postseason overtime timing),
+two-minute warning and postseason overtime timing), since landed;
 [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
 possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
 [C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a
-foul on a try).
+foul on a try), both open.
 
 | finding | status | closed by |
 | --- | --- | --- |

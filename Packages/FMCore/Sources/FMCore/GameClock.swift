@@ -30,7 +30,7 @@ extension Rules {
     /// clock whatever the ending (4-4-i), and the overload that takes it is what the
     /// game state consults.
     public func clockBehavior(
-        after ending: PlayEnding, quarter: UInt8, clockRemaining: UInt16
+        after ending: PlayEnding, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> ClockBehavior {
         switch ending {
         case .incomplete, .touchdown, .intercepted, .fumbleLost, .touchback, .safety,
@@ -40,7 +40,8 @@ extension Rules {
         case .downed:
             return .stopsUntilSnap
         case .outOfBounds:
-            return isInLateClockWindow(quarter: quarter, clockRemaining: clockRemaining)
+            return isInLateClockWindow(
+                quarter: quarter, isPostseason: isPostseason, clockRemaining: clockRemaining)
                 ? .stopsUntilSnap : .stopsUntilReadyForPlay
         // A tackle in bounds and a fumble recovered by the offence both leave the ball
         // live and the clock with it.
@@ -61,26 +62,31 @@ extension Rules {
     /// Without this, a turnover on downs ended `.tackled` and cost the team taking over
     /// its whole play clock.
     public func clockBehavior(
-        after ending: PlayEnding, possessionChanged: Bool, quarter: UInt8,
+        after ending: PlayEnding, possessionChanged: Bool, quarter: UInt8, isPostseason: Bool,
         clockRemaining: UInt16
     ) -> ClockBehavior {
         if possessionChanged { return .stopsUntilSnap }
-        return clockBehavior(after: ending, quarter: quarter, clockRemaining: clockRemaining)
+        return clockBehavior(
+            after: ending, quarter: quarter, isPostseason: isPostseason,
+            clockRemaining: clockRemaining)
     }
 
-    /// Whether the out-of-bounds rule is in its late-game form.
+    /// Whether the out-of-bounds rule is in its late-game form (4-3-2-a-2, a-3): inside
+    /// the last two minutes of a period timed as a second, or the last five of one
+    /// timed as a fourth — the fourth quarter, regular-season overtime (16-1-3-e), and
+    /// the second and fourth postseason overtime periods, which end as the halves do
+    /// (16-1-4-h). Which is which is `periodTiming`.
     ///
     /// The window is longer in the second half than the first, which is a real asymmetry
     /// and not a mistake.
-    public func isInLateClockWindow(quarter: UInt8, clockRemaining: UInt16) -> Bool {
-        let half = quarters / 2
-        if quarter == half {
-            return clockRemaining <= outOfBoundsStopsClockFirstHalf
+    public func isInLateClockWindow(
+        quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
+    ) -> Bool {
+        switch periodTiming(quarter: quarter, isPostseason: isPostseason) {
+        case .firstOrThird: return false
+        case .second: return clockRemaining <= outOfBoundsStopsClockFirstHalf
+        case .fourth: return clockRemaining <= outOfBoundsStopsClockSecondHalf
         }
-        if quarter >= quarters {
-            return clockRemaining <= outOfBoundsStopsClockSecondHalf
-        }
-        return false
     }
 
     /// After a foul that stopped a running clock, whether the clock waits for the snap
@@ -91,9 +97,10 @@ extension Rules {
     /// the first half (e-1), inside the last five minutes of the second half (e-2), or
     /// for an offensive foul that stops the clock before a snap anywhere in the fourth
     /// period or regular-season overtime (e-3). The first two are the windows of the
-    /// out-of-bounds rule (4-3-2-a), and are read the same way; the third is the
-    /// fourth period's timing, which regular-season overtime shares (16-1-3-e). A
-    /// clock that was stopped at the flag waits for the snap either way.
+    /// out-of-bounds rule (4-3-2-a), and are read the same way, in the postseason's
+    /// overtime periods as in its halves (16-1-4-h); the third names its own periods,
+    /// and a postseason overtime period is not among them. A clock that was stopped at
+    /// the flag waits for the snap either way.
     ///
     /// The runoff's restart (4-3-2-g) and the offence's choice after a defensive foul
     /// inside two minutes (4-7-1 Item 2) are specific rules that prescribe otherwise
@@ -101,18 +108,21 @@ extension Rules {
     public func clockStartsOnTheSnapAfterFoul(
         byOffense: Bool, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> Bool {
-        if isInLateClockWindow(quarter: quarter, clockRemaining: clockRemaining) {
+        if isInLateClockWindow(
+            quarter: quarter, isPostseason: isPostseason, clockRemaining: clockRemaining)
+        {
             return true
         }
-        return byOffense && hasFourthPeriodTiming(quarter: quarter, isPostseason: isPostseason)
+        return byOffense
+            && isFourthPeriodOrRegularSeasonOvertime(quarter: quarter, isPostseason: isPostseason)
     }
 
     /// Whether this play crosses the two-minute warning, which stops the clock on its
     /// own regardless of how the play ended.
     public func crossesTwoMinuteWarning(
-        quarter: UInt8, clockBefore: UInt16, clockAfter: UInt16
+        quarter: UInt8, isPostseason: Bool, clockBefore: UInt16, clockAfter: UInt16
     ) -> Bool {
-        guard isEndOfHalf(quarter: quarter) else { return false }
+        guard isEndOfHalf(quarter: quarter, isPostseason: isPostseason) else { return false }
         return clockBefore > twoMinuteWarning && clockAfter <= twoMinuteWarning
     }
 }
@@ -209,10 +219,16 @@ extension GameClock {
     /// whole interval as one lump and clamping it at 2:00 did neither: it swallowed a
     /// play snapped just before the warning and cut short a down that was under way.
     ///
+    /// Which periods have a warning in them is `Rules.isEndOfHalf`: the second and the
+    /// fourth (3-41), regular-season overtime (16-1-3-e), and in the postseason a
+    /// second or fourth overtime period (16-1-4-h).
+    ///
     /// Returns whether the warning was taken, because it is a stoppage in its own right
     /// and the caller has to know the clock is now stopped.
-    public mutating func run(_ elapsed: Elapsed, rules: Rules) -> Bool {
-        let warningApplies = !twoMinuteWarningTaken && rules.isEndOfHalf(quarter: quarter)
+    public mutating func run(_ elapsed: Elapsed, rules: Rules, isPostseason: Bool) -> Bool {
+        let warningApplies =
+            !twoMinuteWarningTaken
+            && rules.isEndOfHalf(quarter: quarter, isPostseason: isPostseason)
         var taken = false
 
         if elapsed.beforeSnap > 0 {
@@ -246,24 +262,23 @@ extension GameClock {
 
     /// Run a down's worth of clock with nothing before the snap: a down under way, with
     /// the two-minute warning taken as it ends if the clock passes 2:00 during it.
-    public mutating func run(_ seconds: UInt16, rules: Rules) -> Bool {
-        run(Elapsed(duringPlay: seconds, beforeSnap: 0), rules: rules)
+    public mutating func run(_ seconds: UInt16, rules: Rules, isPostseason: Bool) -> Bool {
+        run(Elapsed(duringPlay: seconds, beforeSnap: 0), rules: rules, isPostseason: isPostseason)
     }
 
-    /// Move to the next period. Returns `nil` when regulation is over.
+    /// Move to the next period: a quarter of regulation, or a period of overtime.
     ///
-    /// The two-minute warning resets at the half, not every quarter — it is a
-    /// once-per-half stoppage.
-    public func advancingPeriod(rules: Rules, isPostseason: Bool = false) -> GameClock? {
+    /// The two-minute warning is a once-per-half stoppage, so it comes back when a half
+    /// opens and not every period: at the third quarter, at the overtime period, and in
+    /// the postseason at every odd overtime period, whose pairs are halves (16-1-4-h).
+    /// `Rules.opensHalf` says which.
+    public func advancingPeriod(rules: Rules, isPostseason: Bool) -> GameClock? {
         let next = quarter + 1
-        if next > rules.quarters {
-            return GameClock(
-                quarter: next, secondsRemaining: rules.overtimeLength(isPostseason: isPostseason),
-                twoMinuteWarningTaken: true)
-        }
-        let entersSecondHalf = next == (rules.quarters / 2) + 1
+        let length =
+            next > rules.quarters
+            ? rules.overtimeLength(isPostseason: isPostseason) : rules.quarterLength
         return GameClock(
-            quarter: next, secondsRemaining: rules.quarterLength,
-            twoMinuteWarningTaken: entersSecondHalf ? false : twoMinuteWarningTaken)
+            quarter: next, secondsRemaining: length,
+            twoMinuteWarningTaken: rules.opensHalf(quarter: next) ? false : twoMinuteWarningTaken)
     }
 }

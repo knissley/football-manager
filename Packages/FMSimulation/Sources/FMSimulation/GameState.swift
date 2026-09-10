@@ -189,7 +189,9 @@ extension GameSimulator {
         /// elapsed if the clock was running into it, and nothing else has.
         func situationAtTheFlag(tempo: Tempo) -> Situation {
             var probe = clock
-            _ = probe.run(huddleBeforeTheFlag(tempo: tempo), rules: setup.rules)
+            _ = probe.run(
+                huddleBeforeTheFlag(tempo: tempo), rules: setup.rules,
+                isPostseason: setup.isPostseason)
             var atTheFlag = situation()
             atTheFlag.clockRemaining = probe.secondsRemaining
             return atTheFlag
@@ -305,7 +307,8 @@ extension GameSimulator {
             let rules = setup.rules
             let behavior = rules.clockBehavior(
                 after: outcome.endedIn, possessionChanged: advancement.possessionChanged,
-                quarter: clock.quarter, clockRemaining: clock.secondsRemaining)
+                quarter: clock.quarter, isPostseason: setup.isPostseason,
+                clockRemaining: clock.secondsRemaining)
 
             let elapsed: GameClock.Elapsed
             if pendingTry {
@@ -326,7 +329,7 @@ extension GameSimulator {
                 }
                 elapsed = GameClock.Elapsed(
                     duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
-                _ = clock.run(elapsed, rules: rules)
+                _ = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
                 previousBehavior = .stopsUntilSnap
                 return
             } else {
@@ -336,7 +339,7 @@ extension GameSimulator {
                     previousBehavior: previousBehavior)
             }
 
-            let warningTaken = clock.run(elapsed, rules: rules)
+            let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
         }
 
@@ -348,7 +351,8 @@ extension GameSimulator {
         ) {
             let rules = setup.rules
             let clockWasRunning = previousBehavior != .stopsUntilSnap
-            let warningTaken = clock.run(huddleBeforeTheFlag(tempo: tempo), rules: rules)
+            let warningTaken = clock.run(
+                huddleBeforeTheFlag(tempo: tempo), rules: rules, isPostseason: setup.isPostseason)
             // The clock at the flag is running only if it was running into the interval
             // and nothing stopped it on the way — the two-minute warning, or the end of
             // the period.
@@ -391,7 +395,7 @@ extension GameSimulator {
                 // clock then starts on the ready-for-play signal (4-3-2-g).
                 _ = clock.run(
                     GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
-                    rules: rules)
+                    rules: rules, isPostseason: setup.isPostseason)
                 previousBehavior = .stopsUntilReadyForPlay
                 return
             }
