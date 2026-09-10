@@ -154,7 +154,8 @@ extension Rules {
 
         // A dead-ball foul by either side after a score goes on whatever follows,
         // whatever the foul was: 11-3-3 Item 1 for a touchdown, Item 7 after a try, and
-        // 14-2-3's "whether a live ball or dead ball foul" for the rest.
+        // for the rest 14-2-3, which reaches a foul whether the ball was live or dead
+        // when it was committed.
         let afterTheWhistle = penalty.foul.isDeadBall
 
         switch scoring {
