@@ -82,8 +82,25 @@ swift run --package-path Tools/simharness -- --games 60
 ```
 
 Simulates games headless and prints the [calibration table](match-engine.md#calibration)
-with each row marked `ok` or `OFF`. **Tuning is done against this and never by playing
-the app.**
+with each row marked `ok` or `OFF`, and beside every row the real-league season and the
+source its band came from and the rule areas it depends on. **Tuning is done against this
+and never by playing the app.**
+
+The bands are `Tools/simharness/Sources/simharness/Targets.swift`, and the doc table is
+generated from them: `swift run simharness --targets-markdown` prints it, and the
+package's test fails if the doc and the array disagree. A row marked `stale` was sourced
+under a different rulebook than the run and is never `ok`; one marked `unsourced` keeps a
+band nobody has cited and is never `ok` either.
+
+```bash
+cd Tools/simharness && swift run simharness --games 400 --seed 7 --rulebook 2024
+```
+
+`--rulebook 2024` plays today's `Rules.standard` and compares the kickoff rows against
+the bands sourced from the 2024 season; `--rulebook 2025` plays with the touchback at the
+35 and compares against 2025. If the kickoff rows land under both, the mechanism is right
+rather than tuned. The default run plays `Rules.standard` against the 2025 targets, so
+the 2024-sourced rows warn at startup until D2 lands.
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than
@@ -91,12 +108,68 @@ emergent properties. Rows that depend on the *shape* of the yardage distribution
 than its mean are harder, and the spread of team win totals is not measurable at all
 until a schedule exists in M3.
 
+The output is byte-identical across processes for a given seed and game count, so the
+before-and-after comparison every engine fix depends on is a plain `diff`. A line that
+moves between two runs of the same binary at the same seed is a bug in the harness's
+read-out, not noise (#52).
+
+## gamelog — watch a game
+
+```bash
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11
+```
+
+Simulates one game out of the same world `simharness` plays and prints it as a broadcast
+log. One line per play: quarter and clock, the offence, down and distance, field position
+in own or opponent terms, the concept, what happened and who did it, the personnel
+matchup, any flag and how it was enforced, and the score after anything that scored. A
+drive summary at each change of possession and a scoreboard at the end of each period.
+
+Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
+
+`--home` and `--away` are indices into `gamelog`'s own league, and the header names the
+two teams it picked. **They do not agree with `worldgen`**, which draws a larger college
+pool before its league and so builds a different world from the same seed; the indices
+mean something across `gamelog` and `simharness` and nothing outside them. G1 (#3) is the
+one world generator that makes all three agree.
+
+`--week` is what the weather is drawn from: week 1 in a warm city is not the same game as
+week 17 in a cold one.
+
+Everything printed is a **query over the `PlayRecord` stream** — the score, the drive
+boundaries and the period boundaries are folded out of the emitted plays using the same
+`Rules` arithmetic the state machine used. The tool ends by comparing its own total
+against the score the engine reported, and says so loudly if they disagree.
+
+**Read one game end to end before and after any engine change.** This is the recipe:
+
+```bash
+# Before the change, and again after it. Read both; diff them if the change was meant
+# to be behaviour-preserving.
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11 > /tmp/before.txt
+
+# The same game in bad weather, which is a different game.
+swift run gamelog --seed 7 --home 3 --away 11 --week 17
+
+# A different matchup out of the same world, for a second opinion.
+swift run gamelog --seed 7 --home 12 --away 5
+```
+
+Watch for the things a table of means cannot show: who kicks off after a safety, whether
+a touchdown gets its try, whether a tie plays overtime, how much clock burns between the
+last snap of one possession and the first of the next, whether the same quarterback takes
+every snap of a drive, and whether a penalty leaves the ball where the rule puts it.
+
+Aggregates hid every rules bug the September audit found. Each of them is obvious in
+thirty seconds of this output, which is why it exists.
+
 ## Tests
 
 ```bash
 swift test --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
+swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
 
 # Integer maths must agree between debug and release
 swift test -c release --package-path Packages/FMRandom

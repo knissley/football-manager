@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "simharness",
+    name: "gamelog",
     dependencies: [
         .package(path: "../../Packages/FMCore"),
         .package(path: "../../Packages/FMGeneration"),
@@ -11,7 +11,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "simharness",
+            name: "gamelog",
             dependencies: [
                 .product(name: "FMCore", package: "FMCore"),
                 .product(name: "FMGeneration", package: "FMGeneration"),
@@ -19,11 +19,6 @@ let package = Package(
                 .product(name: "FMSimulation", package: "FMSimulation"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
-        ),
-        .testTarget(
-            name: "simharnessTests",
-            dependencies: ["simharness"],
-            swiftSettings: [.swiftLanguageMode(.v6)]
-        ),
+        )
     ]
 )

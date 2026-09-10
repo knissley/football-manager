@@ -11,8 +11,9 @@
 #     test (ubuntu-24.04-arm)
 #
 # The two `harness (...)` jobs are REPORTING, not gating, and must not be added to the
-# required list. Calibration rows print with an `ok`/`OFF` mark; an `OFF` row does not
-# fail the job today. Flipping a row to gating is a later, per-row decision made in a
+# required list. Calibration rows print with an `ok`/`OFF` mark (or `stale`/`unsourced`
+# for a row whose band cannot be trusted for the run); an `OFF` row does not fail the job
+# today. Flipping a row to gating is a later, per-row decision made in a
 # retune issue, not here.
 #
 # ## Why two architectures
@@ -196,47 +197,36 @@ jobs:
               >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # Every line that carries a target band, whichever section it sits in and
-          # however deeply it is indented — the nested sections put a % on the value and
-          # some rows print no ok/OFF mark at all, and a column-offset reader kept only
-          # the top block. Fields are runs of two-or-more spaces. A label that exactly
-          # fills its column runs into its own value with no space between them
-          # ("drives of 3 plays or fewer32.2%"), so that case is split back apart. A band
-          # is decimal-decimal, or integer-integer with a percent; anything looser also
-          # matches a scoreline like 24-21.
+          # Every row that carries a target band, whichever section it sits in. Fields
+          # are runs of two-or-more spaces; a target row is label, value, band, verdict,
+          # season, source key and (optionally) the rule areas it is sensitive to, in
+          # that order — the shape `report` in Tools/simharness/Sources/simharness/main.swift
+          # prints. A section header is an indented line with no digits and one field.
           rows="$(awk '
             BEGIN { FS = "  +"; section = "per team per game" }
             {
               if ($0 ~ /^  [^ ]/ && NF == 2 && $2 !~ /[0-9]/) { section = $2; next }
-              n = NF
-              mark = ""
-              if (n > 1 && ($n == "ok" || $n == "OFF" || $n == "·")) { mark = $n; n-- }
-              if (n < 2) next
-              band = $n
-              if (band !~ /^[0-9]+\.[0-9]+-[0-9]+\.[0-9]+$/ && band !~ /^[0-9]+-[0-9]+%$/) next
-              n--
-              value = ""
-              if (n >= 1 && $n ~ /^-?[0-9]+(\.[0-9]+)?[%x]?$/) { value = $n; n-- }
-              label = ""
-              for (i = 1; i <= n; i++) if ($i != "") label = (label == "" ? $i : label " " $i)
-              if (value == "") {
-                if (match(label, /-?[0-9]+(\.[0-9]+)?[%x]?$/) == 0) next
-                value = substr(label, RSTART, RLENGTH)
-                label = substr(label, 1, RSTART - 1)
-              }
-              sub(/ +$/, "", label)
-              if (label == "") next
-              printf "| %s | %s | %s | %s | %s |\n", section, label, value, band, mark
+              if ($2 ~ /^metric \(/) { section = "per team per game"; next }
+              if (NF < 6) next
+              label = $2; value = $3; band = $4; mark = $5; season = $6
+              src = (NF >= 7) ? $7 : ""
+              sensitive = (NF >= 8) ? $8 : ""
+              if (band !~ /^[0-9]+(\.[0-9]+)?-[0-9]+(\.[0-9]+)?$/ && band != "none") next
+              if (mark !~ /^(ok|OFF|\(ok\)|\(OFF\)|stale|unsourced|n\/a)$/) next
+              printf "| %s | %s | %s | %s | %s | %s | %s | %s |\n", section, label, value, band, mark, season, src, sensitive
             }
           ' harness-seed7.txt)"
           {
             echo "## simharness — 400 games, seed 7 — ${{ matrix.runner }}"
             echo
-            echo "Reporting only: an \`OFF\` row does not fail this job."
+            echo "Reporting only: an \`OFF\` row does not fail this job. A \`stale\` row was"
+            echo "sourced under a different rulebook than the run; an \`unsourced\` row has a"
+            echo "band nobody has cited; neither is ever \`ok\`. The source keys are listed"
+            echo "under Sources in the full output."
             echo
             if [ -n "$rows" ]; then
-              echo "| section | metric | value | target | |"
-              echo "| --- | --- | ---: | :---: | --- |"
+              echo "| section | metric | value | target | verdict | season | source | sensitive to |"
+              echo "| --- | --- | ---: | :---: | --- | --- | --- | --- |"
               echo "$rows"
             else
               echo "No row with a target band was parsed — the harness's output shape has"

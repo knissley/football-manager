@@ -15,8 +15,8 @@ Rationale lives in [`docs/adr/`](docs/adr/).
 ## Project status
 
 Pre-alpha, late in milestone M1. Four packages exist and are green: `FMRandom`,
-`FMCore`, `FMGeneration` and `FMSimulation`, with three tools — `playsize`, `worldgen`
-and `simharness`. **No app target, no SwiftUI, no SwiftData yet**; that is M4. Don't
+`FMCore`, `FMGeneration` and `FMSimulation`, with four tools — `playsize`, `worldgen`,
+`simharness` and `gamelog`. **No app target, no SwiftUI, no SwiftData yet**; that is M4. Don't
 assume a file exists because a doc describes it; check first, because several docs still
 describe intent rather than what is built.
 
@@ -31,8 +31,8 @@ football.
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
-engine. The audit doc's own closing section predates the external audit and overstates
-what is fixed; the tracker is current.
+engine. The audit doc is current as of issue I2: it carries all fifteen findings with a
+status table and links every open one to its issue.
 
 The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024
 values until issue D1 lands.
@@ -172,8 +172,9 @@ outcome they cannot cite. Details under Conventions → Tests.
 - **Balance the engine with the harness, not by playing.** Tuning constants is done
   against `Tools/simharness` output and the
   [calibration table](docs/match-engine.md#calibration), and only in a retune issue.
-- **Watch a game.** Aggregates hid every rules bug the audit found. When a play-by-play
-  printer exists (issue H4), read one full game before and after any engine change.
+- **Watch a game.** Aggregates hid every rules bug the audit found. Read one full game
+  of `Tools/gamelog` output before and after any engine change — the recipe is in
+  [tools.md](docs/tools.md#gamelog--watch-a-game).
 - **The whimsy goes in the world, not the engine.** Trait names, news voice, and draft
   storylines are playful. The physics never winks and no outcome is authored.
 - **Check `design-decisions.md` before assuming.** Most decisions are settled; the ones
@@ -236,6 +237,9 @@ cd Tools/worldgen && swift run worldgen --help            # inspect generated co
 cd Tools/simharness && swift run simharness --games 400 --seed 7
                                                           # the calibration harness. Weather
                                                           # and rare-event rows need --games 1000
+cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11
+                                                          # one game, play by play. Read one
+                                                          # before and after an engine change
 swift format lint --strict --recursive --parallel Packages/ Tools/
                                                           # run before committing. Without
                                                           # --strict the linter prints its
@@ -248,7 +252,6 @@ scripts/lint-sim.sh                                       # banned primitives, n
 
 # Planned — land with the backlog
 scripts/test-census.sh                                    # test kinds per package (I6)
-cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11   # play-by-play (H4)
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 

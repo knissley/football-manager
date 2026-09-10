@@ -2,9 +2,10 @@
 //
 //   swift run --package-path Tools/simharness -- --games 60
 //
-// Tuning is done against this output and never by playing the app. The rows below are
-// the calibration table from docs/match-engine.md; rows the crude resolver is not
-// expected to own are marked.
+// Tuning is done against this output and never by playing the app. Every band printed
+// here is a `CalibrationTarget` from Targets.swift, which names the real-league season and
+// the source each one came from; the table in docs/match-engine.md is generated from the
+// same array and a test fails if the two drift.
 
 import FMCore
 import FMGeneration
@@ -19,19 +20,36 @@ import Darwin
 
 var games = 40
 var seed: UInt64 = 2030
+var rulebookOption: Int?
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
     switch argument {
     case "--games": games = Int(arguments.next() ?? "") ?? games
     case "--seed": seed = UInt64(arguments.next() ?? "") ?? seed
+    case "--rulebook":
+        guard let season = Int(arguments.next() ?? ""), rules(forRulebook: season) != nil else {
+            print(
+                "--rulebook takes one of: "
+                    + supportedRulebooks.map(String.init).joined(separator: ", "))
+            exit(1)
+        }
+        rulebookOption = season
+    case "--targets-markdown":
+        print(CalibrationTarget.markdownTable())
+        exit(0)
     case "--help", "-h":
         print(
             """
             simharness — simulate games and report distributions
 
-              --games <n>   games to simulate (default 40)
-              --seed <n>    world seed (default 2030)
+              --games <n>          games to simulate (default 40)
+              --seed <n>           world seed (default 2030)
+              --rulebook <season>  play under that season's rules and compare against the
+                                   rows sourced under them (\(supportedRulebooks.map(String.init).joined(separator: " or ")));
+                                   the default plays Rules.standard and compares against the
+                                   \(engineRulebookSeason) targets
+              --targets-markdown   print the calibration table for docs/match-engine.md
             """)
         exit(0)
     default:
@@ -39,6 +57,13 @@ while let argument = arguments.next() {
         exit(1)
     }
 }
+
+// The rulebook the bands are compared against. Without `--rulebook` the engine plays
+// `Rules.standard` and is measured against the targets for the season it is supposed to
+// implement; the rows sourced under an older rulebook then warn, which is the point.
+let rulebookSeason = rulebookOption ?? engineRulebookSeason
+let rulesInForce = rulebookOption.flatMap(rules(forRulebook:)) ?? .standard
+let staleTargets = CalibrationTarget.stale(under: rulebookSeason)
 
 func pad(_ value: String, _ width: Int) -> String {
     var padded = value
@@ -48,21 +73,60 @@ func pad(_ value: String, _ width: Int) -> String {
 
 func oneDecimal(_ value: Double) -> String {
     let scaled = Rounding.toNearest(value * 10)
-    return "\(scaled / 10).\(abs(scaled % 10))"
+    let magnitude = abs(scaled)
+    return "\(scaled < 0 ? "-" : "")\(magnitude / 10).\(magnitude % 10)"
 }
 
 /// Two places, for rates small enough that one hides the whole signal — a fifth of a
 /// touchdown per team-game reads as "0.1" and tells you nothing.
 func twoDecimals(_ value: Double) -> String {
     let scaled = Int((value * 100).rounded())
-    return "\(scaled / 100).\(scaled % 100 < 10 ? "0" : "")\(scaled % 100)"
+    let magnitude = abs(scaled)
+    return
+        "\(scaled < 0 ? "-" : "")\(magnitude / 100).\(magnitude % 100 < 10 ? "0" : "")\(magnitude % 100)"
 }
 
-func row(_ label: String, _ value: Double, _ low: Double, _ high: Double, owned: Bool = true) {
-    let mark = !owned ? "·" : (value >= low && value <= high ? "ok" : "OFF")
+var verdicts: [String: [String]] = [:]
+/// Wide enough for the longest label plus the two spaces every column keeps between
+/// fields, which is what the CI summary's parser splits on.
+let labelWidth = (CalibrationTarget.all.map(\.label.count).max() ?? 30) + 2
+
+/// Print every target row for `id` — a rule-sensitive row has a variant per rulebook, and
+/// both print so the reader sees the measured value against each — with the season, source
+/// and rule sensitivity the band came from. `nil` is a row the harness cannot measure yet.
+@MainActor
+func report(_ id: String, _ value: Double?) {
+    let targets = CalibrationTarget.all.filter { $0.id == id || $0.id.hasPrefix(id + ".") }
+    if targets.isEmpty {
+        print("  \(pad(id, labelWidth))has no target row — add one to Targets.swift")
+        return
+    }
+    for target in targets {
+        let verdict: String
+        if staleTargets[target.id] != nil {
+            verdict = "stale"
+        } else if target.season == .unsourced {
+            verdict = "unsourced"
+        } else if let value, let low = target.low, let high = target.high {
+            let inBand = value >= low && value <= high
+            verdict = target.gate ? (inBand ? "ok" : "OFF") : (inBand ? "(ok)" : "(OFF)")
+        } else {
+            verdict = "n/a"
+        }
+        verdicts[verdict, default: []].append(target.id)
+        print(
+            "  " + pad(target.label, labelWidth) + pad(value.map(target.format) ?? "—", 9)
+                + pad(target.band, 14) + pad(verdict, 11) + pad(target.season.printed, 9)
+                + pad(CalibrationTarget.sourceKey(for: target.source), 5)
+                + target.rulesSensitiveTo.map(\.rawValue).sorted().joined(separator: ","))
+    }
+}
+
+func header() {
     print(
-        "  " + pad(label, 32) + pad(oneDecimal(value), 9)
-            + pad("\(oneDecimal(low))-\(oneDecimal(high))", 13) + mark)
+        "  " + pad("metric (per team per game)", labelWidth) + pad("value", 9)
+            + pad("target", 14) + pad("verdict", 11) + pad("season", 9) + pad("src", 5)
+            + "sensitive to")
 }
 
 // MARK: - Build a world
@@ -117,6 +181,7 @@ for index in 0..<games {
         players: players,
         stadium: home.stadium,
         weather: weather,
+        rules: rulesInForce,
         seed: seed &+ UInt64(index) &* 7919)
     results.append(simulator.simulate(setup))
     conditions.append((home: home.id, setup: setup))
@@ -148,37 +213,59 @@ let thirdDownConversions = thirdDowns.filter {
 
 print("simharness — \(results.count) games, seed \(seed)")
 print("")
-print("  " + pad("metric (per team per game)", 32) + pad("value", 9) + pad("target", 13) + "")
-row("points", points / teamGames, 20, 26)
-row("passing yards", passYards / teamGames, 200, 260)
-row("rushing yards", rushYards / teamGames, 95, 140)
-row(
-    "yards per carry",
-    carries.isEmpty ? 0 : rushYards / Double(carries.count), 4.0, 4.8)
-row(
-    "completion percentage",
-    attempts.isEmpty ? 0 : Double(completions.count) / Double(attempts.count) * 100, 61, 68)
-row(
-    "sack rate per dropback",
-    dropbacks.isEmpty ? 0 : Double(sacks.count) / Double(dropbacks.count) * 100, 5.5, 8.0)
-row(
-    "interception rate",
-    attempts.isEmpty ? 0 : Double(interceptions.count) / Double(attempts.count) * 100, 1.8, 2.8)
-row(
-    "third down conversion",
-    thirdDowns.isEmpty ? 0 : Double(thirdDownConversions.count) / Double(thirdDowns.count) * 100,
-    36, 43)
-row("plays from scrimmage", rate(scrimmage.count), 60, 70)
+print("  Rulebook")
+print(
+    "    compared against            \(rulebookSeason)"
+        + (rulebookOption == nil
+            ? " (the engine's target; Rules.standard still carries 2024 values until D1 #41)"
+            : rulebookSeason == engineRulebookSeason ? "" : " (--rulebook)"))
+print("    kickoff touchback spot      own \(rulesInForce.kickoffTouchbackOwnYard)")
+if staleTargets.isEmpty {
+    print("    every row was sourced under this rulebook")
+} else {
+    print("    rows sourced under another rulebook — stale, never ok, re-source before tuning:")
+    for target in CalibrationTarget.all {
+        guard let change = staleTargets[target.id] else { continue }
+        print(
+            "      \(pad(target.id, 34))sourced \(target.season.printed); "
+                + "\(change.area.rawValue) changed in \(change.season) (\(change.citation))")
+    }
+}
+print("")
+print("  Sources")
+for (key, title) in CalibrationTarget.sources {
+    print("    \(pad(key, 5))\(title)")
+}
+print("    a stale row was sourced under a different rulebook than the run; an unsourced row")
+print("    keeps a band nobody has cited and is never ok; (ok) and (OFF) are rows with no gate")
+
+print("")
+header()
+report("points", points / teamGames)
+report("passingYards", passYards / teamGames)
+report("rushingYards", rushYards / teamGames)
+report("yardsPerCarry", carries.isEmpty ? 0 : rushYards / Double(carries.count))
+report(
+    "completionPercentage",
+    attempts.isEmpty ? 0 : Double(completions.count) / Double(attempts.count) * 100)
+report("sackRate", dropbacks.isEmpty ? 0 : Double(sacks.count) / Double(dropbacks.count) * 100)
+report(
+    "interceptionRate",
+    attempts.isEmpty ? 0 : Double(interceptions.count) / Double(attempts.count) * 100)
+report(
+    "thirdDownConversion",
+    thirdDowns.isEmpty ? 0 : Double(thirdDownConversions.count) / Double(thirdDowns.count) * 100)
+report("playsFromScrimmage", rate(scrimmage.count))
 
 let flags = allPlays.flatMap(\.outcome.penalties)
 let accepted = flags.filter(\.wasAccepted)
-row("penalties (both teams)", Double(accepted.count) / Double(results.count), 10, 14)
+report("penaltiesPerGame", Double(accepted.count) / Double(results.count))
 
 let thirdDownDistance =
     thirdDowns.isEmpty
     ? 0
     : Double(thirdDowns.reduce(0) { $0 + Int($1.situation.distance) }) / Double(thirdDowns.count)
-row("average third down distance", thirdDownDistance, 6.8, 8.2)
+report("thirdDownDistance", thirdDownDistance)
 
 // Scrimmage plays only. A kickoff and an extra point are both first-down snaps that
 // gain nothing by definition, and counting them dragged this row a yard and a half below
@@ -187,32 +274,47 @@ let firstDowns = scrimmage.filter { $0.situation.down == .first }
 let firstDownGain =
     firstDowns.isEmpty
     ? 0 : Double(firstDowns.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(firstDowns.count)
-row("yards gained on first down", firstDownGain, 4.6, 5.8)
+report("firstDownGain", firstDownGain)
 
 // Yards per attempt is the passing game's real efficiency number — completion rate says
 // nothing about whether the completions are worth anything.
 let attemptYards = Double(attempts.reduce(0) { $0 + Int(max(0, $1.outcome.yards)) })
-row("yards per pass attempt", attemptYards / Double(max(1, attempts.count)), 6.6, 7.6)
+report("yardsPerAttempt", attemptYards / Double(max(1, attempts.count)))
 let scrimmageYards =
     attemptYards + rushYards
     + Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
-row("yards per play", scrimmageYards / Double(max(1, scrimmage.count)), 5.2, 5.9)
+report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
 let receptionYards = attemptYards / Double(max(1, completions.count))
-row("yards per completion", receptionYards, 10.5, 12.5)
+report("yardsPerCompletion", receptionYards)
 
 print("")
 print("  Shape of the stream")
-print("    plays per game              \(allPlays.count / max(1, results.count))")
+report("playsPerGame", Double(allPlays.count) / Double(max(1, results.count)))
 print(
-    "    decisions per play          \(allPlays.reduce(0) { $0 + $1.decisions.count } / max(1, allPlays.count))"
+    "    decisions per play          \(allPlays.reduce(0) { $0 + $1.decisions.count } / max(1, allPlays.count))   (engine internals, no target)"
 )
 print(
-    "    credits per play            \(allPlays.reduce(0) { $0 + $1.outcome.participants.count } / max(1, allPlays.count))"
+    "    credits per play            \(allPlays.reduce(0) { $0 + $1.outcome.participants.count } / max(1, allPlays.count))   (engine internals, no target)"
 )
 let scores = results.map { "\($0.homeScore)-\($0.awayScore)" }
 print("    first scorelines            \(scores.prefix(8).joined(separator: "  "))")
 let ties = results.filter(\.isTie).count
 print("    ties                        \(ties) of \(results.count)")
+report("tiesPerGame", Double(ties) / Double(max(1, results.count)))
+// Overtime is any snap in a fifth period. The seconds it used come from the last snap's
+// clock, so a period that expires level reads as the full period.
+let overtimeGames = results.filter { $0.plays.contains { $0.situation.quarter >= 5 } }
+report("overtimeRate", Double(overtimeGames.count) / Double(max(1, results.count)) * 100)
+let overtimeSeconds = overtimeGames.map { result -> Int in
+    let remaining = result.plays.filter { $0.situation.quarter >= 5 }.map {
+        Int($0.situation.clockRemaining)
+    }
+    return Int(rulesInForce.regularSeasonOvertimeLength) - (remaining.min() ?? 0)
+}
+report(
+    "overtimeLength",
+    overtimeGames.isEmpty
+        ? nil : Double(overtimeSeconds.reduce(0, +)) / Double(overtimeGames.count))
 
 // MARK: - Do the best players lead?
 
@@ -266,16 +368,23 @@ leaders(rushYardsBy, "Rushing yard leaders")
 
 // The question this answers: does rating predict production? If the leaders are
 // ordinary players, ratings are decoration.
-let rushers = sacksBy.compactMap { id, count -> (Int, Int)? in
+//
+// Sorted by overall and then by ID. Overall alone is not a total order: rushers tied on
+// it kept whatever order the dictionary handed over, which is Swift's per-process hash
+// seed, so the split at `count / 2` and both means below moved between runs of the same
+// seed. Iteration order over an unordered collection never reaches output (ADR-0003).
+let rushers = sacksBy.compactMap { id, count -> (overall: Int, sacks: Int, id: UInt64)? in
     guard let player = players[id] else { return nil }
-    return (Int(player.overall), count)
+    return (Int(player.overall), count, id.rawValue)
 }
 if rushers.count > 6 {
-    let sorted = rushers.sorted { $0.0 > $1.0 }
+    let sorted = rushers.sorted {
+        $0.overall != $1.overall ? $0.overall > $1.overall : $0.id < $1.id
+    }
     let topHalf = sorted.prefix(sorted.count / 2)
     let bottomHalf = sorted.suffix(sorted.count / 2)
-    let topRate = Double(topHalf.reduce(0) { $0 + $1.1 }) / Double(topHalf.count)
-    let bottomRate = Double(bottomHalf.reduce(0) { $0 + $1.1 }) / Double(bottomHalf.count)
+    let topRate = Double(topHalf.reduce(0) { $0 + $1.sacks }) / Double(topHalf.count)
+    let bottomRate = Double(bottomHalf.reduce(0) { $0 + $1.sacks }) / Double(bottomHalf.count)
     print("")
     print("  Rating predicts production")
     print("    sacks by the better half of rushers   \(oneDecimal(topRate))")
@@ -347,16 +456,25 @@ for result in results {
 }
 print("")
 print("  Flags")
+// The ten most common fouls each have a target; the rest are printed as observations.
 var byFoul: [String: Int] = [:]
 for flag in accepted { byFoul["\(flag.foul)", default: 0] += 1 }
-for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
+let targetedFouls = CalibrationTarget.all.filter { $0.id.hasPrefix("penalty.") }.map {
+    String($0.id.dropFirst("penalty.".count))
+}
+for foul in targetedFouls {
+    report("penalty.\(foul)", Double(byFoul[foul] ?? 0) / Double(max(1, results.count)))
+}
+for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) })
+where !targetedFouls.contains(foul) {
     print(
         "    " + pad(foul, 28)
-            + "\(oneDecimal(Double(count) / Double(results.count))) per game")
+            + "\(oneDecimal(Double(count) / Double(results.count))) per game   (outside the ten most common, no target)"
+    )
 }
 print(
     "    " + pad("declined", 28)
-        + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%"
+        + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%   (no target: the source counts accepted fouls only)"
 )
 
 // Player-games lost is the calibration row. A season is seventeen games, so the rate per
@@ -372,7 +490,7 @@ print(
 print(
     "    forced out of the game      \(oneDecimal(Double(allInjuries.filter(\.leavesTheGame).count) / Double(max(1, results.count))))"
 )
-row("player-games lost per season", perTeamSeason, 40, 90)
+report("playerGamesLost", perTeamSeason)
 let nonContact = allInjuries.filter { $0.cause == .nonContact }
 print(
     "    non-contact share           "
@@ -382,29 +500,23 @@ print(
     "    non-contact games lost      "
         + "\(oneDecimal(Double(nonContactGames) / Double(max(1, missedGames)) * 100))% of all")
 let longest = allInjuries.map(\.gamesOut).max() ?? 0
-print("    longest absence             \(longest) games")
+print("    longest absence             \(longest) games   (a tail; needs a season, not a sample)")
 
 let scrambles = allPlays.filter { $0.outcome.kind == .scramble }
-print(
-    "    scrambles per game          "
-        + "\(oneDecimal(Double(scrambles.count) / Double(max(1, results.count))))")
 
 print("")
 print("  The endgame")
-print(
-    "    kneels per game             \(oneDecimal(Double(kneels) / Double(max(1, results.count))))")
-print(
-    "    spikes per game             \(oneDecimal(Double(spikes) / Double(max(1, results.count))))")
-print(
-    "    timeouts spent per game     \(oneDecimal(Double(timeoutsSpent) / Double(max(1, results.count))))"
-)
+report("scramblesPerGame", Double(scrambles.count) / Double(max(1, results.count)))
+report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
+report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
+report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
 
 print("")
 print("  Not measured here")
+report("winTotalSigma", nil)
 print("    Spread of team win totals — the single most important row in the")
 print("    calibration table, and it needs a season with a schedule rather than")
 print("    arbitrary matchups. It arrives with M3.")
-print("    Penalties, injuries and red zone rate — not yet resolved.")
 
 // MARK: - Is this football?
 //
@@ -428,13 +540,17 @@ var twoPointGood = 0
 var drivePlays: [Int] = []
 var threeAndOuts = 0
 var shortDriveEndings: [String: Int] = [:]
+var redZoneDrives = 0
+var redZoneTouchdowns = 0
 
 for result in results {
     // A drive is a run of consecutive snaps by one team. Classified by how its last
     // snap ended, so a drive killed by the clock is counted rather than dropped.
-    var current: (team: TeamID, start: Int, last: PlayRecord, plays: Int)?
+    var current: (team: TeamID, start: Int, last: PlayRecord, plays: Int, redZone: Bool)?
 
-    func closeDrive(_ drive: (team: TeamID, start: Int, last: PlayRecord, plays: Int)) {
+    func closeDrive(
+        _ drive: (team: TeamID, start: Int, last: PlayRecord, plays: Int, redZone: Bool)
+    ) {
         // Offensive plays only. Counting the punt that ends a three-and-out as a fourth
         // play is how that row read 33% against a real 22%.
         drivePlays.append(drive.plays)
@@ -465,6 +581,12 @@ for result in results {
         }
         driveEnds[label, default: 0] += 1
         if drive.plays <= 3 { shortDriveEndings[label, default: 0] += 1 }
+        // A red zone trip is a drive with a snap inside the twenty; the rate is how many
+        // of those trips end in the offence's touchdown rather than a kick or nothing.
+        if drive.redZone {
+            redZoneDrives += 1
+            if label == "touchdown" { redZoneTouchdowns += 1 }
+        }
     }
 
     for play in result.plays {
@@ -508,23 +630,34 @@ for result in results {
             current = nil
         }
         let counts = outcome.kind.isScrimmagePlay
+        let inRedZone = play.situation.ballOn <= 20
         if current == nil {
-            current = (play.situation.possession, Int(play.situation.ballOn), play, counts ? 1 : 0)
+            current = (
+                play.situation.possession, Int(play.situation.ballOn), play, counts ? 1 : 0,
+                inRedZone
+            )
         } else {
             current?.last = play
             if counts { current?.plays += 1 }
+            if inRedZone { current?.redZone = true }
         }
     }
     if let drive = current { closeDrive(drive) }
 }
 
 let totalPoints = pointsBySource.values.reduce(0, +)
-for (source, value) in pointsBySource.sorted(by: { $0.value > $1.value }) {
+for (source, value) in pointsBySource.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     let share = Double(value) / Double(max(1, totalPoints)) * 100
     print(
         "    \(pad(source, 26))\(pad(oneDecimal(Double(value) / teamGames), 7))\(oneDecimal(share))%"
     )
 }
+report(
+    "pointsFromTouchdowns",
+    Double(pointsBySource["touchdown"] ?? 0) / Double(max(1, totalPoints)) * 100)
+report(
+    "pointsFromFieldGoals",
+    Double(pointsBySource["field goal"] ?? 0) / Double(max(1, totalPoints)) * 100)
 
 print("")
 print("  Who is on the field")
@@ -536,15 +669,20 @@ for play in scrimmage {
 }
 let snaps = Double(max(1, scrimmage.count))
 print("    offensive personnel")
-for (code, count) in groups.sorted(by: { $0.value > $1.value }).prefix(6) {
+for (code, count) in groups.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }).prefix(6) {
     print(
         "      \(pad(code < 10 ? "0\(code)" : "\(code)", 28))\(oneDecimal(Double(count) / snaps * 100))%"
     )
 }
 print("    defensive package")
-for (package, count) in packages.sorted(by: { $0.value > $1.value }) {
+for (package, count) in packages.sorted(by: {
+    ($0.value, $0.key.rawValue) > ($1.value, $1.key.rawValue)
+}) {
     print("      \(pad("\(package)", 28))\(oneDecimal(Double(count) / snaps * 100))%")
 }
+report("personnel11", Double(groups[11] ?? 0) / snaps * 100)
+report("packageNickel", Double(packages[.nickel] ?? 0) / snaps * 100)
+report("packageBase", Double(packages[.base] ?? 0) / snaps * 100)
 
 // The matchup, which is the point of having personnel at all. A run into a light box
 // should go further than one into a stacked one, and if it does not then the substitution
@@ -561,6 +699,7 @@ func countAdvantage(_ play: PlayRecord) -> Int {
     let blockers = 5 + Int(group.tightEnds) + max(0, Int(group.runningBacks) - 1)
     return blockers - (11 - Int(play.situation.defensePackage.defensiveBacks))
 }
+var yardsByAdvantage: [Int: Double] = [:]
 for advantage in [-2, -1, 0, 1, 2] {
     let matching = carries.filter {
         countAdvantage($0) == advantage && $0.situation.down == .first
@@ -568,9 +707,12 @@ for advantage in [-2, -1, 0, 1, 2] {
     }
     guard matching.count > 200 else { continue }
     let yards = Double(matching.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(matching.count)
+    yardsByAdvantage[advantage] = yards
     let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
     print("      \(pad(label, 28))\(pad(oneDecimal(yards), 8))\(matching.count) carries")
 }
+report("ypcEvenCount", yardsByAdvantage[0])
+report("ypcOutnumberedByOne", yardsByAdvantage[-1])
 
 print("")
 print("  The shape of a carry")
@@ -578,18 +720,13 @@ print("  The shape of a carry")
 // engine can hit 4.3 a carry by giving everyone four and a half yards every time, which
 // would be nothing like the sport.
 let carryYards = carries.map { Int($0.outcome.yards) }
-for (label, test, low, high) in [
-    ("stuffed (0 or fewer)", { (y: Int) in y <= 0 }, 17.0, 22.0),
-    ("2 yards or fewer", { (y: Int) in y <= 2 }, 40.0, 48.0),
-    ("10 or more", { (y: Int) in y >= 10 }, 9.0, 13.0),
-    ("20 or more", { (y: Int) in y >= 20 }, 2.0, 4.0),
-] as [(String, (Int) -> Bool, Double, Double)] {
-    let share = Double(carryYards.filter(test).count) / Double(max(1, carryYards.count)) * 100
-    let flag = share < low || share > high ? "OFF" : "ok"
-    print(
-        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
-    )
+func carryShare(_ test: (Int) -> Bool) -> Double {
+    Double(carryYards.filter(test).count) / Double(max(1, carryYards.count)) * 100
 }
+report("carriesStuffed", carryShare { $0 <= 0 })
+report("carries2orFewer", carryShare { $0 <= 2 })
+report("carries10plus", carryShare { $0 >= 10 })
+report("carries20plus", carryShare { $0 >= 20 })
 
 print("")
 print("  The shape of a dropback")
@@ -597,34 +734,48 @@ print("  The shape of a dropback")
 // produces drives that neither die quickly nor break open, which is what leaves a game
 // with too few possessions in it.
 let dropbackYards = dropbacks.map { Int($0.outcome.yards) }
-for (label, test, low, high) in [
-    ("lost yards or sacked", { (y: Int) in y < 0 }, 5.0, 9.0),
-    ("no gain (incomplete)", { (y: Int) in y == 0 }, 30.0, 38.0),
-    ("10 or more", { (y: Int) in y >= 10 }, 22.0, 29.0),
-    ("20 or more", { (y: Int) in y >= 20 }, 8.0, 12.0),
-    ("40 or more", { (y: Int) in y >= 40 }, 1.5, 3.0),
-] as [(String, (Int) -> Bool, Double, Double)] {
-    let share = Double(dropbackYards.filter(test).count) / Double(max(1, dropbackYards.count)) * 100
-    let flag = share < low || share > high ? "OFF" : "ok"
-    print(
-        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
-    )
+func dropbackShare(_ test: (Int) -> Bool) -> Double {
+    Double(dropbackYards.filter(test).count) / Double(max(1, dropbackYards.count)) * 100
 }
+report("dropbackLoss", dropbackShare { $0 < 0 })
+report("dropbackNoGain", dropbackShare { $0 == 0 })
+report("dropback10plus", dropbackShare { $0 >= 10 })
+report("dropback20plus", dropbackShare { $0 >= 20 })
+report("dropback40plus", dropbackShare { $0 >= 40 })
+// A pressured dropback is one where a blocker lost — the stream records that moment as a
+// decision point, so pressure is a query and not a counter the resolver keeps.
+let pressured = dropbacks.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
+report("pressureRate", Double(pressured.count) / Double(max(1, dropbacks.count)) * 100)
+// Every caught ball, including the ones that went backwards. The completion percentage
+// row above counts only gains, which is the harness's older definition and is kept there
+// so the measured value does not move under this change; the gap between the two is
+// exactly this row.
+let caught = attempts.filter {
+    $0.outcome.endedIn != .incomplete && $0.outcome.endedIn != .intercepted
+        && $0.outcome.endedIn != .penaltyEnforced
+}
+let caughtForNothing = caught.filter { $0.outcome.yards <= 0 && $0.outcome.endedIn != .touchdown }
+report(
+    "completionsZeroOrFewer",
+    Double(caughtForNothing.count) / Double(max(1, caught.count)) * 100)
 
 print("")
 print("  How drives end")
 let totalDrives = driveEnds.values.reduce(0, +)
-for (end, count) in driveEnds.sorted(by: { $0.value > $1.value }) {
+for (end, count) in driveEnds.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     let share = Double(count) / Double(max(1, totalDrives)) * 100
     print(
         "    \(pad(end, 26))\(pad(oneDecimal(Double(count) / teamGames), 7))\(oneDecimal(share))%")
 }
-print(
-    "    \(pad("drives per team-game", 26))\(pad(oneDecimal(Double(totalDrives) / teamGames), 9))10.5-12.0"
-)
-print(
-    "    \(pad("plays per drive", 26))\(pad(oneDecimal(Double(drivePlays.reduce(0, +)) / Double(max(1, drivePlays.count))), 9))5.3-6.0"
-)
+@MainActor
+func driveEndShare(_ label: String) -> Double {
+    Double(driveEnds[label] ?? 0) / Double(max(1, totalDrives)) * 100
+}
+report("driveEndPunt", driveEndShare("punt"))
+report("driveEndTouchdown", driveEndShare("touchdown"))
+report("driveEndDowns", driveEndShare("downs"))
+report("drivesPerTeamGame", Double(totalDrives) / teamGames)
+report("playsPerDrive", Double(drivePlays.reduce(0, +)) / Double(max(1, drivePlays.count)))
 // First downs are the currency of a drive: how many a team earns decides how long its
 // drives last, and it is the row that separates "converts third downs at the right rate"
 // from "never reaches third down".
@@ -633,63 +784,57 @@ let firstDownsEarned = allPlays.filter { play in
     return play.outcome.yards >= Int16(play.situation.distance)
         || play.outcome.endedIn == .touchdown
 }.count
-print(
-    "    \(pad("first downs per team-game", 26))\(pad(oneDecimal(Double(firstDownsEarned) / teamGames), 9))18.5-22.0"
-)
+report("firstDownsPerTeamGame", Double(firstDownsEarned) / teamGames)
 // A mean hides the shape here too. Real football has a fat spike of quick failures and a
 // long tail of sustained drives; a league whose drives are all six plays long has neither.
-for (label, low, high, test) in [
-    ("drives of 3 plays or fewer", 26.0, 34.0, { (n: Int) in n <= 3 }),
-    ("drives of 4 to 7", 32.0, 42.0, { (n: Int) in n >= 4 && n <= 7 }),
-    ("drives of 8 or more", 26.0, 36.0, { (n: Int) in n >= 8 }),
-] as [(String, Double, Double, (Int) -> Bool)] {
-    let share = Double(drivePlays.filter(test).count) / Double(max(1, drivePlays.count)) * 100
-    print(
-        "    \(pad(label, 26))\(pad(oneDecimal(share) + "%", 9))"
-            + "\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))"
-            + (share < low || share > high ? "OFF" : "ok"))
+@MainActor
+func driveShare(_ test: (Int) -> Bool) -> Double {
+    Double(drivePlays.filter(test).count) / Double(max(1, drivePlays.count)) * 100
 }
+report("drives3orFewer", driveShare { $0 <= 3 })
+report("drives4to7", driveShare { $0 >= 4 && $0 <= 7 })
+report("drives8plus", driveShare { $0 >= 8 })
 print("    how the short ones ended")
 let shortTotal = shortDriveEndings.values.reduce(0, +)
-for (label, count) in shortDriveEndings.sorted(by: { $0.value > $1.value }) {
+for (label, count) in shortDriveEndings.sorted(by: {
+    ($0.value, $0.key) > ($1.value, $1.key)
+}) {
     print(
         "      \(pad(label, 24))\(pad(oneDecimal(Double(count) / Double(max(1, shortTotal)) * 100) + "%", 9))\(count)"
     )
 }
-print(
-    "    \(pad("three and out", 26))\(pad(oneDecimal(Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100) + "%", 9))20.0-27.0"
-)
+report("threeAndOut", Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100)
+report(
+    "redZoneTouchdownRate",
+    redZoneDrives == 0 ? nil : Double(redZoneTouchdowns) / Double(redZoneDrives) * 100)
 
 print("")
 print("  Field position")
 let averageStart = Double(startingSpots.reduce(0, +)) / Double(max(1, startingSpots.count))
-print("    \(pad("average start (own yard)", 30))\(oneDecimal(100 - averageStart))")
+report("averageStart", 100 - averageStart)
 let ownHalf = startingSpots.filter { $0 > 50 }.count
-print(
-    "    \(pad("drives starting in own half", 30))"
-        + "\(oneDecimal(Double(ownHalf) / Double(max(1, startingSpots.count)) * 100))%")
+report("ownHalfStarts", Double(ownHalf) / Double(max(1, startingSpots.count)) * 100)
 let averagePunt = Double(puntSpots.reduce(0, +)) / Double(max(1, puntSpots.count))
-print("    \(pad("punts per team-game", 30))\(oneDecimal(Double(puntSpots.count) / teamGames))")
-print("    \(pad("net punt (yards)", 30))\(oneDecimal(averagePunt))")
-print(
-    "    \(pad("two-point tries per team-game", 30))"
-        + "\(pad(twoDecimals(Double(twoPointTries) / teamGames), 8))0.15-0.30")
-print(
-    "    \(pad("  converted", 30))"
-        + "\(pad(oneDecimal(Double(twoPointGood) / Double(max(1, twoPointTries)) * 100) + "%", 8))44-54%"
-)
+report("puntsPerTeamGame", Double(puntSpots.count) / teamGames)
+report("netPunt", averagePunt)
+report("twoPointTries", Double(twoPointTries) / teamGames)
+report(
+    "twoPointConversion",
+    twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
 
 print("")
 print("  Kicking")
-for (ending, count) in kickoffEndings.sorted(by: { $0.value > $1.value }) {
+let kickoffCount = kickoffEndings.values.reduce(0, +)
+for (ending, count) in kickoffEndings.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     print(
         "    \(pad("kickoff → \(ending)", 30))"
-            + "\(oneDecimal(Double(count) / Double(max(1, kickoffEndings.values.reduce(0, +))) * 100))%"
+            + "\(oneDecimal(Double(count) / Double(max(1, kickoffCount)) * 100))%"
     )
 }
-print(
-    "    \(pad("field goals per team-game", 30))"
-        + "\(oneDecimal(Double(fieldGoalsByDistance.count) / teamGames))")
+report(
+    "kickoffTouchbacks",
+    Double(kickoffEndings["touchback"] ?? 0) / Double(max(1, kickoffCount)) * 100)
+report("fieldGoalsPerTeamGame", Double(fieldGoalsByDistance.count) / teamGames)
 for bucket in [(0, 29), (30, 39), (40, 49), (50, 70)] {
     let inBucket = fieldGoalsByDistance.filter {
         $0.distance >= bucket.0 && $0.distance <= bucket.1
@@ -701,36 +846,51 @@ for bucket in [(0, 29), (30, 39), (40, 49), (50, 70)] {
             + "\(pad(String(inBucket.count), 7))\(oneDecimal(Double(made) / Double(inBucket.count) * 100))%"
     )
 }
+@MainActor
+func fieldGoals(_ low: Int, _ high: Int) -> [(distance: Int, good: Bool)] {
+    fieldGoalsByDistance.filter { $0.distance >= low && $0.distance <= high }
+}
+func madeShare(_ kicks: [(distance: Int, good: Bool)]) -> Double? {
+    kicks.isEmpty ? nil : Double(kicks.filter(\.good).count) / Double(kicks.count) * 100
+}
+@MainActor
+func attemptShare(_ kicks: [(distance: Int, good: Bool)]) -> Double {
+    Double(kicks.count) / Double(max(1, fieldGoalsByDistance.count)) * 100
+}
+report("fieldGoalsUnder30", madeShare(fieldGoals(0, 29)))
+report("fieldGoals30to39", madeShare(fieldGoals(30, 39)))
+report("fieldGoals40to49", madeShare(fieldGoals(40, 49)))
+report("fieldGoals50plus", madeShare(fieldGoals(50, 99)))
+report("fieldGoalAttemptsUnder30", attemptShare(fieldGoals(0, 29)))
+report("fieldGoalAttempts30to39", attemptShare(fieldGoals(30, 39)))
+report("fieldGoalAttempts40to49", attemptShare(fieldGoals(40, 49)))
+report("fieldGoalAttempts50plus", attemptShare(fieldGoals(50, 99)))
+let extraPoints = allPlays.filter { $0.outcome.kind == .extraPoint }
+let extraPointsGood = extraPoints.filter { $0.outcome.endedIn == .fieldGoalGood }.count
+report(
+    "extraPointsMade",
+    extraPoints.isEmpty ? nil : Double(extraPointsGood) / Double(extraPoints.count) * 100)
 
 print("")
 print("  Fourth down")
 // The most-discussed decision in the modern game, and the one a conservative caller
-// makes invisible. Real teams go for it about 1.1 times a game and convert about half.
+// makes invisible.
 let fourthDowns = allPlays.filter {
     $0.situation.down == .fourth && $0.outcome.kind != .kickoff && $0.outcome.kind != .extraPoint
         && $0.outcome.kind != .twoPointConversion && $0.outcome.kind != .penaltyOnly
 }
-func fourthShare(_ name: String, _ test: (PlayRecord) -> Bool, _ low: Double, _ high: Double) {
-    let matching = fourthDowns.filter(test)
-    let share = Double(matching.count) / Double(max(1, fourthDowns.count)) * 100
-    let flag = share < low || share > high ? "OFF" : "ok"
-    print(
-        "    \(pad(name, 26))\(pad(oneDecimal(share) + "%", 9))\(pad("\(oneDecimal(low))-\(oneDecimal(high))", 13))\(flag)"
-    )
+func fourthShare(_ test: (PlayRecord) -> Bool) -> Double {
+    Double(fourthDowns.filter(test).count) / Double(max(1, fourthDowns.count)) * 100
 }
-fourthShare("punted", { $0.outcome.kind == .punt }, 55.0, 68.0)
-fourthShare("kicked", { $0.outcome.kind == .fieldGoal }, 20.0, 30.0)
-fourthShare("went for it", { $0.outcome.kind.isScrimmagePlay }, 12.0, 20.0)
+report("fourthDownPunted", fourthShare { $0.outcome.kind == .punt })
+report("fourthDownKicked", fourthShare { $0.outcome.kind == .fieldGoal })
+report("fourthDownWentForIt", fourthShare { $0.outcome.kind.isScrimmagePlay })
 let goes = fourthDowns.filter { $0.outcome.kind.isScrimmagePlay }
 let converted = goes.filter {
     $0.outcome.yards >= Int16($0.situation.distance) || $0.outcome.endedIn == .touchdown
 }
-print(
-    "    \(pad("attempts per team-game", 26))\(pad(oneDecimal(Double(goes.count) / teamGames), 9))0.9-1.4"
-)
-print(
-    "    \(pad("conversion rate", 26))\(pad(oneDecimal(Double(converted.count) / Double(max(1, goes.count)) * 100) + "%", 9))45.0-58.0"
-)
+report("fourthDownAttempts", Double(goes.count) / teamGames)
+report("fourthDownConversion", Double(converted.count) / Double(max(1, goes.count)) * 100)
 // Where the offence actually stays on the field. "Going for it" is only a real decision
 // in some parts of the field and some parts of the game; a team going for it on fourth
 // and four from its own thirty in the first quarter is a broken caller, not a bold one.
@@ -749,10 +909,10 @@ let deepGoes = goes.filter { $0.situation.ballOn > 70 }
 var deepByTime: [String: Int] = [:]
 for play in deepGoes { deepByTime["\(SituationClass(play.situation).time)", default: 0] += 1 }
 if !deepGoes.isEmpty {
+    let byTime = deepByTime.sorted { ($0.value, $0.key) > ($1.value, $1.key) }
     print(
         "      \(pad("    deep ones, by time", 24))"
-            + deepByTime.sorted { $0.value > $1.value }.map { "\($0.key) \($0.value)" }.joined(
-                separator: ", "))
+            + byTime.map { "\($0.key) \($0.value)" }.joined(separator: ", "))
 }
 let neutral = goes.filter {
     let classified = SituationClass($0.situation)
@@ -766,27 +926,20 @@ print(
 
 let shortGoes = fourthDowns.filter { $0.situation.distance <= 1 }
 let shortWent = shortGoes.filter { $0.outcome.kind.isScrimmagePlay }
-print(
-    "    \(pad("4th and 1: went for it", 26))\(pad(oneDecimal(Double(shortWent.count) / Double(max(1, shortGoes.count)) * 100) + "%", 9))55.0-75.0"
-)
+report(
+    "fourthAndOneWentForIt", Double(shortWent.count) / Double(max(1, shortGoes.count)) * 100)
 
 print("")
 print("  Turnovers and the return game")
 let fumblesLost = allPlays.filter { $0.outcome.endedIn == .fumbleLost }
 let fumblesKept = allPlays.filter { $0.outcome.endedIn == .fumbleRecovered }
-print(
-    "    \(pad("fumbles lost per team-game", 30))\(pad(oneDecimal(Double(fumblesLost.count) / teamGames), 8))0.5-0.8"
-)
-print(
-    "    \(pad("fumbles kept per team-game", 30))\(pad(oneDecimal(Double(fumblesKept.count) / teamGames), 8))0.4-0.8"
-)
+report("fumblesLost", Double(fumblesLost.count) / teamGames)
+report("fumblesKept", Double(fumblesKept.count) / teamGames)
 let takeaways = fumblesLost.count + interceptions.count
-print(
-    "    \(pad("turnovers per team-game", 30))\(pad(oneDecimal(Double(takeaways) / teamGames), 8))1.1-1.6"
-)
+report("turnovers", Double(takeaways) / teamGames)
 
-// A touchdown the offence did not score. Real football takes about a fifth of a point
-// per team-game from each source, and this engine produced none of them at all.
+// A touchdown the offence did not score. Split by who scored it, because kick returns
+// answer to the kickoff rules and interception returns do not.
 var returnScores: [String: Int] = [:]
 for play in allPlays where play.outcome.endedIn == .touchdown {
     switch play.outcome.kind {
@@ -806,14 +959,15 @@ for play in allPlays where play.outcome.finalSpot == 100 && play.outcome.endedIn
         1
 }
 let nonOffensive = returnScores.values.reduce(0, +)
-print(
-    "    \(pad("touchdowns not by the offence", 30))\(pad(twoDecimals(Double(nonOffensive) / teamGames), 8))0.15-0.28"
-)
-for (source, count) in returnScores.sorted(by: { $0.value > $1.value }) {
+report("nonOffensiveTouchdowns", Double(nonOffensive) / teamGames)
+for (source, count) in returnScores.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     print(
         "      \(pad(source, 28))\(pad(twoDecimals(Double(count) / teamGames), 8))\(count) in \(Int(teamGames)) team-games"
     )
 }
+let kickReturnScores = (returnScores["kickoff return"] ?? 0) + (returnScores["punt return"] ?? 0)
+report("defensiveReturnTouchdowns", Double(nonOffensive - kickReturnScores) / teamGames)
+report("kickReturnTouchdowns", Double(kickReturnScores) / teamGames)
 
 var kickoffReturns = 0
 var onside = 0
@@ -827,28 +981,28 @@ for play in allPlays where play.outcome.kind == .kickoff {
     }
 }
 print("    \(pad("onside kicks (recovered)", 30))\(onside) (\(onsideRecovered))")
+report("onsideKicks", Double(onside) / Double(max(1, results.count)))
+report("onsideRecovery", onside == 0 ? nil : Double(onsideRecovered) / Double(onside) * 100)
 print(
     "    \(pad("kickoffs returned", 30))\(kickoffReturns) of \(allPlays.filter { $0.outcome.kind == .kickoff }.count)"
 )
+report("kickoffsReturned", Double(kickoffReturns) / Double(max(1, kickoffCount)) * 100)
 let puntsReturned = allPlays.filter { $0.outcome.kind == .punt && $0.outcome.endedIn == .tackled }
     .count
-print(
-    "    \(pad("punts returned", 30))\(puntsReturned) of \(allPlays.filter { $0.outcome.kind == .punt }.count)"
-)
+let puntCount = allPlays.filter { $0.outcome.kind == .punt }.count
+print("    \(pad("punts returned", 30))\(puntsReturned) of \(puntCount)")
+report("puntsReturned", Double(puntsReturned) / Double(max(1, puntCount)) * 100)
 
 print("")
 print("  Backed up")
 let deep = scrimmage.filter { $0.situation.ballOn >= 90 }
-print(
-    "    \(pad("snaps inside own 10", 26))\(pad(twoDecimals(Double(deep.count) / teamGames), 9))1.5-2.5"
-)
+report("snapsInsideOwn10", Double(deep.count) / teamGames)
 let safeties = allPlays.filter { $0.outcome.endedIn == .safety }
-print(
-    "    \(pad("safeties per team-game", 26))\(pad(twoDecimals(Double(safeties.count) / teamGames), 9))0.03-0.08"
-)
+report("safeties", Double(safeties.count) / teamGames)
 let deepSacks = deep.filter { $0.outcome.kind == .sack }
 print(
-    "    \(pad("sacks taken inside own 10", 26))\(deepSacks.count) in \(Int(teamGames)) team-games")
+    "    \(pad("sacks taken inside own 10", 26))\(deepSacks.count) in \(Int(teamGames)) team-games   (no target: not in the source)"
+)
 
 print("")
 print("  Home field and weather")
@@ -868,10 +1022,11 @@ for result in results {
     awayPoints += Int(result.awayScore)
 }
 let decided = Double(max(1, homeWins + awayWins))
-// No target on these two. Real home-field advantage is about two points and 56%, and
-// most of it is travel, rest and short weeks — none of which can exist before there is a
-// schedule to travel on (M3). What this engine models is the crowd, and the crowd alone
-// is worth roughly half a point, which is about what the research attributes to it.
+// No target on these two. Real home-field advantage is about two points and 54 to 56%
+// (see the sourced note in Targets.swift), and most of it is travel, rest and short weeks
+// — none of which can exist before there is a schedule to travel on (M3). What this
+// engine models is the crowd alone, so the mechanism below gets the target and the
+// aggregate gets a note.
 print(
     "    \(pad("home win rate", 30))\(pad(oneDecimal(Double(homeWins) / decided * 100) + "%", 9))crowd only, see M3"
 )
@@ -899,13 +1054,8 @@ for (index, entry) in conditions.enumerated() where index < results.count {
     }
 }
 func per100(_ count: Int, _ snaps: Int) -> Double { Double(count) / Double(max(1, snaps)) * 100 }
-// This one *is* the mechanism, and it has a real number attached: a road offence commits
-// something like a fifth more pre-snap fouls than a home one.
 let ratio = per100(awayPreSnap, awaySnaps) / max(0.01, per100(homePreSnap, homeSnaps))
-print(
-    "    \(pad("pre-snap fouls, road vs home", 30))"
-        + "\(pad(oneDecimal(ratio) + "x", 9))1.15-1.35  "
-        + (ratio < 1.15 || ratio > 1.35 ? "OFF" : "ok"))
+report("preSnapRoadVsHome", ratio)
 print(
     "    \(pad("  per 100 snaps", 30))"
         + "home \(oneDecimal(per100(homePreSnap, homeSnaps)))  road \(oneDecimal(per100(awayPreSnap, awaySnaps)))"
@@ -924,17 +1074,27 @@ for (index, entry) in conditions.enumerated() where index < results.count {
     byPrecipitation[w.precipitation, default: (0, 0)].points += total
 }
 print(
-    "    \(pad("games indoors", 30))\(oneDecimal(Double(indoorGames) / Double(max(1, results.count)) * 100))%"
+    "    \(pad("games indoors", 30))\(oneDecimal(Double(indoorGames) / Double(max(1, results.count)) * 100))%   (no target: follows the generated stadiums)"
 )
 print(
-    "    \(pad("games with wind 18mph+", 30))\(oneDecimal(Double(windy) / Double(max(1, results.count)) * 100))%"
+    "    \(pad("games with wind 18mph+", 30))\(oneDecimal(Double(windy) / Double(max(1, results.count)) * 100))%   (no target: follows the generated climates)"
 )
+@MainActor
+func combinedPoints(_ kind: Precipitation) -> Double? {
+    guard let bucket = byPrecipitation[kind], bucket.games > 20 else { return nil }
+    return Double(bucket.points) / Double(bucket.games)
+}
 for kind in [Precipitation.none, .rain, .heavyRain, .snow] {
     guard let bucket = byPrecipitation[kind], bucket.games > 20 else { continue }
     print(
         "    \(pad("  \(kind): combined points", 30))"
             + "\(pad(oneDecimal(Double(bucket.points) / Double(bucket.games)), 9))\(bucket.games) games"
     )
+}
+if let dry = combinedPoints(.none), let wet = combinedPoints(.heavyRain) {
+    report("heavyRainPoints", dry - wet)
+} else {
+    report("heavyRainPoints", nil)
 }
 
 print("")
@@ -948,9 +1108,18 @@ for result in results {
 let common = finals.sorted { ($0.value, $0.key) > ($1.value, $1.key) }.prefix(6)
 print("    most common finals          " + common.map { "\($0.key)" }.joined(separator: "  "))
 let margins = results.map { abs(Int($0.homeScore - $0.awayScore)) }
-for margin in [3, 7] {
-    let within = margins.filter { $0 <= margin }.count
+report(
+    "gamesWithin3", Double(margins.filter { $0 <= 3 }.count) / Double(max(1, results.count)) * 100)
+report(
+    "gamesWithin7", Double(margins.filter { $0 <= 7 }.count) / Double(max(1, results.count)) * 100)
+
+print("")
+print("  Verdicts")
+for verdict in ["ok", "OFF", "stale", "unsourced", "(ok)", "(OFF)", "n/a"] {
+    guard let rows = verdicts[verdict], !rows.isEmpty else { continue }
+    let listed =
+        verdict == "OFF" || verdict == "stale" || verdict == "unsourced" || verdict == "n/a"
     print(
-        "    \(pad("games within \(margin)", 30))"
-            + "\(oneDecimal(Double(within) / Double(max(1, results.count)) * 100))%")
+        "    \(pad(verdict, 12))\(rows.count)"
+            + (listed ? "   " + rows.sorted().joined(separator: ", ") : ""))
 }
