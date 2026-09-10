@@ -305,6 +305,31 @@ struct FranchiseSetTests {
         #expect(first.teams.map(\.identity.fullName) != second.teams.map(\.identity.fullName))
     }
 
+    /// A set of the caller's own, and the smallest shape of the top-up: one region
+    /// supplies a single franchise and the rest of the league is drawn around it. The
+    /// curated club has to arrive intact, and nothing drawn may take its name — the
+    /// ledger is told about every curated line in the league before a single draw.
+    @Test("contract: a short curated set is filled out without colliding with itself")
+    func aShortSetIsFilledOut() throws {
+        guard let first = FranchiseSet.franchises(in: .north).first else {
+            Issue.record("the curated set has no northern franchise")
+            return
+        }
+        let built = try #require(league(shape: .minimal, franchises: .set([first])))
+        let teams = built.teams
+
+        #expect(teams.count == 8)
+        #expect(teams.contains { $0.identity.city == first.city })
+        #expect(teams.contains { $0.stadium == first.stadium })
+        #expect(duplicates(teams.map(\.identity.city)).isEmpty, "repeated city")
+        #expect(duplicates(teams.map(\.identity.nickname)).isEmpty, "repeated nickname")
+        #expect(
+            duplicates(teams.map { TeamGenerator.stem(ofNickname: $0.identity.nickname) }).isEmpty,
+            "repeated nickname stem")
+        #expect(duplicates(teams.map(\.identity.abbreviation)).isEmpty, "repeated abbreviation")
+        #expect(duplicates(teams.map(\.stadium.name)).isEmpty, "repeated stadium")
+    }
+
     /// The curated set is finite and a shape is not. Sixty-four teams wants sixteen from
     /// each region, and the eight that are written down are joined by eight drawn ones —
     /// which must not collide with them, because the ledger was told about them first.
