@@ -135,8 +135,7 @@ extension GameSimulator {
                 offenseTimeouts: possession == setup.home.id ? homeTimeouts : awayTimeouts,
                 defenseTimeouts: possession == setup.home.id ? awayTimeouts : homeTimeouts,
                 offensePersonnel: offensePersonnel,
-                defensePackage: defensePackage,
-                weather: setup.weather)
+                defensePackage: defensePackage)
         }
 
         func context() -> PlayContext {
@@ -695,7 +694,8 @@ extension GameSimulator {
             }
             return GameResult(
                 game: setup.game, plays: plays, injuries: injuries, rosters: rosters,
-                homeScore: homeScore, awayScore: awayScore, winner: winner)
+                weather: setup.weather, homeScore: homeScore, awayScore: awayScore,
+                winner: winner)
         }
     }
 }

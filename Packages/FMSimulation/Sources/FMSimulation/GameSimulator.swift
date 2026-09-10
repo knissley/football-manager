@@ -101,6 +101,10 @@ public struct GameResult: Sendable {
     /// `onField` indexes into. `PlayRecord.player(at:rosters:)` reads it, and it is the
     /// one thing about a game a play cannot carry for itself without eight bytes a slot.
     public let rosters: [TeamID: [PlayerID]]
+    /// The conditions the game was played in. A fact about the afternoon rather than
+    /// about any down, so it is here once and on no play; the resolver read it from its
+    /// context, and a consumer of the stream reads it from here.
+    public let weather: WeatherState
     public let homeScore: Int16
     public let awayScore: Int16
     /// `nil` when the game ended level, which a regular season game may.
@@ -108,13 +112,14 @@ public struct GameResult: Sendable {
 
     public init(
         game: GameID, plays: [PlayRecord], injuries: [InjuryEvent] = [],
-        rosters: [TeamID: [PlayerID]] = [:], homeScore: Int16, awayScore: Int16,
-        winner: TeamID?
+        rosters: [TeamID: [PlayerID]] = [:], weather: WeatherState = .clear,
+        homeScore: Int16, awayScore: Int16, winner: TeamID?
     ) {
         self.game = game
         self.plays = plays
         self.injuries = injuries
         self.rosters = rosters
+        self.weather = weather
         self.homeScore = homeScore
         self.awayScore = awayScore
         self.winner = winner

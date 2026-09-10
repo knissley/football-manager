@@ -26,8 +26,9 @@ public struct PlayContext: Sendable {
     /// Thin air carries a kick. Generated for every stadium since the world existed, and
     /// until now it reached no game.
     public let altitudeFeet: Int16
-    /// The conditions. On the context as well as the situation because facts about the
-    /// afternoon belong to the game, not to the down.
+    /// The conditions. On the context and not on the situation, because facts about the
+    /// afternoon belong to the game, not to the down: the game's result carries them once
+    /// for whoever reads the stream, and this is where the resolver reads them.
     public let weather: WeatherState
     public let offenseIsHome: Bool
     /// Whether the clock is running into this snap.

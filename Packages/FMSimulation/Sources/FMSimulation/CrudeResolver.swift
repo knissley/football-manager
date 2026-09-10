@@ -453,7 +453,7 @@ public struct CrudeResolver: PlayResolver {
         let accuracy = rating(depth.accuracyKey, SlotLayout.quarterback, personnel, context)
         let placement = placement(
             accuracy: accuracy, pressured: pressured,
-            conditions: Conditions.throwing(situation.weather, depthYards: depth.yards),
+            conditions: Conditions.throwing(context.weather, depthYards: depth.yards),
             random: &random)
         let throwTick = UInt16(timeNeeded / 100)
         let arrivalTick = throwTick + UInt16(depth.flightTicks)
@@ -472,7 +472,7 @@ public struct CrudeResolver: PlayResolver {
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
-            contested: isTry, conditions: Conditions.handling(situation.weather),
+            contested: isTry, conditions: Conditions.handling(context.weather),
             random: &random)
         decisions.append(
             .init(
@@ -727,8 +727,8 @@ public struct CrudeResolver: PlayResolver {
         // teams pay for one.
         let leg = rating(.kickPower, SlotLayout.specialist, personnel, context)
         var touchbackChance = 0.50 + (leg - 68) * 0.012
-        if situation.weather.windSpeed > 15 { touchbackChance -= 0.10 }
-        if situation.weather.isIndoors { touchbackChance += 0.04 }
+        if context.weather.windSpeed > 15 { touchbackChance -= 0.10 }
+        if context.weather.isIndoors { touchbackChance += 0.04 }
 
         if random.nextBool(probability: min(0.88, max(0.25, touchbackChance))) {
             return (
@@ -991,7 +991,7 @@ public struct CrudeResolver: PlayResolver {
         // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
         // these modules link without libm, and `Tools/playsize` is the guard that proves it.
         let carry = Conditions.kickingAdjustment(
-            situation.weather, altitudeFeet: context.altitudeFeet)
+            context.weather, altitudeFeet: context.altitudeFeet)
         let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
         var chance: Double
         if length <= 30 {
@@ -1009,7 +1009,7 @@ public struct CrudeResolver: PlayResolver {
         // Centred on an average leg, so the curve above *is* the league average rather
         // than a floor everybody beats.
         chance += (accuracy - 68) * 0.004
-        if situation.weather.precipitation != .none { chance -= 0.03 }
+        if context.weather.precipitation != .none { chance -= 0.03 }
 
         let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
         return (

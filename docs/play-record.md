@@ -77,7 +77,11 @@ Situation
   scoreDiff     Int16              from the possessing team's view
   timeouts      (off: UInt8, def: UInt8)
   personnel     (off: PersonnelGroup, def: DefensivePackage)
-  weather       WeatherState
+
+The down, and nothing about the afternoon. The weather is a fact about the game: it is
+on `GameResult.weather` once, the resolver reads it from its `PlayContext`, and no
+situation carries it. It sat on every situation for a while — about a hundred and fifty
+copies a game — and nothing that reads a situation ever looked at it.
 
 `SituationClass(situation)` derives the shared situational buckets — down-and-distance,
 field, score and time — used by both callers, gameplan rules, tendency tables and
@@ -217,19 +221,19 @@ it omitted the participant list entirely, which turned out to dominate.
 Measured against the real types (`swift run --package-path Tools/playsize`):
 
 ```
-Situation      29 B     OffensiveCall   10 B     DecisionPoint    8 B
+Situation      23 B     OffensiveCall   10 B     DecisionPoint    8 B
 Calls          41 B     DefensiveCall    6 B     Participation   24 B
-PlayRef        10 B     PlayRecord     144 B  (fixed part)
+PlayRef        10 B     PlayRecord     136 B  (fixed part)
 ```
 
 A realistic play — twelve decision points, ten credited participants, and the twenty-two
-men on the field — is **502 bytes** in Swift's in-memory layout:
+men on the field — is **494 bytes** in Swift's in-memory layout:
 
 ```
-per game (150 plays)          73 KB
-your season (17 games)      1,250 KB
+per game (150 plays)          72 KB
+your season (17 games)      1,230 KB
 league season (272 games)      19 MB
-ten seasons, league-wide      195 MB
+ten seasons, league-wide      192 MB
 ```
 
 **Presence costs thirty-three bytes a play.** Twenty-two of them are the roster indices
@@ -239,6 +243,11 @@ the sparse credits could not carry. (The 133 was itself two bytes over the 131 t
 used to quote: `Outcome.finalSpot` was not absorbed by padding as
 [decision 179](design-decisions.md#the-crude-engine) supposed, and the tool has measured
 133 since it landed.)
+
+**The weather gave eight of them back.** `Situation` went from 29 bytes to 23 when the
+`WeatherState` it carried on every play moved to the game's result, and the fixed part
+from 144 to 136 with it. A fact about the afternoon was being written a hundred and fifty
+times a game for nothing that reads a situation to look at.
 
 Three things changed as a result of measuring.
 
@@ -260,12 +269,12 @@ the 8-byte `DefensiveCallID` became a 6-byte value stored inline. Storing both c
 value, so a playbook edit cannot rewrite history, was close to free.
 
 **The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~73 KB of records — 1.5×, not the 6× asserted before. Records and
+game against ~72 KB of records — 1.5×, not the 6× asserted before. Records and
 trajectories are the same order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 195 MB of league-wide history for a
+in full; replay everything else from its seed.** 192 MB of league-wide history for a
 ten-season career is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not
