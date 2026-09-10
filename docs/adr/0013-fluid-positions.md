@@ -133,3 +133,63 @@ every position is cheap enough at roster size, but "rates higher" is not the sam
 "worth doing" — it has to account for what he leaves behind and what the scheme needs.
 Unresolved, and until it is, the AI clause above is a statement of intent rather than a
 built thing.
+
+## Amendment 2026-09-10 — what measurement found
+
+Recorded after the September 2026 audit measured the two premises the decision rests on
+and found both untrue of the tree, and after the first of them was made true. The
+decision above is unchanged; this section is an amendment under the rule in
+[README.md](README.md), and the body it amends was not edited to match.
+
+**The honest penalty did not exist, and now does.** The context above says a player
+evaluated at a position he carries no ratings for "scores from what he does have rather
+than being punished for absences", and the alternatives section rejects a flat
+out-of-position penalty because `overall(at:)` "derives it from the ratings the player
+actually has". It did the opposite. A rating a position did not use was absent, and
+`PositionWeights.overall` dropped the weight of any absent key and renormalised over the
+rest, so a receiver at quarterback was scored on his awareness and speed alone. Measured
+at seed 7 on the tree the audit read: receivers averaged 66.7 at quarterback against 62.2
+at receiver, a kicker rated a 64 quarterback, and running backs rated 65.9 at linebacker
+against natives at 61.6. Absence was a bonus, and "68 as a tight end, 81 as a receiver"
+was a number nobody could trust.
+
+The mechanism is replaced ([decision 217](../design-decisions.md#ratings),
+[#25](https://github.com/knissley/football-manager/issues/25)). Every player carries every
+key; a rating his position does not train is present and low, drawn by generation from an
+untrained table by key family and by whether the job sometimes asks for it; and
+`overall(at:)` weighs it like any other. The same probe afterwards: receivers 36.5 at
+quarterback, kickers 33.8, backs 35.7 at linebacker, tight ends 52.3 at left tackle
+against natives at 72.6, nobody out-rating the best native at any of the four, and nobody
+moved at his own position. The penalty the decision wanted is derived from the ratings
+the player has, as the alternatives section says — it is only that he now has all of
+them, and the ones he never trained are the low ones.
+
+**Snaps by position are a query, but not the one the decision names.** The context says
+`Participation` records the position a player occupied on every snap, so how much he
+played somewhere "is already a query over the event stream". It was not. Decision 97 made
+credits sparse, so `Participation` named only the men who did something — linemen on
+three to five of every five snaps, safeties on 17% of run plays — and a snap count could
+not be asked of the stream. The query that development-follows-snaps reads is the
+on-field record ([#21](https://github.com/knissley/football-manager/issues/21),
+[play-record.md](../play-record.md)): `PlayRecord.onField`, twenty-two roster indices in
+slot order into `GameResult.rosters`, and `snapCounts(rosters:)` over a game's plays.
+Credits stay sparse; presence is its own fact. This paragraph is written against that
+record as pushed on `fix/wave2-b-record`, ahead of its merge.
+
+**Nothing requires a fullback.** The decision says legality "permits one back, five
+linemen and any mix of tight ends and receivers — and no fullback ever", which misstates
+its own point: the rules of the sport do not forbid a fullback, they do not require one.
+Read it as: seven on the line and five ineligible permit a formation with no fullback in
+it, and `SlotLayout.offense(_:)` placing one for the second back was the code's habit,
+never the sport's demand.
+
+**The arbitrage stays gated until the AI can work it.** The consequences section says the
+receiver-at-tight-end arbitrage "is only skill if the AI can do it too", and the open
+question above admits the AI clause is a statement of intent. Until that question is
+answered nobody gets the move: the depth chart is keyed by position, `Lineup.fill`
+matches on it, and a receiver cannot be made the second tight end by a human either. The
+rekeying by role, the legality checker and the AI move question are implemented together
+at [M3.5 of the roadmap](../roadmap.md) — after M3 and before the first depth chart
+screen in M4, with roles defined once alongside the M6 formation vocabulary — so the
+freedom and the AI's use of it land in the same milestone. The open question above is
+scheduled there rather than left open.

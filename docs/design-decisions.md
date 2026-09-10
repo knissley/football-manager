@@ -404,7 +404,7 @@ See [`LeagueShape`](../Packages/FMCore/Sources/FMCore/LeagueShape.swift).
 
 | # | Decision | Implication |
 | --- | --- | --- |
-| 217 | **No rating is ever absent** | Every player carries every `RatingKey`. A rating his position does not train is present and low — drawn in generation from the untrained table in `PlayerGenerator`, by key family and by whether the job sometimes asks for it: a lineman's throwing around 25, a defender's catching around 40, a kicker's punting around 45, with elusiveness, pursuit and hit power following the athlete — and `overall(at:)` weighs it like any other, which is what makes a receiver an honest 36 at quarterback. Absence was a free pass: the weight of a missing key was dropped and the rest renormalised, so a receiver rated a better quarterback than a receiver, and the engine read a man's overall for any rating he lacked. Drawn on a substream of the player's own, so the ratings he does train are untouched. Landed with [#25](https://github.com/knissley/football-manager/issues/25); the premise of [ADR-0013](adr/0013-fluid-positions.md) it corrects is amended by [#35](https://github.com/knissley/football-manager/issues/35). Rejected: a floor of 25 for any absent key at a position that weights it, which keeps absence as a state a reader can meet and moves the question of what a lineman's throw is from the generator into every reader |
+| 217 | **No rating is ever absent** | Every player carries every `RatingKey`. A rating his position does not train is present and low — drawn in generation from the untrained table in `PlayerGenerator`, by key family and by whether the job sometimes asks for it: a lineman's throwing around 25, a defender's catching around 40, a kicker's punting around 45, with elusiveness, pursuit and hit power following the athlete — and `overall(at:)` weighs it like any other, which is what makes a receiver an honest 36 at quarterback. Absence was a free pass: the weight of a missing key was dropped and the rest renormalised, so a receiver rated a better quarterback than a receiver, and the engine read a man's overall for any rating he lacked. Drawn on a substream of the player's own, so the ratings he does train are untouched. Landed with [#25](https://github.com/knissley/football-manager/issues/25); the premise of [ADR-0013](adr/0013-fluid-positions.md) it corrects is amended by [#35](https://github.com/knissley/football-manager/issues/35) ([the amendment](adr/0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found)). Rejected: a floor of 25 for any absent key at a position that weights it, which keeps absence as a state a reader can meet and moves the question of what a lineman's throw is from the generator into every reader |
 
 ## Open questions
 
@@ -416,10 +416,15 @@ Not yet decided. Each needs an answer before the system it touches is built.
   rather than a feature. Searching every player against every position is cheap at roster
   size, but "rates higher there" is not "worth doing": it has to weigh what he leaves
   behind and what the scheme still needs to field. Until this is answered the AI clause is
-  intent rather than a built thing.
+  intent rather than a built thing. Scheduled, not answered: the ADR's
+  [amendment of 2026-09-10](adr/0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found)
+  gates the arbitrage until the AI can work it and puts the rekeying, the legality checker
+  and this question together at [M3.5](roadmap.md).
 - **Whether a development path and the position actually played compound or compete.**
   [ADR-0013](adr/0013-fluid-positions.md) has development follow the snaps a player took
-  *and* an adjustable path the user sets. A receiver playing tight end all season on a
+  — a query over the on-field record since its
+  [amendment](adr/0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found),
+  not over `Participation` — *and* an adjustable path the user sets. A receiver playing tight end all season on a
   route-running path is being pulled two ways, and which wins — or whether they simply
   add — decides how much the path is worth.
 
