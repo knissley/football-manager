@@ -1563,6 +1563,274 @@ struct RulesConformanceTests {
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
     }
 
+    // MARK: The play clock
+
+    /// The play clock a flag play was taken against, as the record carries it.
+    private func playClock(
+        on play: PlayRecord, sourceLocation: SourceLocation = #_sourceLocation
+    ) -> (seconds: UInt8, remaining: UInt8)? {
+        let readings = play.decisions.compactMap(\.playClockReading)
+        guard readings.count == 1, let reading = readings.first else {
+            Issue.record(
+                "play \(play.index) records \(readings.count) play clocks; every snap records one",
+                sourceLocation: sourceLocation)
+            return nil
+        }
+        return reading
+    }
+
+    /// The forty seconds start when the previous play ends
+    /// (4-6-1), and the game clock was running through them; the ball is not put in
+    /// play, so the Back Judge's whistle is the foul (4-6-4), enforced from the
+    /// succeeding spot with the down unchanged (14-4-1). In the third quarter the clock
+    /// then restarts as though the flag had never flown (4-3-2-e).
+    @Test(
+        "football · Rule 4-6-1, 4-6-4, 14-4-1 · a delay of game when the 40-second play clock expires with the ball not snapped: five yards, the down replayed, and the whole play clock gone from a running game clock",
+        .tags(.football)
+    )
+    func delayOfGameWhenThePlayClockExpires() {
+        let trace = RulesScenario.delayOfGameOnARunningClock.run()
+        guard let flag = flag(in: trace, quarter: 3) else { return }
+        let before = flag.play.situation
+        let fullPlayClock = UInt16(Rules.standard.playClock)
+        #expect(
+            flag.play.outcome.penalties.first?.foul == .delayOfGame,
+            "the scenario meant the flag to be a delay of game")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the play clock expired")
+        if let reading = playClock(on: flag.play) {
+            #expect(reading.seconds == 40, "the play clock after a play is forty seconds")
+            #expect(reading.remaining == 0, "and it expired")
+        }
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, down: before.down,
+            distance: before.distance + 5, ballOn: before.ballOn + 5,
+            "five yards from the succeeding spot, and the same down")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - fullPlayClock, clockRunning: true,
+            "the whole play clock ran off the game clock before the whistle, and the clock restarts on the ready"
+        )
+    }
+
+    /// A change of possession is an administrative stoppage, so the offence taking
+    /// over has twenty-five seconds from the whistle (4-6-2-a); the game clock is
+    /// stopped until the snap, so letting it expire costs yards and no time.
+    @Test(
+        "football · Rule 4-6-2-a, 4-6-4 · after a change of possession the play clock is 25 seconds, and letting it expire with the game clock stopped is a delay of game that costs no time",
+        .tags(.football)
+    )
+    func delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock() {
+        let trace = RulesScenario.delayOfGameAfterATurnoverOnDowns.run()
+        guard let flag = flag(in: trace, quarter: 1) else { return }
+        let before = flag.play.situation
+        #expect(
+            flag.play.outcome.penalties.first?.foul == .delayOfGame,
+            "the scenario meant the flag to be a delay of game")
+        #expect(before.down == .first, "the scenario meant the flag on the first snap of a series")
+        #expect(
+            trace.clockRunning(into: flag.index) == false,
+            "the scenario meant the clock stopped after the change of possession")
+        if let reading = playClock(on: flag.play) {
+            #expect(
+                reading.seconds == 25,
+                "the play clock after a change of possession is twenty-five seconds")
+            #expect(reading.remaining == 0, "and it expired")
+        }
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, clock: before.clockRemaining,
+            down: .first, distance: before.distance + 5, ballOn: before.ballOn + 5,
+            clockRunning: false,
+            "five yards, first down still, no time, and the clock still waits for the snap")
+    }
+
+    // MARK: The last forty seconds of a half
+
+    /// The defence cannot use a dead-ball foul to run the clock
+    /// out: with the clock running and the defence out of timeouts, the half ends
+    /// unless the offence would rather play on, and an offence protecting a lead in the
+    /// fourth quarter would not. The flag is the last play of the game.
+    @Test(
+        "football · Rule 4-7-3 · in the last forty seconds a defensive foul that conserves time ends the half when the defence has no timeouts left and the offence, leading, elects to end it",
+        .tags(.football)
+    )
+    func defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection() {
+        let trace = RulesScenario.neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading
+            .run()
+        guard let flag = flag(in: trace, quarter: 4) else { return }
+        let before = flag.play.situation
+        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
+        #expect(before.scoreDifferential == 7, "the scenario meant the offence to lead")
+        #expect(before.defenseTimeouts == 0, "the scenario meant the defence to be out of timeouts")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        #expect(
+            flag.play.decisions.contains { $0.clockElectionValue == .halfEnded },
+            "the record says the offence elected to end the half")
+        trace.expectLastPlay(flag.index, "the half is the game's last, so the flag ends the game")
+        trace.expectWinner(before.possession)
+    }
+
+    /// The other side of the election: level, the offence with the ball wants the
+    /// thirty seconds, so it plays on, and after the defence's foul inside two minutes
+    /// it has the clock wait for the snap (4-7-1 Item 2).
+    @Test(
+        "football · Rule 4-7-3, 4-7-1 Item 2 · in the last forty seconds a defensive foul that conserves time does not end the half when the offence, level, would rather play on, and the clock then waits for the snap",
+        .tags(.football)
+    )
+    func defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn() {
+        let trace = RulesScenario.neutralZoneInfractionInTheLastFortySecondsLevel.run()
+        guard let flag = flag(in: trace, quarter: 4) else { return }
+        let before = flag.play.situation
+        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
+        #expect(before.scoreDifferential == 0, "the scenario meant the game level")
+        #expect(before.defenseTimeouts == 0, "the scenario meant the defence to be out of timeouts")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        #expect(
+            flag.play.decisions.contains { $0.clockElectionValue == .playedOn },
+            "the record says the offence elected to play on")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, quarter: 4, clock: 30,
+            ballOn: before.ballOn - 5, clockRunning: false,
+            "five yards against the defence, the half goes on, and the clock waits for the snap")
+    }
+
+    /// The article's own exception: while the defence has a timeout left the half does
+    /// not end on its foul. Nothing is elected; the leading offence lets the clock
+    /// start on the ready as it would after any defensive foul inside two minutes.
+    @Test(
+        "football · Rule 4-7-3 · in the last forty seconds a defensive foul that conserves time does not end the half while the defence has a timeout left",
+        .tags(.football)
+    )
+    func defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft() {
+        let trace = RulesScenario
+            .neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft.run()
+        guard let flag = flag(in: trace, quarter: 4) else { return }
+        let before = flag.play.situation
+        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
+        #expect(before.scoreDifferential == 7, "the scenario meant the offence to lead")
+        #expect(before.defenseTimeouts > 0, "the scenario meant the defence to have a timeout")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        #expect(
+            !flag.play.decisions.contains { $0.clockElectionValue == .halfEnded },
+            "nothing to elect: the defence has a timeout, so the half cannot end on its foul")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, quarter: 4, clock: 30,
+            ballOn: before.ballOn - 5, clockRunning: true,
+            "five yards against the defence, the half goes on, and the clock starts on the ready")
+    }
+
+    // MARK: An injury after the two-minute warning
+
+    /// The play somebody was hurt on, with the clock as it read when that play ended.
+    private func injury(
+        in trace: Trace
+    ) -> (index: Int, play: PlayRecord, clockAfter: UInt16)? {
+        guard let hurt = trace.result.injuries.first,
+            let play = trace[Int(hurt.occurredOn.index)]
+        else {
+            Issue.record("the scenario never hurt anybody")
+            return nil
+        }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's tempo")
+            return nil
+        }
+        let index = Int(hurt.occurredOn.index)
+        let running = trace.clockRunning(into: index) == true
+        let after =
+            Int(play.situation.clockRemaining) - (running ? Int(huddle) : 0)
+            - Int(play.outcome.clockRunoff)
+        #expect(
+            play.situation.quarter == 4 && play.situation.clockRemaining < 120,
+            "the scenario meant the injury after the two-minute warning")
+        #expect(
+            after == 60 && play.outcome.endedIn == .tackled,
+            "the scenario meant the play to end at 1:00 with the clock running, not \(after)")
+        return (index, play, UInt16(max(0, after)))
+    }
+
+    /// After the two-minute warning the injured player's team is
+    /// charged a team timeout if it has one (4-5-4-a), and a charged timeout has the
+    /// clock start on the snap (4-4-j, 4-3-2). The record says which it was.
+    @Test(
+        "football · Rule 4-5-4-a, 4-3-2 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap",
+        .tags(.football)
+    )
+    func injuryTimeoutAfterTheWarningIsCharged() {
+        let trace = RulesScenario.injuryInsideTwoMinutesWithATimeoutLeft.run()
+        guard let hurt = injury(in: trace) else { return }
+        let before = hurt.play.situation
+        #expect(before.offenseTimeouts > 0, "the scenario meant the offence to have a timeout")
+        #expect(
+            hurt.play.decisions.contains { $0.clockElectionValue == .injuryTimeoutCharged },
+            "the record says the injury timeout was charged")
+        trace.expectPlay(
+            hurt.index + 1, possession: before.possession, quarter: 4, clock: hurt.clockAfter,
+            clockRunning: false,
+            "no time comes off, and the clock waits for the snap")
+        #expect(
+            trace[hurt.index + 1]?.situation.offenseTimeouts == before.offenseTimeouts - 1,
+            "the timeout was charged")
+    }
+
+    /// With no timeouts left the Referee calls an excess timeout (4-5-4-b), and since
+    /// it is against the team in possession and stopped a running clock, the defence
+    /// may have ten seconds run off before the ball is put in play, with the clock
+    /// starting on the ready (4-5-4 Note 3). A level defence wants the clock to run.
+    @Test(
+        "football · Rule 4-5-4-b, 4-5-4 Note 3 · after the two-minute warning an injury to a player of the team in possession, with no timeouts left, is an excess timeout: the defence has ten seconds run off, and the clock starts on the ready",
+        .tags(.football)
+    )
+    func excessInjuryTimeoutAfterTheWarningCarriesTheRunoff() {
+        let trace = RulesScenario.injuryInsideTwoMinutesWithNoTimeoutsLeft.run()
+        guard let hurt = injury(in: trace) else { return }
+        let before = hurt.play.situation
+        #expect(before.offenseTimeouts == 0, "the scenario meant the offence to be out of timeouts")
+        #expect(before.scoreDifferential == 0, "the scenario meant the game level")
+        #expect(
+            hurt.play.decisions.contains { $0.clockElectionValue == .injuryRunoff },
+            "the record says the defence took the runoff")
+        trace.expectPlay(
+            hurt.index + 1, possession: before.possession, quarter: 4,
+            clock: hurt.clockAfter - 10, clockRunning: true,
+            "ten seconds come off before the ball is put in play, and the clock starts on the ready"
+        )
+        #expect(
+            trace[hurt.index + 1]?.situation.offenseTimeouts == 0,
+            "there was no timeout to charge")
+    }
+
+    /// The runoff is the defence's to decline. A trailing defence wants the clock
+    /// stopped, so it declines the ten seconds and, as the opponent of the team charged
+    /// with the excess timeout, has the clock start on the snap (4-5-4 Note 1).
+    @Test(
+        "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap",
+        .tags(.football)
+    )
+    func injuryRunoffDeclinedByATrailingDefense() {
+        let trace = RulesScenario.injuryInsideTwoMinutesAgainstATrailingDefense.run()
+        guard let hurt = injury(in: trace) else { return }
+        let before = hurt.play.situation
+        #expect(before.offenseTimeouts == 0, "the scenario meant the offence to be out of timeouts")
+        #expect(before.scoreDifferential == 7, "the scenario meant the defence to trail")
+        #expect(
+            hurt.play.decisions.contains { $0.clockElectionValue == .injuryRunoffDeclined },
+            "the record says the defence declined the runoff")
+        trace.expectPlay(
+            hurt.index + 1, possession: before.possession, quarter: 4, clock: hurt.clockAfter,
+            clockRunning: false,
+            "no ten seconds, and the clock waits for the snap")
+    }
+
     // MARK: Tries and kicks
 
     /// Filed as A7 (#19): a flag before the try moves the try, and it is still a try.

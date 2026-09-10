@@ -358,6 +358,10 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
 struct ScenarioResolver: PlayResolver {
 
     let script: @Sendable (Snap) -> Outcome
+    /// Which side, if either, has a player hurt on the snap — the scenario's say, read
+    /// off the snap and the outcome the script gave it, and kept in the log so that the
+    /// game's injury draw can hand the rules layer a real player of that side.
+    let injury: @Sendable (Snap, Outcome) -> Side?
     let log: Log
 
     /// The sim resolves plays one at a time, in order, so the entry count is the play
@@ -369,6 +373,7 @@ struct ScenarioResolver: PlayResolver {
             let clockIsRunning: Bool
             let situation: Situation
             let outcome: Outcome
+            let injured: Side?
         }
 
         private struct State {
@@ -390,6 +395,13 @@ struct ScenarioResolver: PlayResolver {
         }
 
         fileprivate func count() -> Int { state.withLock { $0.entries.count } }
+
+        /// The side the scenario had a player hurt on at play `index`, if any.
+        fileprivate func injured(at index: Int) -> Side? {
+            state.withLock {
+                $0.entries.indices.contains(index) ? $0.entries[index].injured : nil
+            }
+        }
 
         fileprivate func append(_ entry: Entry) {
             state.withLock { state in
@@ -415,8 +427,22 @@ struct ScenarioResolver: PlayResolver {
             clockIsRunning: context.clockIsRunning, previous: log.previous(), huddle: log.huddle)
         let outcome = script(snap)
         log.append(
-            .init(clockIsRunning: context.clockIsRunning, situation: situation, outcome: outcome))
+            .init(
+                clockIsRunning: context.clockIsRunning, situation: situation, outcome: outcome,
+                injured: injury(snap, outcome)))
         return (outcome, [])
+    }
+
+    /// The injury the scenario dictated on `play`, if any, as the game's injury draw:
+    /// the first man of that side's rotation, hurt on the play and back for the next
+    /// one — the stoppage is the point, not the absence.
+    func scriptedInjury(
+        on play: PlayRecord, context: PlayContext
+    ) -> InjuryEvent? {
+        guard let side = log.injured(at: Int(play.index)) else { return nil }
+        let rotation = side == .offense ? context.offenseRotation : context.defenseRotation
+        guard let hurt = rotation.first?.player else { return nil }
+        return InjuryEvent(player: hurt, occurredOn: play.id, cause: .contact, gamesOut: 0)
     }
 }
 
@@ -429,6 +455,10 @@ public struct ScriptedGame {
     public var rules: Rules
     public var isPostseason: Bool
     public var caller: ScriptedCaller
+    /// Which side, if either, has a player hurt on a snap, given the snap and what the
+    /// script made of it. Nobody, unless the scenario says so: a scripted outcome
+    /// credits no participants, so the game's own injury draw never fires.
+    public var injury: @Sendable (Snap, Outcome) -> Side?
     public var play: @Sendable (Snap) -> Outcome
 
     public init(
@@ -436,12 +466,14 @@ public struct ScriptedGame {
         rules: Rules = .standard,
         isPostseason: Bool = false,
         caller: ScriptedCaller = ScriptedCaller(),
+        injury: @escaping @Sendable (Snap, Outcome) -> Side? = { _, _ in nil },
         play: @escaping @Sendable (Snap) -> Outcome
     ) {
         self.seed = seed
         self.rules = rules
         self.isPostseason = isPostseason
         self.caller = caller
+        self.injury = injury
         self.play = play
     }
 
@@ -454,8 +486,10 @@ public struct ScriptedGame {
     public func run(with caller: some FMSimulation.PlayCaller) -> Trace {
         let setup = ScenarioWorld.setup(seed: seed, rules: rules, isPostseason: isPostseason)
         let log = ScenarioResolver.Log()
+        let resolver = ScenarioResolver(script: play, injury: injury, log: log)
         let result = GameSimulator(
-            resolver: ScenarioResolver(script: play, log: log), caller: caller
+            resolver: resolver, caller: caller,
+            injuries: { play, context, _ in resolver.scriptedInjury(on: play, context: context) }
         )
         .simulate(setup)
         return Trace(

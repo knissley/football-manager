@@ -143,7 +143,13 @@ extension Rules {
 /// two-minute drill and a four-minute one.
 extension Tempo {
 
-    /// Seconds burned between the ball being ready and the next snap.
+    /// The play clock the intervals below are written against: the ordinary forty of
+    /// 4-6-1, counted from the end of the previous play. Against a shorter clock the
+    /// offence keeps the same slack, scaled — see `PlayClock.remainingAtIntendedSnap`.
+    public static let referencePlayClock: UInt16 = 40
+
+    /// Seconds from the end of the previous play to the next snap, on the reference
+    /// play clock.
     public var secondsBetweenSnaps: UInt16 {
         switch self {
         case .hurryUp: return 8
@@ -152,6 +158,56 @@ extension Tempo {
         case .slow: return 36
         case .bleedClock: return 39
         }
+    }
+
+    /// What the reference play clock reads when the offence means to snap: the slack
+    /// it leaves itself, from most of the clock at hurry-up to a single second bleeding
+    /// it.
+    public var slack: UInt16 { Self.referencePlayClock - secondsBetweenSnaps }
+}
+
+/// The play clock in force before a snap (2025 rulebook, 4-6).
+///
+/// Two lengths, and two places to count from. The forty seconds after an ordinary play
+/// start when that play ends (4-6-1); the twenty-five after an administrative stoppage
+/// start on the Referee's whistle (4-6-2), and so does every reset — to thirty after a
+/// runoff (4-7-1 Item 1, 4-6-3-c), and back to forty after a defensive act that
+/// conserves time (4-7-1 Item 2, 4-6-3-b). `Rules` says which follows what; this is the
+/// arithmetic of counting one down.
+public struct PlayClock: Sendable, Hashable, Codable {
+
+    /// Seconds on the clock when it starts.
+    public var seconds: UInt8
+    /// Whether it starts on the ready-for-play signal rather than when the previous
+    /// play ended.
+    public var startsOnTheReady: Bool
+
+    public init(seconds: UInt8, startsOnTheReady: Bool) {
+        self.seconds = seconds
+        self.startsOnTheReady = startsOnTheReady
+    }
+
+    /// Seconds after the end of the previous play at which this clock expires. A clock
+    /// that starts on the ready starts `GameClock.readyForPlayDelay` seconds later than
+    /// one that starts when the play ends.
+    public var expiresAfter: UInt16 {
+        UInt16(seconds) + (startsOnTheReady ? GameClock.readyForPlayDelay : 0)
+    }
+
+    /// What this clock reads when an offence playing at `tempo` means to snap: the
+    /// tempo's slack on the reference clock, scaled to this one, and never less than a
+    /// second — so a team bleeding the clock snaps with one second left on a
+    /// twenty-five as on a forty, and a hurry-up offence is on the ball either way.
+    public func remainingAtIntendedSnap(at tempo: Tempo) -> UInt8 {
+        let reference = Int(Tempo.referencePlayClock)
+        let scaled = (Int(tempo.slack) * Int(seconds) + reference / 2) / reference
+        return UInt8(max(1, min(Int(seconds), scaled)))
+    }
+
+    /// Seconds after the end of the previous play at which an offence playing at
+    /// `tempo` means to snap. On the reference clock this is the tempo's own interval.
+    public func intendedSnap(at tempo: Tempo) -> UInt16 {
+        expiresAfter - UInt16(remainingAtIntendedSnap(at: tempo))
     }
 }
 
@@ -174,6 +230,14 @@ public struct GameClock: Sendable, Hashable, Codable {
         GameClock(quarter: 1, secondsRemaining: rules.quarterLength)
     }
 
+    /// Seconds between a play ending and the officials marking the ball ready for play.
+    ///
+    /// A modelling convention, not a rule: the interval between snaps is measured from
+    /// the end of the previous play, and a game clock that restarts on the ready signal
+    /// restarts this much later than one that never stopped. It is also where a play
+    /// clock that starts on the whistle (4-6-2) starts.
+    public static let readyForPlayDelay: UInt16 = 6
+
     public var isExpired: Bool { secondsRemaining == 0 }
 }
 
@@ -194,7 +258,8 @@ extension GameClock {
         }
     }
 
-    /// Time consumed getting to and through the next snap.
+    /// Time consumed getting to and through the next snap, the snap coming `snapAfter`
+    /// seconds after the previous play ended.
     ///
     /// The pre-snap interval only costs the clock when the clock was running into it.
     /// A team down four with sixty seconds left and no timeouts lives entirely on this
@@ -202,21 +267,35 @@ extension GameClock {
     /// bounds it is not.
     public static func elapsed(
         playDuration: UInt16,
-        tempo: Tempo,
+        snapAfter: UInt16,
         previousBehavior: ClockBehavior
     ) -> Elapsed {
         switch previousBehavior {
         case .stopsUntilSnap:
             return Elapsed(duringPlay: playDuration, beforeSnap: 0)
         case .stopsUntilReadyForPlay:
-            // The officials' spot buys a few seconds back; the rest of the play clock
+            // The officials' spot buys a few seconds back; the rest of the interval
             // still runs.
-            let saved: UInt16 = 6
-            let burned = tempo.secondsBetweenSnaps > saved ? tempo.secondsBetweenSnaps - saved : 0
-            return Elapsed(duringPlay: playDuration, beforeSnap: burned)
+            let saved = readyForPlayDelay
+            return Elapsed(
+                duringPlay: playDuration, beforeSnap: snapAfter > saved ? snapAfter - saved : 0)
         case .keepsRunning:
-            return Elapsed(duringPlay: playDuration, beforeSnap: tempo.secondsBetweenSnaps)
+            return Elapsed(duringPlay: playDuration, beforeSnap: snapAfter)
         }
+    }
+
+    /// The same, for an offence at `tempo` against the play clock in force: the snap
+    /// comes when the tempo means it to, which on the reference clock is
+    /// `tempo.secondsBetweenSnaps`.
+    public static func elapsed(
+        playDuration: UInt16,
+        tempo: Tempo,
+        playClock: PlayClock,
+        previousBehavior: ClockBehavior
+    ) -> Elapsed {
+        elapsed(
+            playDuration: playDuration, snapAfter: playClock.intendedSnap(at: tempo),
+            previousBehavior: previousBehavior)
     }
 
     /// Run the clock through one snap: the interval before it, then the play.

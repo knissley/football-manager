@@ -79,6 +79,21 @@ public protocol PlayCaller: Sendable {
     )
         -> Bool
 
+    /// In the last forty seconds of a half, after a defensive act that conserves time
+    /// with the clock running and the defence out of timeouts, whether the offence ends
+    /// the half rather than play on (2025 rulebook, 4-7-3). Playing on, its choice of a
+    /// snap or a ready-for-play start is `startsClockOnTheSnap(afterDefensiveFoul:)`.
+    func endsTheHalf(
+        afterDefensiveTimeConservation situation: Situation, classified: SituationClass
+    )
+        -> Bool
+
+    /// Whether the defence has ten seconds run off for an excess injury timeout charged
+    /// to the team in possession after the two-minute warning (4-5-4 Note 3). A defence
+    /// that declines wants the clock stopped, and has it wait for the snap (4-5-4
+    /// Note 1).
+    func takesRunoff(forInjuryTimeout situation: Situation, classified: SituationClass) -> Bool
+
     /// Who the offence sends out, which it declares by substituting before the snap.
     ///
     /// This is the first half of the sport's oldest chess match: personnel is public
@@ -242,6 +257,22 @@ extension PlayCaller {
         afterDefensiveFoul situation: Situation, classified: SituationClass
     ) -> Bool {
         situation.scoreDifferential <= 0
+    }
+
+    /// End the half when leading, where nothing that can happen in thirty seconds is
+    /// good news; level or trailing, the offence has the ball and wants the time.
+    public func endsTheHalf(
+        afterDefensiveTimeConservation situation: Situation, classified: SituationClass
+    ) -> Bool {
+        situation.scoreDifferential > 0
+    }
+
+    /// The same judgement as declining the runoff for the offence's foul, and for the
+    /// same reason: a trailing defence wants the clock stopped, not run.
+    public func takesRunoff(
+        forInjuryTimeout situation: Situation, classified: SituationClass
+    ) -> Bool {
+        !declinesRunoff(situation: situation, classified: classified)
     }
 }
 

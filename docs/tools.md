@@ -372,6 +372,26 @@ swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-o
 # second has the first half's. The period label counts them — OT, 2OT, 3OT.
 swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-a-second-postseason-overtime-period | tail -30
 
+# A12 (#76): the play clock. A forty-second clock expires with the ball not snapped in
+# the third quarter — five yards, the same down, and the whole forty gone from a running
+# game clock; the line says which clock it was.
+swift run gamelog --scenario delay-of-game-on-a-running-clock | grep -B2 -A3 "play clock expired"
+
+# The same foul on the first snap after a turnover on downs, against the twenty-five.
+swift run gamelog --scenario delay-of-game-after-a-turnover-on-downs | grep -B2 -A3 "play clock expired"
+
+# The last forty seconds (4-7-3): the defence jumps at 0:30 with no timeouts left, and the
+# leading offence ends the game on the flag. The clock line under the flag is the election.
+swift run gamelog --scenario neutral-zone-infraction-in-the-last-forty-seconds-with-the-offense-leading | tail -8
+
+# An injury after the two-minute warning (4-5-4): with no timeouts left it is an excess
+# timeout, the defence takes ten seconds off, and the next snap is ten seconds later than
+# the play ended.
+swift run gamelog --scenario injury-inside-two-minutes-with-no-timeouts-left | grep -B3 -A2 "excess injury"
+
+# The same injury with a timeout in hand: charged, and the clock waits for the snap.
+swift run gamelog --scenario injury-inside-two-minutes-with-a-timeout-left | grep -B3 -A2 "injury timeout"
+
 # A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
 # play snapped outside 5:00 of the fourth quarter carries him out inside it, and the
 # next snap comes with the clock stopped rather than a huddle later.

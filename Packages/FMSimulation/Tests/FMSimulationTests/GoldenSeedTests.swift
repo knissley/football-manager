@@ -104,9 +104,20 @@ struct GoldenSeedTests {
             // ceiling along, so every rating on both rosters moved — an older league is a
             // slightly better one — and a game between two rosters of different players is
             // a different game.
-            (UInt64(1), UInt64(3_162_683_895_152_383_395)),
-            (UInt64(5), UInt64(10_979_753_660_678_002_318)),
-            (UInt64(12), UInt64(2_862_180_237_269_468_990)),
+            //
+            // And moved by the play clock, this time by the engine. Every play now records
+            // the play clock it was snapped against (2025 rulebook, 4-6) as a decision
+            // point, and the checksum mixes every decision point, so every checksum moves
+            // for that reason alone. The football moved less: a delay of game is now the
+            // play clock expiring — drawn against the slack the tempo leaves on the clock
+            // in force rather than at a flat rate — so a snap on the twenty-five after a
+            // change of possession is a little likelier to be one, a flag that flies costs
+            // the whole play clock rather than the huddle, and a huddle after a runoff or a
+            // penalty enforcement is charged against the thirty or the twenty-five it was
+            // really taken against.
+            (UInt64(1), UInt64(10_997_765_792_780_390_008)),
+            (UInt64(5), UInt64(6_618_904_821_654_125_080)),
+            (UInt64(12), UInt64(502_004_049_860_331_307)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
