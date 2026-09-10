@@ -42,8 +42,15 @@ public enum PlayerGenerator {
 
         let progress: Double
         if ageValue <= entry {
-            // Still short of the league even relative to a rookie.
-            progress = max(0, 1 - (entry - ageValue) * 0.25) * 0.0
+            // A player at or below entry age has had no professional development at all,
+            // so he sits a full rookie gap below his ceiling. Being a year young is not a
+            // reason to be further behind than a rookie: the gap is what separates
+            // arriving from arrived, and there is nothing below arriving.
+            //
+            // This branch used to compute a taper — `max(0, 1 - (entry - age) * 0.25)` —
+            // and then multiply it by zero, so it read as though a nineteen-year-old were
+            // handled differently from a twenty-two-year-old and was not.
+            progress = 0
         } else if ageValue >= peak {
             progress = 1
         } else {
@@ -158,6 +165,7 @@ public enum PlayerGenerator {
         season: Int,
         colleges: [College],
         draft: DraftInfo? = nil,
+        board: DraftHistory.Board? = nil,
         scheme: TeamScheme? = nil,
         using random: inout SplittableRandom
     ) -> Player {
@@ -199,12 +207,29 @@ public enum PlayerGenerator {
             ? NameGenerator.college(using: &random)
             : colleges[Int(random.next(upperBound: UInt64(colleges.count)))]
 
+        // How he arrived. Drawn from his own substream inside `DraftHistory` rather than
+        // from the stream above, so giving a world a past leaves every rating in it
+        // exactly where it was.
+        let arrival: (draft: DraftInfo?, firstSeason: Int)
+        if let draft {
+            arrival = (draft, draft.season)
+        } else if let board {
+            arrival = DraftHistory.record(
+                for: id, ceiling: ceiling, age: age, season: season, board: board,
+                from: random)
+        } else {
+            // Nobody drafted him and no board says otherwise, so he is arriving now: a
+            // prospect in a class that has not been picked from, or a fixture in a test.
+            arrival = (nil, season)
+        }
+
         return Player(
             id: id,
             name: NameGenerator.personName(using: &random),
             birthSeason: season - age,
             college: college,
-            draft: draft,
+            draft: arrival.draft,
+            firstSeason: arrival.firstSeason,
             position: position,
             physical: PhysicalProfile(
                 heightInches: height,

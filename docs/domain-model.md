@@ -82,10 +82,18 @@ and are what generation fills.
 
 Split into stable identity, physical profile, ratings, and mutable state.
 
-**Identity** — name, birth season, college, and draft season/round/pick/overall for a
-drafted player. Immutable after generation. *Designed, not built:* years of experience
-and handedness are not on the type; experience is derivable from the draft season once
-there is a season.
+**Identity** — name, birth season, college, the season he first counted against a roster,
+and draft season/round/pick/overall for a drafted player. Immutable after generation.
+A drafted player's first season *is* his draft season and the type does not let the two
+disagree; an undrafted player carries his own, which is what stops accrued seasons being
+guessed from a birthday. `experience(in:)` counts from it and `isRookie(in:)` asks whether
+it is this season — true of an undrafted rookie as well as a drafted one.
+*Designed, not built:* handedness is not on the type.
+
+Generation gives the league you inherit a past: roughly three quarters of every roster was
+drafted, the round coming off the player's ceiling against a league-wide band, and the rest
+arrived undrafted (`FMGeneration.DraftHistory`). It is history, not a draft — nothing picks
+anybody, and the draft you run is a decision in `FMSimulation`.
 
 **Physical** — height, weight, and the athletic testing numbers a scout would see:
 40-yard dash, vertical, broad jump, three-cone, bench. Generated correlated with

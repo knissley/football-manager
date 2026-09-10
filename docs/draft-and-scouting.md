@@ -1,6 +1,11 @@
 # The draft and scouting
 
-**Status: partly built, sections marked.** Class generation is built and inspectable —
+**Status: partly built, sections marked.** The league you inherit already has a draft
+history: about three quarters of every generated roster was drafted, the round coming off
+the player's ceiling against a league-wide band and the pick within it off the seed, and
+the rest arrived undrafted with the season they signed (`FMGeneration.DraftHistory`,
+`worldgen --show roster`). That is *history* — nothing picks anybody, and it shares
+nothing with the draft below but `DraftInfo`. Class generation is built and inspectable —
 `DraftClassGenerator` produces a three-year pipeline with hidden ceilings, production
 carrying independent error, red flags, early declarations and mean-reverting class
 strength, and `worldgen --show class` prints it. Everything about *scouting* — biased

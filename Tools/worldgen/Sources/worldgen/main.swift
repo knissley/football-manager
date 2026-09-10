@@ -110,6 +110,13 @@ func fortyString(_ hundredths: UInt16) -> String {
     return "\(whole).\(fraction < 10 ? "0" : "")\(fraction)"
 }
 
+/// Where a player came from, the way a roster page writes it: round, pick and the season
+/// he was drafted, or the season an undrafted player signed.
+func draftString(_ player: Player) -> String {
+    guard let draft = player.draft else { return "UDFA \(player.firstSeason)" }
+    return "R\(draft.round)-\(draft.pick) \(draft.season)"
+}
+
 func trait(_ value: DevelopmentTrait) -> String {
     switch value {
     case .slow: return "slow"
@@ -217,7 +224,7 @@ func printPlayers(_ players: [Player], title: String, season: Int) {
     print(
         pad("NAME", 24) + pad("POS", 6) + padLeft("AGE", 4) + "  "
             + pad("HT/WT", 10) + pad("40", 6) + padLeft("OVR", 4)
-            + padLeft("CEIL", 6) + "  " + pad("DEV", 8) + "COLLEGE")
+            + padLeft("CEIL", 6) + "  " + pad("DEV", 8) + pad("DRAFT", 12) + "COLLEGE")
     for player in players {
         print(
             pad(player.name.full, 24)
@@ -228,6 +235,7 @@ func printPlayers(_ players: [Player], title: String, season: Int) {
                 + padLeft("\(player.overall)", 4)
                 + padLeft("\(player.hidden.ceiling)", 6) + "  "
                 + pad(trait(player.hidden.developmentTrait), 8)
+                + pad(draftString(player), 12)
                 + player.college.name)
     }
 }
@@ -248,6 +256,11 @@ case "roster":
     print("")
     print("  strength offset \(signedOneDecimal(world.strength(of: team.id).offset))")
     print("  mean overall \(oneDecimal(mean(roster.map { Int($0.overall) })))")
+    // The target for the first is about three quarters of the league, league-wide rather
+    // than team by team, so a good roster is meant to read above it and a poor one below.
+    // The second has no target beyond being a minority: see DraftHistory.
+    print("  drafted \(roster.filter { $0.draft != nil }.count) of \(roster.count)")
+    print("  in their first season \(roster.filter { $0.isRookie(in: season) }.count)")
 
 case "starters":
     guard let team = world.team(at: teamIndex) else {

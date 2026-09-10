@@ -244,8 +244,12 @@ public enum WorldGenerator {
             let builtFor = SchemeIdentity.builtFor(playing: team.scheme, using: &teamRandom)
             identities[team.id] = SchemeIdentity.Identity(played: team.scheme, builtFor: builtFor)
 
+            // The board a roster's draft history is written against is this world's own
+            // draft: as deep as its classes and as wide as its league.
             let roster = RosterGenerator.roster(
                 strength: strength, builtFor: builtFor, season: season, colleges: colleges,
+                board: DraftHistory.Board(
+                    rounds: draftShape.rounds, picksPerRound: teams.count),
                 ids: &playerIDs, using: &teamRandom)
             rosters[team.id] = roster
             charts[team.id] = RosterGenerator.depthChart(from: roster)

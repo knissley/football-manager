@@ -95,6 +95,7 @@ struct SpecialTeamsTests {
             id: PlayerID(id), name: PersonName(given: "Test", family: "Player"),
             birthSeason: 2004,
             college: College(name: "Fallback State", profile: .midMajor), draft: nil,
+            firstSeason: 2026,
             position: position, secondaryPositions: [],
             physical: PhysicalProfile(
                 heightInches: 71, weightPounds: 215, fortyYardDash: 452, verticalJump: 350,
