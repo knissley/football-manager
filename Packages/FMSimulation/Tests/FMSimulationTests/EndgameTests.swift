@@ -87,6 +87,33 @@ struct EndgameTests {
             ) != .kneel)
     }
 
+    /// A half is worth ending too, and the old guard would not let the caller do it: it
+    /// asked for the endgame, which is the last five minutes of the fourth period and
+    /// nothing before the break. Up a score with the ball and half a minute to go, the
+    /// snap can only lose it; backed up on your own goal line it can lose it worse.
+    @Test("A team kneels out the first half when a snap can only cost it", .tags(.unit))
+    func kneelsOutTheFirstHalf() {
+        #expect(
+            family(situation(quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0))
+                == .kneel,
+            "up seven with thirty seconds to the break")
+        #expect(
+            family(
+                situation(
+                    ballOn: 96, quarter: 2, clock: 30, differential: -7, defenseTimeouts: 0)
+            ) == .kneel,
+            "own four, thirty seconds to the break: a snap here loses more than the half")
+
+        // With the half still there to be used, nobody kneels it away.
+        #expect(
+            family(situation(quarter: 2, clock: 110, differential: 7, defenseTimeouts: 3))
+                != .kneel)
+        // Level in the middle of the field, the half is worth playing out.
+        #expect(
+            family(situation(quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0))
+                != .kneel)
+    }
+
     // MARK: - Spiking
 
     /// Costs a down and a second. Worth it only when the clock is running and there is
@@ -149,6 +176,23 @@ struct EndgameTests {
         #expect(
             callsTimeout(situation(clock: 150, differential: -6), isOffense: false) == false,
             "a defence that is ahead wants the clock to run")
+    }
+
+    /// Three scores down with two minutes left, the ball is not coming back to any
+    /// purpose, and burning all three timeouts to shorten the loss is not football. The
+    /// timeout is spent to get the ball back in a game that is still there to win.
+    @Test("A defence more than two scores behind keeps its timeouts", .tags(.unit))
+    func defenceOutOfReachKeepsItsTimeouts() {
+        // `scoreDifferential` is the offence's, so a positive number means the team
+        // without the ball is the one behind.
+        #expect(callsTimeout(situation(clock: 150, differential: 8), isOffense: false))
+        #expect(
+            callsTimeout(situation(clock: 150, differential: 16), isOffense: false),
+            "two scores down is still a game")
+        #expect(
+            callsTimeout(situation(clock: 150, differential: 17), isOffense: false) == false,
+            "three scores down with two and a half minutes left")
+        #expect(callsTimeout(situation(clock: 150, differential: 30), isOffense: false) == false)
     }
 
     @Test("Nobody calls a timeout on a stopped clock or in the first quarter", .tags(.unit))
