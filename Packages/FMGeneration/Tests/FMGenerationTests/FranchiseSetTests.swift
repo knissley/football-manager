@@ -257,6 +257,36 @@ struct FranchiseSetTests {
         #expect(Set(built.teams.map(\.identity.city)) == Set(north).union(south))
     }
 
+    /// The league's own name is part of the same curated identity as the clubs in it
+    /// ([decision 215](../../../../docs/design-decisions.md)): two careers open in the
+    /// same league, not merely in the same buildings. It was a per-seed draw from
+    /// `StructurePools.leagueNames` until
+    /// [#82](https://github.com/knissley/football-manager/issues/82), so two careers in
+    /// identically named clubs ran under differently named leagues.
+    ///
+    /// Twelve seeds rather than two, because the pool holds a handful of names and two
+    /// seeds landing on one of them proves nothing — seeds 7 and 11 both drew "Premier
+    /// Gridiron League" before this was fixed. The second assertion is what says the
+    /// name is written rather than drawn: nothing the curated source produces may be a
+    /// line of the pool.
+    ///
+    /// The randomiser keeps its draw, asserted in `LeagueGeneratorTests`.
+    @Test("contract: every seed opens in the same curated league, by name", .tags(.contract))
+    func theLeagueIsNamedByTheTable() throws {
+        var names: Set<String> = []
+        for seed in UInt64(1)...12 {
+            names.insert(try #require(league(seed: seed)).league.name)
+        }
+
+        #expect(
+            names.count == 1, "the curated league's name moved with the seed: \(names.sorted())")
+        for name in names {
+            #expect(
+                StructurePools.leagueNames.contains(name) == false,
+                "\(name) is a pool draw, not a name the curated table wrote down")
+        }
+    }
+
     // MARK: - The randomiser, still behind its option
 
     /// The last resort still has to work. Everything [#4](https://github.com/knissley/football-manager/issues/4)
