@@ -40,7 +40,8 @@ Which rules must be true of a game, and what checks each, is
   the periods Rule 16 times as them — regular-season overtime (16-1-3-e) and a second or
   fourth postseason overtime period (16-1-4-h). — `test:warningBetweenDowns`,
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
-  `test:warningInPostseasonOvertime`
+  `test:warningInPostseasonOvertime`; that it was taken is on the record of the first snap
+  after it — `test:warningIsOnTheRecord`
 
 ## Rule 4 — Game timing
 
@@ -96,7 +97,8 @@ Which rules must be true of a game, and what checks each, is
 - Not in the list, and the omission is the rule: **gaining a first down does not stop the
   clock**. — `test:firstDownDoesNotStop`
 - **4-5-1** — Three charged timeouts per team per half; they do not carry over. —
-  `test:timeoutsStayLegal`
+  `test:timeoutsStayLegal`; every one charged is on the record of the snap it preceded,
+  with the side that took it — `test:timeoutsAreOnTheRecord`
 - **4-5-3**, **4-5-4-a**, **4-5-4-b**, **4-5-4 Note 1** — Before the two-minute warning an
   injury timeout leaves the clock as it would have been. After it, the injured player's
   team is charged a team timeout if it has one, and the clock then starts on the snap as
@@ -274,6 +276,11 @@ below are what it is held to.
 - **8-6-1-d** — A personal foul by the defence before a completion is enforced from the
   dead-ball spot or the previous spot, whichever favours the offence; if the play scores,
   on the try. — `test:roughingOnACompletion`
+- **8-7-3 Item 1** — Any player of either team may recover a fumble and advance it, except
+  on fourth down, after the two-minute warning, or during a try. —
+  `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown` for the kicking team carrying in
+  a fumbled kickoff; **modelling**: the crude resolver never fumbles a kick, and the
+  fourth-down, two-minute and try exceptions are not modelled
 
 ## Rule 10 — Opportunity to catch a kick
 
@@ -287,6 +294,10 @@ below are what it is held to.
 ## Rule 11 — Scoring
 
 - **11-1-2-a** — A touchdown is six. — `test:touchdown`
+- **11-2-1** — A touchdown is scored when a runner carries the ball on, above or behind the
+  plane of the opponents' goal line, whichever side he is on: the kicking team carrying in
+  a fumbled kickoff scores as the offence does. —
+  `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown`
 - **11-1-2-b** — A field goal is three. — `test:fieldGoal`
 - **11-1-2-c** — A safety is two. — `test:safety`, `test:safetyPaysTheDefence`
 - **11-1-2-d** — A try is one by kick and two by pass or run. —
@@ -362,9 +373,9 @@ below are what it is held to.
 - **14-3-5** — The basic spot. For a foul during a run not followed by a change of
   possession it is the dead-ball spot (**14-3-5-a**); when the run is followed by a change
   of possession it is the spot where possession was lost; during a backward pass or fumble,
-  the spot of the pass or the fumble. — `test:facemaskAtTheEndOfARun`; the change-of-
-  possession spot is not in the record,
-  [#58](https://github.com/knissley/football-manager/issues/58)
+  the spot of the pass or the fumble. — `test:facemaskAtTheEndOfARun`,
+  `test:defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost`; the record carries
+  the spot where possession was lost, `test:takeawaysCarryTheSpot`
 - **14-3-6** — The three-and-one method. A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
@@ -379,7 +390,8 @@ below are what it is held to.
   defensive foul gives the ball back to the offence before enforcement; an offensive foul
   must be declined by the defence to keep the ball, unless it was a personal or
   unsportsmanlike foul (**14-4-3-b**), in which case the defence keeps the ball and the foul
-  is enforced from the dead-ball spot. — `test:facemaskByTheFormerOffenseOnAReturn`
+  is enforced from the dead-ball spot. — `test:facemaskByTheFormerOffenseOnAReturn`,
+  `test:defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost`
 - **14-5-1** — A double foul with no change of possession offsets, and the down is replayed
   at the previous spot; neither team may decline. — `test:flagsAreEnforced`
 

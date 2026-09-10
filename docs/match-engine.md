@@ -480,7 +480,9 @@ cannot measure yet or whose sample is too thin to fail on.
 | drives starting in own half | 85.2-94.2% | 2025 | kickoff | S1 | yes | Strictly inside the drive's own half; midfield is not. |
 | drives starting in own half | 85.6-94.7% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts per team-game | 3.5-4.4 | 2023-24 | — | S1 | yes | — |
-| net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20. The harness spots a punt touchback at the goal line, so its figure reads high on touchbacks; a harness fix, not a retune. |
+| net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20 — read off the record, which carries where the punt was fielded. |
+| gross punt (yards) | 45.0-50.0 | 2023-24 | — | S1 | yes | Line to where the punt was fielded, downed or went out — to the goal line on a touchback, as the league measures one. Blocked punts excluded. |
+| yards per punt return | 8.8-10.6 | 2023-24 | — | S1 | yes | Over punts that were fielded and run back; a fair catch is not a return. |
 | two-point tries per team-game | 0.19-0.29 | 2023-24 | tryAttempt | S1 | yes | — |
 | two-point conversion rate | 33.6-62.3% | 2023-24 | tryAttempt | S1 | yes | Wide because the sport itself swung from 55% to 41% on about 130 tries a season. |
 | kickoff touchbacks | 18.9-22.4% | 2025 | kickoff | S1 | yes | Share of all kickoffs, onside kicks included in the denominator. |
@@ -515,6 +517,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | onside kicks recovered | 0.5-11.5% | 2024 | onsideKick | S1 | no | Kept for --rulebook 2024. |
 | kickoffs returned | 72.3-80.0% | 2025 | kickoff | S1 | yes | Share of all kickoffs. |
 | kickoffs returned | 30.9-35.9% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| yards per kickoff return | 24.1-26.7 | 2025 | kickoff | S1 | yes | From where the kick was fielded, end-zone depth included, to where the return ended; onside kicks excluded. |
+| yards per kickoff return | 25.6-28.4 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts returned | 40.5-45.3% | 2023-24 | — | S1 | yes | Share of punts fielded and run back; fair catches, downed and touchbacks are not. |
 | snaps inside own 10 | 1.55-1.84 | 2023-24 | — | S1 | yes | Scrimmage plays per team-game. |
 | safeties per team-game | 0.01-0.05 | 2023-24 | — | S1 | yes | — |

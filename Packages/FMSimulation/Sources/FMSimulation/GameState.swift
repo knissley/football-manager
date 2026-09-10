@@ -67,6 +67,10 @@ extension GameSimulator {
         /// changes its mind after a flag.
         private var otherTrySpot: UInt8 = 0
         var pendingKickoff = false
+        /// What happened while the ball was dead since the last snap — a charged timeout
+        /// with the side that took it, the two-minute warning — waiting to go on the
+        /// record of the snap that follows, at the front of its decision points.
+        var beforeTheSnap: [DecisionPoint] = []
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
         var previousBehavior: ClockBehavior = .stopsUntilSnap
@@ -221,19 +225,31 @@ extension GameSimulator {
             spendTimeout(of: offense ? possession : defending)
         }
 
+        /// A charged timeout one side asked for while the ball was dead (4-5-1), on the
+        /// record of the snap it precedes with the side that took it — so a timeout
+        /// taken with the ball about to change hands is charged to a team rather than
+        /// inferred from two situations. Nothing is recorded when the side has none
+        /// left, because nothing was charged.
+        mutating func takeTimeout(offense: Bool) {
+            guard spendTimeout(of: offense ? possession : defending) else { return }
+            beforeTheSnap.append(.timeout(byOffense: offense))
+        }
+
         /// The same, charged to `team`, which an injury timeout is (4-5-4-a). A charged
         /// timeout is an administrative stoppage, so the play clock is the short one
-        /// (4-6-2-b).
-        mutating func spendTimeout(of team: TeamID) {
+        /// (4-6-2-b). `false` when the team had none left and nothing was charged.
+        @discardableResult
+        mutating func spendTimeout(of team: TeamID) -> Bool {
             if team == setup.home.id {
-                guard homeTimeouts > 0 else { return }
+                guard homeTimeouts > 0 else { return false }
                 homeTimeouts -= 1
             } else {
-                guard awayTimeouts > 0 else { return }
+                guard awayTimeouts > 0 else { return false }
                 awayTimeouts -= 1
             }
             previousBehavior = .stopsUntilSnap
             playClock = setup.rules.playClockAfterAnAdministrativeStoppage
+            return true
         }
 
         /// Note a choice one side made about the clock on the play just recorded, so
@@ -374,7 +390,10 @@ extension GameSimulator {
             // rule, and a reader should not have to infer it from the play before.
             let expired =
                 outcome.kind == .penaltyOnly && outcome.penalties.first?.foul == .delayOfGame
-            var explained = decisions
+            // What happened while the ball was dead goes first: it happened first, and
+            // a reader walking the chain meets the timeout before the snap it set up.
+            var explained = beforeTheSnap + decisions
+            beforeTheSnap.removeAll()
             explained.append(
                 .playClock(
                     seconds: playClock.seconds,
@@ -437,7 +456,9 @@ extension GameSimulator {
                 }
                 elapsed = GameClock.Elapsed(
                     duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
-                _ = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
+                if clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason) {
+                    beforeTheSnap.append(.twoMinuteWarning)
+                }
                 previousBehavior = .stopsUntilSnap
                 // A kick that changed hands is an administrative stoppage (4-6-2-a);
                 // one the kickers kept is a play that ended, and the forty runs from it.
@@ -454,6 +475,7 @@ extension GameSimulator {
             }
 
             let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
+            if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
 
             // The play clock for the next snap: forty from the end of this play
@@ -481,6 +503,7 @@ extension GameSimulator {
             let warningTaken = clock.run(
                 huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: rules,
                 isPostseason: setup.isPostseason)
+            if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
             // The clock at the flag is running only if it was running into the interval
             // and nothing stopped it on the way — the two-minute warning, or the end of
             // the period.

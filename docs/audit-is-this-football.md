@@ -784,10 +784,13 @@ argument for watching a game.
   1104 flags over eighty games — name a player a reader can identify. The pin that listed
   the eight is the contract again, with no register.
   ([#54](https://github.com/knissley/football-manager/issues/54))
-- **B7** — the record does not carry where a kick was fielded, so gross punt distance, net
-  punt distance and return yardage cannot be recovered from a returned kick; nor does it
-  carry timeouts or the two-minute warning, which are inferences from two consecutive
-  situations. ([#58](https://github.com/knissley/football-manager/issues/58))
+- **B7** landed with wave 2's record track: the record carries where a kick was fielded,
+  so gross, return and net are read off it and the net punt row stopped spotting a
+  touchback at the goal line; where possession was lost on a takeaway, so a defensive
+  foul on one is enforced from there; a kickoff the kicking team carries in as the
+  kicking team's touchdown; and a charged timeout with its side and the two-minute
+  warning as decision points on the snap they preceded, which `gamelog` prints.
+  ([#58](https://github.com/knissley/football-manager/issues/58))
 - **C3** — the quarterback always throws to the best-separated receiver on the field. He
   never locks onto his first read, never checks down, never throws it away, and never
   attempts a throw he cannot make.

@@ -402,6 +402,23 @@ public struct Outcome: Sendable, Hashable, Codable {
     /// anybody. So a play that changes possession reports the spot outright, and a
     /// normal play leaves this `nil` and lets it follow from the yardage.
     public var finalSpot: UInt8?
+    /// Where a kick was fielded, in the kicking team's frame — yards from the receiving
+    /// team's goal line, the frame `finalSpot` uses on a kick — and negative inside its
+    /// end zone. On a returned kick, where the returner caught it; on a fair catch, a
+    /// downed punt or one run out of bounds, where it was dead, which is where it came
+    /// to rest. `nil` on a touchback, which nobody fielded, on a blocked kick, and on
+    /// every play that is not a kick.
+    ///
+    /// The one spot a returned kick was missing: with only where the ball came to rest,
+    /// the gross of a returned punt, the return and the net could not be told apart.
+    /// `PlayRecord.kickDistance`, `returnYards` and `netPuntDistance(rules:)` are the
+    /// arithmetic over the three spots.
+    public var fieldedAt: Int8?
+    /// On a takeaway, the spot where possession was lost, in the offence's frame like
+    /// `Situation.ballOn`: where the pass was intercepted, or where the ball came loose.
+    /// `nil` on every other play. It is the basic spot for a foul during a run followed
+    /// by a change of possession (2025 rulebook, 14-3-5-b), which `Rules.enforce` reads.
+    public var possessionLostAt: UInt8?
     /// Seconds taken off the clock, live action and play clock together.
     public var clockRunoff: UInt16
     /// The points this play put on the board, and what kind of score they were.
@@ -423,11 +440,15 @@ public struct Outcome: Sendable, Hashable, Codable {
         participants: [Participation] = [],
         penalties: [PenaltyRecord] = [],
         finalSpot: UInt8? = nil,
+        fieldedAt: Int8? = nil,
+        possessionLostAt: UInt8? = nil,
         clockRunoff: UInt16 = 0,
         pointsScored: UInt8 = 0,
         scoring: Scoring? = nil
     ) {
         self.finalSpot = finalSpot
+        self.fieldedAt = fieldedAt
+        self.possessionLostAt = possessionLostAt
         self.kind = kind
         self.yards = yards
         self.endedIn = endedIn

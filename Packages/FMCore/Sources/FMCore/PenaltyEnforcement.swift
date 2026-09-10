@@ -211,10 +211,12 @@ extension Rules {
                 // (12-2-8, 12-2-10, 12-2-11, 12-2-15, 12-2-16, 12-3-1).
                 awardsFirstDown = true
                 if lostDuringThePlay {
-                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d). The spot
-                    // where possession was lost is not in the record, so the previous
-                    // spot stands in for it.
-                    (ballOn, moved) = walk(from: previous, yards: yards, towardOpponentGoal: true)
+                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d), and the basic
+                    // spot is where it lost possession (14-3-5-b). A kick carries no such
+                    // spot, and neither does a takeaway written by a resolver that did not
+                    // record one; the previous spot stands in for it then.
+                    let lost = outcome.possessionLostAt.map(Int.init) ?? previous
+                    (ballOn, moved) = walk(from: lost, yards: yards, towardOpponentGoal: true)
                 } else {
                     // The offence's play stands: from the dead-ball spot or the previous
                     // spot, whichever is better for the offence (8-6-1-d) — which is

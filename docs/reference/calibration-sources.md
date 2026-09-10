@@ -209,6 +209,8 @@ comes out of `onField` rather than out of the substitution the engine made.
 | `row:ownHalfStarts.2024` — drives starting in own half | 2024 | S1 |
 | `row:puntsPerTeamGame` — punts per team-game | 2023-24 | S1 |
 | `row:netPunt` — net punt (yards) | 2023-24 | S1 |
+| `row:grossPunt` — gross punt (yards) | 2023-24 | S1 |
+| `row:puntReturnYards` — yards per punt return | 2023-24 | S1 |
 | `row:twoPointTries` — two-point tries per team-game | 2023-24 | S1 |
 | `row:twoPointConversion` — two-point conversion rate | 2023-24 | S1 |
 
@@ -258,6 +260,8 @@ comes out of `onField` rather than out of the substitution the engine made.
 | `row:onsideRecovery.2024` — onside kicks recovered | 2024 | S1 |
 | `row:kickoffsReturned.2025` — kickoffs returned | 2025 | S1 |
 | `row:kickoffsReturned.2024` — kickoffs returned | 2024 | S1 |
+| `row:kickoffReturnYards.2025` — yards per kickoff return | 2025 | S1 |
+| `row:kickoffReturnYards.2024` — yards per kickoff return | 2024 | S1 |
 | `row:puntsReturned` — punts returned | 2023-24 | S1 |
 
 ### Backed up
@@ -373,10 +377,13 @@ Two rows measure a definition of their own rather than the source's, and the dif
 is written into the row's note rather than corrected by moving the band. They are listed
 here so nobody reads a gap as an engine finding:
 
-- `row:netPunt` — the harness spots a punt touchback at the goal line rather than the 20,
-  so its net reads high on touchbacks. A harness fix, not a retune.
 - `row:yardsPerPlay` and `row:rushingYards` — designed runs only, scrambles excluded, which
   is not how the league counts either.
+
+`row:netPunt` used to be here: the harness spotted a punt touchback at the goal line
+rather than the 20, so its net read high on touchbacks. The record now carries where
+every punt was fielded, the net is read off it with a touchback netted to the 20 as the
+source nets one, and the row fell about two yards when it stopped flattering itself.
 
 A third used to be here. `row:completionPercentage` counted a completion only when it
 gained, so it read about three points low while showing green — S14 in the

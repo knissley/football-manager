@@ -567,8 +567,18 @@ struct CalibrationTarget: Sendable {
             id: "netPunt", label: "net punt (yards)", low: 39.4, high: 43.8,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "Distance less return yards, a touchback counted as a punt to the 20. The harness spots a punt touchback at the goal line, so its figure reads high on touchbacks; a harness fix, not a retune."
+                "Distance less return yards, a touchback counted as a punt to the 20 — read off the record, which carries where the punt was fielded."
         ),
+        CalibrationTarget(
+            id: "grossPunt", label: "gross punt (yards)", low: 45.0, high: 50.0,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note:
+                "Line to where the punt was fielded, downed or went out — to the goal line on a touchback, as the league measures one. Blocked punts excluded."
+        ),
+        CalibrationTarget(
+            id: "puntReturnYards", label: "yards per punt return", low: 8.8, high: 10.6,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note: "Over punts that were fielded and run back; a fair catch is not a return."),
         CalibrationTarget(
             id: "twoPointTries", label: "two-point tries per team-game", low: 0.19, high: 0.29,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [.tryAttempt],
@@ -713,6 +723,17 @@ struct CalibrationTarget: Sendable {
             id: "kickoffsReturned.2024", label: "kickoffs returned", low: 30.9, high: 35.9,
             season: .season(2024), source: playByPlay, rulesSensitiveTo: [.kickoff], gate: true,
             unit: "%", note: "Kept for --rulebook 2024."),
+        CalibrationTarget(
+            id: "kickoffReturnYards.2025", label: "yards per kickoff return", low: 24.1,
+            high: 26.7, season: .season(2025), source: playByPlay, rulesSensitiveTo: [.kickoff],
+            gate: true,
+            note:
+                "From where the kick was fielded, end-zone depth included, to where the return ended; onside kicks excluded."
+        ),
+        CalibrationTarget(
+            id: "kickoffReturnYards.2024", label: "yards per kickoff return", low: 25.6,
+            high: 28.4, season: .season(2024), source: playByPlay, rulesSensitiveTo: [.kickoff],
+            gate: true, note: "Kept for --rulebook 2024."),
         CalibrationTarget(
             id: "puntsReturned", label: "punts returned", low: 40.5, high: 45.3,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,

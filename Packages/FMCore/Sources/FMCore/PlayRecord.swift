@@ -80,6 +80,18 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// (4-7-3), an injury timeout after the two-minute warning (4-5-4). `detail` is a
     /// `ClockElection`. The rules layer's as well.
     case clockElection = 11
+    /// A charged team timeout taken before this snap (2025 rulebook, 4-5-1). `detail`
+    /// is the side that took it — 0 the side in possession at the snap, 1 the other —
+    /// so a timeout taken with the ball about to change hands is charged to a team and
+    /// not inferred from two situations. A timeout that is the rules' consequence of the
+    /// play before — the offence's alternative to a runoff, an injury timeout — is a
+    /// `clockElection` on that play instead, where the referee announces it. The rules
+    /// layer's.
+    case timeout = 12
+    /// The two-minute warning was taken before this snap (3-41): at the end of the last
+    /// down snapped before 2:00, so it sits on the first snap taken with two minutes or
+    /// less to play. The rules layer's.
+    case twoMinuteWarning = 13
 }
 
 /// A choice the rules put to one side about the clock between downs (2025 rulebook,
@@ -300,6 +312,23 @@ extension DecisionPoint {
     public var clockElectionValue: ClockElection? {
         kind == .clockElection ? ClockElection(rawValue: detail) : nil
     }
+
+    /// A charged team timeout before the snap, by the side in possession or the other.
+    public static func timeout(byOffense: Bool) -> DecisionPoint {
+        DecisionPoint(tick: 0, kind: .timeout, primary: .none, detail: byOffense ? 0 : 1)
+    }
+
+    /// The two-minute warning, taken before the snap.
+    public static let twoMinuteWarning = DecisionPoint(
+        tick: 0, kind: .twoMinuteWarning, primary: .none)
+
+    /// Which side took the timeout, for a `.timeout` point: `true` the side in
+    /// possession at the snap.
+    public var timeoutByOffense: Bool? {
+        kind == .timeout ? detail == 0 : nil
+    }
+
+    public var isTwoMinuteWarning: Bool { kind == .twoMinuteWarning }
 
     public var throwDecisionValue: ThrowDecision? {
         kind == .throwDecision ? ThrowDecision(rawValue: detail) : nil

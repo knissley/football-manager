@@ -2,11 +2,11 @@
 
 **Status: built.** `PlayRecord` and the types around it live in `FMCore`, the engine
 fills them on every snap, and `Tools/playsize` measures the footprint this doc quotes.
-One caveat a reader needs: one fact the doc implies is derivable is not on the record
-yet — where a kick was fielded (#58). Who was on the field, whether a pass was completed
-and the points a play scored are on the record ([below](#who-was-on-the-field)); the
-record is versioned and the concept called is on it by value
-([below](#what-was-called)).
+Who was on the field, whether a pass was completed and the points a play scored are on
+the record ([below](#who-was-on-the-field)); the record is versioned and the concept
+called is on it by value ([below](#what-was-called)); where a kick was fielded, where
+possession was lost on a takeaway, and what happened while the ball was dead before a
+snap are on it too ([below](#kicks-takeaways-and-the-dead-ball)).
 
 The highest-stakes artifact in the project. Everything downstream is a query over it
 ([ADR-0007](adr/0007-event-stream-contract.md)), and it gets designed before the engine
@@ -107,6 +107,9 @@ Outcome
                                                      or a spike; nil otherwise
   participants  [Participation]    (player, role, result)
   penalties     [PenaltyRecord]    including declined ones, and both branches
+  finalSpot     UInt8?             where the ball came to rest, on a play that changed hands
+  fieldedAt     Int8?              where a kick was fielded; negative in the end zone
+  possessionLostAt UInt8?          where a takeaway was, in the offence's frame
   clockRunoff   UInt16
   pointsScored  UInt8              what this play put on the board
   scoring       Scoring?           what kind of score, which says who scored it
@@ -150,7 +153,7 @@ DecisionPoint
 .coverageAssignment(defender, receiver, technique)
 ```
 
-Two more are the rules layer's rather than the resolver's, and name no player:
+Four more are the rules layer's rather than the resolver's, and name no player:
 
 ```
 .playClock(seconds, remaining)     which play clock the snap was taken against (4-6) and
@@ -159,11 +162,17 @@ Two more are the rules layer's rather than the resolver's, and name no player:
                                    as the referee announces it: the runoff and its
                                    alternatives (4-7-1), the last forty seconds (4-7-3),
                                    an injury timeout (4-5-4)
+.timeout(byOffense)                a charged timeout taken before this snap (4-5-1), by
+                                   the side in possession at it or by the other
+.twoMinuteWarning                  the warning was taken before this snap (3-41)
 ```
 
-Both exist so that the clock explains itself from the stream — which clock a snap faced,
-why ten seconds came off, why a half ended on a flag — instead of being inferred from two
-consecutive situations.
+All four exist so that the clock explains itself from the stream — which clock a snap
+faced, why ten seconds came off, why a half ended on a flag, who stopped it and when the
+warning came — instead of being inferred from two consecutive situations. The first two
+sit on the play they are about; the last two sit at the front of the *next* snap's chain,
+because the ball was dead when they happened and the next snap is the first thing they
+are before ([below](#kicks-takeaways-and-the-dead-ball)).
 
 A crude engine emits a handful of these per play; the spatial engine emits many. **Same
 cases, same meaning** — which is exactly what lets the engine be replaced without touching
@@ -245,6 +254,53 @@ unless a flag before the snap wiped it out, where a called pass is a dropback an
 dropback may end as a sack or a scramble. `SchemaAndConceptTests` checks it over twenty
 games, and that no record names a design.
 
+## Kicks, takeaways, and the dead ball
+
+**A kick has three spots, and the record carries all three.** Where it was kicked from is
+`Situation.ballOn`; where it came to rest is `Outcome.finalSpot`; and `Outcome.fieldedAt`
+is where it was fielded — all in the kicking team's frame, yards from the receiving team's
+goal line, `fieldedAt` negative for a kick caught in the end zone. On a fair catch, a
+downed punt or one run out of bounds the fielding spot and the resting spot are the same
+number; on a touchback it is `nil`, because nobody fielded it. Gross, return and net are
+queries: `kickDistance` is the line to the fielding spot, or to the goal line on a
+touchback, which is how the league measures one; `returnYards` is the fielding spot to
+the resting spot, zero on a kick fielded and not run; `netPuntDistance(rules:)` is the
+gross less the return, or the line to the touchback spot on a touchback. With only the
+resting spot, the gross of a returned punt and its return could not be told apart and the
+harness's net punt row spotted a touchback at the goal line — `KickRecordTests` holds the
+identities over forty games, and `grossPunt`, `puntReturnYards`, `kickoffReturnYards` and
+`netPunt` in the [calibration table](match-engine.md#calibration) read off the record.
+
+**A kickoff touchdown says who scored it.** The resting spot of a returned kick that
+scores is 100, the kicking team's goal line; a kick the returner fumbled and the kicking
+team carried in comes to rest at 0, the receivers' goal line, and `Rules.advance` reads
+that as the kicking team's touchdown, its try, and its kickoff after it (8-7-3 Item 1,
+11-2-1, 11-3-1, 11-3-4). `isKickingTeamTouchdown` is the query. The crude resolver never
+fumbles a kick — a muff is not modelled — so only a scripted game reaches it today.
+
+**A takeaway says where possession was lost.** `Outcome.possessionLostAt` is where the
+pass was intercepted or where the ball came loose, in the offence's frame like
+`Situation.ballOn`, and `nil` on every other play. It is the basic spot for a foul during
+a run followed by a change of possession (14-3-5-b), so a defensive personal foul on an
+interception return is enforced from there once the ball reverts to the offence
+(14-4-3-a) — the previous spot stood in for it, with a comment saying so, while the record
+did not carry it.
+
+**What happened while the ball was dead is on the next snap.** A charged timeout is not a
+play and produces no record of its own ([decision 192](design-decisions.md)), but it is
+no longer an inference from two consecutive situations either — one taken with the ball
+about to change hands could not be charged to a team that way, and the printer could not
+show it. A timeout the callers take before a snap is a `.timeout` decision point at the
+front of that snap's chain, with the side that took it; the two-minute warning, taken at
+the end of the last down snapped before 2:00 (3-41), is a `.twoMinuteWarning` on the first
+snap after it. `timeoutsBeforeTheSnap` and `hasTwoMinuteWarningBeforeTheSnap` read them. A
+timeout the rules charged as the consequence of a play — the offence's alternative to a
+runoff, an injury timeout — stays a `.clockElection` on that play, where the referee
+announces it; a reader counting timeouts counts both, which is what the harness does. Rows
+of their own kind were the alternative — a `DeadBallEvent` stream beside the plays — and
+were rejected because everything downstream walks one stream, and a between-downs event is
+exactly the thing the next snap's causal chain begins with.
+
 ## Constraints from the rest of the design
 
 - **No strings, ever.** IDs and enums only; text is rendered later by `FMNarrative`
@@ -274,17 +330,17 @@ Measured against the real types (`swift run --package-path Tools/playsize`):
 ```
 Situation      23 B     OffensiveCall   17 B     DecisionPoint    8 B
 Calls          49 B     DefensiveCall    6 B     Participation   24 B
-PlayRef        10 B     PlayRecord     144 B  (fixed part)
+PlayRef        10 B     PlayRecord     152 B  (fixed part)
 ```
 
 A realistic play — twelve decision points, ten credited participants, and the twenty-two
-men on the field — is **502 bytes** in Swift's in-memory layout:
+men on the field — is **510 bytes** in Swift's in-memory layout:
 
 ```
-per game (150 plays)          73 KB
-your season (17 games)      1,250 KB
+per game (150 plays)          74 KB
+your season (17 games)      1,270 KB
 league season (272 games)      19 MB
-ten seasons, league-wide      195 MB
+ten seasons, league-wide      198 MB
 ```
 
 **Presence costs thirty-three bytes a play.** Twenty-two of them are the roster indices
@@ -307,6 +363,11 @@ part 136 → 144. The version byte that landed with it cost nothing — it sits 
 after the index. Eight bytes a play for a record that no longer points at a design nobody
 wrote ([ADR-0010](adr/0010-plays-designs-and-calls.md), amended).
 
+**Two more spots cost eight more.** `Outcome.fieldedAt` and `Outcome.possessionLostAt`
+are an optional byte each, and with the padding they bring the fixed part went 144 → 152.
+The dead-ball decision points cost nothing on a play that has none, and eight bytes each
+on the hundred and fifty or so snaps a season that follow a timeout or the warning.
+
 Three things changed as a result of measuring.
 
 **Participants are only the players who did something.** Crediting all twenty-two made
@@ -328,12 +389,12 @@ value, so a playbook edit cannot rewrite history, was close to free — until th
 went on the call by value as well, which is the eight bytes above.
 
 **The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~73 KB of records — 1.5×, not the 6× asserted before. Records and
+game against ~74 KB of records — 1.4×, not the 6× asserted before. Records and
 trajectories are the same order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 195 MB of league-wide history for a
+in full; replay everything else from its seed.** 198 MB of league-wide history for a
 ten-season career is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not

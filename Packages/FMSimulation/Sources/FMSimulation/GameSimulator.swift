@@ -203,7 +203,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                         for: before, classified: SituationClass(before), isOffense: isOffense,
                         context: state.context())
                 else { continue }
-                state.spendTimeout(offense: isOffense)
+                state.takeTimeout(offense: isOffense)
             }
         }
 

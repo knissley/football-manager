@@ -21,9 +21,10 @@ struct DeadBallLinesTests {
             .filter { $0.hasPrefix("timeout: ") || $0 == "two-minute warning" }
     }
 
-    /// The defence burns its three timeouts in the fourth quarter of this scenario, and a
-    /// regulation game has a warning in each half (2025 rulebook, 3-41). Every one is
-    /// printed, and printed in the order it happened.
+    /// Whoever is on defence in the fourth quarter of this scenario burns its timeouts,
+    /// and both sides defend in it, so each side burns three; a regulation game has a
+    /// warning in each half (2025 rulebook, 3-41). Every one is printed, in the order it
+    /// happened, with the side that took it and what it has left counting down.
     @Test(
         "contract: every timeout is printed with its team and what it has left, and both warnings are printed",
         .tags(.contract))
@@ -34,7 +35,7 @@ struct DeadBallLinesTests {
             $0 + $1.timeoutsBeforeTheSnap.offense + $1.timeoutsBeforeTheSnap.defense
         }
         let warnings = trace.plays.filter(\.hasTwoMinuteWarningBeforeTheSnap).count
-        #expect(onTheRecord == 3, "the scenario's defence burns three; \(onTheRecord) recorded")
+        #expect(onTheRecord == 6, "three a side; \(onTheRecord) recorded")
         #expect(warnings == 2, "one a half; \(warnings) recorded")
 
         let printed = deadBallLines(in: scenarioLines(scenario))
@@ -43,18 +44,24 @@ struct DeadBallLinesTests {
         #expect(timeoutLines.count == onTheRecord, "\(timeoutLines)")
         #expect(warningLines.count == warnings)
 
-        // The same side three times, counting down: `timeout: NRW (2 left)`.
-        let remaining = timeoutLines.compactMap { line -> Int? in
-            guard let open = line.lastIndex(of: "("), let close = line.lastIndex(of: ")") else {
-                return nil
+        // `timeout: NRW (2 left)`: the team, and what it has left, counting down per team.
+        var remaining: [Substring: [Int]] = [:]
+        for line in timeoutLines {
+            let team = line.dropFirst("timeout: ".count).prefix(while: { $0 != " " })
+            guard let open = line.lastIndex(of: "("), let close = line.lastIndex(of: ")"),
+                let left = Int(
+                    line[line.index(after: open)..<close].split(separator: " ").first ?? "")
+            else {
+                Issue.record("unreadable timeout line: \(line)")
+                continue
             }
-            return Int(line[line.index(after: open)..<close].split(separator: " ").first ?? "")
+            remaining[team, default: []].append(left)
         }
-        #expect(remaining == [2, 1, 0], "\(timeoutLines)")
-        let teams = Set(
-            timeoutLines.map { $0.dropFirst("timeout: ".count).prefix(while: { $0 != " " }) })
-        #expect(teams.count == 1, "one side took all three: \(teams)")
-        #expect(teams.first.map { !$0.isEmpty } == true, "the line names the team")
+        #expect(remaining.count == 2, "both sides took some: \(timeoutLines)")
+        for (team, left) in remaining {
+            #expect(!team.isEmpty, "the line names the team")
+            #expect(left == [2, 1, 0], "\(team) counted \(left)")
+        }
     }
 
     /// The clock a play line was printed with, in seconds: `   7  Q2 1:57  NRW ...`.

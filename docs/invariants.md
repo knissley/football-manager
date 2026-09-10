@@ -222,7 +222,8 @@ season is what checks one. A band is evidence about a rate and never about a rul
     [#28](https://github.com/knissley/football-manager/issues/28)
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
-    `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`,
+    `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`, and the record says it was
+    taken, on the first snap after it — `test:warningIsOnTheRecord`;
     `test:twoMinuteWarningStopsAtTwoMinutes`, `test:noWarningMidHalf`, `test:warningTakenOnce`,
     `test:warningResets`
 46. A down under way when the clock runs past 2:00 finishes, and the clock is dead after it.
@@ -237,7 +238,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `[2025 · 4-4-e]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
 50. Three charged timeouts per team per half, they do not carry over, and they never go
-    negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`
+    negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`;
+    and every one charged is on the record of the snap it preceded, with the side that took
+    it — `test:timeoutsAreOnTheRecord`
 51. The play clock is 40 seconds from the end of the previous play and 25 from the whistle
     after an administrative stoppage — 30 after a runoff, and back to 40 after a defensive
     act that conserves time — and letting it expire with the ball not snapped is delay of
@@ -370,15 +373,22 @@ season is what checks one. A band is evidence about a rate and never about a rul
     [#48](https://github.com/knissley/football-manager/issues/48): the score stands and the
     flag is recorded declined
 80. The basic spot when a run is followed by a change of possession is the spot where
-    possession was lost. `[2025 · 14-3-5]` — **not yet enforced**,
-    [#58](https://github.com/knissley/football-manager/issues/58): the record does not carry
-    that spot
+    possession was lost, and a defensive foul there gives the ball back to the offence
+    before enforcement. `[2025 · 14-3-5-b, 14-4-3-a]` —
+    `test:defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost`; the record's
+    half of it — every takeaway says where possession was lost — is
+    `test:takeawaysCarryTheSpot`
 
 ## Kickoffs and onside kicks
 
 81. An onside kick the kicking team legally recovers is its ball, first and ten, where the
     play died. `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6]` — `test:onsideRecoveryKeepsPossession`,
-    `test:onsideRecovered`
+    `test:onsideRecovered`. And a kickoff the returner fumbles and the kicking team carries
+    in is the kicking team's touchdown, its try, and its kickoff — any player of either
+    team may advance a fumble, and a runner crossing the goal line scores.
+    `[2025 · 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4]` —
+    `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown`; **modelling**: the crude
+    resolver never fumbles a kick, so only a script reaches it
 82. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
     any point in the game. `[2025 · 6-1-1-c, 6-1-6]` — **not yet enforced**,
     [#41](https://github.com/knissley/football-manager/issues/41): the caller still requires
@@ -455,8 +465,12 @@ what every one of them was derived from is in
 100. Drives start about where they really start, and about as often inside their own half. —
      `row:averageStart.2025`, `row:averageStart.2024`, `row:ownHalfStarts.2025`,
      `row:ownHalfStarts.2024`, `row:snapsInsideOwn10`
-101. Teams punt about as often, for about the real net, and about as many punts come back. —
-     `row:puntsPerTeamGame`, `row:netPunt`, `row:puntsReturned`
+101. Teams punt about as often, for about the real gross and net, about as many punts come
+     back, and a returned kick comes back about as far. — `row:puntsPerTeamGame`,
+     `row:netPunt`, `row:grossPunt`, `row:puntsReturned`, `row:puntReturnYards`,
+     `row:kickoffReturnYards.2025`, `row:kickoffReturnYards.2024`; all four distances are
+     read off the record, which says where every kick was fielded —
+     `test:kickDistancesAreDerivable`, `test:onlyKicksAreFielded`
 102. Field goals are attempted about as often, from about the real spread of distances, and
      made at about the real rate from each. — `row:fieldGoalsPerTeamGame`,
      `row:fieldGoalsUnder30`, `row:fieldGoals30to39`, `row:fieldGoals40to49`,

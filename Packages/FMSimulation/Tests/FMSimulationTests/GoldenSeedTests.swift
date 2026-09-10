@@ -147,9 +147,19 @@ struct GoldenSeedTests {
             // side's constants could survive, because each was computed without the
             // other's mechanism; `Tools/gamelog` prints the play clock's game before and
             // after the merge.
-            (UInt64(1), UInt64(9_070_778_498_208_478_976)),
-            (UInt64(5), UInt64(5_356_532_570_081_515_809)),
-            (UInt64(12), UInt64(3_069_529_540_596_400_208)),
+            //
+            // And by the record a fourth time: what happened while the ball was dead
+            // before a snap — a charged timeout with the side that took it, the
+            // two-minute warning — is a rules-layer decision point on the next snap's
+            // record, and the checksum mixes every decision point. Where a kick was
+            // fielded and where possession was lost went on the record with it, but
+            // neither is hashed. Nothing a play produced changed: the same timeouts are
+            // spent at the same moments and the clock runs as it did, and `Tools/gamelog`
+            // prints the same plays before and after, with the dead ball now written
+            // above them and a kick's gross and return beside it.
+            (UInt64(1), UInt64(8_919_978_172_682_440_492)),
+            (UInt64(5), UInt64(821_425_871_124_722_529)),
+            (UInt64(12), UInt64(12_677_538_457_427_071_264)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

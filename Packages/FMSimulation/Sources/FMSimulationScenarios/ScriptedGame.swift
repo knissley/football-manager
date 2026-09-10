@@ -197,9 +197,12 @@ extension Outcome {
 
     public static let pickSix = interception(to: 100, seconds: 12)
 
-    /// A fumble the defence comes up with, at `spot` in the fumbling team's frame.
+    /// A fumble the defence comes up with and falls on, at `spot` in the fumbling team's
+    /// frame — so that is both where possession was lost and where the ball came to rest.
     public static func fumble(lostAt spot: UInt8, seconds: UInt16 = 6) -> Outcome {
-        Outcome(kind: .rush, yards: 0, endedIn: .fumbleLost, finalSpot: spot, clockRunoff: seconds)
+        Outcome(
+            kind: .rush, yards: 0, endedIn: .fumbleLost, finalSpot: spot, possessionLostAt: spot,
+            clockRunoff: seconds)
     }
 
     /// A fumble the offence falls on, `yards` past the line.
@@ -209,10 +212,12 @@ extension Outcome {
 
     public static let kickoffTouchback = Outcome(kind: .kickoff, yards: 0, endedIn: .touchback)
 
-    /// Fielded and brought out to the returner's own `yard` line, which is the same
-    /// number in the kicking team's frame.
+    /// Fielded at the goal line and brought out to the returner's own `yard` line, which
+    /// is the same number in the kicking team's frame.
     public static func kickoffReturn(toOwn yard: UInt8, seconds: UInt16 = 8) -> Outcome {
-        Outcome(kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, clockRunoff: seconds)
+        Outcome(
+            kind: .kickoff, yards: 0, endedIn: .tackled, finalSpot: yard, fieldedAt: 0,
+            clockRunoff: seconds)
     }
 
     public static let kickoffReturnTouchdown = Outcome(
@@ -229,7 +234,8 @@ extension Outcome {
     /// Signalled for and fair caught at the returner's own `yard` line.
     public static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {
         Outcome(
-            kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard, clockRunoff: seconds)
+            kind: .kickoff, yards: 0, endedIn: .fairCatch, finalSpot: yard,
+            fieldedAt: Int8(clamping: yard), clockRunoff: seconds)
     }
 
     /// Fallen on by the kicking team, `ballOn` from the goal it is attacking: the same
@@ -261,12 +267,17 @@ extension Outcome {
         kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6)
 
     /// A punt that ends at the receiving team's own `yard` line, however it ended there.
+    /// One that was not returned was fielded where it ended; where a returned one was
+    /// fielded, the script does not say.
     public static func punt(
         toOwn yard: UInt8, endedIn: PlayEnding = .fairCatch, seconds: UInt16 = 6
     )
         -> Outcome
     {
-        Outcome(kind: .punt, yards: 0, endedIn: endedIn, finalSpot: yard, clockRunoff: seconds)
+        let returned = endedIn == .tackled || endedIn == .touchdown
+        return Outcome(
+            kind: .punt, yards: 0, endedIn: endedIn, finalSpot: yard,
+            fieldedAt: returned ? nil : Int8(clamping: yard), clockRunoff: seconds)
     }
 
     public static func fieldGoal(good: Bool) -> Outcome {

@@ -98,6 +98,16 @@ public struct CrudeResolver: PlayResolver {
         participants.append(Participation(slot: slot, player: id, position: position, role: role))
     }
 
+    /// A fumble, as the record carries it: how the play ended, where the ball came to
+    /// rest, and — when the defence came up with it — where it came loose.
+    private struct LooseBall {
+        var ending: PlayEnding
+        var finalSpot: UInt8
+        /// The spot where possession was lost, in the offence's frame; `nil` when the
+        /// offence fell on it.
+        var lostAt: UInt8?
+    }
+
     /// Turn a hit into a fumble, if it was one.
     ///
     /// Returns the ending and resting spot to use instead of the tackle's. The spot is in
@@ -108,7 +118,7 @@ public struct CrudeResolver: PlayResolver {
         carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int,
         personnel: Lineup, context: PlayContext,
         participants: inout [Participation], random: inout SplittableRandom
-    ) -> (ending: PlayEnding, finalSpot: UInt8)? {
+    ) -> LooseBall? {
         guard let tackler,
             let loose = Fumbles.drawn(
                 carrier: carrier, tackler: tackler, isSack: isSack, personnel: personnel,
@@ -116,11 +126,13 @@ public struct CrudeResolver: PlayResolver {
         else { return nil }
 
         credit(loose.forcedBy, .tackler, personnel, into: &participants)
+        let lostAt = UInt8(max(1, min(99, spot)))
         guard loose.lost else {
-            return (.fumbleRecovered, UInt8(max(1, min(99, spot))))
+            return LooseBall(ending: .fumbleRecovered, finalSpot: lostAt, lostAt: nil)
         }
         let resting = spot + loose.returnYards
-        return (.fumbleLost, UInt8(max(1, min(100, resting))))
+        return LooseBall(
+            ending: .fumbleLost, finalSpot: UInt8(max(1, min(100, resting))), lostAt: lostAt)
     }
 
     private func participation(
@@ -377,7 +389,7 @@ public struct CrudeResolver: PlayResolver {
                         yards: scores ? Int16(situation.ballOn) : gained,
                         endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
                         participants: participants, penalties: penalty.map { [$0] } ?? [],
-                        finalSpot: dropped?.finalSpot,
+                        finalSpot: dropped?.finalSpot, possessionLostAt: dropped?.lostAt,
                         clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
                     decisions
                 )
@@ -421,7 +433,7 @@ public struct CrudeResolver: PlayResolver {
                     yards: strip?.ending == .fumbleLost ? 0 : (inOwnEndZone ? Int16(-room) : loss),
                     endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: strip?.finalSpot,
+                    finalSpot: strip?.finalSpot, possessionLostAt: strip?.lostAt,
                     clockRunoff: runoff),
                 decisions
             )
@@ -498,7 +510,8 @@ public struct CrudeResolver: PlayResolver {
                 Outcome(
                     kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: spot, clockRunoff: runoff),
+                    finalSpot: spot, possessionLostAt: UInt8(max(1, min(99, caught))),
+                    clockRunoff: runoff),
                 decisions
             )
 
@@ -529,7 +542,7 @@ public struct CrudeResolver: PlayResolver {
                 Outcome(
                     kind: kind, yards: gained, endedIn: ending, passResult: .complete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: fumble?.finalSpot,
+                    finalSpot: fumble?.finalSpot, possessionLostAt: fumble?.lostAt,
                     clockRunoff: runoff),
                 decisions
             )
@@ -659,7 +672,7 @@ public struct CrudeResolver: PlayResolver {
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
         // The ball on the ground, before the play is allowed to have been a gain.
-        var fumble: (ending: PlayEnding, finalSpot: UInt8)?
+        var fumble: LooseBall?
         if !reachesEndZone && !intoOwnEndZone {
             fumble = looseBall(
                 carrier: SlotLayout.back,
@@ -704,7 +717,7 @@ public struct CrudeResolver: PlayResolver {
                     ?? (reachesEndZone ? .touchdown : (intoOwnEndZone ? .safety : tackle.ending)),
                 participants: participants,
                 penalties: penalty.map { [$0] } ?? [],
-                finalSpot: fumble?.finalSpot,
+                finalSpot: fumble?.finalSpot, possessionLostAt: fumble?.lostAt,
                 clockRunoff: UInt16(5 + Int(random.next(upperBound: 3)))),
             decisions
         )
@@ -750,14 +763,15 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .touchdown, participants: participants,
-                    finalSpot: 100, clockRunoff: 12),
+                    finalSpot: 100, fieldedAt: Int8(start), clockRunoff: 12),
                 decisions
             )
         }
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: UInt16(6 + run.spot / 12)),
+                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: Int8(start),
+                clockRunoff: UInt16(6 + run.spot / 12)),
             decisions
         )
     }
@@ -782,19 +796,22 @@ public struct CrudeResolver: PlayResolver {
             for slot in SlotLayout.coverageUnit.prefix(2) {
                 credit(slot.0, .other, personnel, into: &participants)
             }
+            // Dead where it was fallen on, so that is where it was fielded too.
+            let fell = max(1, min(99, 100 - spot))
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .fumbleRecovered,
                     participants: participants,
-                    finalSpot: UInt8(max(1, min(99, 100 - spot))), clockRunoff: 5),
+                    finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
                 []
             )
         }
         credit(SlotLayout.returner, .returner, personnel, into: &participants)
+        let fell = max(1, min(99, spot))
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(max(1, min(99, spot))), clockRunoff: 5),
+                finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
             []
         )
     }
@@ -903,11 +920,12 @@ public struct CrudeResolver: PlayResolver {
                     foul: .illegalTouching, offender: toucher, offendingTeam: context.offense,
                     yards: 0, wasAccepted: false)
             }
+            let dead = max(1, min(99, landing + drift))
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
                     participants: participants, penalties: illegal.map { [$0] } ?? [],
-                    finalSpot: UInt8(max(1, min(99, landing + drift))), clockRunoff: 6),
+                    finalSpot: UInt8(dead), fieldedAt: Int8(dead), clockRunoff: 6),
                 []
             )
         }
@@ -923,7 +941,8 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .fairCatch, participants: participants,
-                    finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
+                    finalSpot: UInt8(max(1, min(99, landing))),
+                    fieldedAt: Int8(max(1, min(99, landing))), clockRunoff: 6),
                 []
             )
         }
@@ -944,12 +963,13 @@ public struct CrudeResolver: PlayResolver {
         let reached = run.scores ? 100 : run.spot
         blockBack?.enforcementSpot = UInt8(max(1, min(99, (landing + reached) / 2)))
 
+        let fielded = Int8(max(1, min(99, landing)))
         if run.scores {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
                     penalties: blockBack.map { [$0] } ?? [],
-                    finalSpot: 100, clockRunoff: 12),
+                    finalSpot: 100, fieldedAt: fielded, clockRunoff: 12),
                 decisions
             )
         }
@@ -957,7 +977,8 @@ public struct CrudeResolver: PlayResolver {
             Outcome(
                 kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
                 penalties: blockBack.map { [$0] } ?? [],
-                finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: 8),
+                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: fielded,
+                clockRunoff: 8),
             decisions
         )
     }

@@ -316,6 +316,14 @@ a touchdown gets its try, whether a tie plays overtime, how much clock burns bet
 last snap of one possession and the first of the next, whether the same quarterback takes
 every snap of a drive, and whether a penalty leaves the ball where the rule puts it.
 
+What happened while the ball was dead is printed above the snap it preceded, read off
+that snap's record: `two-minute warning` on its own line, and `timeout: NRW (2 left)` for
+each charged timeout with the side that took it and what it has left. A kick line carries
+its three spots — `D. Dockery 40 yards to GRH 34, L. Wrenfield returns it 7 to GRH 41` —
+so the gross of a returned punt and its return are both there, and a kickoff fielded in
+the end zone says how deep (`67 yards to 2 deep`). A timeout the rules charged after a
+play — instead of a runoff, or for an injury — is still a `clock:` line under that play.
+
 Aggregates hid every rules bug the September audit found. Each of them is obvious in
 thirty seconds of this output, which is why it exists.
 

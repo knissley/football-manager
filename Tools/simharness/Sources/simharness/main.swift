@@ -489,16 +489,19 @@ spread(
 
 let kneels = allPlays.filter { $0.outcome.kind == .kneel }.count
 let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
+// Read off the record rather than inferred from two consecutive situations, which
+// could not see a timeout taken with the ball about to change hands: a charged timeout
+// before a snap is a `.timeout` on that snap, and one the rules charged after a play —
+// the offence's alternative to a runoff, an injury timeout — is a clock election on it.
 var timeoutsSpent = 0
-for result in results {
-    for (previous, next) in zip(result.plays, result.plays.dropFirst())
-    where previous.situation.possession == next.situation.possession {
-        if next.situation.offenseTimeouts < previous.situation.offenseTimeouts {
-            timeoutsSpent += 1
-        }
-        if next.situation.defenseTimeouts < previous.situation.defenseTimeouts {
-            timeoutsSpent += 1
-        }
+var twoMinuteWarnings = 0
+for play in allPlays {
+    let taken = play.timeoutsBeforeTheSnap
+    timeoutsSpent += taken.offense + taken.defense
+    if play.hasTwoMinuteWarningBeforeTheSnap { twoMinuteWarnings += 1 }
+    for election in play.decisions.compactMap(\.clockElectionValue)
+    where election == .timeoutInsteadOfRunoff || election == .injuryTimeoutCharged {
+        timeoutsSpent += 1
     }
 }
 print("")
@@ -571,6 +574,11 @@ report("scramblesPerGame", Double(scrambles.count) / Double(max(1, results.count
 report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
+print(
+    "    \(pad("two-minute warnings per game", 30))"
+        + "\(twoDecimals(Double(twoMinuteWarnings) / Double(max(1, results.count))))"
+        + "   (no target: two a game by rule, 3-41, plus one for each regular-season overtime period that reaches 2:00; a rule, not a rate)"
+)
 
 print("")
 print("  Not measured here")
@@ -593,7 +601,15 @@ var pointsBySource: [String: Int] = [:]
 var driveEnds: [String: Int] = [:]
 var startingSpots: [Int] = []
 var kickoffEndings: [String: Int] = [:]
-var puntSpots: [Int] = []
+// Every punt's net, gross and return, read off the record: the line, where it was
+// fielded and where it came to rest are all on it, so a returned punt's gross and its
+// return are told apart rather than one inferred from the other, and a touchback is
+// netted to the twenty as the source nets it. A blocked punt has no distance and is in
+// none of these.
+var puntNets: [Int] = []
+var puntGrosses: [Int] = []
+var puntReturnYards: [Int] = []
+var kickoffReturnYards: [Int] = []
 var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
 
 var twoPointTries = 0
@@ -656,8 +672,22 @@ for result in results {
         switch outcome.kind {
         case .kickoff:
             kickoffEndings["\(outcome.endedIn)", default: 0] += 1
+            // A return, as the source counts one: fielded and run, not fair caught,
+            // not out of bounds, and not an onside kick.
+            if play.calls.offense.concept != .onsideKick,
+                outcome.endedIn == .tackled || outcome.endedIn == .touchdown,
+                let back = play.returnYards
+            {
+                kickoffReturnYards.append(back)
+            }
         case .punt:
-            puntSpots.append(Int(play.situation.ballOn) - Int(outcome.finalSpot ?? 0))
+            if let net = play.netPuntDistance(rules: rulesInForce) { puntNets.append(net) }
+            if let gross = play.kickDistance { puntGrosses.append(gross) }
+            if outcome.endedIn == .tackled || outcome.endedIn == .touchdown,
+                let back = play.returnYards
+            {
+                puntReturnYards.append(back)
+            }
         case .fieldGoal:
             fieldGoalsByDistance.append(
                 (Int(play.situation.ballOn) + 17, outcome.endedIn == .fieldGoalGood))
@@ -902,9 +932,14 @@ let averageStart = Double(startingSpots.reduce(0, +)) / Double(max(1, startingSp
 report("averageStart", 100 - averageStart)
 let ownHalf = startingSpots.filter { $0 > 50 }.count
 report("ownHalfStarts", Double(ownHalf) / Double(max(1, startingSpots.count)) * 100)
-let averagePunt = Double(puntSpots.reduce(0, +)) / Double(max(1, puntSpots.count))
-report("puntsPerTeamGame", Double(puntSpots.count) / teamGames)
-report("netPunt", averagePunt)
+@MainActor
+func mean(_ values: [Int]) -> Double? {
+    values.isEmpty ? nil : Double(values.reduce(0, +)) / Double(values.count)
+}
+report("puntsPerTeamGame", Double(puntNets.count) / teamGames)
+report("netPunt", mean(puntNets))
+report("grossPunt", mean(puntGrosses))
+report("puntReturnYards", mean(puntReturnYards))
 report("twoPointTries", Double(twoPointTries) / teamGames)
 report(
     "twoPointConversion",
@@ -1075,6 +1110,7 @@ print(
     "    \(pad("kickoffs returned", 30))\(kickoffReturns) of \(allPlays.filter { $0.outcome.kind == .kickoff }.count)"
 )
 report("kickoffsReturned", Double(kickoffReturns) / Double(max(1, kickoffCount)) * 100)
+report("kickoffReturnYards", mean(kickoffReturnYards))
 let puntsReturned = allPlays.filter { $0.outcome.kind == .punt && $0.outcome.endedIn == .tackled }
     .count
 let puntCount = allPlays.filter { $0.outcome.kind == .punt }.count
