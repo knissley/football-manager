@@ -757,17 +757,17 @@ argument for watching a game.
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
-- **B1**, **B4** and **B5** landed with wave 2's record track: who was on the field is
-  twenty-two roster indices on every play
-  ([#21](https://github.com/knissley/football-manager/issues/21)), the weather is on the
-  game's result and no longer on a hundred and fifty situations
-  ([#23](https://github.com/knissley/football-manager/issues/23)), and the enums behind
+- **B1**, **B3**, **B4** and **B5** landed with wave 2's record track: who was on the
+  field is twenty-two roster indices on every play
+  ([#21](https://github.com/knissley/football-manager/issues/21)); the record carries a
+  schema version and the concept called is on it by value, with the design reference
+  `nil` until a playbook exists rather than pointing into a stand-in identifier space
+  that would have dangled ([#33](https://github.com/knissley/football-manager/issues/33));
+  the weather is on the game's result and no longer on a hundred and fifty situations
+  ([#23](https://github.com/knissley/football-manager/issues/23)); and the enums behind
   `DecisionPoint.detail` have a two-directional coverage register — the twelve cases the
   engine cannot reach are named with the issue that closes each, and the suite fails the
   moment one is reached ([#24](https://github.com/knissley/football-manager/issues/24)).
-- **B3** — the record carries no schema version, and `OffensiveCall.design` points into a
-  fake identifier space built from `PlayFamily.rawValue + 1` that will dangle the day a real
-  playbook exists. ([#33](https://github.com/knissley/football-manager/issues/33))
 - **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
   resolves a slot only through `outcome.participants` and a decoy or a cover man is not
   credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that

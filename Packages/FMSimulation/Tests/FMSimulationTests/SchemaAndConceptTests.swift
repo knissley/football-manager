@@ -46,18 +46,24 @@ struct SchemaAndConceptTests {
     }
 
     /// The concept is what was called, held by value, and the outcome is a play of that
-    /// concept's kind unless a flag before the snap wiped it out.
+    /// concept's kind unless a flag before the snap wiped it out. A called pass is a
+    /// dropback, and a dropback ends as a pass, a sack or a scramble — the first form of
+    /// this test asked for a pass and was red on every sack, which was the test's error
+    /// and not the engine's.
     @Test("The concept on the record agrees with the outcome's kind", .tags(.contract))
     func conceptAgreesWithTheOutcome() {
         var concepts: Set<PlayConcept> = []
         for result in Self.sample {
             for play in result.plays {
-                concepts.insert(play.calls.offense.concept)
+                let concept = play.calls.offense.concept
+                concepts.insert(concept)
                 guard play.outcome.kind != .penaltyOnly else { continue }
+                let agrees =
+                    concept.kind == .pass
+                    ? play.outcome.kind.isDropback
+                    : play.outcome.kind == concept.kind
                 #expect(
-                    play.outcome.kind == play.calls.offense.concept.kind,
-                    "play \(play.index): called \(play.calls.offense.concept), resolved \(play.outcome.kind)"
-                )
+                    agrees, "play \(play.index): called \(concept), resolved \(play.outcome.kind)")
             }
         }
         #expect(

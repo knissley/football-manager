@@ -1473,7 +1473,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.onsideKickRecovered.run()
         guard
             let onside = trace.first(where: {
-                CrudePlaybook.family(of: $0.calls.offense.design) == .onsideKick
+                $0.calls.offense.concept == .onsideKick
             })
         else {
             Issue.record("the trailing side never kicked onside")

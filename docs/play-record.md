@@ -2,11 +2,11 @@
 
 **Status: built.** `PlayRecord` and the types around it live in `FMCore`, the engine
 fills them on every snap, and `Tools/playsize` measures the footprint this doc quotes.
-Two caveats a reader needs: the record is not yet versioned and the play concept is
-stored by reference rather than by value (#33), and one fact the doc implies is derivable
-is not on the record yet — where a kick was fielded (#58). Who was on the field, whether
-a pass was completed and the points a play scored are on the record
-([below](#who-was-on-the-field)).
+One caveat a reader needs: one fact the doc implies is derivable is not on the record
+yet — where a kick was fielded (#58). Who was on the field, whether a pass was completed
+and the points a play scored are on the record ([below](#who-was-on-the-field)); the
+record is versioned and the concept called is on it by value
+([below](#what-was-called)).
 
 The highest-stakes artifact in the project. Everything downstream is a query over it
 ([ADR-0007](adr/0007-event-stream-contract.md)), and it gets designed before the engine
@@ -54,6 +54,7 @@ instrumentation on. Debuggable without being visible.
 PlayRecord
   game          GameID
   index         UInt16          monotonic within the game; also the seed-split label
+  schemaVersion UInt8           the shape this record was written under; 1 today
 
   situation     Situation       state before the snap
   calls         Calls           what each side chose, and who chose it
@@ -90,7 +91,8 @@ history.
 
 
 Calls
-  offense       OffensiveCall     design + tempo + motion, by value
+  offense       OffensiveCall     concept by value; design reference, nil until M6;
+                                  tempo + motion
   defense       DefensiveCall     coverage, rush, front, package, run fit, by value
   offensiveCaller  .coordinator(PersonnelID) | .player | .automatic
   defensiveCaller  .coordinator(PersonnelID) | .player | .automatic
@@ -197,6 +199,29 @@ plays*, *every third-and-long this season*, *this player's snaps* — keyed off 
 `SituationClass` and participant slots. References exist for pointing *in* from outside:
 a highlight, a news item, a bookmark.
 
+## What was called
+
+`OffensiveCall.concept` is a `PlayConcept`, held by value on every record: the kind of
+snap at the coarsest grain that is still useful — inside run, outside run, quick, medium
+and deep pass, screen, play action, punt, field goal, kneel, spike, kickoff, onside kick,
+extra point, two-point conversion. Fifteen cases, because that is how many kinds of snap
+the crude engine resolves; a play format with routes in it does not retire them, because
+a concept is what a tendency table, a box score and a gameplan rule key off, and none of
+them wants a route tree.
+
+`OffensiveCall.design` is the `PlayDesignID` the concept was run from, and it is `nil`
+until M6 gives it a playbook to point into. For a while it was not: the engine filled it
+from a stand-in whose identifiers were the concept's raw value plus one, so every record
+named a design that did not exist in an identifier space that would have dangled — or
+resolved to the wrong design — the day a real one was authored. A record now says what
+was called whatever becomes of the playbook it was called from
+([ADR-0010](adr/0010-plays-designs-and-calls.md), amended).
+
+The concept's kind is a contract: a snap of it produces a play of `PlayConcept.kind`
+unless a flag before the snap wiped it out, where a called pass is a dropback and a
+dropback may end as a sack or a scramble. `SchemaAndConceptTests` checks it over twenty
+games, and that no record names a design.
+
 ## Constraints from the rest of the design
 
 - **No strings, ever.** IDs and enums only; text is rendered later by `FMNarrative`
@@ -207,7 +232,10 @@ a highlight, a news item, a bookmark.
   is no global play order: a week's games are concurrent, so ordering across games comes
   from the schedule ([ADR-0011](adr/0011-derived-identity-for-regenerable-streams.md)).
 - **Versioned from day one** — old events must still fold correctly
-  ([ADR-0009](adr/0009-event-sourcing-by-default.md)).
+  ([ADR-0009](adr/0009-event-sourcing-by-default.md)). `PlayRecord.schemaVersion` says
+  which shape a record was written under, and is bumped when the layout or the meaning
+  of a field changes. It is 1: the day one this doc promised arrived late, and every
+  record written before it is a version-0 record that nothing needs to read.
 - **Derived values are not stored.** Win probability, leverage and grades are computed by
   `FMAnalysis`, not written into the record, so improving those models improves history
   retroactively.
@@ -221,19 +249,19 @@ it omitted the participant list entirely, which turned out to dominate.
 Measured against the real types (`swift run --package-path Tools/playsize`):
 
 ```
-Situation      23 B     OffensiveCall   10 B     DecisionPoint    8 B
-Calls          41 B     DefensiveCall    6 B     Participation   24 B
-PlayRef        10 B     PlayRecord     136 B  (fixed part)
+Situation      23 B     OffensiveCall   17 B     DecisionPoint    8 B
+Calls          49 B     DefensiveCall    6 B     Participation   24 B
+PlayRef        10 B     PlayRecord     144 B  (fixed part)
 ```
 
 A realistic play — twelve decision points, ten credited participants, and the twenty-two
-men on the field — is **494 bytes** in Swift's in-memory layout:
+men on the field — is **502 bytes** in Swift's in-memory layout:
 
 ```
-per game (150 plays)          72 KB
-your season (17 games)      1,230 KB
+per game (150 plays)          73 KB
+your season (17 games)      1,250 KB
 league season (272 games)      19 MB
-ten seasons, league-wide      192 MB
+ten seasons, league-wide      195 MB
 ```
 
 **Presence costs thirty-three bytes a play.** Twenty-two of them are the roster indices
@@ -248,6 +276,13 @@ used to quote: `Outcome.finalSpot` was not absorbed by padding as
 `WeatherState` it carried on every play moved to the game's result, and the fixed part
 from 144 to 136 with it. A fact about the afternoon was being written a hundred and fifty
 times a game for nothing that reads a situation to look at.
+
+**The concept took eight of them back.** `OffensiveCall` went from 10 bytes to 17 when
+the concept went on it by value and the design reference became optional: an optional
+eight-byte identifier is nine bytes aligned to eight. `Calls` went 41 → 49 and the fixed
+part 136 → 144. The version byte that landed with it cost nothing — it sits in the padding
+after the index. Eight bytes a play for a record that no longer points at a design nobody
+wrote ([ADR-0010](adr/0010-plays-designs-and-calls.md), amended).
 
 Three things changed as a result of measuring.
 
@@ -266,15 +301,16 @@ For the record, the type changes from
 [ADR-0010](adr/0010-plays-designs-and-calls.md) made a play *two bytes smaller*
 like-for-like: `Calls` went 43 → 41 as tempo and motion moved into `OffensiveCall` and
 the 8-byte `DefensiveCallID` became a 6-byte value stored inline. Storing both calls by
-value, so a playbook edit cannot rewrite history, was close to free.
+value, so a playbook edit cannot rewrite history, was close to free — until the concept
+went on the call by value as well, which is the eight bytes above.
 
 **The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~72 KB of records — 1.5×, not the 6× asserted before. Records and
+game against ~73 KB of records — 1.5×, not the 6× asserted before. Records and
 trajectories are the same order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 192 MB of league-wide history for a
+in full; replay everything else from its seed.** 195 MB of league-wide history for a
 ten-season career is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not

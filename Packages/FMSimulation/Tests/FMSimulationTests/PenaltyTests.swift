@@ -245,9 +245,9 @@ struct PenaltyTests {
                 quarter: 1, clockRemaining: 600, down: .first, distance: 10, ballOn: 60,
                 possession: TeamID(1))
             let personnel = Lineup.onField(
-                context, family: .insideRun, situation: situation, random: &random)
+                context, concept: .insideRun, situation: situation, random: &random)
             let calls = Calls(
-                offense: CrudePlaybook.call(.quickPass, tempo: tempo), defense: .baseCoverThree,
+                offense: OffensiveCall(concept: .quickPass, tempo: tempo), defense: .baseCoverThree,
                 offensiveCaller: .automatic, defensiveCaller: .automatic)
 
             var count = 0

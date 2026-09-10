@@ -1061,7 +1061,7 @@ var kickoffReturns = 0
 var onside = 0
 var onsideRecovered = 0
 for play in allPlays where play.outcome.kind == .kickoff {
-    if play.calls.offense.design == CrudePlaybook.design(for: .onsideKick) {
+    if play.calls.offense.concept == .onsideKick {
         onside += 1
         if play.outcome.endedIn == .fumbleRecovered { onsideRecovered += 1 }
     } else if play.outcome.endedIn != .touchback {

@@ -44,8 +44,8 @@ struct StalemateResolver: PlayResolver {
         situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        switch family {
+        let concept = calls.offense.concept
+        switch concept {
         case .kickoff:
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
@@ -59,7 +59,7 @@ struct StalemateResolver: PlayResolver {
                 Outcome(kind: .fieldGoal, yards: 0, endedIn: .fieldGoalMissed, clockRunoff: 5), []
             )
         default:
-            return (Outcome(kind: family.kind, yards: 1, endedIn: .tackled, clockRunoff: 6), [])
+            return (Outcome(kind: concept.kind, yards: 1, endedIn: .tackled, clockRunoff: 6), [])
         }
     }
 }
@@ -71,8 +71,8 @@ struct GrinderResolver: PlayResolver {
         situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        switch family {
+        let concept = calls.offense.concept
+        switch concept {
         case .kickoff:
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
@@ -92,11 +92,11 @@ struct GrinderResolver: PlayResolver {
             if Int(situation.ballOn) - Int(gain) <= 0 {
                 return (
                     Outcome(
-                        kind: family.kind, yards: Int16(situation.ballOn), endedIn: .touchdown,
+                        kind: concept.kind, yards: Int16(situation.ballOn), endedIn: .touchdown,
                         clockRunoff: 6), []
                 )
             }
-            return (Outcome(kind: family.kind, yards: gain, endedIn: .tackled, clockRunoff: 6), [])
+            return (Outcome(kind: concept.kind, yards: gain, endedIn: .tackled, clockRunoff: 6), [])
         }
     }
 }
@@ -349,13 +349,10 @@ struct GameSimulatorTests {
         for seed in UInt64(1)...4 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
             for play in result.plays {
-                guard let family = CrudePlaybook.family(of: play.calls.offense.design) else {
-                    Issue.record("play \(play.index) referenced a design outside the playbook")
-                    continue
-                }
+                let concept = play.calls.offense.concept
                 #expect(
-                    play.outcome.kind == family.kind,
-                    "called \(family) and resolved \(play.outcome.kind)")
+                    play.outcome.kind == concept.kind,
+                    "called \(concept) and resolved \(play.outcome.kind)")
             }
         }
     }
@@ -364,17 +361,15 @@ struct GameSimulatorTests {
     /// until an outcome-matches-the-call test surfaced it.
     @Test("The caller punts, kicks and goes for it in the right places", .tags(.unit))
     func fourthDownDecisions() {
-        var families: Set<PlayFamily> = []
+        var concepts: Set<PlayConcept> = []
         for seed in UInt64(1)...8 {
             let result = simulate(GrinderResolver(), setup(seed: seed))
             for play in result.plays where play.situation.down == .fourth {
-                if let family = CrudePlaybook.family(of: play.calls.offense.design) {
-                    families.insert(family)
-                }
+                concepts.insert(play.calls.offense.concept)
             }
         }
-        #expect(families.contains(.punt), "never punted in eight games")
-        #expect(families.contains(.fieldGoal), "never attempted a field goal")
+        #expect(concepts.contains(.punt), "never punted in eight games")
+        #expect(concepts.contains(.fieldGoal), "never attempted a field goal")
     }
 
     /// Nobody kicks a seventy-yarder. The baseline's range is flat and generous; a real
@@ -385,7 +380,7 @@ struct GameSimulatorTests {
         for seed in UInt64(1)...8 {
             let result = simulate(GrinderResolver(), setup(seed: seed))
             for play in result.plays
-            where CrudePlaybook.family(of: play.calls.offense.design) == .fieldGoal {
+            where play.calls.offense.concept == .fieldGoal {
                 let length = rules.fieldGoalDistance(ballOn: play.situation.ballOn)
                 #expect(
                     length <= BaselineCaller.maximumFieldGoal,
@@ -404,10 +399,9 @@ struct GameSimulatorTests {
         for seed in UInt64(1)...6 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
             for play in result.plays where SituationClass(play.situation).isMustPass {
-                guard let family = CrudePlaybook.family(of: play.calls.offense.design),
-                    family.isRun || family.isPass
-                else { continue }
-                if family.isPass { passes += 1 } else { runs += 1 }
+                let concept = play.calls.offense.concept
+                guard concept.isRun || concept.isPass else { continue }
+                if concept.isPass { passes += 1 } else { runs += 1 }
             }
         }
         #expect(passes > 0)

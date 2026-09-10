@@ -217,8 +217,8 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 for: before, classified: SituationClass(before), context: context,
                 random: &random)
             state.offensePersonnel = caller.personnel(
-                for: CrudePlaybook.family(of: call.design) ?? .insideRun,
-                situation: before, classified: SituationClass(before), random: &random)
+                for: call.concept, situation: before, classified: SituationClass(before),
+                random: &random)
 
             let showing = state.situation()
             state.defensePackage = caller.package(
@@ -233,7 +233,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         if state.pendingKickoff {
             let onside = caller.kicksOnside(situation: situation, classified: classified)
             calls = Calls(
-                offense: CrudePlaybook.call(onside ? .onsideKick : .kickoff),
+                offense: OffensiveCall(concept: onside ? .onsideKick : .kickoff),
                 defense: .preventShell,
                 offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
@@ -241,7 +241,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             calls = tryCalls(goesForTwo: state.tryGoesForTwo ?? false)
         } else {
             calls = Calls(
-                offense: declared ?? CrudePlaybook.call(.insideRun),
+                offense: declared ?? OffensiveCall(concept: .insideRun),
                 defense: caller.defensiveCall(
                     for: situation, classified: classified, context: context, random: &random),
                 offensiveCaller: .coordinator(PersonnelID(1)),
@@ -254,8 +254,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // Drawn immediately before the snap is resolved, so the play's stream is spent
         // in the same order it was when the resolver drew the lineup itself.
         let onField = Lineup.onField(
-            context, family: CrudePlaybook.family(of: calls.offense.design) ?? .insideRun,
-            situation: situation, random: &random)
+            context, concept: calls.offense.concept, situation: situation, random: &random)
 
         let resolved = resolver.resolve(
             situation: situation, calls: calls, onField: onField, context: context,
@@ -304,7 +303,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     /// with where the ball is.
     private func tryCalls(goesForTwo: Bool) -> Calls {
         Calls(
-            offense: CrudePlaybook.call(goesForTwo ? .twoPointConversion : .extraPoint),
+            offense: OffensiveCall(concept: goesForTwo ? .twoPointConversion : .extraPoint),
             defense: .goalLineStop,
             offensiveCaller: goesForTwo ? .coordinator(PersonnelID(1)) : .automatic,
             defensiveCaller: .automatic)

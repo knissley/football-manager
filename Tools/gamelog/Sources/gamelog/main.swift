@@ -194,9 +194,8 @@ func downAndDistance(_ situation: Situation) -> String {
     return situation.isGoalToGo ? "\(ordinal) & goal" : "\(ordinal) & \(situation.distance)"
 }
 
-func concept(_ calls: Calls) -> String {
-    guard let family = CrudePlaybook.family(of: calls.offense.design) else { return "unknown" }
-    switch family {
+func conceptName(_ calls: Calls) -> String {
+    switch calls.offense.concept {
     case .insideRun: return "inside run"
     case .outsideRun: return "outside run"
     case .quickPass: return "quick pass"
@@ -483,9 +482,9 @@ struct Broadcast {
         // kickoff is a `penaltyOnly` play that is still part of the kicking sequence —
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
-        let family = CrudePlaybook.family(of: play.calls.offense.design)
-        let isTry = family == .extraPoint || family == .twoPointConversion
-        let isKickoff = family == .kickoff || family == .onsideKick
+        let concept = play.calls.offense.concept
+        let isTry = concept == .extraPoint || concept == .twoPointConversion
+        let isKickoff = concept == .kickoff || concept == .onsideKick
 
         // A kickoff and a try belong to the sequence between drives rather than to a
         // drive, so both close whatever was open — as does the ball changing hands.
@@ -548,7 +547,7 @@ struct Broadcast {
         // Fourteen, not thirteen: "two-point try" is thirteen characters exactly, and a
         // conversion printed as `two-point tryconversion good` is the one play in the
         // sport whose line nobody could read.
-        line += pad(concept(play.calls), 14)
+        line += pad(conceptName(play.calls), 14)
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }

@@ -22,7 +22,7 @@ public struct CrudeResolver: PlayResolver {
         situation: Situation, calls: Calls, onField personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
+        let concept = calls.offense.concept
 
         // A flag before the snap means the play never happened, whatever was called.
         // Every snap can draw one, kicks included. Tries and kickoffs used to be excluded
@@ -42,15 +42,15 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
-        switch family {
+        switch concept {
         case .insideRun, .outsideRun:
-            return run(family, situation, calls, context, personnel, &random)
+            return run(concept, situation, calls, context, personnel, &random)
         case .quickPass, .mediumPass, .deepPass, .screen, .playAction:
-            return pass(family, situation, calls, context, personnel, &random)
+            return pass(concept, situation, calls, context, personnel, &random)
         case .punt:
             return punt(situation, context, personnel, &random)
         case .fieldGoal, .extraPoint:
-            return kick(family, situation, context, personnel, &random)
+            return kick(concept, situation, context, personnel, &random)
         case .twoPointConversion:
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff:
@@ -175,7 +175,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Pass
 
     private func pass(
-        _ family: PlayFamily,
+        _ concept: PlayConcept,
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
@@ -273,7 +273,7 @@ public struct CrudeResolver: PlayResolver {
             isTry
             ? RouteDepth(
                 yards: 1, timeMillis: 1_500, flightTicks: 3, accuracyKey: .throwAccuracyShort)
-            : routeDepth(family)
+            : routeDepth(concept)
 
         // Where the ball is actually caught. Every route of a kind used to be exactly the
         // same length — a `mediumPass` was ten yards, always — and that is most of why
@@ -439,7 +439,7 @@ public struct CrudeResolver: PlayResolver {
         // Linemen who released to block a run that turned out to be a throw.
         if penalty == nil {
             penalty = Penalties.onLineRelease(
-                blockers: protection, isScreen: family == .screen || family == .playAction,
+                blockers: protection, isScreen: concept == .screen || concept == .playAction,
                 personnel: personnel, context: context, random: &random)
         }
 
@@ -549,7 +549,7 @@ public struct CrudeResolver: PlayResolver {
     // MARK: - Run
 
     private func run(
-        _ family: PlayFamily,
+        _ concept: PlayConcept,
         _ situation: Situation,
         _ calls: Calls,
         _ context: PlayContext,
@@ -621,7 +621,7 @@ public struct CrudeResolver: PlayResolver {
         decisions.append(
             .init(
                 tick: 10, kind: .holeQuality, primary: SlotLayout.back,
-                detail: family == .insideRun ? 0 : 1, value: quality))
+                detail: concept == .insideRun ? 0 : 1, value: quality))
 
         // Vision turns a hole into yards; a back with none runs into his own linemen.
         let vision = rating(.vision, SlotLayout.back, personnel, context)
@@ -647,7 +647,7 @@ public struct CrudeResolver: PlayResolver {
 
         let tackle = tackleSequence(
             carrier: SlotLayout.back,
-            pursuit: family == .insideRun
+            pursuit: concept == .insideRun
                 ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
             personnel: personnel,
             context: context,
@@ -963,7 +963,7 @@ public struct CrudeResolver: PlayResolver {
     }
 
     private func kick(
-        _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
+        _ concept: PlayConcept, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         if let foul = Penalties.onKick(
@@ -1005,7 +1005,7 @@ public struct CrudeResolver: PlayResolver {
         // hard to block, and the sport converts it at a better rate than a field goal of
         // the same length. Running it through the field-goal curve unmodified is what
         // made extra points a coin-flip-adjacent 85%.
-        if family == .extraPoint { chance += 0.025 }
+        if concept == .extraPoint { chance += 0.025 }
         // Centred on an average leg, so the curve above *is* the league average rather
         // than a floor everybody beats.
         chance += (accuracy - 68) * 0.004
@@ -1014,10 +1014,10 @@ public struct CrudeResolver: PlayResolver {
         let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
         return (
             Outcome(
-                kind: family == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
+                kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
                 endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
                 participants: participation(for: SlotLayout.specialist, personnel, role: .kicker),
-                clockRunoff: family == .extraPoint ? 0 : 5),
+                clockRunoff: concept == .extraPoint ? 0 : 5),
             []
         )
     }
@@ -1031,8 +1031,8 @@ public struct CrudeResolver: PlayResolver {
         let accuracyKey: RatingKey
     }
 
-    private func routeDepth(_ family: PlayFamily) -> RouteDepth {
-        switch family {
+    private func routeDepth(_ concept: PlayConcept) -> RouteDepth {
+        switch concept {
         case .screen:
             return RouteDepth(
                 yards: -1, timeMillis: 1_400, flightTicks: 3, accuracyKey: .throwAccuracyShort)

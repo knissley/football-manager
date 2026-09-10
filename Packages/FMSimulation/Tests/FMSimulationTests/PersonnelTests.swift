@@ -34,7 +34,7 @@ struct PersonnelTests {
             possession: TeamID(1), offensePersonnel: group, defensePackage: package)
         var random = SplittableRandom(seed: seed)
         return Lineup.onField(
-            context, family: .insideRun, situation: situation, random: &random)
+            context, concept: .insideRun, situation: situation, random: &random)
     }
 
     /// Eleven men, whoever they are. A grouping that fields ten is a bug that shows up as
@@ -132,7 +132,7 @@ struct PersonnelTests {
                 quarter: 1, clockRemaining: 800, down: .first, distance: 10, ballOn: 65,
                 possession: TeamID(1), offensePersonnel: .eleven, defensePackage: package)
             let calls = Calls(
-                offense: CrudePlaybook.call(.insideRun), defense: .baseCoverThree,
+                offense: OffensiveCall(concept: .insideRun), defense: .baseCoverThree,
                 offensiveCaller: .automatic, defensiveCaller: .automatic)
 
             var random = SplittableRandom(seed: 88)
@@ -140,7 +140,7 @@ struct PersonnelTests {
             let carries = 4_000
             for _ in 0..<carries {
                 let onField = Lineup.onField(
-                    context, family: .insideRun, situation: situation, random: &random)
+                    context, concept: .insideRun, situation: situation, random: &random)
                 let resolved = CrudeResolver().resolve(
                     situation: situation, calls: calls, onField: onField, context: context,
                     random: &random)

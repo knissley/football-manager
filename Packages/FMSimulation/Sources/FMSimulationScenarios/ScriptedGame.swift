@@ -55,14 +55,13 @@ public struct Snap: Sendable {
     /// The score from the possessing team's point of view.
     public var differential: Int16 { situation.scoreDifferential }
 
-    public var family: PlayFamily? { CrudePlaybook.family(of: calls.offense.design) }
+    public var concept: PlayConcept { calls.offense.concept }
 
     public var isScrimmage: Bool {
-        guard let family else { return false }
-        return PlayFamily.scrimmage.contains(family) || family == .kneel || family == .spike
+        PlayConcept.scrimmage.contains(concept) || concept == .kneel || concept == .spike
     }
-    public var isTry: Bool { family == .extraPoint || family == .twoPointConversion }
-    public var isKickoff: Bool { family == .kickoff || family == .onsideKick }
+    public var isTry: Bool { concept == .extraPoint || concept == .twoPointConversion }
+    public var isKickoff: Bool { concept == .kickoff || concept == .onsideKick }
 
     /// The seconds the offence takes between the end of one play and the snap of the
     /// next when the clock is running — its tempo — measured from the plays so far rather
@@ -81,7 +80,7 @@ extension Snap {
 
     /// Honours the call and changes nothing worth noticing.
     public var neutral: Outcome {
-        switch family {
+        switch concept {
         case .kickoff: return .kickoffTouchback
         case .onsideKick: return .onsideKick(lostAtOwn: 45)
         case .punt: return .puntTouchback
@@ -93,8 +92,7 @@ extension Snap {
         default:
             // A one-yard gain of whatever kind was called, tackled in bounds: the ball
             // moves, the clock runs, and the down changes hands on downs every four plays.
-            return Outcome(
-                kind: family?.kind ?? .rush, yards: 1, endedIn: .tackled, clockRunoff: 6)
+            return Outcome(kind: concept.kind, yards: 1, endedIn: .tackled, clockRunoff: 6)
         }
     }
 
@@ -282,7 +280,7 @@ extension Outcome {
 /// scenario is never at the mercy of the baseline caller's judgement.
 public struct ScriptedCaller: FMSimulation.PlayCaller {
 
-    public var offensiveFamily: @Sendable (Situation) -> PlayFamily = { _ in .insideRun }
+    public var offensiveConcept: @Sendable (Situation) -> PlayConcept = { _ in .insideRun }
     public var offensiveTempo: @Sendable (Situation) -> Tempo = { _ in .normal }
     public var timeoutDecision: @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
         _, _ in false
@@ -291,7 +289,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     public var onsideDecision: @Sendable (Situation) -> Bool = { _ in false }
 
     public init(
-        offensiveFamily: @escaping @Sendable (Situation) -> PlayFamily = { _ in .insideRun },
+        offensiveConcept: @escaping @Sendable (Situation) -> PlayConcept = { _ in .insideRun },
         offensiveTempo: @escaping @Sendable (Situation) -> Tempo = { _ in .normal },
         timeoutDecision: @escaping @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
             _, _ in false
@@ -299,7 +297,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         twoPointDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
         onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false }
     ) {
-        self.offensiveFamily = offensiveFamily
+        self.offensiveConcept = offensiveConcept
         self.offensiveTempo = offensiveTempo
         self.timeoutDecision = timeoutDecision
         self.twoPointDecision = twoPointDecision
@@ -310,7 +308,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
     ) -> OffensiveCall {
-        CrudePlaybook.call(offensiveFamily(situation), tempo: offensiveTempo(situation))
+        OffensiveCall(concept: offensiveConcept(situation), tempo: offensiveTempo(situation))
     }
 
     public func defensiveCall(
@@ -336,7 +334,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     }
 
     public func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup {
         .eleven

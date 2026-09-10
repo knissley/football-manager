@@ -118,7 +118,7 @@ public enum RulesScenarios {
 
     static var fieldGoalThenKickoff: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
+            caller: ScriptedCaller(offensiveConcept: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
         ) { snap in
             if snap.index == 1 { return .rush(Int16(snap.ballOn) - 20) }
             return plod(snap)
@@ -208,7 +208,7 @@ public enum RulesScenarios {
     static var scorelessPostseasonUntilTheSixthPeriod: ScriptedGame {
         ScriptedGame(
             isPostseason: true,
-            caller: ScriptedCaller(offensiveFamily: { $0.quarter == 6 ? .fieldGoal : .insideRun }),
+            caller: ScriptedCaller(offensiveConcept: { $0.quarter == 6 ? .fieldGoal : .insideRun }),
             play: plod)
     }
 
@@ -225,7 +225,7 @@ public enum RulesScenarios {
     /// that had it first kicks another.
     static var overtimeFieldGoalsUntilOneIsUnanswered: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.quarter >= 5 && $0.down == .fourth ? .fieldGoal : .insideRun
             }),
             play: plod)
@@ -235,7 +235,7 @@ public enum RulesScenarios {
     /// possession and then kicks off; what the kickoff produces is `kick`.
     static func overtimeFieldGoalThenKickoff(_ kick: Outcome) -> ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.quarter >= 5 && $0.down == .fourth ? .fieldGoal : .insideRun
             })
         ) { snap in
@@ -287,9 +287,9 @@ public enum RulesScenarios {
 
     static var puntReturnedAndTackled: ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: { $0.down == .fourth ? .punt : .insideRun })
+            caller: ScriptedCaller(offensiveConcept: { $0.down == .fourth ? .punt : .insideRun })
         ) { snap in
-            snap.family == .punt ? .punt(toOwn: 30, endedIn: .tackled) : plod(snap)
+            snap.concept == .punt ? .punt(toOwn: 30, endedIn: .tackled) : plod(snap)
         }
     }
 
@@ -360,7 +360,7 @@ public enum RulesScenarios {
     /// the way a scoreless postseason walk is brought to an end. With no period it never
     /// kicks.
     static func decider(_ period: UInt8?) -> ScriptedCaller {
-        ScriptedCaller(offensiveFamily: {
+        ScriptedCaller(offensiveConcept: {
             $0.quarter == period && $0.down == .fourth ? .fieldGoal : .insideRun
         })
     }
@@ -501,9 +501,9 @@ public enum RulesScenarios {
             if snap.index == 1 { return .pickSix }
             guard snap.quarter == 4, snap.clock <= 120, snap.isScrimmage else { return plod(snap) }
             if snap.differential > 0 { return .interception(to: 50) }
-            if snap.down == .third, snap.family != .spike {
+            if snap.down == .third, snap.concept != .spike {
                 return Outcome(
-                    kind: snap.family?.kind ?? .pass, yards: Int16(snap.distance),
+                    kind: snap.concept.kind, yards: Int16(snap.distance),
                     endedIn: .tackled, clockRunoff: 6)
             }
             return plod(snap)
@@ -527,12 +527,12 @@ public enum RulesScenarios {
     /// A drive to `yardLine`, then a missed field goal from there.
     static func missedFieldGoal(from yardLine: UInt8) -> ScriptedGame {
         ScriptedGame(
-            caller: ScriptedCaller(offensiveFamily: {
+            caller: ScriptedCaller(offensiveConcept: {
                 $0.ballOn == yardLine ? .fieldGoal : .insideRun
             })
         ) { snap in
             if snap.index == 1 { return .rush(Int16(snap.ballOn) - Int16(yardLine)) }
-            if snap.family == .fieldGoal { return .fieldGoal(good: false) }
+            if snap.concept == .fieldGoal { return .fieldGoal(good: false) }
             return plod(snap)
         }
     }
@@ -586,10 +586,10 @@ public enum RulesScenarios {
     static var onsideKickRecovered: ScriptedGame {
         ScriptedGame(
             caller: ScriptedCaller(
-                offensiveFamily: { $0.ballOn == 20 ? .fieldGoal : .insideRun },
+                offensiveConcept: { $0.ballOn == 20 ? .fieldGoal : .insideRun },
                 onsideDecision: { $0.scoreDifferential < 0 })
         ) { snap in
-            if snap.family == .onsideKick { return .onsideKick(recoveredAt: 53) }
+            if snap.concept == .onsideKick { return .onsideKick(recoveredAt: 53) }
             guard snap.isScrimmage else { return snap.neutral }
             if snap.differential == 0 { return .pickSix }
             if snap.differential == -7, snap.ballOn > 20 { return .rush(Int16(snap.ballOn) - 20) }

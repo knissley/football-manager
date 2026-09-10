@@ -48,6 +48,8 @@ struct GoldenSeedTests {
         sum.mix(result.awayScore)
         sum.mix(result.plays.count)
         for play in result.plays {
+            sum.mix(play.schemaVersion)
+            sum.mix(play.calls.offense.concept.rawValue)
             sum.mix(play.situation.ballOn)
             sum.mix(play.situation.distance)
             sum.mix(play.situation.down.rawValue)
@@ -119,9 +121,17 @@ struct GoldenSeedTests {
             // are mixed in from here on. A resolver writes the first and the game the
             // second, neither reads either, and no play produced anything different;
             // `Tools/gamelog` prints the same game before and after.
-            (UInt64(1), UInt64(1_252_149_500_615_403_092)),
-            (UInt64(5), UInt64(16_605_019_685_199_582_898)),
-            (UInt64(12), UInt64(6_766_036_471_287_456_912)),
+            //
+            // And by the record a third time: `PlayRecord.schemaVersion`, which is 1,
+            // and the concept the offence called, now held by value as
+            // `OffensiveCall.concept` rather than pointed at through a stand-in design
+            // identifier, are mixed in from here on. The concept was always on the
+            // record — the identifier was its raw value plus one — so this is the same
+            // fact hashed under a different name, and nothing a play produced changed;
+            // `Tools/gamelog` prints the same game before and after.
+            (UInt64(1), UInt64(1_449_257_930_156_826_948)),
+            (UInt64(5), UInt64(5_680_793_347_881_614_824)),
+            (UInt64(12), UInt64(11_800_324_472_582_984_274)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

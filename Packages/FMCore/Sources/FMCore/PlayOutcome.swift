@@ -487,6 +487,11 @@ public struct PlayRef: Sendable, Hashable, Codable, Comparable {
 /// improves history retroactively.
 public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
 
+    /// The shape a record written today has. Bumped when the record's layout or the
+    /// meaning of a field changes, so that an old event can still be folded by whatever
+    /// reads it ([ADR-0009](../../../../docs/adr/0009-event-sourcing-by-default.md)).
+    public static let currentSchemaVersion: UInt8 = 1
+
     /// The index of a slot nobody stood in.
     public static let vacant: UInt8 = 255
 
@@ -494,6 +499,9 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
     /// Order within the game, starting at zero. Also the label used to split a
     /// per-play random stream, which is why it must be stable.
     public var index: UInt16
+    /// Which shape this record was written under; see `currentSchemaVersion`. Declared
+    /// here, after the index, where the padding before the situation absorbs it.
+    public var schemaVersion: UInt8
     public var situation: Situation
     public var calls: Calls
     public var decisions: [DecisionPoint]
@@ -519,8 +527,10 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         calls: Calls,
         decisions: [DecisionPoint] = [],
         outcome: Outcome,
-        onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count)
+        onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count),
+        schemaVersion: UInt8 = PlayRecord.currentSchemaVersion
     ) {
+        self.schemaVersion = schemaVersion
         self.game = game
         self.index = index
         self.situation = situation
