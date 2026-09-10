@@ -23,7 +23,8 @@ import Testing
 struct ScenarioLibraryTests {
 
     @Test(
-        "contract · --scenario list names every scenario in the conformance library, each with the football it is there to show"
+        "contract · --scenario list names every scenario in the conformance library, each with the football it is there to show",
+        .tags(.contract)
     )
     func listingNamesEveryScenario() {
         let listing = RulesScenario.listing()
@@ -52,7 +53,9 @@ struct ScenarioLibraryTests {
         }
     }
 
-    @Test("contract · a scenario's slug is the name the tool takes on the command line")
+    @Test(
+        "contract · a scenario's slug is the name the tool takes on the command line",
+        .tags(.contract))
     func slugsRoundTripAndAreDistinct() {
         var seen: Set<String> = []
         for scenario in RulesScenario.allCases {
@@ -66,7 +69,9 @@ struct ScenarioLibraryTests {
         }
     }
 
-    @Test("contract · every scenario in the library runs and emits a stream a printer can walk")
+    @Test(
+        "contract · every scenario in the library runs and emits a stream a printer can walk",
+        .tags(.contract))
     func everyScenarioRuns() {
         for scenario in RulesScenario.allCases {
             let trace = scenario.run()

@@ -26,7 +26,7 @@ struct AdvancementTests {
 
     /// `ballOn` is yards from the *opponent's* goal, so a gain reduces it. Getting this
     /// backwards is the off-by-a-lot bug the convention exists to prevent.
-    @Test("A gain moves the ball toward the opponent's goal")
+    @Test("A gain moves the ball toward the opponent's goal", .tags(.unit))
     func gainMovesForward() {
         let next = rules.advance(from: situation(ballOn: 75), outcome: outcome(7))
         #expect(next.ballOn == 68)
@@ -35,7 +35,7 @@ struct AdvancementTests {
         #expect(next.possessionChanged == false)
     }
 
-    @Test("A loss moves it back and adds to the distance")
+    @Test("A loss moves it back and adds to the distance", .tags(.unit))
     func lossMovesBack() {
         let next = rules.advance(from: situation(ballOn: 75), outcome: outcome(-4, kind: .sack))
         #expect(next.ballOn == 79)
@@ -43,7 +43,7 @@ struct AdvancementTests {
         #expect(next.distance == 14)
     }
 
-    @Test("Reaching the marker is a new set of downs")
+    @Test("Reaching the marker is a new set of downs", .tags(.unit))
     func firstDown() {
         let next = rules.advance(from: situation(distance: 10, ballOn: 60), outcome: outcome(10))
         #expect(next.down == .first)
@@ -57,7 +57,7 @@ struct AdvancementTests {
 
     /// There is no first and ten from the opponent's six. Inside the ten the distance
     /// is to the goal line.
-    @Test("A first down inside the ten is first and goal")
+    @Test("A first down inside the ten is first and goal", .tags(.unit))
     func firstAndGoal() {
         let next = rules.advance(from: situation(distance: 10, ballOn: 18), outcome: outcome(12))
         #expect(next.ballOn == 6)
@@ -65,7 +65,7 @@ struct AdvancementTests {
         #expect(next.distance == 6, "first and ten from the six is not a thing")
     }
 
-    @Test("An incompletion costs a down and nothing else")
+    @Test("An incompletion costs a down and nothing else", .tags(.unit))
     func incompletion() {
         let next = rules.advance(
             from: situation(down: .second, distance: 7, ballOn: 40),
@@ -77,7 +77,7 @@ struct AdvancementTests {
 
     /// Fourth and short of the marker: the ball goes over where it lies, and the new
     /// offence's field position is the mirror of the old one's.
-    @Test("Failing on fourth down hands the ball over at the spot")
+    @Test("Failing on fourth down hands the ball over at the spot", .tags(.unit))
     func turnoverOnDowns() {
         let next = rules.advance(
             from: situation(down: .fourth, distance: 3, ballOn: 55), outcome: outcome(1))
@@ -89,7 +89,7 @@ struct AdvancementTests {
         #expect(next.distance == 10)
     }
 
-    @Test("Converting on fourth down keeps the ball")
+    @Test("Converting on fourth down keeps the ball", .tags(.unit))
     func fourthDownConversion() {
         let next = rules.advance(
             from: situation(down: .fourth, distance: 1, ballOn: 55), outcome: outcome(4))
@@ -100,7 +100,7 @@ struct AdvancementTests {
 
     // MARK: - Scoring
 
-    @Test("A touchdown scores six and owes a try")
+    @Test("A touchdown scores six and owes a try", .tags(.unit))
     func touchdown() {
         let next = rules.advance(
             from: situation(ballOn: 8), outcome: outcome(8, .touchdown))
@@ -111,7 +111,7 @@ struct AdvancementTests {
         #expect(next.ballOn == rules.extraPointSnapYard)
     }
 
-    @Test("A made field goal scores three and owes a kickoff")
+    @Test("A made field goal scores three and owes a kickoff", .tags(.unit))
     func fieldGoal() {
         let next = rules.advance(
             from: situation(down: .fourth, ballOn: 25),
@@ -123,7 +123,7 @@ struct AdvancementTests {
 
     /// A miss from your own forty is worse field position than a punt, because the
     /// defence takes over at the spot of the kick rather than the line of scrimmage.
-    @Test("A missed field goal gives the ball up at the spot of the kick")
+    @Test("A missed field goal gives the ball up at the spot of the kick", .tags(.unit))
     func missedFieldGoal() {
         let long = rules.advance(
             from: situation(down: .fourth, ballOn: 45),
@@ -146,7 +146,8 @@ struct AdvancementTests {
     /// The sport: the team scored upon keeps the ball to put it in play with a free kick
     /// from its own 20, and that kick changes hands like every kickoff does.
     @Test(
-        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety is two points to the defence, and the team scored upon keeps the ball to free-kick from its own 20"
+        "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety is two points to the defence, and the team scored upon keeps the ball to free-kick from its own 20",
+        .tags(.football)
     )
     func safety() {
         let next = rules.advance(
@@ -164,7 +165,7 @@ struct AdvancementTests {
 
     /// `yards` is the offence's net, which says nothing useful once the defence has the
     /// ball. A play that changes hands reports the resting spot outright.
-    @Test("An interception hands over at the spot it came to rest")
+    @Test("An interception hands over at the spot it came to rest", .tags(.unit))
     func interception() {
         let next = rules.advance(
             from: situation(ballOn: 60),
@@ -175,7 +176,7 @@ struct AdvancementTests {
         #expect(next.distance == 10)
     }
 
-    @Test("A return to the house is a defensive touchdown")
+    @Test("A return to the house is a defensive touchdown", .tags(.unit))
     func pickSix() {
         let next = rules.advance(
             from: situation(ballOn: 60),
@@ -186,7 +187,7 @@ struct AdvancementTests {
         #expect(next.requiresTry)
     }
 
-    @Test("A fumble recovered by the offence is not a change of possession")
+    @Test("A fumble recovered by the offence is not a change of possession", .tags(.unit))
     func fumbleRecovered() {
         let next = rules.advance(
             from: situation(down: .second, distance: 8, ballOn: 50),
@@ -196,7 +197,7 @@ struct AdvancementTests {
         #expect(next.distance == 5)
     }
 
-    @Test("A punt fair caught or downed hands over at the spot")
+    @Test("A punt fair caught or downed hands over at the spot", .tags(.unit))
     func punts() {
         let fairCatch = rules.advance(
             from: situation(down: .fourth, ballOn: 70),
@@ -215,7 +216,7 @@ struct AdvancementTests {
 
     /// Every path has to leave the ball somewhere legal. A spot of zero or a hundred is
     /// in an end zone, which is a score, not a place to snap from.
-    @Test("Every advancement leaves the ball on a legal spot")
+    @Test("Every advancement leaves the ball on a legal spot", .tags(.contract))
     func spotsAreAlwaysLegal() {
         let endings = PlayEnding.allCases
         let spots: [UInt8] = [1, 2, 10, 20, 50, 80, 95, 99]
@@ -240,7 +241,7 @@ struct AdvancementTests {
 
     /// Points only ever come with a scoring play, and a scoring play always brings
     /// points. A mismatch would show up as a scoreboard that disagrees with the log.
-    @Test("Points and scoring plays agree")
+    @Test("Points and scoring plays agree", .tags(.contract))
     func pointsMatchScoring() {
         for ending in PlayEnding.allCases {
             let result = rules.advance(
@@ -254,7 +255,7 @@ struct AdvancementTests {
 
     /// A penalty is enforced by the penalty layer, so advancement must leave the
     /// situation exactly as it found it rather than quietly consuming a down.
-    @Test("An enforced penalty advances nothing")
+    @Test("An enforced penalty advances nothing", .tags(.contract))
     func penaltyAdvancesNothing() {
         let before = situation(down: .third, distance: 7, ballOn: 42)
         let next = rules.advance(

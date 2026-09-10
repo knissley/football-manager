@@ -42,7 +42,7 @@ struct FourthDownTests {
         return family != .punt && family != .fieldGoal
     }
 
-    @Test("Fourth and one is a play, not a formality")
+    @Test("Fourth and one is a play, not a formality", .tags(.unit))
     func fourthAndOne() {
         #expect(goesForIt(decision(distance: 1, ballOn: 50)), "fourth and one at midfield")
         #expect(goesForIt(decision(distance: 1, ballOn: 45)), "fourth and one in their half")
@@ -52,7 +52,7 @@ struct FourthDownTests {
     }
 
     /// Chasing the game moves the line back; protecting a lead moves it forward.
-    @Test("Field position and the scoreboard both move the decision")
+    @Test("Field position and the scoreboard both move the decision", .tags(.unit))
     func contextMoves() {
         #expect(
             !goesForIt(decision(distance: 1, ballOn: 62)),
@@ -63,7 +63,7 @@ struct FourthDownTests {
     }
 
     /// No-man's land: too far for a kick worth taking, too close for a punt to buy much.
-    @Test("Short yardage in no-man's land is a fourth-down attempt")
+    @Test("Short yardage in no-man's land is a fourth-down attempt", .tags(.unit))
     func noMansLand() {
         #expect(goesForIt(decision(distance: 3, ballOn: 45)), "fourth and three from their 45")
         #expect(
@@ -75,7 +75,7 @@ struct FourthDownTests {
 
     /// A long kick is worth attempting when the alternative is nothing, and a bad trade
     /// against forty yards of field position when there is a game left to play.
-    @Test("A fifty-five yarder is an endgame kick, not a first-half one")
+    @Test("A fifty-five yarder is an endgame kick, not a first-half one", .tags(.unit))
     func longKicksAreSituational() {
         // Their 38 is a 55-yard attempt.
         #expect(
@@ -89,7 +89,7 @@ struct FourthDownTests {
 
     /// Behind late, a punt is a surrender — and a field goal is only worth taking if it
     /// ties the game or wins it.
-    @Test("Down late, you kick only when the kick is enough")
+    @Test("Down late, you kick only when the kick is enough", .tags(.unit))
     func desperation() {
         #expect(
             decision(distance: 8, ballOn: 25, quarter: 4, clock: 40, differential: -3)
@@ -108,7 +108,7 @@ struct FourthDownTests {
     /// punting from your own twenty is still the right call. Reading the description as an
     /// instruction had teams going for it on fourth and long from their own end before
     /// halftime, which was half of every deep fourth-down attempt in the league.
-    @Test("Being behind before halftime does not mean going for it from your own end")
+    @Test("Being behind before halftime does not mean going for it from your own end", .tags(.unit))
     func firstHalfIsNotDesperation() {
         // Own 20, fourth and eight, down four, ninety seconds before the break.
         #expect(
@@ -128,7 +128,7 @@ struct FourthDownTests {
 
     /// The conversion chart, on both sides of the scoreboard. The differential is read
     /// *before* the try, so trailing by two means the conversion ties it.
-    @Test("Two-point decisions follow the chart")
+    @Test("Two-point decisions follow the chart", .tags(.unit))
     func twoPointChart() {
         func goesForTwo(_ differential: Int16, quarter: UInt8) -> Bool {
             let situation = Situation(

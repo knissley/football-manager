@@ -34,7 +34,7 @@ struct WorldGeneratorTests {
 
     // MARK: - One entry point
 
-    @Test("contract: one call builds a whole world")
+    @Test("contract: one call builds a whole world", .tags(.contract))
     func aWorldIsWholeAtOnce() throws {
         let world = try #require(generated(seed: 3))
 
@@ -58,7 +58,7 @@ struct WorldGeneratorTests {
         #expect(Set(onRosters.map(\.id)).count == onRosters.count, "a player on two rosters")
     }
 
-    @Test("contract: teams come back in identifier order")
+    @Test("contract: teams come back in identifier order", .tags(.contract))
     func teamsAreOrdered() throws {
         let world = try #require(generated(seed: 11))
         #expect(world.teams.map(\.id.rawValue) == world.teams.map(\.id.rawValue).sorted())
@@ -70,7 +70,7 @@ struct WorldGeneratorTests {
     /// ladder. Both halves are asserted — the offsets the generator drew, and the mean
     /// overalls they actually produced — because a strength that never reached a roster
     /// would pass the first check alone.
-    @Test("contract: at seed 7 the league is not a ladder in team index")
+    @Test("contract: at seed 7 the league is not a ladder in team index", .tags(.contract))
     func seedSevenIsNotMonotone() throws {
         let world = try #require(generated(seed: 7, shape: .standard))
 
@@ -95,7 +95,7 @@ struct WorldGeneratorTests {
     /// The strong form, and the one that would have caught the bug on any seed. Over
     /// enough worlds every position in the league averages out to the middle; under an
     /// index-linear assignment position 0 averages -8 and the last position +8, forever.
-    @Test("contract: no position in the league is systematically stronger")
+    @Test("contract: no position in the league is systematically stronger", .tags(.contract))
     func positionInTheLeagueCarriesNoStrength() {
         let teams = 32
         let seeds: [UInt64] = (1...60).map { UInt64($0) }
@@ -118,7 +118,7 @@ struct WorldGeneratorTests {
         }
     }
 
-    @Test("contract: a league's strength is centred on zero")
+    @Test("contract: a league's strength is centred on zero", .tags(.contract))
     func strengthIsCentred() throws {
         for seed in UInt64(1)...8 {
             let world = try #require(generated(seed: seed))
@@ -130,7 +130,7 @@ struct WorldGeneratorTests {
         }
     }
 
-    @Test("unit: strengths are drawn inside the spread")
+    @Test("unit: strengths are drawn inside the spread", .tags(.unit))
     func strengthsRespectTheSpread() {
         for seed in UInt64(1)...20 {
             var random = SplittableRandom(seed: seed)
@@ -149,7 +149,7 @@ struct WorldGeneratorTests {
         }
     }
 
-    @Test("unit: an empty league draws no strengths")
+    @Test("unit: an empty league draws no strengths", .tags(.unit))
     func noTeamsNoStrengths() {
         var random = SplittableRandom(seed: 1)
         #expect(WorldGenerator.strengths(count: 0, using: &random).isEmpty)
@@ -157,7 +157,7 @@ struct WorldGeneratorTests {
 
     // MARK: - Reproducible, and separable
 
-    @Test("contract: the same seed builds the same world")
+    @Test("contract: the same seed builds the same world", .tags(.contract))
     func sameSeedSameWorld() throws {
         let first = try #require(generated(seed: 21))
         let second = try #require(generated(seed: 21))
@@ -178,7 +178,9 @@ struct WorldGeneratorTests {
     /// differs. Asserted as both halves rather than as `first.teams != second.teams`,
     /// which would still pass on the schemes alone and would stop noticing if the
     /// rosters ever stopped moving.
-    @Test("contract: different seeds build different worlds in the same buildings")
+    @Test(
+        "contract: different seeds build different worlds in the same buildings",
+        .tags(.contract))
     func differentSeedsDifferentWorlds() throws {
         let first = try #require(generated(seed: 21))
         let second = try #require(generated(seed: 22))
@@ -193,7 +195,8 @@ struct WorldGeneratorTests {
     /// Each stage draws from its own labelled substream, so asking for fewer parts must
     /// not move the parts you did ask for. If this fails, a caller that skips the draft
     /// pipeline is playing in a different league from one that does not.
-    @Test("contract: asking for fewer parts gives the same world, with less of it")
+    @Test(
+        "contract: asking for fewer parts gives the same world, with less of it", .tags(.contract))
     func partsDoNotMoveTheRest() throws {
         let whole = try #require(generated(seed: 33, parts: .all))
         let bare = try #require(generated(seed: 33, parts: .teamsAndRosters))
@@ -213,7 +216,7 @@ struct WorldGeneratorTests {
     /// Generation's job is a league with contenders and rebuilds in it. The bands here are
     /// the same ones `LeagueDistributionTests` asserts about a hand-built league; this is
     /// the check that the real entry point still lands inside them.
-    @Test("contract: a generated league has a spread of team quality")
+    @Test("contract: a generated league has a spread of team quality", .tags(.contract))
     func theLeagueHasContendersAndRebuilds() throws {
         let world = try #require(generated(seed: 7, shape: .standard))
         let means = teamMeanOveralls(world)

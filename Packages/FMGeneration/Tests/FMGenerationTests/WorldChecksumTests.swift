@@ -85,20 +85,24 @@ struct WorldChecksumTests {
         return WorldChecksum.of(rebuilt(world, rosters: all))
     }
 
-    @Test("contract: a world rebuilt from its own accessors is the same world")
+    @Test("contract: a world rebuilt from its own accessors is the same world", .tags(.contract))
     func rebuildIsIdentity() throws {
         let world = try generated()
         #expect(WorldChecksum.of(rebuilt(world)) == WorldChecksum.of(world))
     }
 
-    @Test("contract: the same world checksums the same twice, and two seeds do not collide")
+    @Test(
+        "contract: the same world checksums the same twice, and two seeds do not collide",
+        .tags(.contract))
     func stableAndDistinct() throws {
         let seven = try generated()
         #expect(WorldChecksum.of(seven) == WorldChecksum.of(try generated()))
         #expect(WorldChecksum.of(seven) != WorldChecksum.of(try generated(seed: 11)))
     }
 
-    @Test("contract: a world generated with the optional parts does not checksum as one without")
+    @Test(
+        "contract: a world generated with the optional parts does not checksum as one without",
+        .tags(.contract))
     func optionalPartsAreRead() throws {
         let bare = try generated(parts: .teamsAndRosters)
         let full = try generated(parts: .all)
@@ -107,7 +111,8 @@ struct WorldChecksumTests {
         #expect(WorldChecksum.of(bare) != WorldChecksum.of(full))
     }
 
-    @Test("contract: the checksum moves when the stadium a game is played in moves")
+    @Test(
+        "contract: the checksum moves when the stadium a game is played in moves", .tags(.contract))
     func stadiumIsRead() throws {
         let world = try generated()
         var teams = world.teams
@@ -121,7 +126,8 @@ struct WorldChecksumTests {
         #expect(WorldChecksum.of(rebuilt(world, teams: teams)) != WorldChecksum.of(world))
     }
 
-    @Test("contract: the checksum moves when a team changes scheme on either side")
+    @Test(
+        "contract: the checksum moves when a team changes scheme on either side", .tags(.contract))
     func schemeIsRead() throws {
         let world = try generated()
         var teams = world.teams
@@ -135,7 +141,7 @@ struct WorldChecksumTests {
         #expect(WorldChecksum.of(rebuilt(world, teams: teams)) != WorldChecksum.of(world))
     }
 
-    @Test("contract: the checksum moves when a player the engine reads changes")
+    @Test("contract: the checksum moves when a player the engine reads changes", .tags(.contract))
     func playerFieldsTheEngineReadsAreRead() throws {
         let world = try generated()
         let team = world.teams[0].id
@@ -187,7 +193,9 @@ struct WorldChecksumTests {
     /// rosters rather than deriving it on demand. A checksum that walked only the rosters
     /// would call a league with five points of speed added to a starter the same league
     /// — and the harness moved by hundreds of lines when that was tried.
-    @Test("contract: the checksum moves when the players map the engine is handed changes")
+    @Test(
+        "contract: the checksum moves when the players map the engine is handed changes",
+        .tags(.contract))
     func playersMapIsRead() throws {
         let world = try generated()
         let team = world.teams[0].id
@@ -207,7 +215,9 @@ struct WorldChecksumTests {
     /// reads. Concatenating the positions without saying how long each one is makes a
     /// man moved from the tail of one position to the head of the next invisible: the
     /// flattened sequence is identical, and the chart is a different chart.
-    @Test("contract: the checksum moves when a depth chart is repartitioned over the same men")
+    @Test(
+        "contract: the checksum moves when a depth chart is repartitioned over the same men",
+        .tags(.contract))
     func depthChartPartitionIsRead() throws {
         let world = try generated()
         let team = world.teams[0].id
@@ -231,7 +241,7 @@ struct WorldChecksumTests {
         #expect(WorldChecksum.of(rebuilt(world, charts: charts)) != WorldChecksum.of(world))
     }
 
-    @Test("unit: hex is sixteen zero-padded digits")
+    @Test("unit: hex is sixteen zero-padded digits", .tags(.unit))
     func hexIsPadded() {
         #expect(WorldChecksum.hex(0) == "0000000000000000")
         #expect(WorldChecksum.hex(255) == "00000000000000ff")
@@ -241,7 +251,7 @@ struct WorldChecksumTests {
     /// Two fields that meet at a boundary must not be able to slide into each other: a
     /// checksum that concatenated its strings would give the same number to a team called
     /// "Aurora King" playing at "sville Field" as to "Aurora Kings" at "ville Field".
-    @Test("unit: adjacent strings cannot slide into one another")
+    @Test("unit: adjacent strings cannot slide into one another", .tags(.unit))
     func stringsAreTerminated() {
         var slid = WorldChecksum()
         slid.mix("Aurora King")

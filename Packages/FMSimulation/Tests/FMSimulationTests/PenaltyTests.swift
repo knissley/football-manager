@@ -31,7 +31,7 @@ struct PenaltyTests {
 
     // MARK: - Flags happen at all
 
-    @Test("A game produces flags, and a spread of them")
+    @Test("A game produces flags, and a spread of them", .tags(.unit))
     func flagsHappen() {
         let drawn = flags(seeds: 1...6)
         #expect(drawn.isEmpty == false, "six games and not a single flag")
@@ -40,7 +40,7 @@ struct PenaltyTests {
 
     /// Both classes have to exist. Procedural fouls nobody caused, and fouls somebody
     /// committed because he was losing.
-    @Test("Both classes of foul occur")
+    @Test("Both classes of foul occur", .tags(.unit))
     func bothClassesOccur() {
         let drawn = flags(seeds: 1...6)
         #expect(drawn.contains { $0.1.foul.isPreSnap }, "no procedural fouls")
@@ -52,7 +52,7 @@ struct PenaltyTests {
     /// The whole point of drawing a hold at the moment a blocker loses: the flag and the
     /// reason for it are the same event. *He held because he was beaten in 1.9 seconds*,
     /// with the pressure decision sitting right there in the record.
-    @Test("A hold on a pass play has a lost rep behind it")
+    @Test("A hold on a pass play has a lost rep behind it", .tags(.contract))
     func holdsAreExplicable() {
         var checked = 0
         for (play, flag) in flags(seeds: 1...8)
@@ -69,7 +69,7 @@ struct PenaltyTests {
 
     /// Interference is drawn against defenders who were beaten, so it should never land
     /// on somebody who had the receiver blanketed.
-    @Test("Interference lands on a defender who was beaten")
+    @Test("Interference lands on a defender who was beaten", .tags(.contract))
     func interferenceIsExplicable() {
         var checked = 0
         for (play, flag) in flags(seeds: 1...10)
@@ -135,7 +135,8 @@ struct PenaltyTests {
     /// register comes out along with this test. The one thing that does hold for every
     /// flag, and is asserted as a plain expectation, is the side of the ball.
     @Test(
-        "pin: every flag outside the known uncredited-slot register names a credited player (#54)")
+        "pin: every flag outside the known uncredited-slot register names a credited player (#54)",
+        .tags(.pin))
     func offendersAreReal() {
         var uncreditable: Set<Foul> = []
         for (play, flag) in flags(seeds: 1...80) {
@@ -160,7 +161,7 @@ struct PenaltyTests {
     /// Noise raises the visiting offence's pre-snap fouls, drives stall, and the
     /// advantage *emerges* — rather than a bonus applied after the fact, which the
     /// engine's honesty pillar would have to swallow.
-    @Test("A loud stadium raises the road team's procedural fouls")
+    @Test("A loud stadium raises the road team's procedural fouls", .tags(.unit))
     func crowdNoiseIsTheMechanism() {
         func roadPreSnapFouls(noise: UInt8) -> Int {
             var count = 0
@@ -186,7 +187,7 @@ struct PenaltyTests {
     }
 
     /// And it has to be *asymmetric*, or it is not home field advantage — it is weather.
-    @Test("Noise does not punish the home team")
+    @Test("Noise does not punish the home team", .tags(.unit))
     func noiseSparesTheHomeTeam() {
         func homePreSnapFouls(noise: UInt8) -> Int {
             var count = 0
@@ -216,7 +217,7 @@ struct PenaltyTests {
     /// Twelve men is a substitution failure, not a player failure — which is what makes
     /// hurry-up a weapon rather than a clock tactic. It does not only save time, it
     /// catches defences with twelve on the grass.
-    @Test("Hurry-up catches defences with twelve on the field")
+    @Test("Hurry-up catches defences with twelve on the field", .tags(.unit))
     func tempoCausesSubstitutionFouls() {
         let (_, chart, players) = TestWorld.team(seed: 4)
 
@@ -257,7 +258,7 @@ struct PenaltyTests {
 
     /// Enforcement was built and tested long before anything drew a flag. This checks the
     /// two halves actually meet.
-    @Test("Flags are enforced, and some are declined")
+    @Test("Flags are enforced, and some are declined", .tags(.unit))
     func flagsAreEnforced() {
         let drawn = flags(seeds: 1...10)
         #expect(drawn.contains { $0.1.wasAccepted }, "no flag was ever accepted")
@@ -267,7 +268,7 @@ struct PenaltyTests {
     }
 
     /// A pre-snap foul kills the play, so nothing can have happened on it.
-    @Test("A pre-snap foul means no play happened")
+    @Test("A pre-snap foul means no play happened", .tags(.unit))
     func preSnapKillsThePlay() {
         for (play, flag) in flags(seeds: 1...8) where flag.foul.isPreSnap {
             #expect(play.outcome.kind == .penaltyOnly)

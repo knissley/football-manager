@@ -20,14 +20,14 @@ struct DraftClassGeneratorTests {
             identifiers: &identifiers, using: &random)
     }
 
-    @Test("The same seed produces the same classes")
+    @Test("The same seed produces the same classes", .tags(.contract))
     func deterministic() {
         #expect(pipeline().map(\.draftClass) == pipeline().map(\.draftClass))
     }
 
     /// Three years of visibility is what multi-year scouting needs: this year's seniors
     /// were watchable as sophomores.
-    @Test("The pipeline shows three classes at descending college years")
+    @Test("The pipeline shows three classes at descending college years", .tags(.unit))
     func pipelineShape() {
         let classes = pipeline()
         #expect(classes.count == 3)
@@ -38,7 +38,7 @@ struct DraftClassGeneratorTests {
         #expect(years == [.senior, .junior, .sophomore])
     }
 
-    @Test("Every prospect maps to a player that exists")
+    @Test("Every prospect maps to a player that exists", .tags(.contract))
     func prospectsMapToPlayers() {
         for generated in pipeline() {
             for prospect in generated.draftClass.prospects {
@@ -50,7 +50,7 @@ struct DraftClassGeneratorTests {
 
     /// A class that exactly fills the board has no bottom to it, and no undrafted gem
     /// is findable.
-    @Test("A class holds more prospects than there are picks")
+    @Test("A class holds more prospects than there are picks", .tags(.unit))
     func classIsDeeperThanTheBoard() {
         let shape = DraftClassGenerator.ClassShape.compact
         let picks = shape.rounds * 32
@@ -62,7 +62,7 @@ struct DraftClassGeneratorTests {
     /// The conservation law's requirement: classes vary strongly, but the variation
     /// comes back to a fixed mean rather than drifting somewhere records stop being
     /// comparable.
-    @Test("Class strength varies strongly but does not drift over fifty seasons")
+    @Test("Class strength varies strongly but does not drift over fifty seasons", .tags(.contract))
     func strengthIsMeanReverting() {
         var random = SplittableRandom(seed: 5)
         let strengths = DraftClassGenerator.strengths(count: 50, using: &random)
@@ -87,7 +87,7 @@ struct DraftClassGeneratorTests {
     /// spread over a window rather than landing entirely on the following year, because
     /// a tidy annual alternation is not something anybody would believe. Without the
     /// negative pull the series is a random walk and it wanders.
-    @Test("The years after a strong class are thinner")
+    @Test("The years after a strong class are thinner", .tags(.unit))
     func strengthReverts() {
         var random = SplittableRandom(seed: 21)
         let overalls = DraftClassGenerator.strengths(count: 600, using: &random).map(\.overall)
@@ -103,7 +103,7 @@ struct DraftClassGeneratorTests {
 
     /// Shape redistributes talent within a class; only `overall` moves the total. That
     /// separation is what lets conservation be asserted on one number.
-    @Test("Position shape is zero-sum")
+    @Test("Position shape is zero-sum", .tags(.unit))
     func shapeIsZeroSum() {
         var random = SplittableRandom(seed: 8)
         for strength in DraftClassGenerator.strengths(count: 30, using: &random) {
@@ -112,7 +112,7 @@ struct DraftClassGeneratorTests {
         }
     }
 
-    @Test("Some classes are rich at a position and say so")
+    @Test("Some classes are rich at a position and say so", .tags(.unit))
     func headlineGroups() {
         var random = SplittableRandom(seed: 4)
         let strengths = DraftClassGenerator.strengths(count: 40, using: &random)
@@ -124,7 +124,7 @@ struct DraftClassGeneratorTests {
 
     /// Production is ability plus independent error. If it tracked ability exactly,
     /// there would be nothing for a scout to be wrong about.
-    @Test("Production disagrees with ability often enough to matter")
+    @Test("Production disagrees with ability often enough to matter", .tags(.unit))
     func productionCarriesIndependentError() {
         var random = SplittableRandom(seed: 3)
         var disagreements = 0
@@ -147,7 +147,7 @@ struct DraftClassGeneratorTests {
     /// The two cases that make production arguable: a good player nobody sees, and a
     /// limited one the system flatters. Compared against the *same* ability in neutral
     /// context, because production is on its own scale rather than the rating's.
-    @Test("Context moves production in the direction it should")
+    @Test("Context moves production in the direction it should", .tags(.unit))
     func contextMovesProduction() {
         var random = SplittableRandom(seed: 6)
 
@@ -187,7 +187,7 @@ struct DraftClassGeneratorTests {
     /// is in. A junior's last season is the same autumn as a senior's; his draft is
     /// simply a year further out. Deriving seasons from the cohort's draft year alone
     /// got this right for seniors and a year wrong for everyone younger.
-    @Test("Every cohort's last college season is the same autumn")
+    @Test("Every cohort's last college season is the same autumn", .tags(.unit))
     func cohortsPlayInTheSameSeason() {
         let seasons = pipeline().flatMap { generated in
             generated.draftClass.prospects.compactMap { $0.production.last?.season }
@@ -195,7 +195,7 @@ struct DraftClassGeneratorTests {
         #expect(Set(seasons).count == 1, "cohorts are playing in different years: \(Set(seasons))")
     }
 
-    @Test("A prospect has one production season per college year played")
+    @Test("A prospect has one production season per college year played", .tags(.unit))
     func productionHistory() {
         for generated in pipeline() {
             for prospect in generated.draftClass.prospects {
@@ -215,7 +215,7 @@ struct DraftClassGeneratorTests {
 
     // MARK: - Red flags
 
-    @Test("Flags are uncommon, and serious ones are rarer still")
+    @Test("Flags are uncommon, and serious ones are rarer still", .tags(.unit))
     func flagRates() {
         var random = SplittableRandom(seed: 12)
         var withFlags = 0
@@ -236,7 +236,7 @@ struct DraftClassGeneratorTests {
     /// Severity and visibility are independent on purpose. Correlating them would mean
     /// a bad problem is always an obvious one, and the slide nobody can explain at the
     /// time would stop happening.
-    @Test("Severity does not predict visibility")
+    @Test("Severity does not predict visibility", .tags(.unit))
     func severityAndVisibilityAreIndependent() {
         var random = SplittableRandom(seed: 15)
         var severeAndHidden = 0
@@ -253,7 +253,7 @@ struct DraftClassGeneratorTests {
         #expect(ratio > 0.4 && ratio < 2.5, "severity and visibility look correlated")
     }
 
-    @Test("Both medical and football-professional concerns occur")
+    @Test("Both medical and football-professional concerns occur", .tags(.unit))
     func flagKinds() {
         var random = SplittableRandom(seed: 19)
         var kinds: Set<RedFlagKind> = []
@@ -269,7 +269,7 @@ struct DraftClassGeneratorTests {
 
     /// A projected high pick comes out; a fringe junior goes back for another year and
     /// arrives next season as a different prospect.
-    @Test("Good juniors declare and fringe ones return")
+    @Test("Good juniors declare and fringe ones return", .tags(.unit))
     func declarations() {
         var random = SplittableRandom(seed: 2)
         var colleges = NameGenerator.collegePool(count: 40, using: &random)
@@ -297,7 +297,7 @@ struct DraftClassGeneratorTests {
     /// A cohort is a year group; a draft class is who is available. Conflating them
     /// reported early entrants against the year they would have graduated, leaving the
     /// current draft missing its best young players.
-    @Test("This year's draft holds its seniors plus the juniors who came out")
+    @Test("This year's draft holds its seniors plus the juniors who came out", .tags(.unit))
     func earlyEntrantsJoinThisYearsDraft() {
         let classes = pipeline()
         guard let thisYear = classes.first, classes.count >= 2 else {
@@ -322,7 +322,7 @@ struct DraftClassGeneratorTests {
 
     /// A sophomore is not weighing anything yet, so reporting him as "not entering"
     /// would describe a decision he has not made.
-    @Test("Cohorts further out have not been asked yet")
+    @Test("Cohorts further out have not been asked yet", .tags(.unit))
     func distantCohortsAreUndecided() {
         let classes = pipeline()
         guard classes.count >= 3 else {
@@ -344,7 +344,7 @@ struct DraftClassGeneratorTests {
     /// class would contradict the design — a historically loaded year is supposed to
     /// have more elite prospects in it, and testing against one caught this test
     /// arguing with the feature rather than the code.
-    @Test("A class of normal strength is top-heavy in ceiling")
+    @Test("A class of normal strength is top-heavy in ceiling", .tags(.unit))
     func classIsTopHeavy() {
         let ceilings = classCeilings(strength: .normal, seed: 31)
         let elite = ceilings.filter { $0 >= 88 }.count
@@ -357,7 +357,7 @@ struct DraftClassGeneratorTests {
 
     /// The design claim class strength actually makes: a loaded year has more players
     /// worth a high pick, and a thin one has fewer.
-    @Test("A loaded class holds more elite prospects than a thin one")
+    @Test("A loaded class holds more elite prospects than a thin one", .tags(.unit))
     func strengthMovesTheTopOfTheClass() {
         func eliteCount(_ overall: Double) -> Int {
             classCeilings(strength: ClassStrength(overall: overall), seed: 31)
@@ -378,7 +378,7 @@ struct DraftClassGeneratorTests {
         return generated.players.map { Int($0.hidden.ceiling) }
     }
 
-    @Test("A class spans the positions a draft actually produces")
+    @Test("A class spans the positions a draft actually produces", .tags(.unit))
     func positionSpread() {
         guard let generated = pipeline(shape: .standard).first else {
             Issue.record("the pipeline should produce a class")

@@ -33,7 +33,7 @@ struct LeagueGeneratorTests {
         generate(shape: shape, franchises: .randomised, seed: seed)
     }
 
-    @Test("A generated league satisfies its own structure validator")
+    @Test("A generated league satisfies its own structure validator", .tags(.contract))
     func wellFormed() {
         for shape in [LeagueShape.standard, .compact, .minimal] {
             guard let world = generate(shape: shape) else {
@@ -48,7 +48,7 @@ struct LeagueGeneratorTests {
 
     /// Rule 2: the same seed is the same world, or saved history is corrupt rather
     /// than merely different.
-    @Test("The same seed produces the same league")
+    @Test("The same seed produces the same league", .tags(.contract))
     func deterministic() {
         guard let first = generate(), let second = generate() else {
             Issue.record("generation failed")
@@ -67,7 +67,7 @@ struct LeagueGeneratorTests {
     /// different league inside them — here, different schemes; in a world,
     /// different rosters too. The old assertion is kept where it is still true, on the
     /// randomiser.
-    @Test("Different seeds produce the same franchises playing differently")
+    @Test("Different seeds produce the same franchises playing differently", .tags(.contract))
     func seedsShareFranchisesAndDiverge() {
         guard let a = generate(seed: 1), let b = generate(seed: 2) else {
             Issue.record("generation failed")
@@ -78,7 +78,7 @@ struct LeagueGeneratorTests {
         #expect(a.teams.map(\.scheme) != b.teams.map(\.scheme))
     }
 
-    @Test("Different seeds produce different leagues from the randomiser")
+    @Test("Different seeds produce different leagues from the randomiser", .tags(.contract))
     func drawnSeedsDiverge() {
         guard let a = drawn(seed: 1), let b = drawn(seed: 2) else {
             Issue.record("generation failed")
@@ -89,7 +89,7 @@ struct LeagueGeneratorTests {
 
     /// An impossible shape is refused rather than generated around, and the refusal
     /// carries the reasons a player needs.
-    @Test("An impossible shape is refused with its reasons")
+    @Test("An impossible shape is refused with its reasons", .tags(.unit))
     func refusesImpossibleShapes() {
         var random = SplittableRandom(seed: 1)
         let oneConference = LeagueShape(
@@ -112,7 +112,7 @@ struct LeagueGeneratorTests {
 
     /// Two teams with one nickname is the kind of thing nobody notices in a test and
     /// everybody notices in a standings table.
-    @Test("No two teams share a nickname")
+    @Test("No two teams share a nickname", .tags(.contract))
     func nicknamesAreUnique() {
         guard let world = generate() else {
             Issue.record("generation failed")
@@ -122,7 +122,7 @@ struct LeagueGeneratorTests {
         #expect(Set(nicknames).count == nicknames.count)
     }
 
-    @Test("No two teams share a city")
+    @Test("No two teams share a city", .tags(.contract))
     func citiesAreUnique() {
         guard let world = generate() else {
             Issue.record("generation failed")
@@ -134,7 +134,7 @@ struct LeagueGeneratorTests {
 
     /// Every team's colours have to read against each other, or the scoreboard is
     /// illegible no matter how good the simulation underneath it is.
-    @Test("Every team's colours are legible")
+    @Test("Every team's colours are legible", .tags(.unit))
     func colorsAreLegible() {
         for seed in UInt64(1)...12 {
             guard let world = drawn(seed: seed) else { continue }
@@ -146,7 +146,7 @@ struct LeagueGeneratorTests {
         }
     }
 
-    @Test("Abbreviations are two or three letters and uppercase")
+    @Test("Abbreviations are two or three letters and uppercase", .tags(.unit))
     func abbreviations() {
         guard let world = generate() else {
             Issue.record("generation failed")
@@ -162,7 +162,7 @@ struct LeagueGeneratorTests {
 
     /// A division named "South" full of cities with hard winters reads as broken the
     /// moment anybody looks at a standings table. The name has to match the region.
-    @Test("A division's name matches the weather of the cities in it")
+    @Test("A division's name matches the weather of the cities in it", .tags(.unit))
     func divisionNamesMatchTheirRegion() {
         guard let world = generate(seed: 42) else {
             Issue.record("generation failed")
@@ -186,7 +186,7 @@ struct LeagueGeneratorTests {
 
     /// Every conference fields one division per region, exactly as the real structure
     /// does. If that stops holding, a conference can end up entirely northern.
-    @Test("Each conference spans the same regions")
+    @Test("Each conference spans the same regions", .tags(.unit))
     func conferencesSpanRegions() {
         guard let world = generate(shape: .standard) else {
             Issue.record("generation failed")
@@ -198,7 +198,7 @@ struct LeagueGeneratorTests {
 
     /// Four teams named Saltflat-something read as one city with a stutter, which
     /// uniqueness of the full name does not catch.
-    @Test("City names do not share a stem")
+    @Test("City names do not share a stem", .tags(.contract))
     func cityStemsAreDistinct() {
         for seed in UInt64(1)...8 {
             guard let world = drawn(seed: seed) else { continue }
@@ -211,7 +211,7 @@ struct LeagueGeneratorTests {
 
     /// Two teams abbreviated the same way is ambiguous everywhere a scoreboard is
     /// narrow enough to need the short form.
-    @Test("No two teams share an abbreviation")
+    @Test("No two teams share an abbreviation", .tags(.contract))
     func abbreviationsAreUnique() {
         for seed in UInt64(1)...8 {
             guard let world = drawn(seed: seed) else { continue }
@@ -224,7 +224,7 @@ struct LeagueGeneratorTests {
 
     /// A world where every stadium is a temperate dome has no weather, and weather is
     /// half of what makes a December road game feel different.
-    @Test("Stadiums vary in roof, surface and climate")
+    @Test("Stadiums vary in roof, surface and climate", .tags(.unit))
     func stadiumsVary() {
         guard let world = generate() else {
             Issue.record("generation failed")
@@ -241,7 +241,7 @@ struct LeagueGeneratorTests {
 
     /// A dome has no weather to speak of, so recording a climate for one would be a
     /// fact the engine could read and act on wrongly.
-    @Test("Indoor stadiums are climate-neutral and louder")
+    @Test("Indoor stadiums are climate-neutral and louder", .tags(.unit))
     func domesAreNeutral() {
         for seed in UInt64(1)...10 {
             guard let world = drawn(seed: seed) else { continue }
@@ -252,7 +252,7 @@ struct LeagueGeneratorTests {
         }
     }
 
-    @Test("Capacities and noise stay in plausible ranges")
+    @Test("Capacities and noise stay in plausible ranges", .tags(.unit))
     func plausibleStadiums() {
         for seed in UInt64(1)...10 {
             guard let world = drawn(seed: seed) else { continue }
@@ -266,7 +266,7 @@ struct LeagueGeneratorTests {
 
     /// Altitude is a western thing in this world's geography, and it is real simulation
     /// input — a kick from five thousand feet carries.
-    @Test("High altitude exists but is rare")
+    @Test("High altitude exists but is rare", .tags(.unit))
     func altitudeIsRare() {
         var highAltitudeTeams = 0
         var total = 0
@@ -281,7 +281,7 @@ struct LeagueGeneratorTests {
 
     /// Markets drive revenue and free agent appeal. A league of nothing but major
     /// markets has no small-market problem to solve, which is half the GM's job.
-    @Test("Markets span the range")
+    @Test("Markets span the range", .tags(.unit))
     func marketsVary() {
         guard let world = generate() else {
             Issue.record("generation failed")
@@ -324,7 +324,7 @@ struct LeagueGeneratorTests {
     /// Twelve seeds, standard shape: a feature word that appears twice in any of them is
     /// a league that names its grounds after itself.
     @Test(
-        "contract: a stadium feature word names one ground in a world",
+        "contract: a stadium feature word names one ground in a world", .tags(.contract),
         arguments: Array(UInt64(1)...12))
     func stadiumFeatureWordsAreUsedOnce(seed: UInt64) {
         guard let world = drawn(seed: seed) else {
@@ -353,7 +353,7 @@ struct LeagueGeneratorTests {
     /// are where the fault actually shows in the first four dozen worlds, and a sweep
     /// that only ever passes is not evidence of anything.
     @Test(
-        "contract: a nickname never repeats the city it plays in",
+        "contract: a nickname never repeats the city it plays in", .tags(.contract),
         arguments: Array(UInt64(1)...12) + [UInt64(14), UInt64(42)])
     func nicknamesDoNotEchoTheirCity(seed: UInt64) {
         guard let world = drawn(seed: seed) else {
@@ -378,7 +378,8 @@ struct LeagueGeneratorTests {
     /// on the stem so that a pool which grows a singular beside its plural cannot hand
     /// out both.
     @Test(
-        "contract: no two teams share a nickname stem", arguments: Array(UInt64(1)...12))
+        "contract: no two teams share a nickname stem", .tags(.contract),
+        arguments: Array(UInt64(1)...12))
     func nicknameStemsAreDistinct(seed: UInt64) {
         guard let world = drawn(seed: seed) else {
             Issue.record("seed \(seed) did not generate")
@@ -392,7 +393,7 @@ struct LeagueGeneratorTests {
     /// either direction; a shared *idea* is not one, and the last row says so rather
     /// than leaving the gap for someone to find in a standings table.
     @Test(
-        "unit: a nickname echoes its city when either name carries the other's word",
+        "unit: a nickname echoes its city when either name carries the other's word", .tags(.unit),
         arguments: [
             ("Coyotes", "Coyote", true),
             ("Frostbite", "Frost", true),
@@ -410,7 +411,7 @@ struct LeagueGeneratorTests {
     /// reducing to "foxe" is the honest shape of that, and it is written down here so a
     /// later reader does not mistake it for a bug.
     @Test(
-        "unit: a nickname's stem is its name without a plural ending",
+        "unit: a nickname's stem is its name without a plural ending", .tags(.unit),
         arguments: [
             ("Coyotes", "coyote"),
             ("Elk", "elk"),

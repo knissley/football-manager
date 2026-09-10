@@ -36,7 +36,7 @@ struct PenaltyEnforcementTests {
     ///
     /// Five yards on the defence against a twenty-five yard gain is the unambiguous
     /// case — no offence takes the flag.
-    @Test("A declined penalty changes nothing about the play")
+    @Test("A declined penalty changes nothing about the play", .tags(.unit))
     func declinedChangesNothing() {
         let before = situation(down: .second, distance: 8, ballOn: 60)
         let play = outcome(25)
@@ -53,7 +53,7 @@ struct PenaltyEnforcementTests {
 
     /// A holding call on a long touchdown is declined. No yardage is worth giving back
     /// points.
-    @Test("A team never declines its own score to take yards")
+    @Test("A team never declines its own score to take yards", .tags(.unit))
     func scoresAreNeverGivenBack() {
         let decision = rules.enforce(
             penalty(.defensiveHolding), on: situation(ballOn: 40),
@@ -66,7 +66,7 @@ struct PenaltyEnforcementTests {
     /// And the mirror: the defence does not accept a flag that leaves the offence's
     /// score standing. Accepting a five-yard holding call after conceding a touchdown
     /// would be a scoreboard bug wearing a rules hat.
-    @Test("The defence never accepts a flag that leaves a score standing")
+    @Test("The defence never accepts a flag that leaves a score standing", .tags(.unit))
     func defenceDeclinesWhenItWouldConcede() {
         let decision = rules.enforce(
             penalty(.offensiveHolding), on: situation(down: .second, distance: 8, ballOn: 40),
@@ -76,7 +76,7 @@ struct PenaltyEnforcementTests {
     }
 
     /// The defence taking away a big gain is the other unambiguous direction.
-    @Test("The defence accepts a flag that erases a long gain")
+    @Test("The defence accepts a flag that erases a long gain", .tags(.unit))
     func defenceTakesAwayABigGain() {
         let decision = rules.enforce(
             penalty(.offensiveHolding), on: situation(down: .second, distance: 8, ballOn: 60),
@@ -86,7 +86,7 @@ struct PenaltyEnforcementTests {
     }
 
     /// Third and eight, an incompletion, and a five-yard flag on the defence: take it.
-    @Test("The offence takes yards when the play gained nothing")
+    @Test("The offence takes yards when the play gained nothing", .tags(.unit))
     func offenceTakesYardsOnAFailedPlay() {
         let decision = rules.enforce(
             penalty(.illegalContact), on: situation(down: .third, distance: 8, ballOn: 60),
@@ -104,7 +104,7 @@ struct PenaltyEnforcementTests {
     ///
     /// Tested through a pre-snap foul, which always stands, so the assertion is about
     /// enforcement arithmetic and not about a close accept/decline judgement.
-    @Test("An accepted foul against the offence replays the down from further back")
+    @Test("An accepted foul against the offence replays the down from further back", .tags(.unit))
     func offensiveFoulAddsToTheDistance() {
         let decision = rules.enforce(
             penalty(.falseStart), on: situation(down: .second, distance: 8, ballOn: 60),
@@ -116,7 +116,7 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.distance == 13)
     }
 
-    @Test("Automatic first downs are awarded only against the defence")
+    @Test("Automatic first downs are awarded only against the defence", .tags(.unit))
     func automaticFirstDowns() {
         for foul in Foul.allCases where foul.carriesAutomaticFirstDown {
             let againstDefence = rules.enforce(
@@ -135,7 +135,7 @@ struct PenaltyEnforcementTests {
 
     /// A pre-snap foul is a dead ball. There is no play to decline in favour of, so the
     /// flag stands whatever the play "would" have produced.
-    @Test("Pre-snap fouls always stand")
+    @Test("Pre-snap fouls always stand", .tags(.unit))
     func preSnapFoulsStand() {
         for foul in Foul.allCases where foul.isPreSnap {
             let decision = rules.enforce(
@@ -149,7 +149,7 @@ struct PenaltyEnforcementTests {
     /// distance to the goal is the rule, and it applies on both ends of the field.
     /// Tested through pre-snap fouls, which always stand, so the arithmetic is measured
     /// rather than the accept/decline judgement.
-    @Test("Half the distance keeps the ball out of both end zones")
+    @Test("Half the distance keeps the ball out of both end zones", .tags(.unit))
     func halfTheDistance() {
         let nearTheirGoal = rules.enforce(
             penalty(.offside), on: situation(ballOn: 4),
@@ -173,7 +173,8 @@ struct PenaltyEnforcementTests {
     /// walk-off distance; it is the record's `enforcementSpot` now, in the snapping
     /// team's frame, and `yards` is the distance walked off.
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference is a first down at the spot of the foul"
+        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
+        .tags(.football)
     )
     func spotFouls() {
         #expect(Foul.defensivePassInterference.isSpotFoul)
@@ -196,7 +197,8 @@ struct PenaltyEnforcementTests {
     /// fouls enforced from the previous spot, fouls enforced from the spot of the foul,
     /// and fouls enforced from the dead-ball spot with the play's gain counting.
     @Test(
-        "football · Rule 14-3-4, 14-3-6, 8-6-1, 8-6-1-b, 8-6-1-d, 12-3-1 · every foul is enforced from the previous spot, the spot of the foul, or the succeeding spot"
+        "football · Rule 14-3-4, 14-3-6, 8-6-1, 8-6-1-b, 8-6-1-d, 12-3-1 · every foul is enforced from the previous spot, the spot of the foul, or the succeeding spot",
+        .tags(.football)
     )
     func enforcementFamilies() {
         let previous: [Foul] = [
@@ -224,7 +226,8 @@ struct PenaltyEnforcementTests {
     /// which is the dead-ball spot when possession did not change (14-3-5-a, 14-3-6);
     /// the gain counts, then fifteen more, and a first down (12-2-15).
     @Test(
-        "football · Rule 12-2-15, 14-3-5-a, 14-3-6 · a facemask at the end of a 20-yard run on first and ten is first and ten 35 yards on"
+        "football · Rule 12-2-15, 14-3-5-a, 14-3-6 · a facemask at the end of a 20-yard run on first and ten is first and ten 35 yards on",
+        .tags(.football)
     )
     func facemaskAtTheEndOfARun() {
         let decision = rules.enforce(
@@ -243,7 +246,8 @@ struct PenaltyEnforcementTests {
     /// is better for the offence (8-6-1, 8-6-1-d), with the automatic first down
     /// (12-2-11).
     @Test(
-        "football · Rule 12-2-11, 8-6-1-d · roughing the passer on a 6-yard completion on third and ten is first and ten 21 yards on"
+        "football · Rule 12-2-11, 8-6-1-d · roughing the passer on a 6-yard completion on third and ten is first and ten 21 yards on",
+        .tags(.football)
     )
     func roughingOnACompletion() {
         let decision = rules.enforce(
@@ -256,7 +260,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 12-2-11, 8-6-1 · roughing the passer on an incompletion is 15 from the previous spot and a first down"
+        "football · Rule 12-2-11, 8-6-1 · roughing the passer on an incompletion is 15 from the previous spot and a first down",
+        .tags(.football)
     )
     func roughingOnAnIncompletion() {
         let decision = rules.enforce(
@@ -270,7 +275,8 @@ struct PenaltyEnforcementTests {
     /// The basic spot is behind the line, so the defence's foul is enforced from the
     /// previous spot (14-3-6, the exception for the defence).
     @Test(
-        "football · Rule 14-3-6 · a defensive contact foul on a play that lost yards is enforced from the previous spot"
+        "football · Rule 14-3-6 · a defensive contact foul on a play that lost yards is enforced from the previous spot",
+        .tags(.football)
     )
     func contactFoulOnALoss() {
         let decision = rules.enforce(
@@ -282,7 +288,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot"
+        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot",
+        .tags(.football)
     )
     func interferenceDownfield() {
         let decision = rules.enforce(
@@ -296,7 +303,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4 · offensive pass interference is ten from the previous spot, and the down is replayed"
+        "football · Rule 8-5-4 · offensive pass interference is ten from the previous spot, and the down is replayed",
+        .tags(.football)
     )
     func offensiveInterference() {
         let decision = rules.enforce(
@@ -312,7 +320,8 @@ struct PenaltyEnforcementTests {
     /// The offence fouls behind the basic spot — the run went on past the block — so
     /// enforcement is from the spot of the foul (14-3-6), and the down is replayed.
     @Test(
-        "football · Rule 12-1-3-b, 14-3-6 · an illegal block in the back 8 yards into a 30-yard run puts the ball 10 yards behind the foul, and the down is replayed"
+        "football · Rule 12-1-3-b, 14-3-6 · an illegal block in the back 8 yards into a 30-yard run puts the ball 10 yards behind the foul, and the down is replayed",
+        .tags(.football)
     )
     func blockInTheBackDuringARun() {
         let decision = rules.enforce(
@@ -328,7 +337,8 @@ struct PenaltyEnforcementTests {
     /// Fouls by the offence behind the line of scrimmage are enforced from the previous
     /// spot (14-3-6, exception 1).
     @Test(
-        "football · Rule 14-3-6 · an offensive block in the back behind the line is enforced from the previous spot"
+        "football · Rule 14-3-6 · an offensive block in the back behind the line is enforced from the previous spot",
+        .tags(.football)
     )
     func blockInTheBackBehindTheLine() {
         let decision = rules.enforce(
@@ -342,7 +352,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 12-1-3, 14-3-6 · offensive holding on a gain is ten from the previous spot, and the down is replayed"
+        "football · Rule 12-1-3, 14-3-6 · offensive holding on a gain is ten from the previous spot, and the down is replayed",
+        .tags(.football)
     )
     func holdingOnAGain() {
         let decision = rules.enforce(
@@ -357,7 +368,9 @@ struct PenaltyEnforcementTests {
     /// A foul by the team scored upon during a touchdown is enforced on the try
     /// (14-2-3), which the engine does not model yet (C9): the score stands, and the
     /// flag is recorded declined until then.
-    @Test("football · Rule 14-2-3 · a defensive foul on a touchdown play leaves the score standing")
+    @Test(
+        "football · Rule 14-2-3 · a defensive foul on a touchdown play leaves the score standing",
+        .tags(.football))
     func defensiveFoulOnATouchdown() {
         let decision = rules.enforce(
             penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 20),
@@ -372,7 +385,8 @@ struct PenaltyEnforcementTests {
     /// record does not carry, so the previous spot stands in — and the touchdown at
     /// the end of the run does not count, because the play it came on is replayed.
     @Test(
-        "football · Rule 14-3-6 · a facemask by the offence during its own touchdown run nullifies the score, enforced from the previous spot"
+        "football · Rule 14-3-6 · a facemask by the offence during its own touchdown run nullifies the score, enforced from the previous spot",
+        .tags(.football)
     )
     func offensiveContactFoulOnItsOwnScore() {
         let decision = rules.enforce(
@@ -389,7 +403,8 @@ struct PenaltyEnforcementTests {
     /// next. A personal foul by the offence during a play on which it loses the ball
     /// leaves the defence in possession, enforced from the dead-ball spot (14-4-3-b).
     @Test(
-        "football · Rule 12-2-15, 14-4-3-b · a facemask by the former offence on an interception return is 15 from the dead-ball spot in the returning team's frame, first down"
+        "football · Rule 12-2-15, 14-4-3-b · a facemask by the former offence on an interception return is 15 from the dead-ball spot in the returning team's frame, first down",
+        .tags(.football)
     )
     func facemaskByTheFormerOffenseOnAReturn() {
         // Intercepted and returned to the 75 in the throwing team's frame: the
@@ -405,7 +420,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 12-1-3-b, 14-3-6 · a block in the back by the returning team during a punt return is enforced from the spot of the foul in its frame"
+        "football · Rule 12-1-3-b, 14-3-6 · a block in the back by the returning team during a punt return is enforced from the spot of the foul in its frame",
+        .tags(.football)
     )
     func blockInTheBackOnAReturn() {
         // Punted from the 60; fielded and brought out to the receivers' own 30, with the
@@ -424,7 +440,8 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · interference in the end zone is first and goal at the 1")
+        "football · Rule 8-5-4, 8-6-1-b · interference in the end zone is first and goal at the 1",
+        .tags(.football))
     func interferenceInTheEndZone() {
         let decision = rules.enforce(
             penalty(.defensivePassInterference, yards: 30, enforcementSpot: 0),
@@ -439,7 +456,8 @@ struct PenaltyEnforcementTests {
     /// Half the distance is measured from the spot of enforcement (14-2-1), which for a
     /// contact foul at the end of a run is the end of the run.
     @Test(
-        "football · Rule 14-2-1, 12-2-15 · half the distance is measured from the enforcement spot: a facemask at the 6 after a run gives the 3"
+        "football · Rule 14-2-1, 12-2-15 · half the distance is measured from the enforcement spot: a facemask at the 6 after a run gives the 3",
+        .tags(.football)
     )
     func halfTheDistanceFromTheEnforcementSpot() {
         let decision = rules.enforce(
@@ -455,7 +473,8 @@ struct PenaltyEnforcementTests {
     /// succeeding spot and an automatic first down (12-3-1); by the offence, fifteen
     /// back and the down stands.
     @Test(
-        "football · Rule 12-3-1 · unsportsmanlike conduct after the play is fifteen from the succeeding spot, an automatic first down when by the defence"
+        "football · Rule 12-3-1 · unsportsmanlike conduct after the play is fifteen from the succeeding spot, an automatic first down when by the defence",
+        .tags(.football)
     )
     func conductFoulAfterThePlay() {
         let byDefence = rules.enforce(
@@ -475,7 +494,7 @@ struct PenaltyEnforcementTests {
     }
 
     /// Whichever branch is taken, the result has to be a legal down at a legal spot.
-    @Test("Every enforcement leaves a legal situation")
+    @Test("Every enforcement leaves a legal situation", .tags(.contract))
     func enforcementIsAlwaysLegal() {
         let spots: [UInt8] = [2, 5, 20, 50, 80, 96, 99]
         for foul in Foul.allCases {

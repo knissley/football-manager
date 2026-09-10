@@ -25,7 +25,7 @@ struct SpecialTeamsTests {
     /// You kick it away when a stop gets you the ball back, and you kick onside when it
     /// does not. Getting this wrong in either direction is glaring: a team kicking onside
     /// while ahead looks broken, and one that never does it cannot come back from ten.
-    @Test("Onside kicks happen when a stop would not be enough, and not otherwise")
+    @Test("Onside kicks happen when a stop would not be enough, and not otherwise", .tags(.unit))
     func onsideJudgement() {
         #expect(onside(situation(clock: 120, differential: -10)), "two scores down, two minutes")
         #expect(onside(situation(clock: 60, differential: -14)))
@@ -46,7 +46,7 @@ struct SpecialTeamsTests {
     /// does not — an injury model in this repo once had exactly this backwards and gave
     /// the sturdiest players the longest absences, so it gets asserted rather than
     /// assumed.
-    @Test("Ball security reduces fumbles and a big hitter causes them")
+    @Test("Ball security reduces fumbles and a big hitter causes them", .tags(.unit))
     func fumbleSigns() {
         func rate(carrying: UInt8, hitPower: UInt8) -> Double {
             var personnel = Lineup()
@@ -83,7 +83,7 @@ struct SpecialTeamsTests {
     }
 
     /// A strip sack comes loose far more often than a hit on a ball carrier who saw it.
-    @Test("A quarterback is stripped more often than a runner is")
+    @Test("A quarterback is stripped more often than a runner is", .tags(.unit))
     func stripSacksAreMoreLikely() {
         #expect(Fumbles.onSack > Fumbles.onContact * 2)
     }

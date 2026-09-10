@@ -211,7 +211,9 @@ struct InvariantsTraceabilityTests {
 
     /// Nothing below can fail honestly if the paths have moved and every scan comes back
     /// empty, which is how a lint passes by scanning nothing.
-    @Test("contract: the documents and the sources this suite reads are all present")
+    @Test(
+        "contract: the documents and the sources this suite reads are all present", .tags(.contract)
+    )
     func theTreeIsWhereWeThinkItIs() throws {
         for (path, text) in try documents() {
             #expect(text.count > 500, "\(path) is missing or nearly empty")
@@ -223,7 +225,7 @@ struct InvariantsTraceabilityTests {
         #expect(rows.count > 90, "found \(rows.count) calibration rows; expected the table")
     }
 
-    @Test("contract: every test named in the invariants and the reference exists")
+    @Test("contract: every test named in the invariants and the reference exists", .tags(.contract))
     func everyNamedTestExists() throws {
         let functions = testFunctions()
         var named = 0
@@ -242,7 +244,9 @@ struct InvariantsTraceabilityTests {
         #expect(named > 100, "only \(named) tests are named; the docs have lost their traceability")
     }
 
-    @Test("contract: every calibration row named in the invariants and the reference exists")
+    @Test(
+        "contract: every calibration row named in the invariants and the reference exists",
+        .tags(.contract))
     func everyNamedRowExists() throws {
         let ids = Set(Scan.calibrationRows(in: try Tree.read(Tree.targets)).map(\.id))
         for (path, text) in try documents() {
@@ -257,7 +261,7 @@ struct InvariantsTraceabilityTests {
 
     /// The A0 suite is the acceptance language for the rules layer, so an invariant it
     /// checks that nobody wrote down is a truth with no list entry.
-    @Test("contract: every rules-conformance scenario is covered by an invariant")
+    @Test("contract: every rules-conformance scenario is covered by an invariant", .tags(.contract))
     func everyScenarioIsAnInvariant() throws {
         let conformance = Scan.testFunctions(
             in: try Tree.read(
@@ -274,7 +278,9 @@ struct InvariantsTraceabilityTests {
 
     /// A band nobody wrote an invariant for is a number with no claim attached, which is
     /// what the harness's eighteen ties a season were for a week.
-    @Test("contract: every sourced calibration row is an invariant and names its source")
+    @Test(
+        "contract: every sourced calibration row is an invariant and names its source",
+        .tags(.contract))
     func everySourcedRowIsCovered() throws {
         let rows = Scan.calibrationRows(in: try Tree.read(Tree.targets))
         let inInvariants = Scan.references("row", in: try Tree.read(Tree.invariants))
@@ -290,7 +296,9 @@ struct InvariantsTraceabilityTests {
     /// Every truth carries either a check or an admission that there is none — never
     /// silence, which reads as "we do this" and often is not. An admission says which
     /// issue will enforce it, or says in as many words that no issue carries it yet.
-    @Test("contract: every invariant names a test, a harness row, or says it is not enforced")
+    @Test(
+        "contract: every invariant names a test, a harness row, or says it is not enforced",
+        .tags(.contract))
     func everyInvariantIsTraceable() throws {
         let entries = Scan.numberedEntries(in: try Tree.read(Tree.invariants))
         #expect(entries.count > 100, "found \(entries.count) invariants; expected the list")
@@ -313,7 +321,9 @@ struct InvariantsTraceabilityTests {
     /// The same promise on the other side of the reference: Done-when 1 for this issue is
     /// that every row of the rules reference names a test that exists, and
     /// `everyNamedTestExists` alone would stay green if every name were deleted.
-    @Test("contract: every article in the reference names a test or says it is not modelled")
+    @Test(
+        "contract: every article in the reference names a test or says it is not modelled",
+        .tags(.contract))
     func everyArticleIsTraceable() throws {
         let entries = Scan.articleEntries(in: try Tree.read(Tree.playingRules))
         #expect(entries.count > 100, "found \(entries.count) articles; expected the index")

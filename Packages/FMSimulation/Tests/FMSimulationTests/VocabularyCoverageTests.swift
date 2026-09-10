@@ -69,7 +69,7 @@ struct VocabularyCoverageTests {
 
     private static func plays() -> [PlayRecord] { sampled }
 
-    @Test("Every play kind the engine claims to model actually occurs")
+    @Test("Every play kind the engine claims to model actually occurs", .tags(.contract))
     func everyKindIsReachable() {
         let seen = Set(Self.plays().map(\.outcome.kind))
         for kind in PlayKind.allCases where Self.unreachableKinds[kind] == nil {
@@ -77,7 +77,7 @@ struct VocabularyCoverageTests {
         }
     }
 
-    @Test("Every play ending the engine claims to model actually occurs")
+    @Test("Every play ending the engine claims to model actually occurs", .tags(.contract))
     func everyEndingIsReachable() {
         let seen = Set(Self.plays().map(\.outcome.endedIn))
         for ending in PlayEnding.allCases where Self.unreachableEndings[ending] == nil {
@@ -87,7 +87,7 @@ struct VocabularyCoverageTests {
 
     /// The other direction, and the one that keeps the register honest: when a milestone
     /// makes one of these reachable, this fails and the entry has to come out.
-    @Test("The unreachable register describes the engine as it is")
+    @Test("The unreachable register describes the engine as it is", .tags(.contract))
     func registerIsCurrent() {
         let plays = Self.plays()
         let kinds = Set(plays.map(\.outcome.kind))
@@ -110,7 +110,7 @@ struct VocabularyCoverageTests {
     /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
     /// of them. There was no offensive pass interference in the league, nobody was ever
     /// called for lining up wrong, and a kicker could be run over with impunity.
-    @Test("Every foul the rules define actually gets called")
+    @Test("Every foul the rules define actually gets called", .tags(.contract))
     func everyFoulIsCalled() {
         // Nothing. Every foul in the book gets thrown.
         let unreachable: [Foul: String] = [:]
@@ -131,7 +131,7 @@ struct VocabularyCoverageTests {
     /// Every run play used to credit all four defensive linemen with a tackle in the
     /// blocking loop, before anybody had touched the ball. The role looked healthy and
     /// the leaderboard was nonsense.
-    @Test("Tackles are spread across the defence, not banked by the front")
+    @Test("Tackles are spread across the defence, not banked by the front", .tags(.contract))
     func tacklesReachTheWholeDefense() {
         let tackles = Self.plays()
             .flatMap(\.outcome.participants)
@@ -169,7 +169,7 @@ struct VocabularyCoverageTests {
     /// a long snapper, and none of them had ever been on the field — the resolver read
     /// kick accuracy and punt power off the *quarterback's* slot, so a team's kicker had
     /// no bearing on whether it made kicks.
-    @Test("Every position on a roster gets on the field")
+    @Test("Every position on a roster gets on the field", .tags(.contract))
     func everyPositionPlays() {
         // Nothing. Every position a team carries takes a snap: the specialists on kicks,
         // the fullback in a heavy grouping and on the coverage units, the third
@@ -189,7 +189,7 @@ struct VocabularyCoverageTests {
 
     /// Roles are the same shape of gap: a role nothing ever credits is a hole in every
     /// query built on top of it. `.tackler` went missing on sacks exactly this way.
-    @Test("Every play role gets credited to somebody")
+    @Test("Every play role gets credited to somebody", .tags(.contract))
     func everyRoleIsCredited() {
         let unreachable: [PlayRole: String] = [
             .assistTackler: "M5 — the crude resolver credits a single tackler."

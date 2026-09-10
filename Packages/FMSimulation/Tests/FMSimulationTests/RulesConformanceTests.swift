@@ -79,7 +79,9 @@ struct RulesConformanceTests {
 
     /// The side that conceded the two points puts the ball back in play with a free kick
     /// from its own twenty, and the side that scored receives.
-    @Test("football · Rule 11-5-2 · after a safety the team scored upon free-kicks from its 20")
+    @Test(
+        "football · Rule 11-5-2 · after a safety the team scored upon free-kicks from its 20",
+        .tags(.football))
     func afterASafetyTheTeamScoredUponKicks() {
         let trace = RulesScenario.safetyFreeKick.run()
         guard let safety = trace.first(where: { $0.outcome.endedIn == .safety }) else {
@@ -101,7 +103,9 @@ struct RulesConformanceTests {
 
     /// The touchdown, its try, a kickoff by the side that scored, and the other side's
     /// first snap: the order of a score.
-    @Test("football · Rule 11-3-4 · after the try the team that defended it receives the kickoff")
+    @Test(
+        "football · Rule 11-3-4 · after the try the team that defended it receives the kickoff",
+        .tags(.football))
     func afterTheTryTheDefendingTeamReceives() {
         let trace = RulesScenario.touchdownTryKickoff.run()
         guard let scorer = trace[1]?.situation.possession else {
@@ -117,7 +121,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 11-4-6 · after a successful field goal the team scored upon receives the kickoff"
+        "football · Rule 11-4-6 · after a successful field goal the team scored upon receives the kickoff",
+        .tags(.football)
     )
     func afterAFieldGoalTheTeamScoredUponReceives() {
         let trace = RulesScenario.fieldGoalThenKickoff.run()
@@ -138,7 +143,8 @@ struct RulesConformanceTests {
     /// Filed as A9 (#55): the return is a touchdown for the receiving side, which then
     /// tries and then kicks off, like any other score.
     @Test(
-        "football · Rule 11-3-1, 11-3-4 · a kickoff returned for a touchdown gets its try, and the returning team then kicks off"
+        "football · Rule 11-3-1, 11-3-4 · a kickoff returned for a touchdown gets its try, and the returning team then kicks off",
+        .tags(.football)
     )
     func kickoffReturnTouchdownGetsItsTry() {
         let trace = RulesScenario.kickoffReturnTouchdown.run()
@@ -164,7 +170,8 @@ struct RulesConformanceTests {
     /// The try is an untimed down of the period the touchdown ended: the period is
     /// extended for it (4-8-2), so its situation reads the same quarter at 0:00.
     @Test(
-        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 16-1-3 · a touchdown as the fourth quarter expires, down seven, gets its try in that period at 0:00, and the kick sends the game to overtime"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 16-1-3 · a touchdown as the fourth quarter expires, down seven, gets its try in that period at 0:00, and the kick sends the game to overtime",
+        .tags(.football)
     )
     func lastPlayTouchdownDownSeven() {
         let trace = RulesScenario.lastPlayTouchdownDownSeven.run()
@@ -180,7 +187,8 @@ struct RulesConformanceTests {
     /// Down six, the touchdown levels it and the kick wins it: the try is played, and
     /// nothing follows a successful one.
     @Test(
-        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the fourth quarter expires, down six, gets its try in that period at 0:00, and the kick wins it"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the fourth quarter expires, down six, gets its try in that period at 0:00, and the kick wins it",
+        .tags(.football)
     )
     func lastPlayTouchdownDownSix() {
         let trace = RulesScenario.lastPlayTouchdownDownSix.run()
@@ -197,7 +205,8 @@ struct RulesConformanceTests {
     /// Down eight, the touchdown leaves the side down two, and a two-point try levels
     /// it: a successful try affects the outcome, so it is played.
     @Test(
-        "football · Rule 4-8-2, 4-8-2-c, 11-3-2-b, 16-1-3 · a touchdown as the fourth quarter expires, down eight, gets a two-point try in that period at 0:00, and the conversion sends the game to overtime"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-2-b, 16-1-3 · a touchdown as the fourth quarter expires, down eight, gets a two-point try in that period at 0:00, and the conversion sends the game to overtime",
+        .tags(.football)
     )
     func lastPlayTouchdownDownEight() {
         let trace = RulesScenario.lastPlayTouchdownDownEight.run()
@@ -213,7 +222,8 @@ struct RulesConformanceTests {
     /// Down two, the touchdown puts the side up four with no time left: no successful
     /// try could change who won, so there is none.
     @Test(
-        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down two, gets no try because no try could affect the outcome"
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down two, gets no try because no try could affect the outcome",
+        .tags(.football)
     )
     func lastPlayTouchdownDownTwo() {
         let trace = RulesScenario.lastPlayTouchdownDownTwo.run()
@@ -227,7 +237,8 @@ struct RulesConformanceTests {
     /// Down nine, the touchdown leaves the side down three: no successful try is worth
     /// three, so none is played and the game ends on the touchdown.
     @Test(
-        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down nine, gets no try because no try could affect the outcome"
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down nine, gets no try because no try could affect the outcome",
+        .tags(.football)
     )
     func lastPlayTouchdownDownNine() {
         let trace = RulesScenario.lastPlayTouchdownDownNine.run()
@@ -239,7 +250,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down one, gets no try"
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, down one, gets no try",
+        .tags(.football)
     )
     func lastPlayTouchdownDownOne() {
         let trace = RulesScenario.lastPlayTouchdownDownOne.run()
@@ -250,7 +262,9 @@ struct RulesConformanceTests {
         trace.expectScore(trace.opponent(of: touchdown.scorer), 7)
     }
 
-    @Test("football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, level, gets no try")
+    @Test(
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, level, gets no try",
+        .tags(.football))
     func lastPlayTouchdownLevel() {
         let trace = RulesScenario.lastPlayTouchdownLevel.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
@@ -261,7 +275,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, up one, gets no try")
+        "football · Rule 4-8-2-c · a touchdown as the fourth quarter expires, up one, gets no try",
+        .tags(.football))
     func lastPlayTouchdownUpOne() {
         let trace = RulesScenario.lastPlayTouchdownUpOne.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
@@ -274,7 +289,8 @@ struct RulesConformanceTests {
     /// The half does not end until the try has been played — the period is extended for
     /// it (4-8-2) — and the third quarter then opens with a kickoff and a full clock.
     @Test(
-        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try in that period at 0:00, and the second half then opens with a kickoff"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try in that period at 0:00, and the second half then opens with a kickoff",
+        .tags(.football)
     )
     func touchdownAsTheSecondQuarterExpires() {
         let trace = RulesScenario.touchdownAsSecondQuarterExpires.run()
@@ -289,7 +305,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 11-3-4 · a touchdown as the first quarter expires gets its try in that period at 0:00, and the scoring team kicks off to open the second"
+        "football · Rule 4-8-2, 4-8-2-c, 11-3-1, 11-3-4 · a touchdown as the first quarter expires gets its try in that period at 0:00, and the scoring team kicks off to open the second",
+        .tags(.football)
     )
     func touchdownAsTheFirstQuarterExpires() {
         let trace = RulesScenario.touchdownAsFirstQuarterExpires.run()
@@ -305,7 +322,8 @@ struct RulesConformanceTests {
     // MARK: Overtime
 
     @Test(
-        "football · Rule 4-1-1, 16-1-3 · a regular-season game level after four periods goes to one ten-minute overtime period"
+        "football · Rule 4-1-1, 16-1-3 · a regular-season game level after four periods goes to one ten-minute overtime period",
+        .tags(.football)
     )
     func regulationTieGoesToOvertime() {
         let trace = RulesScenario.scoreless.run()
@@ -318,7 +336,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 16-1-3-d · regular-season overtime is never extended: level at the end of it is a tie"
+        "football · Rule 16-1-3-d · regular-season overtime is never extended: level at the end of it is a tie",
+        .tags(.football)
     )
     func regularSeasonOvertimeExpiringLevelIsATie() {
         let trace = RulesScenario.scoreless.run()
@@ -330,7 +349,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 16-1-4, 16-1-4-d · a postseason game level after the fifth period plays a sixth, of fifteen minutes"
+        "football · Rule 16-1-4, 16-1-4-d · a postseason game level after the fifth period plays a sixth, of fifteen minutes",
+        .tags(.football)
     )
     func postseasonPlaysASixthPeriod() {
         let trace = RulesScenario.scorelessPostseasonUntilTheSixthPeriod.run()
@@ -355,7 +375,8 @@ struct RulesConformanceTests {
     /// possession. It still tries, it still kicks off, and the other side still gets
     /// its possession; the game ends when that possession ends without the points.
     @Test(
-        "football · Rule 16-1-3-a, 16-1-3-b, 11-3-1 · a touchdown on the first overtime possession gets its try, and the other team then possesses"
+        "football · Rule 16-1-3-a, 16-1-3-b, 11-3-1 · a touchdown on the first overtime possession gets its try, and the other team then possesses",
+        .tags(.football)
     )
     func overtimeFirstPossessionTouchdown() {
         let trace = RulesScenario.overtimeFirstPossessionTouchdown.run()
@@ -384,7 +405,8 @@ struct RulesConformanceTests {
     /// Both sides kick a field goal on their first possession, so the game is level
     /// once both have possessed, and the next points of any kind win it.
     @Test(
-        "football · Rule 16-1-3-b, 16-1-3-c · once both teams have possessed in overtime, level, the next score of any kind wins"
+        "football · Rule 16-1-3-b, 16-1-3-c · once both teams have possessed in overtime, level, the next score of any kind wins",
+        .tags(.football)
     )
     func overtimeAfterBothPossessedEndsOnAnyScore() {
         let trace = RulesScenario.overtimeFieldGoalsUntilOneIsUnanswered.run()
@@ -421,7 +443,8 @@ struct RulesConformanceTests {
     /// goal on the opening possession, a muffed kickoff the kickers fall on ends the
     /// game (A.R. 16.2).
     @Test(
-        "football · Rule 16-1-3-b, 16-1-5-c, A.R. 16.2 · after a field goal on the opening overtime possession, a kickoff the kicking team recovers ends the game"
+        "football · Rule 16-1-3-b, 16-1-5-c, A.R. 16.2 · after a field goal on the opening overtime possession, a kickoff the kicking team recovers ends the game",
+        .tags(.football)
     )
     func overtimeKickoffRecoveredByTheKickersEndsIt() {
         let trace = RulesScenario.overtimeKickoffRecoveredByTheKickers.run()
@@ -444,7 +467,8 @@ struct RulesConformanceTests {
     /// opportunity; a return touchdown puts it ahead once both have possessed, so the
     /// game ends on the kick, with no try (A.R. 16.4, 4-8-2-c).
     @Test(
-        "football · Rule 16-1-3-b, 16-1-3-c, 16-1-5-c, A.R. 16.4 · after a field goal on the opening overtime possession, a kickoff returned for a touchdown ends the game with no try"
+        "football · Rule 16-1-3-b, 16-1-3-c, 16-1-5-c, A.R. 16.4 · after a field goal on the opening overtime possession, a kickoff returned for a touchdown ends the game with no try",
+        .tags(.football)
     )
     func overtimeKickoffReturnedForTouchdownEndsIt() {
         let trace = RulesScenario.overtimeKickoffReturnedForTouchdown.run()
@@ -467,7 +491,8 @@ struct RulesConformanceTests {
     /// Once both have possessed, a touchdown that leaves the scorer behind is not yet
     /// decisive: its try is played, and the conversion that puts him ahead ends it.
     @Test(
-        "football · Rule 16-1-3-b, 16-1-3-c, 4-8-2-c, 11-3-1 · once both have possessed in overtime, a touchdown that leaves the scorer behind gets its try, and the conversion that puts him ahead ends it"
+        "football · Rule 16-1-3-b, 16-1-3-c, 4-8-2-c, 11-3-1 · once both have possessed in overtime, a touchdown that leaves the scorer behind gets its try, and the conversion that puts him ahead ends it",
+        .tags(.football)
     )
     func overtimeTrailingScorerTryDecides() {
         let trace = RulesScenario.overtimeTrailingScorerGoesForTwo.run()
@@ -493,7 +518,9 @@ struct RulesConformanceTests {
         trace.expectScore(trace.opponent(of: scorer), 7)
     }
 
-    @Test("football · Rule 16-1-3-e · each team has two timeouts in regular-season overtime")
+    @Test(
+        "football · Rule 16-1-3-e · each team has two timeouts in regular-season overtime",
+        .tags(.football))
     func overtimeTimeoutsAreTwo() {
         let trace = RulesScenario.scoreless.run()
         guard reachedOvertime(trace),
@@ -506,7 +533,8 @@ struct RulesConformanceTests {
     /// A defence that intercepts has thereby possessed, so both sides have had their
     /// turn, and a defensive touchdown on the first possession ends it.
     @Test(
-        "football · Rule 16-1-5-b, 16-1-3-b · an interception returned for a touchdown on the first overtime possession ends the game"
+        "football · Rule 16-1-5-b, 16-1-3-b · an interception returned for a touchdown on the first overtime possession ends the game",
+        .tags(.football)
     )
     func overtimeDefensiveScoreEndsIt() {
         let trace = RulesScenario.overtimeFirstPossessionInterceptionReturned.run()
@@ -525,7 +553,8 @@ struct RulesConformanceTests {
     /// The one exception to each side getting a turn: the side that kicked off scores a
     /// safety against the opening drive and has won on the spot.
     @Test(
-        "football · Rule 16-1-3-a · a safety against the opening overtime drive wins it for the team that kicked off"
+        "football · Rule 16-1-3-a · a safety against the opening overtime drive wins it for the team that kicked off",
+        .tags(.football)
     )
     func overtimeOpeningDriveSafetyWinsIt() {
         let trace = RulesScenario.overtimeOpeningDriveSafety.run()
@@ -545,7 +574,9 @@ struct RulesConformanceTests {
     /// The fourth-down stop is a change of possession: the clock stops when the play
     /// ends and does not start again until the new offence snaps, so that offence's
     /// huddle costs it nothing.
-    @Test("football · Rule 4-4-i, 4-3-2-a-1 · a turnover on downs stops the clock until the snap")
+    @Test(
+        "football · Rule 4-4-i, 4-3-2-a-1 · a turnover on downs stops the clock until the snap",
+        .tags(.football))
     func turnoverOnDownsStopsTheClock() {
         let trace = RulesScenario.scoreless.run()
         guard
@@ -567,7 +598,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-4-i, 4-3-2-a-1 · a punt returned and tackled in bounds stops the clock until the snap"
+        "football · Rule 4-4-i, 4-3-2-a-1 · a punt returned and tackled in bounds stops the clock until the snap",
+        .tags(.football)
     )
     func puntReturnedAndTackledStopsTheClock() {
         let trace = RulesScenario.puntReturnedAndTackled.run()
@@ -588,7 +620,9 @@ struct RulesConformanceTests {
 
     /// A fumble the offence falls on in the field of play is not among the stoppages:
     /// the ball is dead by a tackle, and the clock runs on through the huddle.
-    @Test("football · Rule 4-4 · a fumble recovered by the offence keeps the clock running")
+    @Test(
+        "football · Rule 4-4 · a fumble recovered by the offence keeps the clock running",
+        .tags(.football))
     func fumbleRecoveredByTheOffenseKeepsTheClockRunning() {
         let trace = RulesScenario.fumbleRecoveredByTheOffense.run()
         guard let fumble = trace[1], let next = trace[2] else {
@@ -605,7 +639,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 4-4-i, 4-3-2-a-1 · a fumble recovered by the defence stops the clock until the snap"
+        "football · Rule 4-4-i, 4-3-2-a-1 · a fumble recovered by the defence stops the clock until the snap",
+        .tags(.football)
     )
     func fumbleRecoveredByTheDefenseStopsTheClock() {
         let trace = RulesScenario.fumbleRecoveredByTheDefense.run()
@@ -625,7 +660,8 @@ struct RulesConformanceTests {
     /// field of play, so a return costs the returning side the seconds it ran; the
     /// return is a change of possession, so the clock then waits for the snap.
     @Test(
-        "football · Rule 4-4-a, 4-3-1, 4-4-i · a returned kickoff advances the game clock by the return, and no more"
+        "football · Rule 4-4-a, 4-3-1, 4-4-i · a returned kickoff advances the game clock by the return, and no more",
+        .tags(.football)
     )
     func returnedKickoffAdvancesTheClock() {
         let trace = RulesScenario.kickoffReturned.run()
@@ -641,7 +677,7 @@ struct RulesConformanceTests {
         trace.expectPlay(2, clock: 900 - 8 - 6, "the first snap costs only its own six seconds")
     }
 
-    @Test("football · Rule 4-3-1-c · a fair-caught kickoff starts no clock")
+    @Test("football · Rule 4-3-1-c · a fair-caught kickoff starts no clock", .tags(.football))
     func fairCaughtKickoffStartsNoClock() {
         let trace = RulesScenario.kickoffFairCaught.run()
         trace.expectPlay(0, kind: .kickoff, endedIn: .fairCatch)
@@ -654,7 +690,8 @@ struct RulesConformanceTests {
     /// the cases in which the clock does not start on a free kick; it then starts on
     /// the next snap (4-3-2).
     @Test(
-        "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap"
+        "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap",
+        .tags(.football)
     )
     func kickoffRecoveredByTheKickersStartsNoClock() {
         let trace = RulesScenario.onsideKickRecovered.run()
@@ -671,7 +708,7 @@ struct RulesConformanceTests {
             "no clock ran on the kick, and it waits for the snap")
     }
 
-    @Test("football · Rule 4-3-1, 4-4-d · a kickoff touchback consumes no time")
+    @Test("football · Rule 4-3-1, 4-4-d · a kickoff touchback consumes no time", .tags(.football))
     func touchbackConsumesNoTime() {
         let trace = RulesScenario.scoreless.run()
         trace.expectPlay(0, kind: .kickoff, endedIn: .touchback)
@@ -684,7 +721,8 @@ struct RulesConformanceTests {
     /// downs, the warning stops it there, and the snap that follows restarts it: the
     /// offence's huddle costs one second rather than its whole tempo.
     @Test(
-        "football · Rule 3-41, 4-4-h · the two-minute warning stops a running clock at exactly 2:00 and the snap restarts it"
+        "football · Rule 3-41, 4-4-h · the two-minute warning stops a running clock at exactly 2:00 and the snap restarts it",
+        .tags(.football)
     )
     func twoMinuteWarningStopsAtTwoMinutes() {
         let trace = RulesScenario.playEndingJustBeforeTheTwoMinuteWarning.run()
@@ -708,7 +746,8 @@ struct RulesConformanceTests {
     /// The clock runs past 2:00 during a play: that down finishes, and only then is the
     /// clock dead — at whatever it reads.
     @Test(
-        "football · Rule 3-41 · a down under way when the clock runs past 2:00 finishes, and the clock is dead after it"
+        "football · Rule 3-41 · a down under way when the clock runs past 2:00 finishes, and the clock is dead after it",
+        .tags(.football)
     )
     func downUnderWayAtTwoMinutesFinishes() {
         let trace = RulesScenario.playRunningPastTheTwoMinuteWarning.run()
@@ -734,7 +773,8 @@ struct RulesConformanceTests {
     /// seconds on top of the five yards, and the clock then starts on the ready-for-play
     /// signal rather than waiting for the snap. Filed with A5 (#32).
     @Test(
-        "football · Rule 4-7-1 Item 1 · inside two minutes a false start with the clock running costs ten seconds, and the clock restarts on the ready"
+        "football · Rule 4-7-1 Item 1 · inside two minutes a false start with the clock running costs ten seconds, and the clock restarts on the ready",
+        .tags(.football)
     )
     func falseStartInsideTwoMinutesCostsTenSeconds() {
         let trace = RulesScenario.falseStartInsideTwoMinutes.run()
@@ -760,7 +800,8 @@ struct RulesConformanceTests {
     /// (4-3-2-e-3). The as-if-never-flown restart holds outside the late-game cases, so
     /// this case moves to the third quarter, and the fourth-quarter case follows it.
     @Test(
-        "football · Rule 4-7-1, 4-4-e, 4-3-2-e · outside the late-game windows a false start with the clock running carries no runoff, and the clock restarts as if the foul had not occurred"
+        "football · Rule 4-7-1, 4-4-e, 4-3-2-e · outside the late-game windows a false start with the clock running carries no runoff, and the clock restarts as if the foul had not occurred",
+        .tags(.football)
     )
     func falseStartInTheThirdQuarterCostsNoTime() {
         let trace = RulesScenario.falseStartInTheThirdQuarter.run()
@@ -781,7 +822,8 @@ struct RulesConformanceTests {
     /// An offensive foul that stops the clock before a snap in the fourth period has
     /// the clock start on the snap, wherever in the period it comes.
     @Test(
-        "football · Rule 4-3-2-e-3, 4-4-e · an offensive foul before the snap in the fourth quarter costs the huddle and nothing else, and the clock then starts on the snap"
+        "football · Rule 4-3-2-e-3, 4-4-e · an offensive foul before the snap in the fourth quarter costs the huddle and nothing else, and the clock then starts on the snap",
+        .tags(.football)
     )
     func offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap() {
         let trace = RulesScenario.falseStartInTheFourthQuarterOutsideTwoMinutes.run()
@@ -803,7 +845,8 @@ struct RulesConformanceTests {
     /// Fourth-quarter timing rules apply in regular-season overtime (16-1-3-e), the
     /// runoff among them.
     @Test(
-        "football · Rule 16-1-3-e, 4-7-1 Item 1 · inside two minutes of regular-season overtime a false start with the clock running carries the runoff, and the clock restarts on the ready"
+        "football · Rule 16-1-3-e, 4-7-1 Item 1 · inside two minutes of regular-season overtime a false start with the clock running carries the runoff, and the clock restarts on the ready",
+        .tags(.football)
     )
     func falseStartInsideTwoMinutesOfOvertimeCostsTenSeconds() {
         let trace = RulesScenario.falseStartInsideTwoMinutesOfOvertime.run()
@@ -824,7 +867,9 @@ struct RulesConformanceTests {
 
     /// The runoff needs a running clock. After an incompletion the clock is stopped, so
     /// the flag costs five yards and nothing else, and the clock waits for the snap.
-    @Test("football · Rule 4-7-1 Item 1 · a false start with the clock stopped carries no runoff")
+    @Test(
+        "football · Rule 4-7-1 Item 1 · a false start with the clock stopped carries no runoff",
+        .tags(.football))
     func falseStartWithTheClockStoppedCostsNoTime() {
         let trace = RulesScenario.falseStartWithTheClockStopped.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
@@ -840,7 +885,9 @@ struct RulesConformanceTests {
 
     /// The defence may decline the runoff and keep the yardage; a trailing defence,
     /// which wants the clock to stop, does. The yards still count.
-    @Test("football · Rule 4-7-1 Item 1 · the defence may decline the runoff and keep the yardage")
+    @Test(
+        "football · Rule 4-7-1 Item 1 · the defence may decline the runoff and keep the yardage",
+        .tags(.football))
     func trailingDefenseDeclinesTheRunoff() {
         let trace = RulesScenario.falseStartAgainstATrailingDefense.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
@@ -860,7 +907,8 @@ struct RulesConformanceTests {
     /// Instead of the runoff the offence may spend a charged timeout, and then the clock
     /// starts on the snap — which, at twelve seconds, is the whole game.
     @Test(
-        "football · Rule 4-7-1 Item 1 · the offence may take a charged timeout instead of the runoff, and the clock then starts on the snap"
+        "football · Rule 4-7-1 Item 1 · the offence may take a charged timeout instead of the runoff, and the clock then starts on the snap",
+        .tags(.football)
     )
     func offenseTakesATimeoutInsteadOfTheRunoff() {
         let trace = RulesScenario.falseStartAtTwelveSecondsWithATimeout.run()
@@ -881,7 +929,8 @@ struct RulesConformanceTests {
 
     /// A runoff can exhaust the clock: at eight seconds, the flag ends the half.
     @Test(
-        "football · Rule 4-7-1 Item 1, 4-5-4 Note 4 · a ten-second runoff at eight seconds ends the half"
+        "football · Rule 4-7-1 Item 1, 4-5-4 Note 4 · a ten-second runoff at eight seconds ends the half",
+        .tags(.football)
     )
     func runoffAtEightSecondsEndsTheHalf() {
         let trace = RulesScenario.falseStartAtEightSecondsOfTheHalf.run()
@@ -902,7 +951,8 @@ struct RulesConformanceTests {
     /// charged; there is no runoff against the defence; and the offence, which wants
     /// the snap, has the clock wait for it.
     @Test(
-        "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap"
+        "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap",
+        .tags(.football)
     )
     func deadBallFoulBeforeTheSnapChargesNoTime() {
         let trace = RulesScenario.neutralZoneInfractionOnATrailingOffense.run()
@@ -947,7 +997,8 @@ struct RulesConformanceTests {
     /// nothing. The incompletion here is the baseline caller's spike, which the scenario
     /// scripts to fall incomplete; that it does is a precondition, not the claim.
     @Test(
-        "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap"
+        "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap",
+        .tags(.football)
     )
     func spikeStopsTheClock() {
         let trace = RulesScenario.trailingByAPickSix.run()
@@ -970,7 +1021,8 @@ struct RulesConformanceTests {
     /// huddled one, because the endgame's arithmetic depends on both and nothing else
     /// checked either.
     @Test(
-        "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)"
+        "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)",
+        .tags(.pin)
     )
     func spikeIsCalledAtHurryUpTempo() {
         let trace = RulesScenario.trailingByAPickSix.run()
@@ -991,7 +1043,9 @@ struct RulesConformanceTests {
     // MARK: Tries and kicks
 
     /// Filed as A7 (#19): a flag before the try moves the try, and it is still a try.
-    @Test("football · Rule 11-3-1, 7-4-2 · a false start on a try moves the try back five yards")
+    @Test(
+        "football · Rule 11-3-1, 7-4-2 · a false start on a try moves the try back five yards",
+        .tags(.football))
     func falseStartOnATryMovesTheTry() {
         let trace = RulesScenario.falseStartOnATry.run()
         guard let scorer = trace[1]?.situation.possession else {
@@ -1009,7 +1063,8 @@ struct RulesConformanceTests {
 
     /// A miss struck from nearer than the 20 comes out to the 20.
     @Test(
-        "football · Rule 11-4-2 · a missed field goal struck from inside the 20 gives the defence the ball at its 20"
+        "football · Rule 11-4-2 · a missed field goal struck from inside the 20 gives the defence the ball at its 20",
+        .tags(.football)
     )
     func missedFieldGoalFromInsideTheTwenty() {
         let trace = RulesScenario.missedFieldGoalFromTheTen.run()
@@ -1027,7 +1082,8 @@ struct RulesConformanceTests {
     /// A miss struck from beyond the 20 comes back to where it was struck: the line of
     /// scrimmage plus the depth of the snap, which is the model's constant.
     @Test(
-        "football · Rule 11-4-2 · a missed field goal struck from beyond the 20 gives the defence the ball where it was struck"
+        "football · Rule 11-4-2 · a missed field goal struck from beyond the 20 gives the defence the ball where it was struck",
+        .tags(.football)
     )
     func missedFieldGoalFromBeyondTheTwenty() {
         let trace = RulesScenario.missedFieldGoalFromTheTwenty.run()
@@ -1050,7 +1106,8 @@ struct RulesConformanceTests {
     /// section it has. Five yards from the 3 cannot reach the goal line: the ball ends
     /// up nearer than the 3 and still short of it, first and goal.
     @Test(
-        "football · Rule 8-4-6, 12-1-6, 14-4 (closest section) · defensive holding at the 3 is half the distance and a first down"
+        "football · Rule 8-4-6, 12-1-6, 14-4 (closest section) · defensive holding at the 3 is half the distance and a first down",
+        .tags(.football)
     )
     func defensiveHoldingAtTheThreeIsHalfTheDistance() {
         let trace = RulesScenario.defensiveHoldingAtTheThree.run()
@@ -1070,7 +1127,8 @@ struct RulesConformanceTests {
     /// The other direction, from the closest section the reference has: a false start
     /// from the own 3 goes back half the distance, not five, and not into the end zone.
     @Test(
-        "football · Rule 7-4-2, 14-4 (closest section) · a false start at the own 3 is half the distance to the goal line"
+        "football · Rule 7-4-2, 14-4 (closest section) · a false start at the own 3 is half the distance to the goal line",
+        .tags(.football)
     )
     func falseStartAtTheOwnThreeIsHalfTheDistance() {
         let trace = RulesScenario.falseStartAtTheOwnThree.run()
@@ -1091,7 +1149,8 @@ struct RulesConformanceTests {
     /// for the spot; the spot itself — the end of the run — is the sentence the audit's
     /// S13 recorded. Fifteen yards from the end of a twenty-yard run is thirty-five.
     @Test(
-        "football · Rule 12-2-15, 14-4 (closest section) · a facemask at the end of a 20-yard run is 15 more from the end of the run, and a first down"
+        "football · Rule 12-2-15, 14-4 (closest section) · a facemask at the end of a 20-yard run is 15 more from the end of the run, and a first down",
+        .tags(.football)
     )
     func facemaskAtTheEndOfARunIsEnforcedFromTheEndOfTheRun() {
         let trace = RulesScenario.facemaskAtTheEndOfARun.run()
@@ -1106,7 +1165,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 8-5-4 · defensive pass interference in the end zone is first and goal at the 1"
+        "football · Rule 8-5-4 · defensive pass interference in the end zone is first and goal at the 1",
+        .tags(.football)
     )
     func interferenceInTheEndZoneSpotsAtTheOne() {
         let trace = RulesScenario.interferenceInTheEndZone.run()
@@ -1121,7 +1181,8 @@ struct RulesConformanceTests {
     }
 
     @Test(
-        "football · Rule 8-5-4 · defensive pass interference in the end zone from inside the 2 is half the distance, and still a first down"
+        "football · Rule 8-5-4 · defensive pass interference in the end zone from inside the 2 is half the distance, and still a first down",
+        .tags(.football)
     )
     func interferenceInTheEndZoneFromInsideTheTwo() {
         let trace = RulesScenario.interferenceInTheEndZoneFromTheOne.run()
@@ -1140,7 +1201,8 @@ struct RulesConformanceTests {
     /// A trailing side declares an onside kick, and its recovery is its ball where the
     /// play died: a first down, not a change of possession.
     @Test(
-        "football · Rule 6-1-6, 6-1-4-c, 6-1-4-d · an onside kick the kicking team recovers is its ball, first and ten, where it was recovered"
+        "football · Rule 6-1-6, 6-1-4-c, 6-1-4-d · an onside kick the kicking team recovers is its ball, first and ten, where it was recovered",
+        .tags(.football)
     )
     func onsideRecoveryKeepsPossession() {
         let trace = RulesScenario.onsideKickRecovered.run()

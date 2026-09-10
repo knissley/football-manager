@@ -18,7 +18,7 @@ private func generate(
 @Suite("Player generation")
 struct PlayerGeneratorTests {
 
-    @Test("The same seed produces the same player")
+    @Test("The same seed produces the same player", .tags(.contract))
     func deterministic() {
         var a = SplittableRandom(seed: 555)
         var b = SplittableRandom(seed: 555)
@@ -35,7 +35,7 @@ struct PlayerGeneratorTests {
 
     /// The invariant the whole development design rests on. If a generated
     /// player can start above his ceiling, the league inflates from season one.
-    @Test("No generated player is above his ceiling")
+    @Test("No generated player is above his ceiling", .tags(.contract))
     func neverAboveCeiling() {
         var random = SplittableRandom(seed: 77)
         for position in Position.allCases {
@@ -53,7 +53,7 @@ struct PlayerGeneratorTests {
         }
     }
 
-    @Test("Ratings match exactly the keys the position uses")
+    @Test("Ratings match exactly the keys the position uses", .tags(.unit))
     func ratingKeys() {
         var random = SplittableRandom(seed: 88)
         for position in Position.allCases {
@@ -70,7 +70,7 @@ struct PlayerGeneratorTests {
     /// individual ratings biases the aggregate unless it is corrected, and a
     /// league generated to average 72 that arrives averaging 68 quietly
     /// invalidates every calibration target downstream.
-    @Test("Generated overall lands on the requested level")
+    @Test("Generated overall lands on the requested level", .tags(.unit))
     func overallHitsTarget() {
         var random = SplittableRandom(seed: 99)
         for position in Position.allCases {
@@ -89,7 +89,7 @@ struct PlayerGeneratorTests {
         }
     }
 
-    @Test("Young players sit below their ceiling and prime players reach it")
+    @Test("Young players sit below their ceiling and prime players reach it", .tags(.unit))
     func ageCurve() {
         let rookie = PlayerGenerator.currentOverall(
             ceiling: 85, age: 22, trait: .normal, group: .receiver, rookieGap: 14)
@@ -105,7 +105,7 @@ struct PlayerGeneratorTests {
 
     /// A star developer arrives at his ceiling sooner. He does not arrive at a
     /// higher one.
-    @Test("Development trait changes the rate, never the ceiling")
+    @Test("Development trait changes the rate, never the ceiling", .tags(.unit))
     func traitChangesRateNotCeiling() {
         let slow = PlayerGenerator.currentOverall(
             ceiling: 88, age: 24, trait: .slow, group: .edge, rookieGap: 14)
@@ -122,7 +122,7 @@ struct PlayerGeneratorTests {
         }
     }
 
-    @Test("Positions decline at different rates")
+    @Test("Positions decline at different rates", .tags(.unit))
     func declineRates() {
         let back = PlayerGenerator.currentOverall(
             ceiling: 85, age: 32, trait: .normal, group: .backfield, rookieGap: 14)
@@ -131,7 +131,7 @@ struct PlayerGeneratorTests {
         #expect(back < lineman, "a back at 32 should be further gone than a lineman")
     }
 
-    @Test("Development traits appear at their intended rarity")
+    @Test("Development traits appear at their intended rarity", .tags(.unit))
     func traitRarity() {
         var random = SplittableRandom(seed: 123)
         var counts: [DevelopmentTrait: Int] = [:]
@@ -151,7 +151,7 @@ struct PhysicalGenerationTests {
 
     /// Measurables are outside the fog, so implausible ones are visible to the
     /// player immediately. A 5-10 left tackle reads as a broken generator.
-    @Test("Builds are plausible for the position")
+    @Test("Builds are plausible for the position", .tags(.unit))
     func plausibleBuilds() {
         var random = SplittableRandom(seed: 31)
         var byPosition: [Position: [Int]] = [:]
@@ -177,7 +177,7 @@ struct PhysicalGenerationTests {
         #expect(meanWeight(.linebacker) > meanWeight(.cornerback))
     }
 
-    @Test("Faster players run faster forty times")
+    @Test("Faster players run faster forty times", .tags(.unit))
     func fortyTracksSpeed() {
         var random = SplittableRandom(seed: 41)
         var fastTimes: [Int] = []
@@ -211,7 +211,7 @@ struct PhysicalGenerationTests {
 
     /// The combine has to be informative and incomplete. Perfect prediction
     /// makes scouting trivial; none makes the workout pointless.
-    @Test("Testing is correlated with ratings but not deterministic")
+    @Test("Testing is correlated with ratings but not deterministic", .tags(.unit))
     func combineHasNoise() {
         var random = SplittableRandom(seed: 43)
         var ratings = Ratings()
@@ -229,7 +229,7 @@ struct PhysicalGenerationTests {
         #expect(times.count > 10, "identical ratings produced only \(times.count) distinct times")
     }
 
-    @Test("Heavier players bench more at the same strength")
+    @Test("Heavier players bench more at the same strength", .tags(.unit))
     func benchTracksWeight() {
         var random = SplittableRandom(seed: 47)
         var ratings = Ratings()
@@ -251,7 +251,7 @@ struct PhysicalGenerationTests {
         #expect(heavy > light)
     }
 
-    @Test("Height reads the way the sport writes it")
+    @Test("Height reads the way the sport writes it", .tags(.unit))
     func heightFormatting() {
         let player = generate()
         let formatted = player.physical.heightDescription
@@ -285,7 +285,7 @@ struct AthleticPlausibilityTests {
         return Double(total) / Double(count) / 100.0
     }
 
-    @Test("Forty times are ordered the way the positions are")
+    @Test("Forty times are ordered the way the positions are", .tags(.unit))
     func fortyOrdering() {
         let corner = meanForty(.cornerback, ceiling: 80, seed: 1)
         let receiver = meanForty(.wideReceiver, ceiling: 80, seed: 2)
@@ -302,7 +302,7 @@ struct AthleticPlausibilityTests {
         #expect(interior < tackle || abs(interior - tackle) < 0.15)
     }
 
-    @Test("Every position's forty lands in a believable band")
+    @Test("Every position's forty lands in a believable band", .tags(.unit))
     func fortyBands() {
         let bands: [(Position, ClosedRange<Double>)] = [
             (.cornerback, 4.30...4.65),
@@ -323,7 +323,7 @@ struct AthleticPlausibilityTests {
 
     /// The specific failure: a good pocket passer arriving with a corner's speed
     /// because quarterback weights speed at all.
-    @Test("Quality does not turn a lineman or a passer into a sprinter")
+    @Test("Quality does not turn a lineman or a passer into a sprinter", .tags(.unit))
     func qualityDoesNotOverridePosition() {
         let eliteTackle = meanForty(.leftTackle, ceiling: 95, seed: 21)
         let poorCorner = meanForty(.cornerback, ceiling: 58, seed: 22)
@@ -333,7 +333,7 @@ struct AthleticPlausibilityTests {
         #expect(eliteQuarterback > 4.45, "elite quarterbacks averaged \(eliteQuarterback)")
     }
 
-    @Test("No forty time is faster than anyone has ever run")
+    @Test("No forty time is faster than anyone has ever run", .tags(.unit))
     func noImpossibleTimes() {
         var random = SplittableRandom(seed: 31)
         for position in Position.allCases {
@@ -346,7 +346,7 @@ struct AthleticPlausibilityTests {
         }
     }
 
-    @Test("Heavier positions carry heavier builds and more bench")
+    @Test("Heavier positions carry heavier builds and more bench", .tags(.unit))
     func strengthTracksPosition() {
         var random = SplittableRandom(seed: 37)
         var tackleStrength = 0

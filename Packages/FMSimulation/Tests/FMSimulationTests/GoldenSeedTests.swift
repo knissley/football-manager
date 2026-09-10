@@ -81,7 +81,7 @@ struct GoldenSeedTests {
     /// described in the message. If it did not, the engine is non-deterministic and that
     /// is the bug.
     @Test(
-        "A seed produces the same game in every process",
+        "A seed produces the same game in every process", .tags(.contract),
         arguments: [
             // Moved by #69, and by the world rather than by the engine: nothing in
             // `FMSimulation` changed. `TestWorld` is `WorldGenerator.generate`, so the

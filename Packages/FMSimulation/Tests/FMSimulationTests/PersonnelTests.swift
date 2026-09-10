@@ -40,7 +40,7 @@ struct PersonnelTests {
     /// Eleven men, whoever they are. A grouping that fields ten is a bug that shows up as
     /// an unblocked rusher rather than as an error.
     @Test(
-        "Every grouping and package fields eleven",
+        "Every grouping and package fields eleven", .tags(.contract),
         arguments: [
             PersonnelGroup.eleven, .twelve, .thirteen, .twentyOne, .twentyTwo, .ten, .empty,
         ])
@@ -56,7 +56,7 @@ struct PersonnelTests {
 
     /// The grouping decides what the offence can do: an extra tight end is an extra
     /// blocker, and an empty set is five men running routes.
-    @Test("A heavy grouping blocks more and an empty one runs more routes")
+    @Test("A heavy grouping blocks more and an empty one runs more routes", .tags(.unit))
     func groupingChangesTheOffense() {
         let heavy = onField(.twentyTwo, .base)
         let spread = onField(.empty, .dime)
@@ -79,7 +79,7 @@ struct PersonnelTests {
 
     /// And the package decides what the defence can do. The box count is the number a run
     /// is measured against, and the coverage count the number a pass is.
-    @Test("The package trades the box for the secondary")
+    @Test("The package trades the box for the secondary", .tags(.unit))
     func packageTradesBoxForCoverage() {
         let base = onField(.twelve, .base)
         let nickel = onField(.eleven, .nickel)
@@ -103,7 +103,7 @@ struct PersonnelTests {
 
     /// Corners cover receivers. The old fixed coverage list put whoever sat in slot 17 on
     /// the number one receiver, which in a base defence is a linebacker.
-    @Test("The best cover men take the receivers")
+    @Test("The best cover men take the receivers", .tags(.unit))
     func cornersCoverFirst() {
         for package in [DefensivePackage.base, .nickel, .dime] {
             let personnel = onField(.eleven, package)
@@ -118,7 +118,7 @@ struct PersonnelTests {
     /// The mechanism, held still. Across a whole season this is unreadable — heavy
     /// personnel is called in short yardage where a carry is short by construction — so
     /// it is asserted on one situation with only the package changing.
-    @Test("Running into a stacked box gains less than running into a light one")
+    @Test("Running into a stacked box gains less than running into a light one", .tags(.unit))
     func theCountDecidesTheRun() {
         func averageGain(against package: DefensivePackage) -> Double {
             let (rotation, players) = world()

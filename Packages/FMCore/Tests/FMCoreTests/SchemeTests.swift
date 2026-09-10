@@ -33,7 +33,7 @@ private func zoneGuard() -> Ratings {
 @Suite("Scheme composition")
 struct SchemeCompositionTests {
 
-    @Test("Families are combinations of components")
+    @Test("Families are combinations of components", .tags(.unit))
     func families() {
         #expect(OffensiveScheme.powerRun.blocking == .gap)
         #expect(OffensiveScheme.airRaid.blocking == .zone)
@@ -42,7 +42,7 @@ struct SchemeCompositionTests {
         #expect(DefensiveScheme.families.count == 5)
     }
 
-    @Test("Pass lean is bounded and ordered as expected")
+    @Test("Pass lean is bounded and ordered as expected", .tags(.unit))
     func passLean() {
         #expect(OffensiveScheme.airRaid.passLean > OffensiveScheme.powerRun.passLean)
         for scheme in OffensiveScheme.families {
@@ -60,7 +60,7 @@ struct SchemeFitTests {
         TeamScheme(offense: offense, defense: .fourThreeUnder)
     }
 
-    @Test("The same lineman is worth different amounts in different schemes")
+    @Test("The same lineman is worth different amounts in different schemes", .tags(.unit))
     func maulerVersusAthlete() {
         let mauler = maulerGuard()
         let athlete = zoneGuard()
@@ -82,7 +82,7 @@ struct SchemeFitTests {
     }
 
     /// The number that belongs on a roster screen the day you switch.
-    @Test("Fit reports the swing in overall points")
+    @Test("Fit reports the swing in overall points", .tags(.unit))
     func fitDelta() {
         let mauler = maulerGuard()
         #expect(SchemeFit.fit(mauler, at: .leftGuard, in: teamScheme(.powerRun)) > 0)
@@ -90,7 +90,7 @@ struct SchemeFitTests {
     }
 
     /// A scheme redistributes emphasis; it does not hand out free points.
-    @Test("A uniformly rated player is unaffected by scheme")
+    @Test("A uniformly rated player is unaffected by scheme", .tags(.contract))
     func uniformPlayerIsSchemeNeutral() {
         for position in Position.allCases {
             var flat = Ratings()
@@ -106,7 +106,7 @@ struct SchemeFitTests {
         }
     }
 
-    @Test("Specialists are unaffected by scheme")
+    @Test("Specialists are unaffected by scheme", .tags(.unit))
     func specialistsUnaffected() {
         var kicker = Ratings()
         for key in RatingKey.keys(for: .kicker) { kicker[key] = 60 }
@@ -117,7 +117,7 @@ struct SchemeFitTests {
         }
     }
 
-    @Test("A man-cover corner and a zone corner want different defences")
+    @Test("A man-cover corner and a zone corner want different defences", .tags(.unit))
     func cornerbacks() {
         var manCorner = Ratings()
         for key in RatingKey.keys(for: .cornerback) { manCorner[key] = 62 }
@@ -144,7 +144,7 @@ struct SchemeFitTests {
                 > SchemeFit.fit(zoneCorner, at: .cornerback, in: press))
     }
 
-    @Test("A three-man front wants a very different interior lineman")
+    @Test("A three-man front wants a very different interior lineman", .tags(.unit))
     func noseTackle() {
         var anchor = Ratings()
         for key in RatingKey.keys(for: .defensiveTackle) { anchor[key] = 62 }
@@ -162,7 +162,7 @@ struct SchemeFitTests {
 
     /// The scenario that prompted the design: a strong-armed passer stuck in an
     /// offence that does not throw, and what happens when you switch.
-    @Test("A deep passer is worth more once you stop running the ball")
+    @Test("A deep passer is worth more once you stop running the ball", .tags(.unit))
     func theQuarterbackProblem() {
         var gunslinger = Ratings()
         for key in RatingKey.keys(for: .quarterback) { gunslinger[key] = 62 }
@@ -186,7 +186,7 @@ struct SchemeFitTests {
 @Suite("Scheme experience")
 struct SchemeExperienceTests {
 
-    @Test("An unfamiliar coach is worse, not useless")
+    @Test("An unfamiliar coach is worse, not useless", .tags(.unit))
     func unfamiliarIsNotHopeless() {
         let fresh = SchemeExperience()
         let proficiency = fresh.proficiency(in: .airRaid)
@@ -194,7 +194,7 @@ struct SchemeExperienceTests {
         #expect(proficiency > 0.5, "an unfamiliar professional should still function")
     }
 
-    @Test("Familiarity grows with seasons and saturates")
+    @Test("Familiarity grows with seasons and saturates", .tags(.unit))
     func familiarityGrows() {
         var experience = SchemeExperience()
         var previous = experience.proficiency(in: .airRaid)
@@ -213,7 +213,7 @@ struct SchemeExperienceTests {
 
     /// The payoff of tracking components rather than families: related schemes
     /// share background, unrelated ones do not.
-    @Test("Related schemes share familiarity")
+    @Test("Related schemes share familiarity", .tags(.unit))
     func componentsTransfer() {
         var experience = SchemeExperience()
         for _ in 0..<4 { experience.recordSeason(offense: .spread) }
@@ -228,7 +228,7 @@ struct SchemeExperienceTests {
         #expect(toAirRaid < 1.0, "sharing one component should not confer mastery")
     }
 
-    @Test("Installing costs extra in the first season, and mid-season costs more")
+    @Test("Installing costs extra in the first season, and mid-season costs more", .tags(.unit))
     func installAndMidSeason() {
         let fresh = SchemeExperience()
         let settled = fresh.proficiency(in: .airRaid)
@@ -238,7 +238,7 @@ struct SchemeExperienceTests {
         #expect(fresh.midSeasonProficiency(in: .airRaid) > 0)
     }
 
-    @Test("Defensive familiarity works the same way")
+    @Test("Defensive familiarity works the same way", .tags(.unit))
     func defensiveFamiliarity() {
         var experience = SchemeExperience()
         #expect(
@@ -261,7 +261,7 @@ struct SchemeExperienceTests {
 @Suite("Scheme modifier validity")
 struct SchemeModifierTests {
 
-    @Test("Every modifier references a rating its position actually carries")
+    @Test("Every modifier references a rating its position actually carries", .tags(.contract))
     func modifiersReferenceCarriedRatings() {
         for position in Position.allCases {
             let carried = Set(RatingKey.keys(for: position))
@@ -278,7 +278,7 @@ struct SchemeModifierTests {
         }
     }
 
-    @Test("Modifiers only apply to the side of the ball they belong to")
+    @Test("Modifiers only apply to the side of the ball they belong to", .tags(.unit))
     func sidesAreRespected() {
         let scheme = TeamScheme(offense: .airRaid, defense: .pressManBlitz)
         for position in Position.allCases where position.side == .specialTeams {
@@ -294,7 +294,7 @@ struct SchemeModifierTests {
     /// Constructing the player *from the modifiers* is the point: an arbitrary
     /// lopsided player may simply miss the keys a scheme touches, which makes
     /// the test pass or fail for reasons unrelated to the design.
-    @Test("Every modifier a scheme declares actually moves the player it names")
+    @Test("Every modifier a scheme declares actually moves the player it names", .tags(.contract))
     func everyModifierMatters() {
         func idealPlayer(for position: Position, under scheme: TeamScheme) -> Ratings {
             let adjustments = SchemeFit.modifiers(for: position, in: scheme)
@@ -328,7 +328,7 @@ struct SchemeModifierTests {
 
     /// Every family has to be distinguishable from every other, or it is a name
     /// rather than an identity.
-    @Test("No two offensive families are interchangeable")
+    @Test("No two offensive families are interchangeable", .tags(.contract))
     func familiesAreDistinct() {
         func signature(_ offense: OffensiveScheme) -> [String] {
             let scheme = TeamScheme(offense: offense, defense: .fourThreeUnder)
@@ -348,7 +348,7 @@ struct SchemeModifierTests {
         }
     }
 
-    @Test("Weights stay non-negative after a negative delta")
+    @Test("Weights stay non-negative after a negative delta", .tags(.unit))
     func negativeDeltasClamp() {
         // Quick game drops a guard's pass blocking; it must not go below zero
         // and invert the maths.

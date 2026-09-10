@@ -16,7 +16,7 @@ struct DepthChartGenerationTests {
             season: 2030, colleges: colleges, ids: &identifiers, using: &random)
     }
 
-    @Test("Every position on the roster appears on the chart, best first")
+    @Test("Every position on the roster appears on the chart, best first", .tags(.unit))
     func chartCoversTheRoster() {
         let players = roster()
         let chart = RosterGenerator.depthChart(from: players)
@@ -32,7 +32,7 @@ struct DepthChartGenerationTests {
         }
     }
 
-    @Test("Every player on the roster is somewhere on the chart")
+    @Test("Every player on the roster is somewhere on the chart", .tags(.contract))
     func nobodyIsLost() {
         let players = roster()
         let chart = RosterGenerator.depthChart(from: players)
@@ -41,7 +41,7 @@ struct DepthChartGenerationTests {
 
     /// Ties break on identifier, so a chart never depends on the order players happened
     /// to arrive in.
-    @Test("The same roster always produces the same chart")
+    @Test("The same roster always produces the same chart", .tags(.contract))
     func deterministic() {
         let players = roster()
         #expect(
@@ -53,7 +53,7 @@ struct DepthChartGenerationTests {
 
     /// A generated 53 has to be able to field a team. If a position group came up empty
     /// the roster generator is wrong, and it would surface as a game with ten men.
-    @Test("A generated roster can field every position")
+    @Test("A generated roster can field every position", .tags(.contract))
     func rosterFieldsEveryPosition() {
         for seed in UInt64(1)...6 {
             let chart = RosterGenerator.depthChart(from: roster(seed: seed))
@@ -63,7 +63,7 @@ struct DepthChartGenerationTests {
 
     /// The rotation is what turns 53 players into a box score. If the starters take
     /// everything, depth on the roster is invisible.
-    @Test("Backups take a real share of the snaps")
+    @Test("Backups take a real share of the snaps", .tags(.unit))
     func backupsPlay() {
         let chart = RosterGenerator.depthChart(from: roster())
         let rotation = chart.rotation()

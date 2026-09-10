@@ -42,7 +42,7 @@ struct GoldenWorldTests {
     /// purpose they are regenerated in the same commit with the change described; if it
     /// did not, generation is non-deterministic and that is the bug.
     @Test(
-        "A seed produces the same world in every process",
+        "A seed produces the same world in every process", .tags(.contract),
         arguments: [
             // All three moved for the last time they can move for this reason in #69,
             // which took the initial world off the identity pools: the thirty-two clubs,
@@ -86,7 +86,7 @@ struct GoldenWorldTests {
     /// Two runs in one process, which is the weaker check — but it distinguishes "the
     /// world moved because generation changed" from "the world moves every time", which
     /// is the first question to ask when the constants above go red.
-    @Test("contract: a world is identical to itself, seed by seed")
+    @Test("contract: a world is identical to itself, seed by seed", .tags(.contract))
     func selfConsistent() {
         for seed in UInt64(1)...4 {
             #expect(worldChecksum(seed: seed) == worldChecksum(seed: seed))

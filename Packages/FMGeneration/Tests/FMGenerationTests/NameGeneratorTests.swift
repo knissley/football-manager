@@ -9,7 +9,7 @@ struct NameGeneratorTests {
 
     /// The whole world is regenerable from its seed, names included. If this
     /// fails, a saved career cannot be reconstructed.
-    @Test("The same seed produces the same names")
+    @Test("The same seed produces the same names", .tags(.contract))
     func deterministic() {
         var a = SplittableRandom(seed: 4242)
         var b = SplittableRandom(seed: 4242)
@@ -18,7 +18,7 @@ struct NameGeneratorTests {
         }
     }
 
-    @Test("Different seeds produce different names")
+    @Test("Different seeds produce different names", .tags(.contract))
     func seedsDiverge() {
         var a = SplittableRandom(seed: 1)
         var b = SplittableRandom(seed: 2)
@@ -27,7 +27,7 @@ struct NameGeneratorTests {
         #expect(first != second)
     }
 
-    @Test("Names are never empty or malformed")
+    @Test("Names are never empty or malformed", .tags(.unit))
     func wellFormed() {
         var random = SplittableRandom(seed: 7)
         for _ in 0..<2000 {
@@ -40,7 +40,7 @@ struct NameGeneratorTests {
         }
     }
 
-    @Test("Short form is an initial and a surname")
+    @Test("Short form is an initial and a surname", .tags(.unit))
     func shortForm() {
         let name = PersonName(given: "Marcus", family: "Whitfield")
         #expect(name.short == "M. Whitfield")
@@ -51,7 +51,7 @@ struct NameGeneratorTests {
         #expect(suffixed.short == "M. Whitfield")
     }
 
-    @Test("Suffixes are rare rather than absent")
+    @Test("Suffixes are rare rather than absent", .tags(.unit))
     func suffixRate() {
         var random = SplittableRandom(seed: 11)
         var suffixed = 0
@@ -66,7 +66,7 @@ struct NameGeneratorTests {
     /// A roster of 1,700 that never repeats a name would feel more synthetic,
     /// not less — real leagues have duplicates. What matters is that the pool is
     /// wide enough that repeats are occasional rather than constant.
-    @Test("The name space is wide enough for a league")
+    @Test("The name space is wide enough for a league", .tags(.unit))
     func variety() {
         var random = SplittableRandom(seed: 13)
         var names: Set<String> = []
@@ -77,7 +77,7 @@ struct NameGeneratorTests {
         #expect(names.count > 1_615, "only \(names.count) distinct names in 1700")
     }
 
-    @Test("Both pools are actually drawn from")
+    @Test("Both pools are actually drawn from", .tags(.unit))
     func poolsAreExercised() {
         var random = SplittableRandom(seed: 17)
         var givenSeen: Set<String> = []
@@ -95,7 +95,7 @@ struct NameGeneratorTests {
 @Suite("College generation")
 struct CollegeGeneratorTests {
 
-    @Test("Colleges are deterministic and well formed")
+    @Test("Colleges are deterministic and well formed", .tags(.contract))
     func wellFormed() {
         var a = SplittableRandom(seed: 99)
         var b = SplittableRandom(seed: 99)
@@ -110,7 +110,7 @@ struct CollegeGeneratorTests {
 
     /// Most prospects come from programmes with tape on them; the minority who
     /// do not are where scouting gets genuinely hard.
-    @Test("Programme profiles are weighted toward well-scouted schools")
+    @Test("Programme profiles are weighted toward well-scouted schools", .tags(.unit))
     func profileWeighting() {
         var random = SplittableRandom(seed: 23)
         var counts: [CollegeProfile: Int] = [:]
@@ -124,7 +124,7 @@ struct CollegeGeneratorTests {
         #expect(small > 0.15 && small < 0.25)
     }
 
-    @Test("Small schools carry more scouting noise")
+    @Test("Small schools carry more scouting noise", .tags(.unit))
     func noiseMultipliers() {
         #expect(
             CollegeProfile.smallSchool.scoutingNoiseMultiplier
@@ -134,7 +134,7 @@ struct CollegeGeneratorTests {
                 > CollegeProfile.powerProgram.scoutingNoiseMultiplier)
     }
 
-    @Test("A college pool has the requested size and distinct names")
+    @Test("A college pool has the requested size and distinct names", .tags(.unit))
     func pool() {
         var random = SplittableRandom(seed: 31)
         let pool = NameGenerator.collegePool(count: 120, using: &random)
@@ -142,7 +142,7 @@ struct CollegeGeneratorTests {
         #expect(Set(pool.map(\.name)).count == 120)
     }
 
-    @Test("Pool generation terminates even when asked for more than it can make")
+    @Test("Pool generation terminates even when asked for more than it can make", .tags(.unit))
     func poolSaturates() {
         var random = SplittableRandom(seed: 37)
         let pool = NameGenerator.collegePool(count: 100_000, using: &random)
@@ -157,25 +157,25 @@ struct NamePoolTests {
 
     /// Overlap between the pools produces "Sterling Sterling", which reads as a
     /// generator failure rather than as a person.
-    @Test("Given names and surnames do not overlap")
+    @Test("Given names and surnames do not overlap", .tags(.unit))
     func poolsAreDisjoint() {
         let overlap = Set(NamePools.given).intersection(Set(NamePools.family))
         #expect(overlap.isEmpty, "shared between pools: \(overlap.sorted())")
     }
 
-    @Test("Neither pool contains duplicates")
+    @Test("Neither pool contains duplicates", .tags(.unit))
     func poolsAreUnique() {
         #expect(Set(NamePools.given).count == NamePools.given.count)
         #expect(Set(NamePools.family).count == NamePools.family.count)
     }
 
-    @Test("Pools are large enough that a league is not repetitive")
+    @Test("Pools are large enough that a league is not repetitive", .tags(.unit))
     func poolsAreWide() {
         #expect(NamePools.given.count >= 100)
         #expect(NamePools.family.count >= 150)
     }
 
-    @Test("Every entry is a plausible name rather than a placeholder")
+    @Test("Every entry is a plausible name rather than a placeholder", .tags(.unit))
     func entriesAreWellFormed() {
         for name in NamePools.given + NamePools.family {
             #expect(!name.isEmpty)

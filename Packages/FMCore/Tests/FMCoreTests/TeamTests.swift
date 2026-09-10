@@ -15,7 +15,7 @@ struct TeamIdentityTests {
             colors: TeamColors(primary: navy, secondary: bone, accent: bone))
     }
 
-    @Test("A colour packs and unpacks its channels")
+    @Test("A colour packs and unpacks its channels", .tags(.unit))
     func colorChannels() {
         let color = TeamColor(red: 12, green: 35, blue: 64)
         #expect(color.red == 12)
@@ -26,13 +26,13 @@ struct TeamIdentityTests {
 
     /// The top byte is not a colour channel, so it must not survive a round trip and
     /// come back as a different colour.
-    @Test("A raw value is masked to twenty-four bits")
+    @Test("A raw value is masked to twenty-four bits", .tags(.unit))
     func rawValueIsMasked() {
         #expect(TeamColor(rawValue: 0xFF00_0000).rawValue == 0)
         #expect(TeamColor(rawValue: 0xAB12_3456).rawValue == 0x12_3456)
     }
 
-    @Test("Luma tracks lightness")
+    @Test("Luma tracks lightness", .tags(.unit))
     func luma() {
         #expect(bone.luma > navy.luma)
         #expect(TeamColor(red: 0, green: 0, blue: 0).luma == 0)
@@ -41,14 +41,14 @@ struct TeamIdentityTests {
 
     /// Two dark colours on a jersey is two teams nobody can tell apart at a glance.
     /// The generator relies on this to reject a pairing, so it has to actually reject.
-    @Test("Contrast separates a readable pairing from two darks")
+    @Test("Contrast separates a readable pairing from two darks", .tags(.unit))
     func contrast() {
         #expect(TeamColors(primary: navy, secondary: bone, accent: bone).hasReadableContrast)
         #expect(
             TeamColors(primary: navy, secondary: forest, accent: bone).hasReadableContrast == false)
     }
 
-    @Test("A full name is the city and the nickname")
+    @Test("A full name is the city and the nickname", .tags(.unit))
     func fullName() {
         #expect(identity().fullName == "Kettle Falls Wolverines")
     }
@@ -73,7 +73,7 @@ struct TeamIdentityEventTests {
 
     /// The point of the whole stream: a replay of an old game has to show the world as
     /// it was, not as a rebrand has since made it.
-    @Test("A projection shows the identity of the season asked for")
+    @Test("A projection shows the identity of the season asked for", .tags(.contract))
     func projectionRespectsTime() {
         let events = [
             founding(),
@@ -100,7 +100,7 @@ struct TeamIdentityEventTests {
 
     /// A move takes the building with it. Replaying a game from before it must not put
     /// the team in a stadium it had not built yet.
-    @Test("A relocation carries the stadium with the city")
+    @Test("A relocation carries the stadium with the city", .tags(.contract))
     func relocationMovesTheStadium() {
         let events = [
             founding(),
@@ -127,7 +127,7 @@ struct TeamIdentityEventTests {
 
     /// A team that was never founded has no state to report. Inventing a blank one
     /// would let the mistake travel to whatever asked.
-    @Test("A stream with no founding event projects to nothing")
+    @Test("A stream with no founding event projects to nothing", .tags(.contract))
     func unfoundedProjectsToNil() {
         let orphan = [
             TeamIdentityEvent(
@@ -139,7 +139,7 @@ struct TeamIdentityEventTests {
 
     /// The current cached value on `Team` must equal what the stream folds to, or the
     /// projection is not a projection.
-    @Test("A team's cached state matches the fold of its stream")
+    @Test("A team's cached state matches the fold of its stream", .tags(.contract))
     func cacheMatchesTheFold() {
         let events = [
             founding(),

@@ -10,7 +10,9 @@ struct RulesTests {
     /// One formula, in one place. It is the sort of arithmetic that gets rewritten
     /// slightly differently at three call sites, after which a kicker's range depends
     /// on which screen is asking.
-    @Test("A field goal is the yards to the goal line, the end zone, and the snap depth")
+    @Test(
+        "A field goal is the yards to the goal line, the end zone, and the snap depth", .tags(.unit)
+    )
     func fieldGoalDistance() {
         #expect(rules.fieldGoalDistance(ballOn: 30) == 47)
         #expect(rules.fieldGoalDistance(ballOn: 2) == 19)
@@ -21,7 +23,7 @@ struct RulesTests {
 
     /// Mixing "yards from my own goal" with "yards from theirs" is the recurring
     /// off-by-a-lot bug this codebase decided to design out. One named conversion.
-    @Test("Own-yard spots convert to the stored convention")
+    @Test("Own-yard spots convert to the stored convention", .tags(.unit))
     func ownYardConversion() {
         #expect(rules.ballOnFromOwnYard(20) == 80)
         #expect(rules.ballOnFromOwnYard(50) == 50)
@@ -29,7 +31,7 @@ struct RulesTests {
         #expect(rules.kickoffTouchbackSpot == 70)
     }
 
-    @Test("Halves and periods follow the quarter count")
+    @Test("Halves and periods follow the quarter count", .tags(.unit))
     func structure() {
         #expect(rules.halfLength == 1_800)
         #expect(rules.isEndOfHalf(quarter: 2))
@@ -38,7 +40,7 @@ struct RulesTests {
         #expect(rules.isEndOfHalf(quarter: 3) == false)
     }
 
-    @Test("Overtime length and ties depend on the stage")
+    @Test("Overtime length and ties depend on the stage", .tags(.unit))
     func overtime() {
         #expect(rules.overtimeLength(isPostseason: false) == 600)
         #expect(rules.overtimeLength(isPostseason: true) == 900)
@@ -48,7 +50,7 @@ struct RulesTests {
 
     /// Rules are data so variants can be tested. If a knob does not actually reach the
     /// derived value, it is decoration.
-    @Test("Changing a rule changes what depends on it")
+    @Test("Changing a rule changes what depends on it", .tags(.unit))
     func rulesAreData() {
         var variant = Rules.standard
         variant.fieldGoalSnapDepth = 8
@@ -69,7 +71,7 @@ struct ClockStoppageTests {
         rules.clockBehavior(after: ending, quarter: quarter, clockRemaining: clock)
     }
 
-    @Test("Dead-ball endings stop the clock until the snap")
+    @Test("Dead-ball endings stop the clock until the snap", .tags(.unit))
     func deadBallStops() {
         #expect(behavior(.incomplete) == .stopsUntilSnap)
         #expect(behavior(.touchdown) == .stopsUntilSnap)
@@ -88,7 +90,8 @@ struct ClockStoppageTests {
     /// clock running. A downed kick has changed hands, and a change of possession stops
     /// the clock until the snap.
     @Test(
-        "football · Rule 4-4, 4-4-i · a tackle in bounds and a fumble the offence falls on keep the clock running; a downed kick has changed hands and stops it"
+        "football · Rule 4-4, 4-4-i · a tackle in bounds and a fumble the offence falls on keep the clock running; a downed kick has changed hands and stops it",
+        .tags(.football)
     )
     func liveBallRuns() {
         #expect(behavior(.tackled) == .keepsRunning)
@@ -100,7 +103,8 @@ struct ClockStoppageTests {
     /// returned punt from a run: both end `.tackled`. The change of possession is what
     /// stops the clock, whatever the ending.
     @Test(
-        "football · Rule 4-4-i, 4-3-2-a-1 · a change of possession stops the clock until the snap, whatever the ending"
+        "football · Rule 4-4-i, 4-3-2-a-1 · a change of possession stops the clock until the snap, whatever the ending",
+        .tags(.football)
     )
     func changeOfPossessionStops() {
         for ending in PlayEnding.allCases {
@@ -120,7 +124,9 @@ struct ClockStoppageTests {
     /// **The rule most often modelled wrong**, and the one that decides whether a
     /// two-minute drill works at all. Early in a half, going out of bounds costs the
     /// offence the play clock and nothing more.
-    @Test("Out of bounds stops the clock only until the ball is ready, most of the game")
+    @Test(
+        "Out of bounds stops the clock only until the ball is ready, most of the game", .tags(.unit)
+    )
     func outOfBoundsEarly() {
         #expect(behavior(.outOfBounds, quarter: 1, clock: 600) == .stopsUntilReadyForPlay)
         #expect(behavior(.outOfBounds, quarter: 2, clock: 400) == .stopsUntilReadyForPlay)
@@ -132,7 +138,7 @@ struct ClockStoppageTests {
 
     /// Late in a half it stops until the snap, and the windows are asymmetric: two
     /// minutes in the first half, five in the second. That asymmetry is real.
-    @Test("Late in a half, out of bounds stops the clock until the snap")
+    @Test("Late in a half, out of bounds stops the clock until the snap", .tags(.unit))
     func outOfBoundsLate() {
         #expect(behavior(.outOfBounds, quarter: 2, clock: 120) == .stopsUntilSnap)
         #expect(behavior(.outOfBounds, quarter: 2, clock: 30) == .stopsUntilSnap)
@@ -145,12 +151,12 @@ struct ClockStoppageTests {
 
     /// The clock runs while the chains move. A first down is not a stoppage, and
     /// treating it as one would make every drive a two-minute drill.
-    @Test("Gaining a first down does not stop the clock")
+    @Test("Gaining a first down does not stop the clock", .tags(.unit))
     func firstDownDoesNotStop() {
         #expect(behavior(.tackled, quarter: 4, clock: 100) == .keepsRunning)
     }
 
-    @Test("The two-minute warning is detected on the play that crosses it")
+    @Test("The two-minute warning is detected on the play that crosses it", .tags(.unit))
     func twoMinuteWarningDetection() {
         #expect(rules.crossesTwoMinuteWarning(quarter: 2, clockBefore: 125, clockAfter: 118))
         #expect(rules.crossesTwoMinuteWarning(quarter: 4, clockBefore: 121, clockAfter: 120))
@@ -178,7 +184,7 @@ struct TenSecondRunoffTests {
             clockRemaining: clock, clockWasRunning: running)
     }
 
-    @Test("football · Rule 4-7-1 Item 1 · the runoff is ten seconds")
+    @Test("football · Rule 4-7-1 Item 1 · the runoff is ten seconds", .tags(.football))
     func tenSeconds() {
         #expect(rules.tenSecondRunoff == 10)
     }
@@ -187,7 +193,8 @@ struct TenSecondRunoffTests {
     /// offensive dead-ball foul that stops the clock carries the runoff; the same foul
     /// outside the window, with the clock stopped, or by the defence does not.
     @Test(
-        "football · Rule 4-7-1 Item 1, 4-7-1 Item 2, 4-7-2 · the runoff applies to an offensive dead-ball foul after the two-minute warning of either half with the clock running, and never to the defence"
+        "football · Rule 4-7-1 Item 1, 4-7-1 Item 2, 4-7-2 · the runoff applies to an offensive dead-ball foul after the two-minute warning of either half with the clock running, and never to the defence",
+        .tags(.football)
     )
     func window() {
         for foul in [
@@ -221,7 +228,8 @@ struct TenSecondRunoffTests {
     /// postseason overtime period, so no runoff applies there. Pinned so that the
     /// answer changes on purpose, with A11 (#74), rather than by accident.
     @Test(
-        "pin · no runoff in postseason overtime, because postseason overtime timing (16-1-4-h) is not modelled pending #74"
+        "pin · no runoff in postseason overtime, because postseason overtime timing (16-1-4-h) is not modelled pending #74",
+        .tags(.pin)
     )
     func postseasonOvertimeRunoffIsNotModelled() {
         #expect(carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false)
@@ -235,7 +243,7 @@ struct GameClockTests {
 
     /// The distinction a team down four with sixty seconds and no timeouts lives on:
     /// after an incompletion the huddle is free, after a tackle in bounds it is not.
-    @Test("The pre-snap interval only costs the clock when the clock was running")
+    @Test("The pre-snap interval only costs the clock when the clock was running", .tags(.unit))
     func elapsedDependsOnThePreviousStoppage() {
         let afterIncompletion = GameClock.elapsed(
             playDuration: 6, tempo: .hurryUp, previousBehavior: .stopsUntilSnap)
@@ -254,7 +262,7 @@ struct GameClockTests {
     }
 
     /// Tempo is the mechanism behind both a two-minute drill and a four-minute one.
-    @Test("Tempo spends the play clock, fastest to slowest")
+    @Test("Tempo spends the play clock, fastest to slowest", .tags(.unit))
     func tempoOrdering() {
         let ordered: [Tempo] = [.hurryUp, .fast, .normal, .slow, .bleedClock]
         let seconds = ordered.map(\.secondsBetweenSnaps)
@@ -262,7 +270,7 @@ struct GameClockTests {
         #expect(Tempo.bleedClock.secondsBetweenSnaps < UInt16(rules.playClock))
     }
 
-    @Test("Running the clock down never goes below zero")
+    @Test("Running the clock down never goes below zero", .tags(.unit))
     func clockFloor() {
         var clock = GameClock(quarter: 1, secondsRemaining: 5)
         _ = clock.run(30, rules: rules)
@@ -276,7 +284,8 @@ struct GameClockTests {
     /// between downs: when the clock reaches 2:00 in the huddle it stops there, the snap
     /// restarts it, and the play then runs from 2:00.
     @Test(
-        "football · Rule 3-41, 4-4-h · the warning stops a running clock at 2:00 between downs, and the play then runs from there"
+        "football · Rule 3-41, 4-4-h · the warning stops a running clock at 2:00 between downs, and the play then runs from there",
+        .tags(.football)
     )
     func warningBetweenDowns() {
         var clock = GameClock(quarter: 4, secondsRemaining: 128)
@@ -290,7 +299,8 @@ struct GameClockTests {
     /// A down under way when the clock passes 2:00 finishes; only then is the clock
     /// dead, at whatever it reads.
     @Test(
-        "football · Rule 3-41 · a down under way when the clock passes 2:00 finishes, and the clock is dead after it"
+        "football · Rule 3-41 · a down under way when the clock passes 2:00 finishes, and the clock is dead after it",
+        .tags(.football)
     )
     func warningDuringADown() {
         var clock = GameClock(quarter: 4, secondsRemaining: 128)
@@ -301,7 +311,7 @@ struct GameClockTests {
         #expect(clock.twoMinuteWarningTaken)
     }
 
-    @Test("The warning is taken once per half, not once per play")
+    @Test("The warning is taken once per half, not once per play", .tags(.unit))
     func warningTakenOnce() {
         var clock = GameClock(quarter: 2, secondsRemaining: 130)
         let firstCrossing = clock.run(
@@ -316,7 +326,7 @@ struct GameClockTests {
         #expect(clock.secondsRemaining == 105)
     }
 
-    @Test("There is no warning at the end of the first or third quarter")
+    @Test("There is no warning at the end of the first or third quarter", .tags(.unit))
     func noWarningMidHalf() {
         var clock = GameClock(quarter: 1, secondsRemaining: 128)
         let firstQuarter = clock.run(20, rules: rules)
@@ -329,7 +339,7 @@ struct GameClockTests {
     }
 
     /// It is a once-per-half stoppage, so it resets at the half and not every quarter.
-    @Test("The warning resets at halftime and not between quarters")
+    @Test("The warning resets at halftime and not between quarters", .tags(.unit))
     func warningResets() {
         let firstHalf = GameClock(quarter: 2, secondsRemaining: 0, twoMinuteWarningTaken: true)
         let secondHalf = firstHalf.advancingPeriod(rules: rules)
@@ -340,7 +350,7 @@ struct GameClockTests {
         #expect(thirdQuarter.advancingPeriod(rules: rules)?.twoMinuteWarningTaken == true)
     }
 
-    @Test("Periods advance to a full quarter, then to overtime")
+    @Test("Periods advance to a full quarter, then to overtime", .tags(.unit))
     func periods() {
         let first = GameClock(quarter: 1, secondsRemaining: 0)
         #expect(first.advancingPeriod(rules: rules)?.secondsRemaining == 900)
@@ -356,7 +366,7 @@ struct GameClockTests {
     }
 
     /// The whole point of the model: a drill lives or dies on stoppages, not on yards.
-    @Test("A two-minute drill gets more snaps when it stops the clock")
+    @Test("A two-minute drill gets more snaps when it stops the clock", .tags(.unit))
     func twoMinuteDrillArithmetic() {
         func snapsAvailable(alwaysStopping: Bool) -> Int {
             var clock = GameClock(quarter: 4, secondsRemaining: 118, twoMinuteWarningTaken: true)

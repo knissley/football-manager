@@ -59,7 +59,7 @@ struct FranchiseSetTests {
 
     // MARK: - The set itself
 
-    @Test("contract: the curated set is thirty-two franchises, eight to a region")
+    @Test("contract: the curated set is thirty-two franchises, eight to a region", .tags(.contract))
     func theSetIsALeague() {
         #expect(FranchiseSet.initial.count == 32)
         for region in Region.allCases {
@@ -73,7 +73,8 @@ struct FranchiseSetTests {
     /// curated set has to hold by construction because there is no draw left to enforce
     /// them: two clubs with one nickname, one abbreviation or one ground is exactly what
     /// a standings table shows and a per-franchise test cannot see.
-    @Test("contract: nothing in the curated set collides with anything else in it")
+    @Test(
+        "contract: nothing in the curated set collides with anything else in it", .tags(.contract))
     func nothingCollides() {
         let set = FranchiseSet.initial
 
@@ -94,7 +95,7 @@ struct FranchiseSetTests {
 
     /// Coyote Coyotes. The randomiser refuses it by drawing again; the table has to be
     /// written so it never comes up.
-    @Test("contract: no curated nickname repeats the city it plays in")
+    @Test("contract: no curated nickname repeats the city it plays in", .tags(.contract))
     func nicknamesDoNotEchoTheirCity() {
         for franchise in FranchiseSet.initial {
             #expect(
@@ -108,7 +109,7 @@ struct FranchiseSetTests {
     /// ([decision 152](../../../../docs/design-decisions.md)). Drawn colours are checked
     /// across twelve seeds; curated ones are checked here, because a hand edit is
     /// exactly how an illegible pairing would get in.
-    @Test("contract: every curated club's colours read against each other")
+    @Test("contract: every curated club's colours read against each other", .tags(.contract))
     func colorsAreLegible() {
         for franchise in FranchiseSet.initial {
             #expect(
@@ -117,7 +118,7 @@ struct FranchiseSetTests {
         }
     }
 
-    @Test("contract: an abbreviation is two or three uppercase letters")
+    @Test("contract: an abbreviation is two or three uppercase letters", .tags(.contract))
     func abbreviationsAreShortAndUpper() {
         for franchise in FranchiseSet.initial {
             let abbreviation = franchise.abbreviation
@@ -130,7 +131,7 @@ struct FranchiseSetTests {
     /// The stadium is simulation input ([decision 151](../../../../docs/design-decisions.md)),
     /// so a hand edit reaches the engine. These are the bounds the drawn ones were built
     /// inside, kept as bounds on the table.
-    @Test("contract: every curated ground is one a game could be played in")
+    @Test("contract: every curated ground is one a game could be played in", .tags(.contract))
     func groundsArePlausible() {
         for franchise in FranchiseSet.initial {
             let ground = franchise.stadium
@@ -147,7 +148,7 @@ struct FranchiseSetTests {
     /// A dome has no weather to speak of, so recording a climate for one would be a fact
     /// the engine could read and act on wrongly. The table holds the *city's* climate,
     /// which is the fact a relocation or a new roof would keep.
-    @Test("unit: a roof settles the weather; an open ground keeps the city's")
+    @Test("unit: a roof settles the weather; an open ground keeps the city's", .tags(.unit))
     func roofOverridesClimate() {
         for franchise in FranchiseSet.initial {
             if franchise.roof == .dome {
@@ -164,7 +165,7 @@ struct FranchiseSetTests {
     /// A division is named for its region ([decision 153](../../../../docs/design-decisions.md)),
     /// so the region a franchise is written into decides what its weather is allowed to
     /// be. A "South" division full of hard winters reads as broken on sight.
-    @Test("contract: a curated city's weather matches the division it will be in")
+    @Test("contract: a curated city's weather matches the division it will be in", .tags(.contract))
     func climatesMatchTheirRegion() {
         for franchise in FranchiseSet.franchises(in: .north) {
             #expect(franchise.climate != .hot, "\(franchise.fullName) is hot, in the North")
@@ -178,7 +179,9 @@ struct FranchiseSetTests {
     /// half of what makes a December road game different. This was a property of the
     /// draw; now it is a property of the table, and the thing that could take it away is
     /// an edit.
-    @Test("contract: the curated league has weather, roofs and markets worth having")
+    @Test(
+        "contract: the curated league has weather, roofs and markets worth having", .tags(.contract)
+    )
     func theLeagueHasTexture() {
         let set = FranchiseSet.initial
         let domes = set.filter { $0.roof == .dome }
@@ -201,7 +204,9 @@ struct FranchiseSetTests {
     /// The point of the whole change. Two seeds are two leagues in the same buildings:
     /// the franchises are identical down to the noise in the stadium, and the rosters are
     /// not the same rosters ([decision 215](../../../../docs/design-decisions.md)).
-    @Test("contract: two seeds field the same thirty-two franchises with different rosters")
+    @Test(
+        "contract: two seeds field the same thirty-two franchises with different rosters",
+        .tags(.contract))
     func seedsShareFranchisesAndNotRosters() throws {
         let seven = try #require(world(seed: 7))
         let eleven = try #require(world(seed: 11))
@@ -221,7 +226,7 @@ struct FranchiseSetTests {
 
     /// The curated table is the *league*, not a pool to draw from: the club in the first
     /// division of the first conference is the first line of the file for that region.
-    @Test("contract: a world's franchises are the curated table, in file order")
+    @Test("contract: a world's franchises are the curated table, in file order", .tags(.contract))
     func theWorldIsTheTable() throws {
         let built = try #require(world(seed: 3))
         let expected = Region.allCases.sorted { $0.rawValue < $1.rawValue }
@@ -242,7 +247,7 @@ struct FranchiseSetTests {
 
     /// A smaller league takes the top of each region rather than its tail, so the file
     /// order says which franchises a test world — `.compact`, `.minimal` — is played in.
-    @Test("contract: a smaller league takes the first franchises of each region")
+    @Test("contract: a smaller league takes the first franchises of each region", .tags(.contract))
     func smallerLeaguesTakeFromTheTop() throws {
         let built = try #require(league(shape: .minimal))
         let north = FranchiseSet.franchises(in: .north).prefix(4).map(\.city)
@@ -259,6 +264,7 @@ struct FranchiseSetTests {
     /// path no longer exercises any of it.
     @Test(
         "contract: the randomiser still produces a ledger-clean league",
+        .tags(.contract),
         arguments: Array(UInt64(1)...8))
     func theRandomiserIsLedgerClean(seed: UInt64) throws {
         let built = try #require(league(franchises: .randomised, seed: seed))
@@ -298,7 +304,7 @@ struct FranchiseSetTests {
 
     /// Two seeds of the randomiser are two different leagues — the property the curated
     /// default deliberately gives up, kept asserted on the path that still has it.
-    @Test("contract: the randomiser still gives two seeds two different leagues")
+    @Test("contract: the randomiser still gives two seeds two different leagues", .tags(.contract))
     func theRandomiserStillDiverges() throws {
         let first = try #require(league(franchises: .randomised, seed: 1))
         let second = try #require(league(franchises: .randomised, seed: 2))
@@ -309,7 +315,9 @@ struct FranchiseSetTests {
     /// supplies a single franchise and the rest of the league is drawn around it. The
     /// curated club has to arrive intact, and nothing drawn may take its name — the
     /// ledger is told about every curated line in the league before a single draw.
-    @Test("contract: a short curated set is filled out without colliding with itself")
+    @Test(
+        "contract: a short curated set is filled out without colliding with itself",
+        .tags(.contract))
     func aShortSetIsFilledOut() throws {
         guard let first = FranchiseSet.franchises(in: .north).first else {
             Issue.record("the curated set has no northern franchise")
@@ -333,7 +341,9 @@ struct FranchiseSetTests {
     /// The curated set is finite and a shape is not. Sixty-four teams wants sixteen from
     /// each region, and the eight that are written down are joined by eight drawn ones —
     /// which must not collide with them, because the ledger was told about them first.
-    @Test("contract: a league bigger than the curated set is finished from the pools")
+    @Test(
+        "contract: a league bigger than the curated set is finished from the pools",
+        .tags(.contract))
     func anOversizedLeagueIsToppedUp() throws {
         let sixtyFour = LeagueShape(
             conferences: 2, divisionsPerConference: 4, teamsPerDivision: 8,

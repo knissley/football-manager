@@ -60,7 +60,7 @@ struct SalaryCapPropertyTests {
     /// Cap hits across the term must account for every dollar promised and no
     /// more. Rounding that loses a few dollars per year compounds into a
     /// contract that does not reconcile.
-    @Test("Cap hits over the term account for exactly the money committed")
+    @Test("Cap hits over the term account for exactly the money committed", .tags(.unit))
     func moneyIsConserved() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -77,7 +77,7 @@ struct SalaryCapPropertyTests {
     }
 
     /// The designation changes *when* dead money lands, never how much.
-    @Test("A post-June-1 designation only moves dead money, never reduces it")
+    @Test("A post-June-1 designation only moves dead money, never reduces it", .tags(.unit))
     func designationPreservesTotal() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -92,7 +92,7 @@ struct SalaryCapPropertyTests {
         }
     }
 
-    @Test("Unamortised proration only ever shrinks as seasons pass")
+    @Test("Unamortised proration only ever shrinks as seasons pass", .tags(.unit))
     func prorationIsMonotonic() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -108,7 +108,7 @@ struct SalaryCapPropertyTests {
         }
     }
 
-    @Test("Cap savings is always the hit less what the release charges this year")
+    @Test("Cap savings is always the hit less what the release charges this year", .tags(.unit))
     func savingsMatchesDefinition() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -126,7 +126,7 @@ struct SalaryCapPropertyTests {
 
     /// Proration never spreads past five years however long the deal runs, and
     /// never past the deal itself.
-    @Test("Proration respects both the five-year cap and the contract term")
+    @Test("Proration respects both the five-year cap and the contract term", .tags(.unit))
     func prorationBounds() {
         for shape in Self.allShapes where shape.bonus > 0 {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -140,7 +140,7 @@ struct SalaryCapPropertyTests {
 
     /// Converting base salary shifts money later without changing the total, and
     /// always buys relief in the season it happens.
-    @Test("Restructuring shifts money forward without changing the total")
+    @Test("Restructuring shifts money forward without changing the total", .tags(.unit))
     func restructurePreservesTotal() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)
@@ -165,7 +165,7 @@ struct SalaryCapPropertyTests {
         }
     }
 
-    @Test("A cap hit is never less than the proration it carries")
+    @Test("A cap hit is never less than the proration it carries", .tags(.unit))
     func hitCoversProration() {
         for shape in Self.allShapes {
             let contract = Self.contract(term: shape.term, bonus: shape.bonus)

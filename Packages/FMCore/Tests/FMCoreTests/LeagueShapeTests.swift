@@ -5,7 +5,7 @@ import Testing
 @Suite("League shape presets")
 struct LeagueShapePresetTests {
 
-    @Test("The standard shape is the real one")
+    @Test("The standard shape is the real one", .tags(.unit))
     func standard() {
         let shape = LeagueShape.standard
         #expect(shape.totalTeams == 32)
@@ -19,7 +19,7 @@ struct LeagueShapePresetTests {
     /// The smallest shape that still exercises everything structural. Three
     /// teams per division is the point: a division race needs a middle, and
     /// three-way ties have to be reachable for tiebreaker code to run at all.
-    @Test("The compact shape keeps real division races")
+    @Test("The compact shape keeps real division races", .tags(.unit))
     func compact() {
         let shape = LeagueShape.compact
         #expect(shape.totalTeams == 12)
@@ -30,7 +30,7 @@ struct LeagueShapePresetTests {
     }
 
     /// Adequate for scheduling and brackets, deliberately not for standings.
-    @Test("The minimal shape is still a league")
+    @Test("The minimal shape is still a league", .tags(.unit))
     func minimal() {
         let shape = LeagueShape.minimal
         #expect(shape.totalTeams == 8)
@@ -41,7 +41,7 @@ struct LeagueShapePresetTests {
         #expect(shape.wildCardsPerConference == 0)
     }
 
-    @Test("Every preset validates")
+    @Test("Every preset validates", .tags(.unit))
     func allPresetsValid() {
         for shape in [LeagueShape.standard, .compact, .minimal] {
             #expect(
@@ -68,7 +68,7 @@ struct LeagueShapeValidationTests {
 
     /// The case that prompted the rule: collapse to one conference and the
     /// championship game has nobody to play.
-    @Test("One conference is refused, and says why")
+    @Test("One conference is refused, and says why", .tags(.unit))
     func singleConference() {
         let single = shape(conferences: 1)
         #expect(!single.isValid)
@@ -79,18 +79,18 @@ struct LeagueShapeValidationTests {
         #expect(explanation.contains("two conferences"))
     }
 
-    @Test("A one-team division is refused")
+    @Test("A one-team division is refused", .tags(.unit))
     func singleTeamDivision() {
         let shape = shape(teams: 1, games: 4, playoffs: 2)
         #expect(shape.validationFailures.contains(.tooFewTeamsPerDivision(found: 1)))
     }
 
-    @Test("A conference with no divisions is refused")
+    @Test("A conference with no divisions is refused", .tags(.unit))
     func noDivisions() {
         #expect(shape(divisions: 0).validationFailures.contains(.tooFewDivisions(found: 0)))
     }
 
-    @Test("An odd number of teams leaves somebody without an opponent")
+    @Test("An odd number of teams leaves somebody without an opponent", .tags(.unit))
     func oddTeams() {
         // 2 conferences x 1 division x 3 teams = 6, even. 3 x 1 x 3 = 9, odd —
         // but three conferences is legal, so this isolates the parity rule.
@@ -99,7 +99,7 @@ struct LeagueShapeValidationTests {
         #expect(odd.validationFailures.contains(.oddTeamCount(found: 9)))
     }
 
-    @Test("A playoff field that shuts out a division winner is refused")
+    @Test("A playoff field that shuts out a division winner is refused", .tags(.unit))
     func excludesDivisionWinners() {
         let shape = shape(divisions: 3, teams: 2, games: 8, playoffs: 2)
         #expect(
@@ -108,7 +108,7 @@ struct LeagueShapeValidationTests {
         #expect(shape.validationFailures[0].explanation.contains("Winning a division"))
     }
 
-    @Test("A playoff field that admits everybody is refused")
+    @Test("A playoff field that admits everybody is refused", .tags(.unit))
     func admitsEveryone() {
         let shape = shape(divisions: 2, teams: 2, games: 6, playoffs: 5)
         #expect(
@@ -116,14 +116,14 @@ struct LeagueShapeValidationTests {
                 .playoffFieldExceedsConference(field: 5, teams: 4)))
     }
 
-    @Test("A season too short to play the division home and away is refused")
+    @Test("A season too short to play the division home and away is refused", .tags(.unit))
     func tooFewGames() {
         // Four teams in a division need six games just for the division.
         let shape = shape(teams: 4, games: 4, playoffs: 2)
         #expect(shape.validationFailures.contains(.tooFewGames(found: 4, minimum: 6)))
     }
 
-    @Test("A season longer than there are opponents is refused")
+    @Test("A season longer than there are opponents is refused", .tags(.unit))
     func tooManyGames() {
         // Eight teams can meet each other twice at most: fourteen games.
         let shape = shape(divisions: 2, teams: 2, games: 20, playoffs: 2)
@@ -132,7 +132,7 @@ struct LeagueShapeValidationTests {
 
     /// A player fixing a custom league should see everything wrong at once
     /// rather than being led through failures one at a time.
-    @Test("Multiple problems are all reported")
+    @Test("Multiple problems are all reported", .tags(.unit))
     func reportsEverything() {
         let broken = LeagueShape(
             conferences: 2, divisionsPerConference: 3, teamsPerDivision: 2,
@@ -145,7 +145,7 @@ struct LeagueShapeValidationTests {
 
     /// Structural counts are checked first: reporting a broken playoff field for
     /// a league with zero divisions would be noise on top of the real problem.
-    @Test("Structural failures are reported before derived ones")
+    @Test("Structural failures are reported before derived ones", .tags(.unit))
     func structuralFailuresComeFirst() {
         let broken = LeagueShape(
             conferences: 1, divisionsPerConference: 0, teamsPerDivision: 1,
@@ -157,7 +157,7 @@ struct LeagueShapeValidationTests {
         #expect(failures.contains(.tooFewTeamsPerDivision(found: 1)))
     }
 
-    @Test("Every failure explains itself in words a player could act on")
+    @Test("Every failure explains itself in words a player could act on", .tags(.unit))
     func explanationsAreUseful() {
         let failures: [LeagueShape.ValidationFailure] = [
             .tooFewConferences(found: 1), .tooFewDivisions(found: 0),
@@ -177,7 +177,7 @@ struct LeagueShapeValidationTests {
     /// Unusual leagues that are still leagues. Customisation is the point; the
     /// validator exists to catch shapes that break the sport, not shapes that
     /// are merely unfamiliar.
-    @Test("Unconventional but coherent leagues are allowed")
+    @Test("Unconventional but coherent leagues are allowed", .tags(.unit))
     func allowsUnusualLeagues() {
         // Four conferences of two divisions of four.
         #expect(shape(conferences: 4, divisions: 2, teams: 4, games: 14, playoffs: 2).isValid)
