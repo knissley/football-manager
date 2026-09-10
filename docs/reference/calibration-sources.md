@@ -2,7 +2,10 @@
 
 **Status: built.** Every row below exists in
 `Tools/simharness/Sources/simharness/Targets.swift` today, and
-`InvariantsTraceabilityTests` fails if one named here does not.
+`InvariantsTraceabilityTests` fails if one named here does not. The exception is the
+section on [bands the harness cannot measure](#bands-the-harness-cannot-measure): those are
+not rows and have no verdict in a harness run, so each names the `test:` that checks it
+instead.
 
 This is the external truth for the *rates*, the way
 [`playing-rules.md`](playing-rules.md) is the external truth for the rules. CLAUDE.md's
@@ -31,11 +34,13 @@ per row here, band in the generated table.
 | --- | --- | --- |
 | **S1** | nflverse play-by-play data, built from the league's official play-by-play feed | every regular-season play; the per-play, per-drive and per-game rows |
 | **S2** | nflverse participation data from Next Gen Stats | personnel groupings, box counts and pressure |
+| **S3** | nflverse weekly roster data — one row per man per club per week | who is on a roster and how long he has been in the league; the generated world's own shape, not a game's |
 
 Every sourced band was computed by `scripts/calibration-sources.py`, which prints each
 row's value in every season alongside the band the policy produces. **If a number in
 `Targets.swift` cannot be reproduced by the script, the script wins.** Regular-season games
-only, sliders at default.
+only, sliders at default. S3 is derived by the same script under `--rosters`, and what it
+bands is a *world* rather than a game — see [below](#bands-the-harness-cannot-measure).
 
 ## The band policy
 
@@ -290,6 +295,52 @@ was computed for this file.
 | Five onside kicks recovered of 52 attempted | 2025 | `row:onsideRecovery.2025` |
 | The home side won 53–56% of decided games and outscored by 2–3 points, most of which is not the crowd | 2023-24 | `row:preSnapRoadVsHome` |
 
+## Bands the harness cannot measure
+
+The harness plays games, so every row above is something a game produces. A **world** has
+sourced numbers of its own — how old a roster is, how much of it arrived this year — and
+the harness never sees them, because nothing about them changes when a snap does. They are
+banded here all the same, and the band lives in the test that measures it rather than in
+`Targets.swift`: a row in that table is a promise `simharness` prints a verdict for, and a
+row nothing prints would be a promise nobody keeps.
+
+| Band | Season | Source | Where it is checked |
+| --- | --- | --- | --- |
+| Share of a roster in its first season: 0.145–0.171 | 2023-25 | S3 | `test:firstSeasonShare` |
+
+**The derivation**, which `scripts/calibration-sources.py --rosters <dir>` reproduces from
+the `roster_weekly_<season>.csv` files of the nflverse weekly roster release: a club's
+opening roster is week 1 of the regular season with a status of `ACT` or `INA` — the active
+list plus that week's inactives, which is the fifty-three a club carries, and not the
+practice squad; a first-season player is one with `years_exp == 0`. That gives 281 of 1,729
+in 2023 (0.1625), 274 of 1,754 in 2024 (0.1562) and 266 of 1,740 in 2025 (0.1529). The band
+policy widens the span of the three by 5% of their mean, which is larger than twice the
+standard error of the measurement the test makes (eight generated leagues, 13,568 men), and
+so is what governs: **0.145 to 0.171**.
+
+Three more numbers come off the same three files, and are recorded here because they were
+measured rather than assumed even though nothing asserts them.
+
+**How old a roster is.** A week-1 roster's mean age was 26.04, 26.19 and 26.34 in those
+three seasons, against 26.33 in a generated league over seeds 1, 5, 7 and 11
+([#67](https://github.com/knissley/football-manager/issues/67)) — inside the real range, at
+the top of it. Before that issue it was 25.75, below every one of the three.
+
+**How wide that is.** The same rosters' age standard deviation was 3.16, 3.19 and 3.31.
+A generated league's is 3.29 to 3.37 across those four seeds, straddling the top of the real
+range; before #67 it was 3.57 to 3.71, entirely above it. That pair of moves is the argument
+for flooring a reserve's age centre two seasons above the entry age rather than truncating
+the old centres alone. Truncating alone was measured at the same four seeds: mean 26.06, at
+the bottom of the real range, spread 3.31 to 3.42, at its top and above, and a first-season
+share of 0.19 — 0.186 pooled over the eight seeds the test reads, against 0.154 for what
+landed, and outside the band above either way.
+
+**When a first-season player arrives.** They were about a seventh twenty-one, a quarter to a
+third twenty-two, about a third twenty-three and a seventh to a quarter twenty-four;
+`DraftHistory.entryAge` draws 20/45/25/10 across the same four ages, which is a year young.
+
+None of the three is banded: a number nobody asserts is a note, not a target.
+
 ## Where the harness measures something else
 
 Three rows measure a definition of their own rather than the source's, and the difference
@@ -318,3 +369,9 @@ here so nobody reads a gap as an engine finding:
    simharness package's own test fails.
 4. Add the row to this file, and name it from an invariant in
    [`../invariants.md`](../invariants.md), or `InvariantsTraceabilityTests` fails.
+
+A band the harness cannot measure skips steps 2 and 3 and lands in the test instead: derive
+it with the script, put the band and its citation in the test's name and doc comment, and
+add it to [the table above](#bands-the-harness-cannot-measure) naming that test. It is not a
+`row:` and must not be written as one — `InvariantsTraceabilityTests` reads every `row:` in
+this file as a claim that `Targets.swift` carries it.

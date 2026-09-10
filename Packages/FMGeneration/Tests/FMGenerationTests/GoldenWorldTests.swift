@@ -74,7 +74,17 @@ struct GoldenWorldTests {
             // the renames above, the league's name is a string no snap reads:
             // `GoldenSeedTests` did not move, and the harness rows below its header are
             // byte-identical at seeds 7 and 11.
-            (UInt64(1), UInt64(3_350_913_022_119_427_710)),
+            //
+            // And all three in #67, which changed how old a generated league is. The age
+            // draw was clamped into 21...38, so every draw under twenty-one came back as
+            // twenty-one; it is now redrawn, which is the same distribution truncated
+            // rather than folded onto its own edge, and the centre for a reserve is floored
+            // two seasons above the entry age instead of landing on it. Ages feed
+            // `currentOverall`, so every rating in every world moved with them, and the
+            // rejection loop draws a variable number of times from the roster stream, so
+            // everything drawn after an age moved too. The checksum also mixes one new
+            // field: whether a man has a first season at all, now that a prospect has none.
+            (UInt64(1), UInt64(17_995_499_500_597_615_594)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -95,8 +105,8 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(14_267_436_670_061_520_945)),
-            (UInt64(7), UInt64(3_815_737_767_906_619_940)),
+            (UInt64(5), UInt64(12_299_709_978_338_280_780)),
+            (UInt64(7), UInt64(9_087_476_904_426_528_856)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

@@ -94,14 +94,28 @@ public enum DraftHistory {
         return nil
     }
 
+    /// The youngest anybody arrives at.
+    ///
+    /// A true junior comes out at twenty-one and nobody comes out younger, which is what
+    /// makes this the floor of the age draw in `RosterGenerator` as well: a league cannot
+    /// hold a man younger than the youngest age anybody enters it at. The two are the same
+    /// number on purpose, and a contract test says so.
+    static let youngestEntryAge = 21
+
     /// The age a player arrived in the league at.
     ///
     /// Centred on the twenty-two `PlayerGenerator` treats as entry and three years wide:
     /// a true junior comes out at twenty-one, most players at twenty-two or twenty-three,
-    /// and a fifth-year senior at twenty-four. A generation shape, not a sourced one.
+    /// and a fifth-year senior at twenty-four. A generation shape, not a sourced one, and
+    /// it is a year young against the nearest real comparison: first-season players on week
+    /// 1 rosters were about a seventh twenty-one, a quarter to a third twenty-two, about a
+    /// third twenty-three and a seventh to a quarter twenty-four over 2023-2025 (nflverse
+    /// weekly roster data), where this draw puts nearly half of them at twenty-two. Nothing
+    /// here reads that comparison — it is written down so the next person does not have to
+    /// go and measure it again.
     static func entryAge(using random: inout SplittableRandom) -> Int {
         switch random.next(upperBound: 100) {
-        case ..<20: return 21
+        case ..<20: return youngestEntryAge
         case ..<65: return 22
         case ..<90: return 23
         default: return 24

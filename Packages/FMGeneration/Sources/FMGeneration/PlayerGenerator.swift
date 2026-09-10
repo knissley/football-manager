@@ -210,7 +210,7 @@ public enum PlayerGenerator {
         // How he arrived. Drawn from his own substream inside `DraftHistory` rather than
         // from the stream above, so giving a world a past leaves every rating in it
         // exactly where it was.
-        let arrival: (draft: DraftInfo?, firstSeason: Int)
+        let arrival: (draft: DraftInfo?, firstSeason: Int?)
         if let draft {
             arrival = (draft, draft.season)
         } else if let board {
@@ -218,9 +218,12 @@ public enum PlayerGenerator {
                 for: id, ceiling: ceiling, age: age, season: season, board: board,
                 from: random)
         } else {
-            // Nobody drafted him and no board says otherwise, so he is arriving now: a
+            // Nobody drafted him and no board says otherwise, so he has not arrived: a
             // prospect in a class that has not been picked from, or a fixture in a test.
-            arrival = (nil, season)
+            // He used to take the season he was built in, which made every prospect a
+            // rookie in the season his class became eligible
+            // ([#67](https://github.com/knissley/football-manager/issues/67)).
+            arrival = (nil, nil)
         }
 
         return Player(

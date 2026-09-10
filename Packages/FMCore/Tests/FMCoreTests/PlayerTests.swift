@@ -17,7 +17,7 @@ struct PlayerArrivalTests {
     private func player(
         birthSeason: Int,
         draft: DraftInfo? = nil,
-        firstSeason: Int
+        firstSeason: Int?
     ) -> Player {
         Player(
             id: PlayerID(1),
@@ -88,5 +88,19 @@ struct PlayerArrivalTests {
         let rookie = player(birthSeason: 2008, draft: secondRoundPick, firstSeason: 2030)
         #expect(rookie.experience(in: 2029) == 0)
         #expect(!rookie.isRookie(in: 2029))
+    }
+
+    /// A man with no first season has not arrived — a college prospect, whom nobody has
+    /// drafted and nobody has signed. He is not a rookie in any season, and he has accrued
+    /// nothing, until somebody gives him a first season by taking him
+    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
+    @Test("unit: a player who has not arrived is not a rookie in any season", .tags(.unit))
+    func hasNotArrived() {
+        let prospect = player(birthSeason: 2008, firstSeason: nil)
+        #expect(prospect.firstSeason == nil)
+        #expect(!prospect.isRookie(in: 2030))
+        #expect(!prospect.isRookie(in: 2031))
+        #expect(prospect.experience(in: 2030) == 0)
+        #expect(prospect.experience(in: 2040) == 0)
     }
 }

@@ -38,6 +38,28 @@ struct DraftClassGeneratorTests {
         #expect(years == [.senior, .junior, .sophomore])
     }
 
+    /// A prospect is in college. Nobody has drafted him and nobody has signed him, so he has
+    /// not arrived — and a man who has not arrived is not a rookie, however close his class
+    /// is to being picked from.
+    ///
+    /// He read as one because a player built without a draft board took the season he was
+    /// built in as the season he first counted against a roster, which for a prospect is the
+    /// season his class becomes eligible
+    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
+    @Test("contract: a prospect has not arrived, so he is not a rookie", .tags(.contract))
+    func prospectsHaveNotArrived() {
+        for generated in pipeline() {
+            let eligible = generated.draftClass.season
+            for player in generated.players {
+                #expect(
+                    !player.isRookie(in: eligible),
+                    "\(player.name.full) is a rookie while he is still in college")
+                #expect(player.draft == nil, "\(player.name.full) has been drafted already")
+                #expect(player.experience(in: eligible) == 0)
+            }
+        }
+    }
+
     @Test("Every prospect maps to a player that exists", .tags(.contract))
     func prospectsMapToPlayers() {
         for generated in pipeline() {

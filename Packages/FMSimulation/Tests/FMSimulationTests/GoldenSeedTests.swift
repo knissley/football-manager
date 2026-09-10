@@ -95,9 +95,18 @@ struct GoldenSeedTests {
             // therefore the rosters, because a roster is built for the scheme its club
             // inherited. A game between two different clubs in a different building is a
             // different game.
-            (UInt64(1), UInt64(5_440_315_691_981_408_884)),
-            (UInt64(5), UInt64(546_216_697_121_067_157)),
-            (UInt64(12), UInt64(14_325_656_630_955_244_777)),
+            //
+            // And moved again by #67, again by the world and not by the engine: nothing in
+            // `FMSimulation` changed. The age a generated player is drawn at was clamped
+            // into 21...38 and is now redrawn when it falls outside, and a reserve's centre
+            // is floored two seasons above the entry age rather than landing on it. Age is
+            // what `PlayerGenerator.currentOverall` measures a man's progress toward his
+            // ceiling along, so every rating on both rosters moved — an older league is a
+            // slightly better one — and a game between two rosters of different players is
+            // a different game.
+            (UInt64(1), UInt64(3_162_683_895_152_383_395)),
+            (UInt64(5), UInt64(10_979_753_660_678_002_318)),
+            (UInt64(12), UInt64(2_862_180_237_269_468_990)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

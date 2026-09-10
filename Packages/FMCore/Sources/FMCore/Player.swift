@@ -148,14 +148,21 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     public let birthSeason: Int
     public let college: College
     public let draft: DraftInfo?
-    /// The season he first counted against a professional roster.
+    /// The season he first counted against a professional roster, or `nil` if he never has.
     ///
     /// Stored rather than inferred. An undrafted player has no draft season to read it
     /// off, and the fallback that guessed it from his age — `birthSeason + 22` — made
     /// every late arrival a veteran the day he signed. A drafted player's first season
     /// *is* his draft season, so the initialiser takes it from the draft rather than
     /// carrying two facts that can disagree.
-    public let firstSeason: Int
+    ///
+    /// `nil` is a college prospect: nobody has drafted him and nobody has signed him, so
+    /// there is no season in which he first counted against anything. It used to be the
+    /// season he was generated in, which made every prospect a rookie in the season his
+    /// class became eligible — before he had entered the league
+    /// ([#67](https://github.com/knissley/football-manager/issues/67)). He gets one when he
+    /// arrives, which is a decision in `FMSimulation` and not a fact about him.
+    public let firstSeason: Int?
 
     public let position: Position
     /// Other positions he can fill, for depth chart validity and versatility.
@@ -174,7 +181,7 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
         birthSeason: Int,
         college: College,
         draft: DraftInfo? = nil,
-        firstSeason: Int,
+        firstSeason: Int?,
         position: Position,
         secondaryPositions: [Position] = [],
         physical: PhysicalProfile,
@@ -211,8 +218,12 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     /// everybody, since no generated player had one — so experience was age with
     /// twenty-two subtracted from it and a twenty-six-year-old who signed last spring
     /// was a four-year veteran.
+    ///
+    /// A man who has not arrived has accrued nothing, however long he has been playing
+    /// somewhere else.
     public func experience(in season: Int) -> Int {
-        max(0, season - firstSeason)
+        guard let firstSeason else { return 0 }
+        return max(0, season - firstSeason)
     }
 
     /// Whether this is his first season in the league.
@@ -231,8 +242,13 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     /// Takes the season, which is the whole point. The property it replaces compared
     /// `draft.season` with `birthSeason + (draft.season - birthSeason)` — an identity —
     /// so it was true for every drafted player forever and asked nothing.
+    ///
+    /// False for a man who has not arrived. A college prospect is not a rookie: he is not
+    /// in the league at all, and the season his class becomes eligible is not a season he
+    /// spent on anybody's roster.
     public func isRookie(in season: Int) -> Bool {
-        firstSeason == season
+        guard let firstSeason else { return false }
+        return firstSeason == season
     }
 
     public var overall: UInt8 {
