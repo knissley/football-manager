@@ -111,7 +111,44 @@ until a schedule exists in M3.
 The output is byte-identical across processes for a given seed and game count, so the
 before-and-after comparison every engine fix depends on is a plain `diff`. A line that
 moves between two runs of the same binary at the same seed is a bug in the harness's
-read-out, not noise (#52).
+read-out, not noise (#52) — with one deliberate exception, the `Budget` block below.
+
+### The Budget block
+
+The run ends with a `Budget` block: the wall clock of the simulate calls alone, as ms per
+game, the seconds that rate makes of a 272-game season, and the ~220 ms per game the
+[60-second season budget](match-engine.md#performance-budget) allows, with the ratio
+between them.
+
+```text
+  Budget
+    Wall clock of the simulate calls alone — world generation, the weather draws
+    and this report are outside it. Reporting only: no gate, and not a calibration
+    target. It is the one block that moves between two runs of the same binary at
+    the same seed, which is what --no-timing exists for.
+    simulate calls                400 games in 5.90 s
+    ms per game                   14.75
+    seconds per 272-game season   4.01
+    budget                        220.00 ms per game, 60 s a season (match-engine.md#performance-budget)
+    ratio to budget               0.07x
+```
+
+**Reporting only.** Nothing gates on it, and timing is not a `CalibrationTarget`: a
+wall-clock reading measures the machine that took it as much as the engine, so a band
+would mean one thing on a laptop and another on a CI runner. What it is for is drift — the
+budget is architectural ([ADR-0006](adr/0006-spatial-simulation.md)) and until this block
+existed nothing measured it at all (#9).
+
+It is printed **last**, after the verdicts, and it is the only part of the output that
+moves between runs. `--no-timing` omits it, so the byte-identical check still works:
+
+```bash
+cd Tools/simharness
+swift run -c release simharness --games 400 --seed 7 --no-timing | md5sum
+```
+
+Read the ratio, not the milliseconds. What one machine's milliseconds are worth is
+unknown; what a doubling between two commits on the same machine means is not.
 
 ## gamelog — watch a game
 

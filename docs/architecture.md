@@ -135,8 +135,10 @@ architectural. In `FMSimulation`'s hot loop:
 - Trajectory capture is opt-in per game.
 
 *Intent, not yet built:* a benchmark test guards the budget and fails CI on regression.
-CI exists ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) but has no
-benchmark step, so nothing measures the budget today.
+CI exists ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) and *reports* the
+budget — `simharness` times its simulate loop and prints a `Budget` block that the job
+summary carries (#9) — but nothing gates on it, so a regression shows up in a summary
+nobody has to read rather than in a red build.
 
 ## Persistence
 

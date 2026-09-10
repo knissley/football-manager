@@ -21,6 +21,7 @@ import Darwin
 var games = 40
 var seed: UInt64 = 2030
 var rulebookOption: Int?
+var timing = true
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
@@ -35,6 +36,7 @@ while let argument = arguments.next() {
             exit(1)
         }
         rulebookOption = season
+    case "--no-timing": timing = false
     case "--targets-markdown":
         print(CalibrationTarget.markdownTable())
         exit(0)
@@ -49,6 +51,8 @@ while let argument = arguments.next() {
                                    rows sourced under them (\(supportedRulebooks.map(String.init).joined(separator: " or ")));
                                    the default plays Rules.standard and compares against the
                                    \(engineRulebookSeason) targets
+              --no-timing          leave out the Budget block at the end, so two runs of
+                                   the same binary at the same seed are byte-identical
               --targets-markdown   print the calibration table for docs/match-engine.md
             """)
         exit(0)
@@ -155,6 +159,10 @@ for team in world.teams {
 
 let simulator = GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
 var results: [GameResult] = []
+// Wall clock inside the simulate calls, and nothing else, for the Budget block at the
+// end. Everything the loop does around the call — the weather draw, the setup — and
+// every query over the stream afterwards are outside it.
+var simulateSeconds = 0.0
 var conditions: [(home: TeamID, setup: GameSetup)] = []
 let teams = world.teams
 
@@ -183,7 +191,10 @@ for index in 0..<games {
         weather: weather,
         rules: rulesInForce,
         seed: seed &+ UInt64(index) &* 7919)
-    results.append(simulator.simulate(setup))
+    let startedAt = monotonicSeconds()
+    let result = simulator.simulate(setup)
+    simulateSeconds += monotonicSeconds() - startedAt
+    results.append(result)
     conditions.append((home: home.id, setup: setup))
 }
 
@@ -1122,4 +1133,14 @@ for verdict in ["ok", "OFF", "stale", "unsourced", "(ok)", "(OFF)", "n/a"] {
     print(
         "    \(pad(verdict, 12))\(rows.count)"
             + (listed ? "   " + rows.sorted().joined(separator: ", ") : ""))
+}
+
+// MARK: - Budget
+
+// Last, and after everything else, because these are the only numbers in the run that
+// move between two processes. `--no-timing` drops the block, which is how the
+// byte-identical property (#52) is still checked with a plain `md5sum`.
+if timing {
+    print("")
+    for line in Budget(games: results.count, seconds: simulateSeconds).lines { print(line) }
 }

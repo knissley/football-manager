@@ -182,7 +182,7 @@ jobs:
           path: harness-seed7.txt
           if-no-files-found: error
 
-      - name: Calibration table
+      - name: Calibration table and budget
         if: always()
         run: |
           if [ ! -s harness-seed7.txt ]; then
@@ -209,6 +209,11 @@ jobs:
               printf "| %s | %s | %s | %s | %s | %s | %s | %s |\n", section, label, value, band, mark, season, src, sensitive
             }
           ' harness-seed7.txt)"
+          # The Budget block is everything from its header to the end of the run — the
+          # harness prints it last precisely so this can be a tail (#9). It carries no
+          # band and no verdict, so the parser above skips its lines and it is reported
+          # here on its own.
+          budget="$(awk '$0 == "  Budget" { inBlock = 1 } inBlock' harness-seed7.txt)"
           {
             echo "## simharness — 400 games, seed 7 — ${{ matrix.runner }}"
             echo
@@ -227,6 +232,17 @@ jobs:
               echo "below."
             fi
             echo
+            if [ -n "$budget" ]; then
+              echo "### Budget"
+              echo
+              echo "Reporting only, and measured on this runner: read the ratio rather than"
+              echo "the milliseconds. The budget itself is ADR-0006's — a season in ~60 s."
+              echo
+              echo '```text'
+              echo "$budget"
+              echo '```'
+              echo
+            fi
             echo "<details><summary>Full harness output</summary>"
             echo
             echo '```text'
