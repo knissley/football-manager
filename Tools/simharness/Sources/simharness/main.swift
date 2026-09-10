@@ -563,6 +563,35 @@ report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
 
+// Where a play ends laterally, which after the two-minute warning of the first half and
+// inside the last five minutes of the second is a clock decision rather than an accident
+// (2025 rulebook, 4-3-2-a: out of bounds leaves the clock stopped until the snap in those
+// windows and restarts it on the ready signal everywhere else). No target on any of the
+// three: nothing in docs/reference/calibration-sources.md bands where a play ends
+// laterally, and a sourced band would land with E2 (#42).
+print("")
+print("  Ending on the sideline   (no target: unsourced, a band belongs to #42)")
+func sidelineShare(_ plays: [PlayRecord]) -> String {
+    let down = plays.filter {
+        $0.outcome.endedIn == .tackled || $0.outcome.endedIn == .outOfBounds
+    }
+    guard !down.isEmpty else { return "—" }
+    let out = down.filter { $0.outcome.endedIn == .outOfBounds }.count
+    return oneDecimal(Double(out) / Double(down.count) * 100) + "%"
+}
+let sidelineClassified = scrimmage.map {
+    (play: $0, classified: SituationClass($0.situation, rules: rulesInForce))
+}
+let trailingLate = sidelineClassified.filter { $0.classified.isDesperation }.map(\.play)
+let leadingLate = sidelineClassified.filter { $0.classified.isClockBurn }.map(\.play)
+print("    \(pad("all scrimmage plays", 30))\(sidelineShare(scrimmage))")
+print(
+    "    \(pad("trailing inside two minutes", 30))\(sidelineShare(trailingLate))"
+        + "   \(trailingLate.count) plays")
+print(
+    "    \(pad("protecting a lead late", 30))\(sidelineShare(leadingLate))"
+        + "   \(leadingLate.count) plays")
+
 print("")
 print("  Not measured here")
 report("winTotalSigma", nil)

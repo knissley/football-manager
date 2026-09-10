@@ -802,7 +802,8 @@ argument for watching a game.
   the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable.
   ([#40](https://github.com/knissley/football-manager/issues/40))
 - **C8** — a tackle ends out of bounds 14% of the time, flat, whatever the play and
-  whatever the clock is doing.
+  whatever the clock is doing — **fixed.** The sideline is drawn against the concept and
+  the clock now, and a breakaway is no longer written out of bounds.
   ([#28](https://github.com/knissley/football-manager/issues/28))
 - **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
   it, `afterThePlay` is called from the run path only, and roughing the kicker on a made

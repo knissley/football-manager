@@ -216,9 +216,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
 44. A runner going out of bounds stops the clock until the ball is ready for play, except
     that it waits for the snap once possession has changed, inside the closing two minutes
     of the first half and inside the closing five of the second. `[2025 · 4-4-c, 4-3-2-a]` —
-    `test:outOfBoundsEarly`, `test:outOfBoundsLate`; **modelling**: a tackle ends out of
-    bounds at a flat rate whatever the play and whatever the clock is doing,
-    [#28](https://github.com/knissley/football-manager/issues/28)
+    `test:outOfBoundsEarly`, `test:outOfBoundsLate`; **modelling**: where a play ends
+    laterally is drawn against the concept and the clock — an outside run reaches the
+    boundary and an inside run does not, a trailing offence inside two minutes seeks it
+    and one protecting a lead late stays in — `test:theSidelineIsAClockDecision`,
+    `test:theSidelineDependsOnTheCall`,
+    `test:breakawaysAreNotSidelineByConstruction`
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
     `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`,

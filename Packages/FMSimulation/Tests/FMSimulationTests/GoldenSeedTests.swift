@@ -125,9 +125,17 @@ struct GoldenSeedTests {
             // checksum moves for that reason alone, and with them goes the substitution
             // that had the backup quarterback taking a dropback mid-drive with the
             // starter fit.
-            (UInt64(1), UInt64(13_888_667_984_758_957_279)),
-            (UInt64(5), UInt64(5_973_092_704_606_713_191)),
-            (UInt64(12), UInt64(7_930_597_878_393_611_632)),
+            //
+            // And moved by the sideline. Where a play ends laterally is now drawn against
+            // the concept and the clock rather than at a flat 14% — an outside run
+            // reaches the boundary, an inside run does not, a trailing offence inside two
+            // minutes is coached to get out and a leading one to stay in (4-3-2-a) — and
+            // a carrier who beat everybody chasing him draws his ending like anybody
+            // else instead of being written out of bounds. One extra draw on a broken-
+            // tackle sequence moves every stream after it.
+            (UInt64(1), UInt64(8_903_623_953_114_220_083)),
+            (UInt64(5), UInt64(11_529_662_471_576_959_285)),
+            (UInt64(12), UInt64(18_344_936_371_843_316_633)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

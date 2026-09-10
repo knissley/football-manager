@@ -359,6 +359,9 @@ public struct CrudeResolver: PlayResolver {
                 let scramble = tackleSequence(
                     carrier: SlotLayout.quarterback, pursuit: SlotLayout.scramblePursuit,
                     personnel: personnel, context: context,
+                    // A quarterback who took off runs the same way an outside run does:
+                    // towards the boundary, where the play ends with him upright.
+                    sideline: sidelineChance(.outsideRun, situation, context),
                     decisions: &decisions, participants: &participants, startTick: 30,
                     random: &random)
                 var gained = Int16(
@@ -504,7 +507,10 @@ public struct CrudeResolver: PlayResolver {
         case .caught, .contestedCatch:
             let afterCatch = yardsAfterCatch(
                 carrier: target.receiver, coveredBy: target.defender, personnel: personnel,
-                context: context, separation: target.separation, decisions: &decisions,
+                context: context, separation: target.separation,
+                sideline: sidelineChance(
+                    isTry ? .twoPointConversion : family, situation, context),
+                decisions: &decisions,
                 participants: &participants, startTick: arrivalTick + 2, random: &random)
             let total: Int = depth.yards + afterCatch.yards
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
@@ -649,6 +655,7 @@ public struct CrudeResolver: PlayResolver {
                 ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
             personnel: personnel,
             context: context,
+            sideline: sidelineChance(family, situation, context),
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
@@ -1022,6 +1029,57 @@ public struct CrudeResolver: PlayResolver {
 
     // MARK: - Shared pieces
 
+    /// How hard the man with the ball works to reach the sideline, as a probability the
+    /// play ends there rather than in the field.
+    ///
+    /// Two things decide it, and neither of them used to: the concept, and the clock.
+    ///
+    /// The concept, because a run outside the tackles is already headed for the boundary
+    /// and one between them is twenty-odd yards from it, and because a go route runs the
+    /// sideline while a crossing route runs away from it.
+    ///
+    /// The clock, because of 4-3-2-a: a runner who goes out of bounds normally leaves the
+    /// clock to restart on the ready-for-play signal, but after the two-minute warning of
+    /// the first half and inside the last five minutes of the second it does not start
+    /// again until the snap. That is the whole reason the sideline is worth reaching, and
+    /// the same rule read from the other bench is why an offence protecting a lead stays
+    /// in. Without it a two-minute drill had no way to stop the clock and a clock-burning
+    /// offence had no way to keep it running.
+    ///
+    /// The per-concept numbers are a modelling convention, not a sourced rate: nothing in
+    /// `docs/reference/calibration-sources.md` bands where a play ends laterally.
+    private func sidelineChance(
+        _ family: PlayFamily, _ situation: Situation, _ context: PlayContext
+    ) -> Double {
+        var chance: Double
+        switch family {
+        case .outsideRun: chance = 0.26
+        case .insideRun: chance = 0.05
+        case .screen: chance = 0.20
+        case .quickPass: chance = 0.15
+        case .mediumPass: chance = 0.12
+        // The one dropback whose route tree runs away from the boundary: play-action sells
+        // the run and then throws the crosser and the deep over behind it.
+        case .playAction: chance = 0.07
+        case .deepPass: chance = 0.20
+        // From the two there is no field to run to, and the try is untimed anyway
+        // (4-3-2-h), so nobody is chasing the clock.
+        case .twoPointConversion, .extraPoint: chance = 0.02
+        default: chance = 0.12
+        }
+
+        let classified = SituationClass(situation, rules: context.rules)
+        if classified.isDesperation {
+            // Trailing inside two minutes: he is coached to get out, and takes the
+            // sideline over the extra yard.
+            chance += 0.22
+        } else if classified.isClockBurn {
+            // Leading and late: he stays in, and takes the tackle over the sideline.
+            chance *= 0.35
+        }
+        return min(0.75, max(0.01, chance))
+    }
+
     private struct RouteDepth {
         var yards: Int
         let timeMillis: Int
@@ -1102,7 +1160,7 @@ public struct CrudeResolver: PlayResolver {
 
     private func yardsAfterCatch(
         carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Lineup, context: PlayContext,
-        separation: Int,
+        separation: Int, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (yards: Int, ending: PlayEnding) {
@@ -1128,7 +1186,7 @@ public struct CrudeResolver: PlayResolver {
         let pursuit = [(coveredBy, 5.0)] + SlotLayout.catchPursuit.filter { $0.0 != coveredBy }
         let tackle = tackleSequence(
             carrier: carrier, pursuit: pursuit, personnel: personnel, context: context,
-            decisions: &decisions,
+            sideline: sideline, decisions: &decisions,
             participants: &participants, startTick: startTick, random: &random)
         // A receiver who caught it in stride is already past somebody. Separation earned
         // before the catch is worth yards after it.
@@ -1146,9 +1204,14 @@ public struct CrudeResolver: PlayResolver {
     ///
     /// The tackler credited here is the one the outcome names. Nothing else can be, and
     /// that is asserted rather than assumed.
+    ///
+    /// `sideline` is the chance the play ends out of bounds rather than in the field —
+    /// see `sidelineChance`. It is drawn on every ending this function produces, the
+    /// broken-everybody one included: a breakaway that always ended out of bounds was a
+    /// fact about the code.
     private func tackleSequence(
         carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Lineup,
-        context: PlayContext,
+        context: PlayContext, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (extraYards: Int, ending: PlayEnding) {
@@ -1187,7 +1250,7 @@ public struct CrudeResolver: PlayResolver {
             credit(defender, broken ? .other : .tackler, personnel, into: &participants)
 
             if !broken {
-                return (extra, random.nextBool(probability: 0.14) ? .outOfBounds : .tackled)
+                return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
             }
             extra += 2 + Int(random.next(upperBound: 5))
             broke += 1
@@ -1205,6 +1268,9 @@ public struct CrudeResolver: PlayResolver {
             extra += max(4, burst)
         }
 
-        return (extra, .outOfBounds)
+        // He beat everybody and is eventually run down. Where that happens is drawn like
+        // any other tackle: writing `.outOfBounds` here made every breakaway a sideline
+        // play by construction, which is a fact about the code rather than about the run.
+        return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
     }
 }
