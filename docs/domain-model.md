@@ -51,7 +51,7 @@ It splits along one line that matters:
   fatigue, and noise is the mechanism behind home field advantage rather than a bonus
   applied on top of one ([penalties.md](penalties.md)).
 
-Plus `MarketSize` and `Scheme`, and — still to come — `Roster`, `DepthChart`,
+Plus `MarketSize` and `TeamScheme`, and — still to come — `Roster`, `DepthChart`,
 `Contracts`, `CoachingStaff`, `Finances`, `TeamStrategy` (the AI's rebuild-vs-contend
 posture), and season record.
 
@@ -69,10 +69,16 @@ way to a broken schedule.
 
 ## Player
 
+**Partly built, and this section runs ahead of the type in three places** — the hidden
+attributes, the traits and the state. Identity, physical, position and ratings are built
+and are what generation fills.
+
 Split into stable identity, physical profile, ratings, and mutable state.
 
-**Identity** — name, birth date, college, draft year/round/pick, years of experience,
-handedness. Immutable after generation.
+**Identity** — name, birth season, college, and draft season/round/pick/overall for a
+drafted player. Immutable after generation. *Designed, not built:* years of experience
+and handedness are not on the type; experience is derivable from the draft season once
+there is a season.
 
 **Physical** — height, weight, and the athletic testing numbers a scout would see:
 40-yard dash, vertical, broad jump, three-cone, bench. Generated correlated with
@@ -102,16 +108,27 @@ catchInTraffic, routeRunning, releaseVsPress; runBlock, passBlock, blockAnchor,
 handTechnique; powerMove, finesseMove, blockShedding, pursuit, tackling, hitPower;
 manCoverage, zoneCoverage, ballHawk; kickPower, kickAccuracy, puntPower, puntAccuracy.
 
-A rating a position doesn't use is absent, not zero. `Ratings` is a dictionary keyed
-by a `RatingKey` enum with typed accessors, so adding a rating doesn't touch every
-player struct.
+A rating a position doesn't use is absent, not zero. `Ratings` is a **flat array indexed
+by `RatingKey.rawValue`, plus a two-word presence bitmap** — not a dictionary, which
+would put hashing in the domain type and break the no-dictionary rule the tick loop is
+written to ([ADR-0006](adr/0006-spatial-simulation.md)). Raw values are gapped so a new
+key can be inserted without renumbering, and a test asserts every key fits the array.
+Typed accessors mean adding a rating doesn't touch every player struct.
 
-**Hidden attributes** — `potential` (a ceiling band, not a number), `developmentTrait`
-(slow / normal / quick / star), `workEthic`, `durabilityProfile`, `personality`.
-These drive progression and are never shown directly; the UI shows scout estimates
-with error bars that narrow with scouting investment and playing time.
+**Hidden attributes** — `HiddenAttributes` carries `ceiling` (a number, 0–99, not a
+band), `developmentTrait` (slow / normal / quick / star), `workEthic` and `durability`.
+Generation fills all four and they are never shown.
 
-**Traits** — the game's personality layer, and mechanically real. A trait is a named
+*Designed, not built:* `personality`, and the scout estimates with error bars that narrow
+with investment and playing time — there is no scout. Nothing consumes any of the four
+either: progression is M3.
+
+**Traits** — *designed, not built.* `Player.traits` is a `[TraitID]` that generation
+never fills and `FMSimulation` never reads, and there is no `Trait` type behind those
+identifiers. Everything in this paragraph is the design [traits.md](traits.md) holds, and
+most of it wants the spatial engine to be a hook rather than a modifier.
+
+The game's personality layer, and mechanically real. A trait is a named
 hook into play resolution, not a stat modifier: *swim master* selects a different
 pass-rush move with different timing, *sticky hands* widens an actual catch radius,
 *choker* and *clutch* shift performance in high-leverage situations (leverage is
@@ -125,18 +142,23 @@ changes high-leverage performance, not a media narrative.
 Traits are why the spatial engine pays for itself in flavor. They are only possible as
 engine hooks because the engine simulates the moment the trait describes.
 
-**State** — `injury` (type, severity, weeks remaining, lingering effect), `fatigue`,
-`morale`, `snapCount`, `formGrade` (recent performance, decays), `contractID`,
-`rosterStatus` (active / inactive / injured reserve / practice squad / free agent).
+**State** — `status: RosterStatus` (active / inactive / injured reserve / practice squad
+/ free agent / retired), and nothing else.
+
+*Designed, not built:* `injury`, `fatigue`, `morale`, `snapCount`, `formGrade` and
+`contractID` are none of them fields on `Player`. Two of the six have a home elsewhere
+already and should probably stay there: an injury is its own event stream
+(`InjuryEvent`), and a snap count is a query over `Participation` rather than a tally on
+the player ([ADR-0007](adr/0007-event-stream-contract.md)).
 
 ## Contracts and the cap
 
 The cap is the game's main constraint and it has to be right or the whole meta falls
 apart. Model it properly rather than as a single salary number.
 
-**Contract** — signing team, years, and per-year `base salary`, `roster bonus`, and
-`incentives`, plus a `signingBonus` paid up front, `guarantees` per year, and the
-year signed.
+**Contract** — signing team, years, and per-year `baseSalary`, `rosterBonus` and
+likely/not-likely-to-be-earned incentives, plus prorated bonuses and a per-year
+`guaranteedSalary`, and the year signed.
 
 **Cap accounting**
 
@@ -147,18 +169,24 @@ year signed.
   year as **dead money**. A post-June-1 designation splits it across two years.
 - Team cap space = league cap + carryover − sum of active cap hits − dead money.
 
-**Player movement** — draft, UFA, RFA with tenders, franchise tag (one per team per
-year, at the position's top-5 average), practice squad, waivers with priority order,
-trades with pick and cap validation.
+**Player movement** — *designed, not built,* with one exception: the franchise tag
+figure is real arithmetic today (`SalaryCap.franchiseTagValue`, the greater of the
+position's top-five average and 120% of the prior salary). The draft, UFA, RFA with
+tenders, the practice squad, waivers with priority order, and trades with pick and cap
+validation are M7, and none of them has a type.
 
 Cap math is the highest-value thing to unit test in `FMCore`. It's easy to get subtly
 wrong and every wrong answer is player-visible.
 
 ## Coaching staff
 
-**Partly built.** `PersonnelRole`, the ratings and the ageing lifecycle exist in `FMCore`
-and generation fills a staff. Nothing reads a coach: the engine's callers are the same
-hardcoded pair for every team, and hiring, firing and the carousel are M3.
+**Designed, not built.** `Personnel` carries `id`, `name`, `birthSeason`, `role`,
+`careerStartSeason` and a hidden `retirementAge`, and nothing else — no ratings, no
+scheme preference, no contract. `PersonnelRole` and that ageing lifecycle are the built
+parts; the ratings and contract in the paragraphs below are design. And nothing produces
+a coach: `PersonnelGenerator` has no caller outside its own tests, so a generated world
+contains no staff at all. The engine's two callers are a hardcoded pair of
+`PersonnelID`s, identical for every team. Hiring, firing and the carousel are M3.
 
 Head coach, offensive coordinator, defensive coordinator, special teams coordinator,
 position coaches, scouts, trainers.
@@ -178,20 +206,20 @@ which ratings matter for scheme fit and what the roster *should* look like.
 fourth down, blitz rate, coverage shell mix, targets to attack, and matchups to
 avoid. This is the main weekly decision surface.
 
-*Designed, not built:* there is no `Gameplan` type. Scheme is built —
-`Scheme`, `SchemeFit` and `SchemeIdentity` exist and the resolver reads fit — and the
-gameplan half arrives with the weekly loop at M4. See
-[gameplan.md](gameplan.md).
+*Designed, not built:* there is no `Gameplan` type. Scheme is built — `TeamScheme`
+(an `OffensiveScheme` and a `DefensiveScheme`), `SchemeFit`, and generation's
+`SchemeIdentity` — and the resolver reads fit. The gameplan half arrives with the weekly
+loop at M4. See [gameplan.md](gameplan.md).
 
 **DepthChart** is an ordered list of `PlayerID` **per position**, best to worst, with a
 player allowed to appear at more than one. `RotationProfile` turns that order into snap
-shares, `rotation(unavailable:)` drops anyone who cannot play, and `unfilled(...)` names
-any position nobody is left to fill.
+shares, `rotation(unavailable:)` drops anyone who cannot play, and
+`unmannedPositions(unavailable:)` names any position nobody is left to play.
 
 *Designed, not built:* **keying by package** (base, nickel, dime, goal line, 3-WR,
 heavy) and a **validity checker** — every slot filled by an eligible, healthy, active
-player, as an enforced `FMCore` invariant. `unfilled` answers a narrower question and
-nothing enforces anything. Both arrive with the rekeying at
+player, as an enforced `FMCore` invariant. `unmannedPositions` answers a narrower
+question and nothing enforces anything. Both arrive with the rekeying at
 [M3.5](roadmap.md), where the chart becomes keyed by role and the checker is shared with
 the play designer ([ADR-0013](adr/0013-fluid-positions.md)).
 
@@ -335,10 +363,13 @@ Name changes, gear, and jersey numbers are all the same kind of event.
 
 ## Invariants worth enforcing in code
 
-**Designed, not built.** Two of these have anything behind them today:
-`League.structureFailures` checks the league's shape, and `DepthChart.unfilled` names
-positions nobody can fill. There is no checker for the rest and no debug assertion
-anywhere, and several of them are about a season that does not exist yet.
+**Designed, not built.** None of these six has an assertion behind it. Two have
+something adjacent: `League.structureFailures` checks the league's shape, and
+`DepthChart.unmannedPositions` names positions nobody can play — both are queries a
+caller may ignore, not enforced invariants. `FMCore` and `FMGeneration` do use
+`precondition` thirteen times, every one of them guarding a function's own arguments and
+none of them guarding an invariant below. Several of these are about a season that does
+not exist yet.
 
 These are the ones that will bite. Each gets a checker in `FMCore` and an assertion
 in debug builds:

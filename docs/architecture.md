@@ -34,8 +34,10 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
 │
 └── Packages/
     ├── FMCore            Domain types + the event stream types. No dependencies.
-    │                     Player, Team, League, Contract, Ratings, Trait, Play,
-    │                     PlayRecord, GameResult. All Sendable value types.
+    │                     Player, Team, League, Contract, Ratings, PlayRecord,
+    │                     OffensiveCall, DefensiveCall. All Sendable value types.
+    │                     (`GameResult` is FMSimulation's; a trait is a `TraitID`
+    │                     and a play design is M6 — neither is a type yet.)
     │
     ├── FMRandom          Seeded splittable PRNG. No dependencies.
     │                     The only source of randomness in the sim.

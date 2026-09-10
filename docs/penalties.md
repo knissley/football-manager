@@ -89,11 +89,14 @@ place a good staff is visible.
 
 ## Officiating
 
-**Designed, not built.** No `OfficiatingProfile` type exists and no official is
-`Personnel` today; foul rates come from the player, his coaching and the situation, with
-nothing officiating them. The point of recording it now is the last paragraph: the
-representation is chosen so that dropping named crews later deletes a generator rather
-than unpicking a feature.
+**Designed, not built.** No `OfficiatingProfile` type exists, and foul rates come from
+the player, his coaching and the situation with nothing officiating them. The last
+paragraph is the one that is already true in principle: `PersonnelRole.official` is a
+case, and `Personnel`'s hidden retirement age gives an official the same career every
+other person in the league gets. What does not happen is anyone being *made* — nothing
+calls `PersonnelGenerator`, so no world contains an official to age. The point of
+recording the design now is still the last paragraph's: the representation is chosen so
+that dropping named crews later deletes a generator rather than unpicking a feature.
 
 The engine reads an **`OfficiatingProfile`** — per-category tightness, known
 before kickoff so it is a gameplanning input rather than a random tax, and modest

@@ -1,6 +1,6 @@
 # Schemes and team identity
 
-**Status: partly built, sections marked.** `Scheme`, `SchemeFit` and generation's
+**Status: partly built, sections marked.** `TeamScheme`, `SchemeFit` and generation's
 `SchemeIdentity` are built, teams are generated with an identity and rosters are built
 for it, and the resolver reads fit. **Familiarity is not built**: `SchemeExperience`
 exists as a type and nothing reads it, because a decay-and-rebuild mechanic needs a

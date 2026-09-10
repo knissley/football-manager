@@ -129,13 +129,13 @@ The crude resolver owns the parametric rows — completion percentage, sack rate
 interception rate — because at matchup-lite fidelity those are inputs rather than
 emergent properties.
 
-It measures more than the parametric rows now: where the points come from, how drives
+It measures far more than the parametric rows: where the points come from, how drives
 end and start, the shape of the carry and dropback distributions rather than their means,
-field goals by distance, personnel and package shares, fourth-down behaviour, penalties
-by foul, injuries, the endgame, and the weather and home-road splits. Two rows in
-[the calibration table](match-engine.md#calibration) are still not printed — the spread
-of team win totals, which needs a season with a schedule and arrives with M3, and red
-zone TD rate, which has no row yet.
+field goals by distance, red zone conversion, personnel and package shares, fourth-down
+behaviour, penalties by foul, injuries, the endgame, and the weather and home-road
+splits. One row in [the calibration table](match-engine.md#calibration) has no value at
+all — the spread of team win totals, which needs a season with a schedule and arrives
+with M3; it prints under **Not measured here** so the row cannot be quietly forgotten.
 
 The weather and rare-event rows need `--games 1000`; at 400 there are only twenty-odd
 heavy-rain games and the row is noise.
