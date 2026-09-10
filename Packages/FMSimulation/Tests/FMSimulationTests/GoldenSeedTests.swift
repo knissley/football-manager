@@ -115,9 +115,19 @@ struct GoldenSeedTests {
             // the whole play clock rather than the huddle, and a huddle after a runoff or a
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
-            (UInt64(1), UInt64(10_997_765_792_780_390_008)),
-            (UInt64(5), UInt64(6_618_904_821_654_125_080)),
-            (UInt64(12), UInt64(502_004_049_860_331_307)),
+            //
+            // And moved by rotation. A position the sport does not rotate — the
+            // quarterback, the five line spots, the kicker, the punter and the long
+            // snapper — is no longer drawn against a snap share on every snap; the man
+            // highest on the chart who is available simply takes it. That is six draws
+            // fewer on every snap of every game — the quarterback and the five line
+            // spots, or the specialist, the snapper and four linemen on a kick — so every
+            // checksum moves for that reason alone, and with them goes the substitution
+            // that had the backup quarterback taking a dropback mid-drive with the
+            // starter fit.
+            (UInt64(1), UInt64(13_888_667_984_758_957_279)),
+            (UInt64(5), UInt64(5_973_092_704_606_713_191)),
+            (UInt64(12), UInt64(7_930_597_878_393_611_632)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -739,10 +739,11 @@ chase individual rows.
   nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the
   five linemen. A blitz in this engine changes the label and not the count.
   ([C5 · #45](https://github.com/knissley/football-manager/issues/45))
-- **The backup quarterback takes about 4% of dropbacks, at random.** `Lineup.fill` draws
-  every slot per snap against rotation shares, so the quarterback changed 125 times between
-  consecutive dropbacks in 40 games with nobody hurt. Any per-player number off this engine
-  is measured on a team that substitutes mid-drive for no reason.
+- **The backup quarterback takes about 4% of dropbacks, at random** — **fixed.**
+  `Lineup.fill` drew every slot per snap against rotation shares, so the quarterback
+  changed 125 times between consecutive dropbacks in 40 games with nobody hurt. Rotation
+  is now a property of the position: the quarterback, the five line spots and the three
+  specialists are not drawn at all, and the probe counts zero changes with nobody hurt.
   ([C6 · #27](https://github.com/knissley/football-manager/issues/27))
 - **ADR-0013's rating premise is inverted.** It assumes `overall(at:)` penalises a player
   for the ratings he lacks; `PositionWeights.overall` drops the missing weight and

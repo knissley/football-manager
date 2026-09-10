@@ -367,12 +367,23 @@ extension Lineup {
             }
             guard !candidates.isEmpty else { continue }
 
-            // Weighted by snap share, so the man who plays most usually plays. A
-            // depleted group falls through to whoever is left, which is the point of
-            // next-man-up.
-            let weights = candidates.map { max(0.01, $0.snapShare) }
-            let index = random.weightedIndex(weights) ?? 0
-            let chosen = candidates[index]
+            let chosen: DepthChart.Rotation
+            switch RotationProfile.kind(for: position) {
+            case .starterOnly:
+                // No draw at all: the man highest on the chart who is still available
+                // takes it. The quarterback, the five line spots and the specialists come
+                // off for an injury and for nothing else, and drawing them against a share
+                // made the backup's share a per-snap chance — a substitution mid-drive,
+                // undone on the next snap, with the starter perfectly fit.
+                chosen = candidates.min { $0.depth < $1.depth } ?? candidates[0]
+            case .rotates:
+                // Weighted by snap share, so the man who plays most usually plays. A
+                // depleted group falls through to whoever is left, which is the point of
+                // next-man-up.
+                let weights = candidates.map { max(0.01, $0.snapShare) }
+                let index = random.weightedIndex(weights) ?? 0
+                chosen = candidates[index]
+            }
             used.insert(chosen.player)
             personnel.place(chosen.player, position: position, at: slot)
         }
