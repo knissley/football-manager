@@ -392,6 +392,29 @@ swift run gamelog --scenario injury-inside-two-minutes-with-no-timeouts-left | g
 # The same injury with a timeout in hand: charged, and the clock waits for the snap.
 swift run gamelog --scenario injury-inside-two-minutes-with-a-timeout-left | grep -B3 -A2 "injury timeout"
 
+# The article's second clause: an excess timeout for an injured *defender* inside the last
+# forty seconds ends the half on the same terms a defensive foul does.
+swift run gamelog --scenario injury-to-a-defender-in-the-last-forty-seconds | tail -8
+
+# A flag during a down stops the clock at the end of it and enforcement is not free
+# (4-4-e, 4-3-2-e). The second snap of the game draws a defensive holding; the down after
+# the enforcement is snapped six seconds earlier than a clock that never stopped allows.
+swift run gamelog --scenario defensive-holding-on-a-play-ending-in-bounds | head -18
+
+# The same flag inside five minutes of the fourth quarter, where the clock waits for the
+# snap instead (4-3-2-e-2) — and an offensive one outside every window in the same period,
+# which restarts on the ready, because 4-3-2-e-3 reaches only a flag between downs.
+swift run gamelog --scenario defensive-holding-inside-five-minutes-of-the-fourth-quarter | grep -B1 -A2 "defensive holding"
+swift run gamelog --scenario offensive-holding-in-the-fourth-quarter-outside-five-minutes | grep -B1 -A2 "offensive holding"
+
+# What a spike costs (4-4-f, 8-2-1 Item 3). **Read the clock at the snap, not at the line.**
+# A play's printed clock is the previous whistle's, and the offence's interval between
+# downs is charged at the snap: the spike printed at 0:13 was snapped at 0:05, left 0:04,
+# and the fourth down is snapped at 0:04 and played. Reading the printed clock as the snap
+# clock is what makes a spike look like it costs nine seconds.
+swift run gamelog --scenario spike-snapped-at-five-seconds-on-third-down | tail -6
+swift run gamelog --scenario spike-snapped-at-twenty-seconds | tail -12
+
 # A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
 # play snapped outside 5:00 of the fourth quarter carries him out inside it, and the
 # next snap comes with the clock stopped rather than a huddle later.

@@ -1699,9 +1699,19 @@ struct RulesConformanceTests {
             return
         }
         let index = Int(hurt.occurredOn.index)
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return
+        }
+        // The clock where the ball was dead, which is where 4-7-3's window is read: the
+        // recorded clock is the previous whistle's, less the interval charged at the snap
+        // when the clock was running into it, less the play's own time.
+        let charged = trace.clockRunning(into: index) == true ? Int(huddle) : 0
+        let deadAt =
+            Int(play.situation.clockRemaining) - charged - Int(play.outcome.clockRunoff)
         #expect(
-            play.situation.quarter == 4 && play.situation.clockRemaining < 120,
-            "the scenario meant the injury after the second half's warning")
+            play.situation.quarter == 4 && deadAt <= 40 && deadAt > 0,
+            "the scenario meant the injury on a down that ended inside the last forty seconds")
         let elections = play.decisions.compactMap(\.clockElectionValue)
         #expect(
             elections.contains(.excessInjuryTimeout),
