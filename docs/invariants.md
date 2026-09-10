@@ -405,18 +405,24 @@ season is what checks one. A band is evidence about a rate and never about a rul
 ## Kickoffs and onside kicks
 
 81. An onside kick the kicking team legally recovers is its ball, first and ten, where the
-    play died. `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6]` — `test:onsideRecoveryKeepsPossession`,
-    `test:onsideRecovered`
+    play died, and it may not recover before the ball reaches the receiving team's
+    restraining line ten yards on, so either side comes up with it at or beyond there.
+    `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6, 6-1-6-e, 6-1-6-g]` —
+    `test:onsideRecoveryKeepsPossession`, `test:onsideRecovered`,
+    `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`
 82. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
     any point in the game. `[2025 · 6-1-1-c, 6-1-6]` —
     `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`;
     the declaration itself is not in the stream, so what the engine models is the rule's
     two conditions and not the notice to the Referee
-83. A kickoff is from the kicking team's 35 and a safety kick from its 20, and the receiving
-    team's setup zone and the landing zone are where the 2025 book puts them.
-    `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e, 6-1-3-b]` — **not yet enforced**,
-    [#46](https://github.com/knissley/football-manager/issues/46): the dynamic kickoff is
-    not in the engine, which has one touchback spot and no zones at all
+83. A kickoff is from the kicking team's 35 and a safety kick from its 20 — unless a
+    distance penalty has moved that line — and the landing zone is the receiving team's 20
+    out to its goal line. `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e]` —
+    `test:theLandingZoneIsTheLastTwenty`, `test:aPenaltyMovesTheKickAndChangesIt`,
+    `test:theAwardIsMeasuredFromTheKick`. The receiving team's setup zone and everything
+    the formation article requires of it `[2025 · 6-1-2-c, 6-1-2-d, 6-1-3-b]` are
+    **not yet enforced** and no issue carries them: nobody lines up for a free kick in the
+    crude resolver, so there is no alignment to be illegal
 84. A kick that reaches the end zone without coming down in the landing zone first is a
     touchback at the receiving team's 35. `[2025 · 6-1-5]` —
     `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`. The
@@ -425,10 +431,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
     returns every kick it puts in the landing zone, so it never reaches that case, and the
     spatial resolver is where a kick that bounces into the end zone comes from
 85. A kick that goes out of bounds or comes down short of the landing zone hands the
-    receiving team its choice of spots, 25 yards on from the kick being the usual one, and
-    30 on a safety kick. `[2025 · 6-2-4]` — **not yet enforced**,
-    [#46](https://github.com/knissley/football-manager/issues/46): with no landing zone
-    there is no short kick either
+    receiving team its choice of spots, 25 yards on from the kick being the usual one.
+    `[2025 · 6-2-4]` — `test:aKickOutOfBoundsIsTwentyFiveYardsOn`,
+    `test:aShortKickIsSpottedWhereItLiesWhenThatIsNearer`,
+    `test:aShortOrOutOfBoundsKickIsGivenAway`. The safety kick's 30 rather than 25 is
+    **not yet enforced** and no issue carries it: `Rules.advance` is a function of the
+    situation and the outcome, and neither says which kind of free kick this was
 86. A returned kick changes hands where the return ended, and a kick returned all the way is
     a touchdown for the returning team. `[2025 · 6-1-4]` — `test:returnedKickChangesHands`,
     `test:kickReturnedForScore`

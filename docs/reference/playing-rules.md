@@ -196,11 +196,11 @@ Which rules must be true of a game, and what checks each, is
 
 ## Rule 6 — Free kicks
 
-The dynamic kickoff, made permanent for 2025. **None of Section 1's geometry is in the
-engine**: `Rules` carries one touchback spot and `Advancement` one touchback, so there is
-no landing zone, no setup zone and no second touchback spot. That is
-[#46](https://github.com/knissley/football-manager/issues/46)'s problem, and the entries
-below are what it is held to.
+The dynamic kickoff, made permanent for 2025. **The zones the kick is aimed at are in the
+engine; the formation is not.** `Rules` carries the landing zone, the touchback at the 35
+and 6-2-4's award, and the resolver aims at them — but nobody lines up, so the setup zone,
+the restraining lines and every alignment foul are absent, and so is the second touchback
+spot, which needs a kick to come down in the landing zone and then reach the end zone.
 
 - **6-1-1-a** — Each half opens with a kickoff, and so does play after a try and after a
   field goal that scores. —
@@ -215,13 +215,14 @@ below are what it is held to.
   the game; fourth quarter only was the 2024 rule. —
   `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`
 - **6-1-2-a**, **6-1-2-b** — The kick is from the kicking team's 35 — its 20 for a safety
-  kick — and the other ten of the kicking team line up on the receiving team's 40. — not
-  yet enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  kick — unless a distance penalty has moved that line. — `test:aPenaltyMovesTheKickAndChangesIt`,
+  `test:theAwardIsMeasuredFromTheKick`; where the kicking team's other ten line up is not
+  modelled, since nobody lines up at all
 - **6-1-2-c**, **6-1-2-d** — The receiving team's restraining line is its own 35, and the
   setup zone is the five yards between its 35 and its 30. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
-- **6-1-2-e** — The landing zone is the receiving team's 20 out to its goal line. — not yet
-  enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+- **6-1-2-e** — The landing zone is the receiving team's 20 out to its goal line. —
+  `test:theLandingZoneIsTheLastTwenty`, `test:aKickIntoTheLandingZoneIsReturned`
 - **6-1-3-a**, **6-1-3-c** — The kicking team's ten put a front foot on their restraining
   line and keep both feet down, and nobody but the kicker and the men deep may move until
   the kick has come down in the end zone or the landing zone, or been touched there. — not
@@ -233,7 +234,8 @@ below are what it is held to.
   [#46](https://github.com/knissley/football-manager/issues/46)
 - **6-1-4** — A kick that comes down in the landing zone is live and gets returned; no fair
   catch is available on it, because a free kick may be fair caught only while it is still
-  in the air. — `test:returnedKickChangesHands`, `test:kickReturnedForScore`
+  in the air. — `test:returnedKickChangesHands`, `test:kickReturnedForScore`,
+  `test:aKickIntoTheLandingZoneIsReturned`
 - **6-1-4-c**, **6-1-4-d** — Once the kick has reached the end zone or the landing zone, the
   kicking team may take it, and a legal recovery is its ball where the play died. —
   `test:onsideRecoveryKeepsPossession`, `test:onsideRecovered`
@@ -245,14 +247,16 @@ below are what it is held to.
   live kick into the end zone is not modelled,
   [#46](https://github.com/knissley/football-manager/issues/46)
 - **6-1-5-a** — Landing zone first, then the end zone: a touchback at the **20**. — not yet
-  enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  enforced and no issue carries it: the crude resolver returns every kick it puts in the
+  landing zone, so no kick reaches the end zone that way
 - **6-1-6-b**, **6-1-6-c** — On a declared onside kick the kicking team's restraining line
   is still its 35 (its 20 on a safety kick), with the rest of the unit's front feet on that
   line and no more than five players either side of the ball. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
 - **6-1-6-e**, **6-1-6-g** — The kicking team may recover only once the ball has reached the
   receiving team's restraining line, ten yards on, or a receiver has touched it first. —
-  `test:onsideRecoveryKeepsPossession`
+  `test:onsideRecoveryKeepsPossession`,
+  `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`
 - **6-1-6-h**, **6-1-6-k** — The receiving team puts eight or nine players in the onside
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
   and costs the kicking team 15 yards. — not yet enforced,
@@ -266,8 +270,12 @@ below are what it is held to.
   the turf or a man in front of the landing zone, hands the receiving team its choice of
   three spots: the ball 25 yards on from where it was kicked, at the inbounds line; the spot
   where it left the field; or wherever it came down, but that one only when it is nearer
-  than 25 yards on. A safety kick pays 30 rather than 25. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  than 25 yards on. A safety kick pays 30 rather than 25. —
+  `test:aKickOutOfBoundsIsTwentyFiveYardsOn`,
+  `test:aShortKickIsSpottedWhereItLiesWhenThatIsNearer`,
+  `test:aShortOrOutOfBoundsKickIsGivenAway`; the safety kick's 30 is not modelled, because
+  `Rules.advance` is a function of the situation and the outcome and neither says which
+  kind of free kick this was
 
 ## Rule 7 — Ball in play, dead ball, scrimmage
 

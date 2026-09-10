@@ -31,6 +31,15 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// family because it is a different play, not a kickoff with a flag on it: different
     /// personnel, a different decision, and a different distribution of outcomes.
     case onsideKick = 14
+    /// A kickoff struck to carry through the end zone, conceding the receiving team's 35
+    /// (2025 rulebook, 6-1-5) rather than letting anybody return it.
+    ///
+    /// Its own family for the same reason the onside kick is one: under the dynamic
+    /// kickoff these are two different plays with two different aiming points, and which
+    /// one the coordinator called is a fact about the call rather than a description of
+    /// what happened to the ball. `kickoff` is the other — aimed at the landing zone,
+    /// meant to be returned.
+    case deepKickoff = 15
 
     public var isRun: Bool { self == .insideRun || self == .outsideRun }
 
@@ -56,7 +65,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         switch self {
         case .punt: return SlotLayout.puntUnit
         case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
-        case .kickoff, .onsideKick: return SlotLayout.kickoffUnit
+        case .kickoff, .onsideKick, .deepKickoff: return SlotLayout.kickoffUnit
         default: return SlotLayout.offense(group)
         }
     }
@@ -66,7 +75,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// field for, and their snap counts should say so.
     func defenseLayout(_ package: DefensivePackage) -> [(Position, Int)] {
         switch self {
-        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick:
+        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick, .deepKickoff:
             return SlotLayout.returnUnit
         default: return SlotLayout.defense(package)
         }
@@ -80,7 +89,7 @@ public enum PlayFamily: UInt8, CaseIterable, Sendable, Hashable, Codable {
         case .fieldGoal: return .fieldGoal
         case .kneel: return .kneel
         case .spike: return .spike
-        case .kickoff, .onsideKick: return .kickoff
+        case .kickoff, .onsideKick, .deepKickoff: return .kickoff
         case .extraPoint: return .extraPoint
         case .twoPointConversion: return .twoPointConversion
         }

@@ -421,10 +421,13 @@ tree while this doc was written; the rest are the audit's findings, taken on its
   not allow. Whether a coach *wants* one is still the `PlayCaller` extension's default,
   inherited by every caller. `Rules.swift`, `GameSimulator.swift`, `PlayCaller.swift`.
 
-The dynamic kickoff is not in the engine at all: `Rules` carries one
-`kickoffTouchbackOwnYard` and `Advancement` has one kickoff touchback spot, so there is no
-landing zone, no second touchback spot and no short-kick or out-of-bounds spot. That is
-#46's problem, and this section is what it is being held to.
+The dynamic kickoff is in the engine as far as the *aiming points* go and no further.
+`Rules` carries the landing zone, the touchback at the 35 and 6-2-4's twenty-five yards;
+the resolver calls one of two kicks — through the end zone, or into the zone to be
+returned — and reads the spot the kick is taken from, so a distance penalty changes the
+kick. What is absent is everything about *lining up*: no setup zone, no restraining lines,
+no alignment fouls, and therefore no second touchback spot, since that one needs a kick to
+come down in the landing zone and then reach the end zone.
 
 ## Injured reserve and game-day rules
 

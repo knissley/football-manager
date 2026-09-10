@@ -307,6 +307,26 @@ extension Rules {
     public var kickoffTouchbackSpot: UInt8 { ballOnFromOwnYard(kickoffTouchbackOwnYard) }
     public var puntTouchbackSpot: UInt8 { ballOnFromOwnYard(puntTouchbackOwnYard) }
 
+    /// Where the receiving team takes a free kick that went out of bounds between the
+    /// goal lines or came down short of the landing zone (2025 rulebook, 6-2-4), in the
+    /// receiving team's own frame.
+    ///
+    /// The article offers three spots and lets the receiving team elect: the ball
+    /// `freeKickOutOfBoundsYards` from the spot of the kick at the inbounds line; the
+    /// out-of-bounds spot; or where the ball came down, but only when that is nearer than
+    /// the award. The first is never worse than the second — a kick has to travel past
+    /// the award to go out of bounds downfield of it — and the third beats the first only
+    /// on a kick that did not travel that far. So the election is arithmetic: the ball
+    /// stops at the lesser of the award and the distance the kick actually covered.
+    ///
+    /// `kickFrom` and `deadAt` are both in the kicking team's frame; the result is
+    /// flipped, because the receiving team is about to snap it.
+    public func freeKickAward(kickFrom: UInt8, deadAt: UInt8?) -> UInt8 {
+        let travelled = Int(kickFrom) - Int(deadAt ?? kickFrom)
+        let award = min(Int(freeKickOutOfBoundsYards), max(0, travelled))
+        return UInt8(max(1, min(99, 100 - (Int(kickFrom) - award))))
+    }
+
     /// Whether the rules let the kicking team declare an onside kick now (2025 rulebook,
     /// 6-1-1-c, 6-1-6): at any time during the game, and only while it is trailing.
     ///

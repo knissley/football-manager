@@ -115,6 +115,7 @@ struct GoldenSeedTests {
             // the whole play clock rather than the huddle, and a huddle after a runoff or a
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
+            //
             // And moved by the rulebook. `Rules` carried the 2024 kickoff — a touchback
             // at the receiving team's 30 — and now carries the 2025 book's 35 (6-1-5), so
             // every drive that follows a touchback starts five yards further on and
@@ -124,9 +125,19 @@ struct GoldenSeedTests {
             // caller now wants one from five minutes out rather than three, from two
             // minutes rather than fifty seconds when nothing can stop the clock, and in a
             // narrow third-quarter case the old rule could not reach.
-            (UInt64(1), UInt64(4_476_701_398_038_527_520)),
-            (UInt64(5), UInt64(18_341_301_897_429_804_812)),
-            (UInt64(12), UInt64(4_970_932_941_357_169_858)),
+            //
+            // And moved by the dynamic kickoff. The kickoff is two plays now — struck
+            // through the end zone, or into the landing zone to be returned (2025
+            // rulebook, 6-1-4, 6-1-5) — the call chooses between them, and both read the
+            // spot the kick is taken from, so a penalty on a free kick changes the kick.
+            // Three quarters of kickoffs are returned where a third were, a return starts
+            // inside the receiving team's 20 rather than in its end zone, a mishit kick
+            // can now miss the landing zone and hand over 6-2-4's spot, and an onside kick
+            // dies where the rules let it be recovered rather than ten yards past it on
+            // the branch where the receiving team came up with it.
+            (UInt64(1), UInt64(6_202_845_544_835_067_374)),
+            (UInt64(5), UInt64(11_893_553_472_174_351_963)),
+            (UInt64(12), UInt64(2_167_134_667_287_202_943)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

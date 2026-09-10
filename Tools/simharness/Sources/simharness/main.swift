@@ -1032,7 +1032,10 @@ for play in allPlays where play.outcome.kind == .kickoff {
     if play.calls.offense.design == CrudePlaybook.design(for: .onsideKick) {
         onside += 1
         if play.outcome.endedIn == .fumbleRecovered { onsideRecovered += 1 }
-    } else if play.outcome.endedIn != .touchback {
+    } else if play.outcome.endedIn == .tackled || play.outcome.endedIn == .touchdown {
+        // Returned, which is the row's definition. A touchback is not, and neither is a
+        // kick that went out of bounds or came down short of the landing zone: those hand
+        // the receiving team a spot (2025 rulebook, 6-2-4) rather than a return.
         kickoffReturns += 1
     }
 }

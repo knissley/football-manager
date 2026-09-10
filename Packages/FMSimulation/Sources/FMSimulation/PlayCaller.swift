@@ -53,6 +53,16 @@ public protocol PlayCaller: Sendable {
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
 
+    /// Whether to strike the kickoff through the end zone rather than into the landing
+    /// zone — the ordinary kickoff's one real decision under the 2025 book.
+    ///
+    /// It is a trade, not a preference for a better outcome. A touchback concedes the
+    /// receiving team's 35 (6-1-5); a kick into the landing zone has to be returned
+    /// (6-1-4) and gives up about seven yards less on average, at the price of the return
+    /// that goes the distance. Which side of that a coach comes down on is what this
+    /// answers. The frame is the kicking team's, as on any free kick.
+    func kicksForTouchback(situation: Situation, classified: SituationClass) -> Bool
+
     /// When the first choice of the two privileges of 4-2-2 is this side's — the second
     /// half, for the captain who lost the pregame toss; a third postseason overtime
     /// period, for the captain who lost the toss before overtime (2025 rulebook,
@@ -256,6 +266,20 @@ extension PlayCaller {
         // declare before the fourth quarter.
         return situation.scoreDifferential <= -17 && situation.quarter == 3
             && situation.clockRemaining <= 120
+    }
+
+    /// Kick it to the landing zone and cover it, except where certainty is worth more
+    /// than seven yards.
+    ///
+    /// The 2025 touchback hands over the receiving team's 35 (6-1-5), which is better
+    /// field position than the average return produces, so conceding one is a price paid
+    /// for something. What it buys is the removal of the return, and the return is worth
+    /// removing when a single play can undo the game: leading late, where a kick taken
+    /// back is the one thing that beats you, and backed up after a safety, where the
+    /// kick is from the 20 and a return starts the other side inside field goal range.
+    public func kicksForTouchback(situation: Situation, classified: SituationClass) -> Bool {
+        if classified.time.isEndgame && situation.scoreDifferential > 0 { return true }
+        return situation.ballOn >= 75
     }
 
     // The baseline answers to the runoff's decisions. Coaching choices, not rules;

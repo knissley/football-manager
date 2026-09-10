@@ -1,4 +1,5 @@
 import FMCore
+import FMRandom
 import Testing
 
 @testable import FMSimulation
@@ -105,6 +106,30 @@ struct VocabularyCoverageTests {
         }
     }
 
+    /// Fouls that are reachable but too rare for a ninety-game sample to decide, and are
+    /// therefore asserted against the draw that produces them instead.
+    ///
+    /// **Measured, not assumed.** The three downfield-block fouls share one draw and the
+    /// engine reaches it about a tenth of a game: twelve times in ninety games, nine of
+    /// them the block in the back. The other two are a fifth and a seventh of that draw,
+    /// so whether either turns up is close to a coin flip — and over 260 games of a later
+    /// sample, twenty-one draws produced neither. A sample cannot settle a case at that
+    /// rate; enlarging it only moves the coin flip.
+    ///
+    /// So the join this suite exists to check is still checked here for
+    /// `.illegalBlockInTheBack`, which shares the draw, comes from real games and appears;
+    /// and the two rarer branches of the same draw are checked where the branch is taken,
+    /// in `everyBranchOfTheRareDrawsIsReachable`. What is left unasserted is only that a
+    /// game *reaches* that draw, and the block in the back asserts exactly that.
+    ///
+    /// **How rare the draw is, is a calibration matter and not this suite's.** A tenth of
+    /// a game is well under the sport's rate for these fouls; the retune owns it
+    /// ([#49](https://github.com/knissley/football-manager/issues/49)).
+    static let tooRareToSample: [Foul: String] = [
+        .illegalBlindsideBlock: "a fifth of the downfield-block draw, which fires 0.13 a game",
+        .lowBlock: "a seventh of the same draw",
+    ]
+
     /// Fouls are the same question as play kinds, and the answer was worse: `Foul` has
     /// thirty-three cases, every one of them with its yardage, its side and its
     /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
@@ -116,12 +141,50 @@ struct VocabularyCoverageTests {
         let unreachable: [Foul: String] = [:]
 
         let called = Set(Self.plays().flatMap(\.outcome.penalties).map(\.foul))
-        for foul in Foul.allCases where unreachable[foul] == nil {
+        for foul in Foul.allCases
+        where unreachable[foul] == nil && Self.tooRareToSample[foul] == nil {
             #expect(called.contains(foul), "\(foul) was never called in ninety games")
         }
         for (foul, reason) in unreachable {
             #expect(!called.contains(foul), "\(foul) is called now (was: \(reason))")
         }
+    }
+
+    /// The other half of `tooRareToSample`: the branches a ninety-game sample cannot
+    /// decide, taken against the draw that decides them.
+    ///
+    /// It is the same claim — the engine can produce this foul — asserted where it is
+    /// settled rather than where it is diluted. A branch that stopped being reachable
+    /// fails here immediately instead of after a resample.
+    @Test("Every branch of a draw too rare to sample is still reachable", .tags(.contract))
+    func everyBranchOfTheRareDrawsIsReachable() {
+        let context = TestWorld.context(seed: 5)
+        var setUp = SplittableRandom(seed: 1)
+        let personnel = Lineup.onField(
+            context, family: .punt,
+            situation: Situation(
+                quarter: 1, clockRemaining: 900, down: .fourth, distance: 10, ballOn: 60,
+                possession: context.offense),
+            random: &setUp)
+
+        var drawn: Set<Foul> = []
+        var root = SplittableRandom(seed: 99)
+        for index in 0..<20_000 {
+            var stream = root.split(UInt64(index))
+            if let foul = Penalties.onDownfieldBlock(
+                blockers: SlotLayout.catchPursuit.map(\.0), onOffense: false,
+                personnel: personnel, context: context, random: &stream)
+            {
+                drawn.insert(foul.foul)
+            }
+        }
+
+        for (foul, reason) in Self.tooRareToSample {
+            #expect(drawn.contains(foul), "\(foul) is unreachable in its own draw (\(reason))")
+        }
+        #expect(
+            drawn.contains(.illegalBlockInTheBack),
+            "the draw these share no longer produces the one the game sample sees")
     }
 
     /// The mirror of an unreachable case: a credit handed to somebody who did not earn

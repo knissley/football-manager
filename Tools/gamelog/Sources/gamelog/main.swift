@@ -212,6 +212,7 @@ func concept(_ calls: Calls) -> String {
     case .extraPoint: return "extra point"
     case .twoPointConversion: return "two-point try"
     case .onsideKick: return "onside kick"
+    case .deepKickoff: return "deep kickoff"
     }
 }
 
@@ -811,6 +812,14 @@ struct Broadcast {
             return "recovered by \(abbreviation(offense)) at \(yardLine(spot, offense: offense))"
         case .touchdown:
             return "\(returner ?? "the returner") returns it all the way — touchdown"
+        case .outOfBounds:
+            // A free kick that crossed a sideline between the goal lines. The receiving
+            // team's spot is 6-2-4's award, which the next line shows; this says what the
+            // kick did.
+            return "\(kicker) out of bounds at \(yardLine(spot, offense: offense))"
+        case .downed:
+            return
+                "\(kicker) comes down short of the landing zone at \(yardLine(spot, offense: offense))"
         default:
             var text = "\(returner ?? "the returner") returns it to "
             text += yardLine(spot, offense: offense)

@@ -62,7 +62,11 @@ public struct Snap: Sendable {
         return PlayFamily.scrimmage.contains(family) || family == .kneel || family == .spike
     }
     public var isTry: Bool { family == .extraPoint || family == .twoPointConversion }
-    public var isKickoff: Bool { family == .kickoff || family == .onsideKick }
+    /// Every free kick, however it was aimed: a scenario scripts what the kick *did*, and
+    /// which of the three the coordinator called is not its business.
+    public var isKickoff: Bool {
+        family == .kickoff || family == .onsideKick || family == .deepKickoff
+    }
 
     /// The seconds the offence takes between the end of one play and the snap of the
     /// next when the clock is running — its tempo — measured from the plays so far rather
@@ -82,7 +86,7 @@ extension Snap {
     /// Honours the call and changes nothing worth noticing.
     public var neutral: Outcome {
         switch family {
-        case .kickoff: return .kickoffTouchback
+        case .kickoff, .deepKickoff: return .kickoffTouchback
         case .onsideKick: return .onsideKick(lostAtOwn: 45)
         case .punt: return .puntTouchback
         case .fieldGoal: return .fieldGoal(good: true)

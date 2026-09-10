@@ -259,10 +259,19 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             let onside = Self.declaresOnsideKick(
                 caller: caller, situation: situation, classified: classified,
                 rules: state.setup.rules)
+            // Three free kicks, and which one this is was called by somebody: the
+            // ordinary kick is aimed at the landing zone to be returned, the deep one is
+            // struck through the end zone for the touchback, and the onside kick is
+            // declared. None of them is the default any more, so none is `.automatic`.
+            let family: PlayFamily =
+                onside
+                ? .onsideKick
+                : (caller.kicksForTouchback(situation: situation, classified: classified)
+                    ? .deepKickoff : .kickoff)
             calls = Calls(
-                offense: CrudePlaybook.call(onside ? .onsideKick : .kickoff),
+                offense: CrudePlaybook.call(family),
                 defense: .preventShell,
-                offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
+                offensiveCaller: .coordinator(PersonnelID(1)),
                 defensiveCaller: .automatic)
         } else if state.pendingTry {
             calls = tryCalls(goesForTwo: state.tryGoesForTwo ?? false)
