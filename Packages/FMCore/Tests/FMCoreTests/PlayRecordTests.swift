@@ -42,11 +42,11 @@ struct SituationTests {
 
     @Test("The two-minute drill covers the end of either half", .tags(.unit))
     func twoMinuteDrill() {
-        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill())
-        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill())
-        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill() == false)
-        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill() == false)
-        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill() == false)
+        #expect(situation(quarter: 2, clock: 90).isTwoMinuteDrill(isPostseason: false))
+        #expect(situation(quarter: 4, clock: 120).isTwoMinuteDrill(isPostseason: false))
+        #expect(situation(quarter: 2, clock: 200).isTwoMinuteDrill(isPostseason: false) == false)
+        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill(isPostseason: false) == false)
+        #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill(isPostseason: false) == false)
     }
 
     /// The half boundaries and the threshold come from the rules, so a variant moves
@@ -56,9 +56,51 @@ struct SituationTests {
         .tags(.unit))
     func twoMinuteDrillFollowsTheRules() {
         let variant = Rules(quarters: 2, twoMinuteWarning: 60)
-        #expect(situation(quarter: 1, clock: 60).isTwoMinuteDrill(rules: variant))
-        #expect(situation(quarter: 1, clock: 61).isTwoMinuteDrill(rules: variant) == false)
-        #expect(situation(quarter: 2, clock: 30).isTwoMinuteDrill(rules: variant))
+        #expect(
+            situation(quarter: 1, clock: 60).isTwoMinuteDrill(rules: variant, isPostseason: false))
+        #expect(
+            situation(quarter: 1, clock: 61).isTwoMinuteDrill(rules: variant, isPostseason: false)
+                == false)
+        #expect(
+            situation(quarter: 2, clock: 30).isTwoMinuteDrill(rules: variant, isPostseason: false))
+    }
+
+    /// The drill is the clock's own reading of where a half ends. Overtime is where the
+    /// two used to disagree: the helper called every period past regulation a drill, and
+    /// a first postseason overtime period is timed as a first quarter.
+    @Test(
+        "contract · Situation.isTwoMinuteDrill reads Rules.periodTiming: true exactly where the period ends a half and the clock is inside the warning, in the postseason as in the regular season",
+        .tags(.contract))
+    func twoMinuteDrillReadsThePeriodTiming() {
+        let rules = Rules.standard
+        for isPostseason in [false, true] {
+            for quarter in UInt8(1)...12 {
+                let endsAHalf =
+                    rules.periodTiming(quarter: quarter, isPostseason: isPostseason)
+                    != .firstOrThird
+                #expect(
+                    situation(quarter: quarter, clock: 120).isTwoMinuteDrill(
+                        isPostseason: isPostseason) == endsAHalf,
+                    "period \(quarter), postseason \(isPostseason)")
+                #expect(
+                    situation(quarter: quarter, clock: 121).isTwoMinuteDrill(
+                        isPostseason: isPostseason) == false,
+                    "period \(quarter), postseason \(isPostseason): outside the warning")
+            }
+        }
+        // The rows the old reading got wrong, and the one it got right by accident.
+        #expect(
+            situation(quarter: 5, clock: 90).isTwoMinuteDrill(isPostseason: true) == false,
+            "a first postseason overtime period is a first period (16-1-4-h)")
+        #expect(
+            situation(quarter: 7, clock: 90).isTwoMinuteDrill(isPostseason: true) == false,
+            "and so is a third")
+        #expect(
+            situation(quarter: 6, clock: 90).isTwoMinuteDrill(isPostseason: true),
+            "a second ends as the first half does")
+        #expect(
+            situation(quarter: 5, clock: 90).isTwoMinuteDrill(isPostseason: false),
+            "regular-season overtime is timed as the fourth quarter (16-1-3-e)")
     }
 
     @Test("Obvious passing downs are late and long", .tags(.unit))
