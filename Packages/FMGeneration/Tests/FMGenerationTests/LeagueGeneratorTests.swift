@@ -340,7 +340,7 @@ struct LeagueGeneratorTests {
     }
 
     /// The ledger checked whole stadium names, so a feature word could name three
-    /// grounds in one league — Riverfront Park, Riverfront Field and Riverfront Arena
+    /// grounds in one league — Lakeside Park, Lakeside Field and Lakeside Arena
     /// read as one ground written down three times. Decision 154 fixed exactly this for
     /// city stems and fixed it there only (issue #4).
     ///

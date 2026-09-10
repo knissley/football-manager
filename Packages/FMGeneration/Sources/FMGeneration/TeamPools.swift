@@ -107,6 +107,16 @@ enum NicknamePools {
 /// No sponsor names: a fictional corporation reads as a joke, and a real one is a mark.
 /// Generated grounds are named for the place or a feature of it, which is what most
 /// stadiums were called before anybody sold the naming rights.
+///
+/// A word here is a word this world invented, on the same rule the curated table is held
+/// to (rule 8,
+/// [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)). "Riverfront"
+/// and "Union" were dropped in
+/// [#82](https://github.com/knissley/football-manager/issues/82): both name real grounds,
+/// and leaving them in the pool left the randomiser able to draw exactly the strings
+/// #69's review had just taken out of the curated table. The pool is otherwise unrefined
+/// until the pre-release revisit of generation ([M8](../../../../docs/roadmap.md)); this
+/// was a mark, not a refinement.
 enum StadiumPools {
 
     static let kinds: [String] = [
@@ -114,8 +124,8 @@ enum StadiumPools {
     ]
 
     static let features: [String] = [
-        "Memorial", "Municipal", "Union", "Liberty", "Harborside", "Riverfront", "Lakeside",
-        "Hillcrest", "Founders", "Centennial", "Cathedral", "Sunset", "Northgate", "Old Mill",
+        "Memorial", "Municipal", "Liberty", "Harborside", "Lakeside", "Hillcrest",
+        "Founders", "Centennial", "Cathedral", "Sunset", "Northgate", "Old Mill",
     ]
 }
 

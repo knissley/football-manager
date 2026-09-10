@@ -28,8 +28,8 @@ public enum TeamGenerator {
         /// out one of each.
         public var nicknameStems: Set<String> = []
         /// The word a feature-led ground is named for. Tracked because the collision
-        /// that reads as a duplicate is the *word*: Riverfront Park, Riverfront Field
-        /// and Riverfront Arena are three distinct strings and one ground written down
+        /// that reads as a duplicate is the *word*: Lakeside Park, Lakeside Field
+        /// and Lakeside Arena are three distinct strings and one ground written down
         /// three times.
         ///
         /// There is deliberately no set of whole stadium names beside it. One existed,
@@ -300,8 +300,8 @@ public enum TeamGenerator {
 
         // A feature-led name reads better — most grounds were named for the place or
         // something in it — but the pool is small enough to collide across a league, and
-        // what collides is the word rather than the whole name: Riverfront Park and
-        // Riverfront Field are one ground written down twice however the kinds differ.
+        // what collides is the word rather than the whole name: Lakeside Park and
+        // Lakeside Field are one ground written down twice however the kinds differ.
         // So a feature word is spent once per world. When the draws all land on words
         // already spent, the city-led form takes over — a city name is spent once per
         // world too, in the same ledger, and no city is named for a feature, so it

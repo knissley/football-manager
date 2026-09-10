@@ -42,7 +42,7 @@ struct FranchiseSetTests {
     }
 
     /// The word a ground is named for: everything before the kind it ends with. It is
-    /// what collides — Riverfront Park and Riverfront Field are one ground written down
+    /// what collides — Lakeside Park and Lakeside Field are one ground written down
     /// twice — and the curated table has to obey the same rule the ledger enforces on a
     /// drawn one.
     private func stadiumFeature(_ name: String) -> String {
