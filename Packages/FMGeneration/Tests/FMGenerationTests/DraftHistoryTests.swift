@@ -165,6 +165,15 @@ struct DraftHistoryTests {
 
     /// Rookies exist and are a minority. A roster where nobody is in his first season has
     /// no rookie class; one where everybody is has no league before it.
+    ///
+    /// **The bounds are a sanity fence, not a sourced target.** The upper one was picked
+    /// knowing the output — the share measures 0.254 over these four seeds — so it says
+    /// only that the number has not run away, and passing it is not evidence the share is
+    /// right. It is not: a quarter of every roster in its first season is high for a
+    /// fifty-three-man team, and the cause is not the draft model but `RosterGenerator.age`,
+    /// which clamps at twenty-one and piles 15.7% of the league on that exact age — a floor
+    /// no entry-age distribution can get under. Issue #67 owns the age model and owns
+    /// replacing this fence with a band from a source.
     @Test("contract: a generated league has rookies, and most of it is not rookies")
     func rookiesAreAMinority() {
         for seed in seeds {

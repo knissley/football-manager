@@ -221,6 +221,13 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     /// is his first season, not because somebody called his name. For a drafted player
     /// this is `draft.season == season`, since his first season is his draft season.
     ///
+    /// **That the undrafted case is true is this repository's choice and nothing else's.**
+    /// No reference behind it: neither the `football-domain` skill nor anything in `docs/`
+    /// defines "rookie" for a player nobody drafted. Issue #6 specified `draft?.season ==
+    /// season`, which would make the undrafted case false in every season — the same
+    /// answer for a first-year signing and a tenth-year one. Changing it back is this one
+    /// line.
+    ///
     /// Takes the season, which is the whole point. The property it replaces compared
     /// `draft.season` with `birthSeason + (draft.season - birthSeason)` — an identity —
     /// so it was true for every drafted player forever and asked nothing.
