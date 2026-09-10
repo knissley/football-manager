@@ -72,6 +72,7 @@ FMCore	Packages/FMCore/Tests
 FMGeneration	Packages/FMGeneration/Tests
 FMSimulation	Packages/FMSimulation/Tests
 simharness	Tools/simharness/Tests
+gamelog	Tools/gamelog/Tests
 TARGETS
 )
 

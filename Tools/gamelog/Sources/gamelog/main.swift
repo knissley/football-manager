@@ -296,14 +296,25 @@ func weatherLine(_ weather: WeatherState) -> String {
 /// Reads a finished game's stream and prints it the way a person watches one.
 ///
 /// Holds only what the stream cannot supply — who was at home, what the teams are called,
-/// who the players are and which rulebook was in force. Everything else is derived from
-/// the plays as it walks them.
+/// who the players are, which rulebook was in force and what stage of the season it is.
+/// Everything else is derived from the plays as it walks them.
 struct Broadcast {
 
     let home: Team
     let away: Team
     let players: [PlayerID: Player]
     let rules: Rules
+    /// Which overtime the game plays: one ten-minute period that may end level
+    /// (16-1-3), or as many fifteen-minute periods as it takes (16-1-4-d). A
+    /// `PlayRecord` does not carry it, and the clock arithmetic cannot be done without
+    /// it.
+    let isPostseason: Bool
+
+    // What has been printed so far. Held rather than written out as it goes so that the
+    // same fold can be read by a test as well as by a person: the tool's own suite asserts
+    // on these lines, and a printer that only ever reached standard output could not be
+    // asserted on at all.
+    private var lines: [String] = []
 
     // Running state, all of it a fold over the stream rather than anything the engine
     // handed over.
@@ -323,11 +334,14 @@ struct Broadcast {
         var last: PlayRecord
     }
 
-    init(home: Team, away: Team, players: [PlayerID: Player], rules: Rules) {
+    init(
+        home: Team, away: Team, players: [PlayerID: Player], rules: Rules, isPostseason: Bool
+    ) {
         self.home = home
         self.away = away
         self.players = players
         self.rules = rules
+        self.isPostseason = isPostseason
     }
 
     // MARK: Names
@@ -396,19 +410,32 @@ struct Broadcast {
 
     // MARK: Clock arithmetic
 
+    /// How long a period lasts: a quarter of regulation, or a period of overtime, which
+    /// is ten minutes in the regular season and fifteen in the postseason.
+    ///
+    /// The same two lengths `GameClock.advancingPeriod` hands out (16-1-3, 16-1-4-d),
+    /// asked of `Rules` rather than restated here.
+    func length(ofPeriod quarter: UInt8) -> Int {
+        quarter <= rules.quarters
+            ? Int(rules.quarterLength) : Int(rules.overtimeLength(isPostseason: isPostseason))
+    }
+
     /// Seconds of football played by the time this situation came up.
     ///
-    /// Needed only to subtract two of them into a time of possession, which is why an
-    /// overtime period is measured from the end of regulation rather than given a
-    /// quarter number of its own.
+    /// Every period before this one at its own length, plus what has gone in this one.
+    /// Needed only to subtract two of them into a time of possession — but a postseason
+    /// game plays as many periods as it takes (16-1-4-d), so they are counted rather
+    /// than assumed to be one. Measuring them all as one period of the regular season's
+    /// ten minutes ran the clock *backwards* at the start of a postseason overtime, and
+    /// a drive across a period boundary came out at 0:00.
     func elapsed(quarter: UInt8, remaining: UInt16) -> Int {
-        if quarter > rules.quarters {
-            let regulation = Int(rules.quarters) * Int(rules.quarterLength)
-            let overtime = Int(rules.overtimeLength(isPostseason: false)) - Int(remaining)
-            return regulation + overtime
+        var played = 0
+        var period: UInt8 = 1
+        while period < quarter {
+            played += length(ofPeriod: period)
+            period += 1
         }
-        let finished = (Int(quarter) - 1) * Int(rules.quarterLength)
-        return finished + Int(rules.quarterLength) - Int(remaining)
+        return played + length(ofPeriod: quarter) - Int(remaining)
     }
 
     // MARK: The fold
@@ -428,12 +455,18 @@ struct Broadcast {
         ).advancement
     }
 
-    mutating func run(_ plays: [PlayRecord]) {
+    private mutating func emit(_ line: String) {
+        lines.append(line)
+    }
+
+    /// Walk the stream and return the broadcast, one line at a time.
+    mutating func run(_ plays: [PlayRecord]) -> [String] {
         ambiguousShortNames = collidingShortNames(in: plays)
         for play in plays { show(play) }
         closeDrive(after: nil)
-        print("        " + String(repeating: "═", count: 40))
-        print("        final · \(scoreline())")
+        emit("        " + String(repeating: "═", count: 40))
+        emit("        final · \(scoreline())")
+        return lines
     }
 
     func scoreline() -> String {
@@ -466,17 +499,22 @@ struct Broadcast {
         // it. The scoreboard goes with it, because a quarter's score is the thing a
         // reader checks against the game they think they just watched.
         if situation.quarter != quarter {
-            // A half ends a drive and a quarter does not: teams change ends and play on.
-            let startsHalf = situation.quarter == rules.quarters / 2 + 1
-            let startsOvertime = situation.quarter > rules.quarters
-            if closesDrive || startsHalf || startsOvertime { closeDrive(after: play) }
+            // Two period boundaries end a drive, and they are the two the engine puts
+            // back in play with a kick — asked of `Rules` rather than restated here, so
+            // that the drive chart ends a drive on exactly the boundaries the engine
+            // restarts possession on. A quarter boundary is not one: the teams change
+            // ends and play on (4-2-3). Nor, as the engine plays it, is any overtime
+            // period boundary at all, so a drive can run through one; what the book makes
+            // of a third overtime period is on the predicate, and is #86's.
+            let restarts = rules.periodResumesWithKickoffAsModelled(quarter: situation.quarter)
+            if closesDrive || restarts { closeDrive(after: play) }
             let ending = quarter
             let label =
                 ending == rules.quarters / 2
                 ? "halftime" : "end of \(periodLabel(quarter: ending, rules: rules))"
-            print("        " + String(repeating: "═", count: 40))
-            print("        \(label) · \(scoreline())")
-            print("        " + String(repeating: "═", count: 40))
+            emit("        " + String(repeating: "═", count: 40))
+            emit("        \(label) · \(scoreline())")
+            emit("        " + String(repeating: "═", count: 40))
             quarter = situation.quarter
         }
 
@@ -514,9 +552,9 @@ struct Broadcast {
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
-        print(line)
+        emit(line)
 
-        for penalty in outcome.penalties { print(flagLine(penalty, on: play)) }
+        for penalty in outcome.penalties { emit(flagLine(penalty, on: play)) }
     }
 
     private mutating func applyScore(_ advancement: Advancement, offense: TeamID) {
@@ -544,8 +582,7 @@ struct Broadcast {
         let endElapsed =
             next.map {
                 elapsed(quarter: $0.situation.quarter, remaining: $0.situation.clockRemaining)
-            }
-            ?? elapsed(quarter: last.situation.quarter, remaining: 0)
+            } ?? endOfGame(on: last)
         let seconds = max(0, endElapsed - drive.startElapsed)
 
         // Net yards, in the drive team's frame: the goal line if they scored, the line of
@@ -561,19 +598,46 @@ struct Broadcast {
         }
         let yards = Int(drive.startBallOn) - max(0, min(100, finish))
 
-        print(
+        emit(
             "        ── \(abbreviation(drive.team)) drive: \(drive.snaps) "
                 + "play\(drive.snaps == 1 ? "" : "s"), \(yardText(yards)), "
-                + "\(minutesAndSeconds(seconds)) — \(driveResult(last, endOfGame: next == nil))")
+                + "\(minutesAndSeconds(seconds)) — \(driveResult(last, after: next))")
+    }
+
+    /// When the game ended, for the drive that still had the ball when the stream ran
+    /// out.
+    ///
+    /// The end of the period, all but once. In regulation the engine ends a game only
+    /// when the clock runs out — `GameState.checkForEnd` — so the drive had the ball to
+    /// 0:00 however its last play finished, a score included: the kick that wins it at
+    /// 0:03 does not end the game, the horn does. The one place a game ends with time on
+    /// the clock is overtime, where `GameState.checkForOvertimeEnd` ends it on the score
+    /// that settles it, and there the same assumption is wrong by everything still on
+    /// the clock: a field goal on the first snap of a second overtime period was
+    /// credited fifteen minutes of possession.
+    ///
+    /// That drive ended when the ball crossed the line. What the record carries is the
+    /// clock as it stood *before* the interval to the snap was burned — the reading at
+    /// the end of the play before it — and how long the play itself took. So a walk-off
+    /// is that reading plus the play: short by the pre-snap interval, which is nowhere
+    /// in the stream and nothing here can recover, and never past the end of the period.
+    private func endOfGame(on last: PlayRecord) -> Int {
+        let periodEnd = elapsed(quarter: last.situation.quarter, remaining: 0)
+        guard last.situation.quarter > rules.quarters else { return periodEnd }
+        let advancement = advancement(for: last)
+        guard advancement.scoring != nil, advancement.points != 0 else { return periodEnd }
+        let lastReading = elapsed(
+            quarter: last.situation.quarter, remaining: last.situation.clockRemaining)
+        return min(periodEnd, lastReading + Int(last.outcome.clockRunoff))
     }
 
     /// How the drive ended, in the words a drive chart uses.
     ///
     /// - Parameters:
     ///   - play: the drive's last snap.
-    ///   - endOfGame: whether the stream ran out rather than the ball changing hands.
+    ///   - next: the play that ended it, or `nil` when the stream ran out.
     /// - Returns: the drive's result, as a drive chart would label it.
-    private func driveResult(_ play: PlayRecord, endOfGame: Bool) -> String {
+    private func driveResult(_ play: PlayRecord, after next: PlayRecord?) -> String {
         // Classified by what the play *was* before how it ended: a punt that gets
         // returned ends in a tackle on fourth down, which reads as a turnover on downs to
         // anything that only looks at the ending.
@@ -597,7 +661,16 @@ struct Broadcast {
                 {
                     return "turnover on downs"
                 }
-                return endOfGame ? "end of game" : "end of half"
+                guard let next else { return "end of game" }
+                // The period ran out under the drive rather than the drive ending. A
+                // drive is only ever closed on the two boundaries that restart with a
+                // kickoff, so the break it ran into is halftime or the end of
+                // regulation — never the end of a postseason overtime period, which is
+                // not a break in play at all (16-1-4-d).
+                let toOvertime =
+                    play.situation.quarter == rules.quarters
+                    && next.situation.quarter > rules.quarters
+                return toOvertime ? "end of regulation" : "end of half"
             }
         }
     }
@@ -858,16 +931,19 @@ struct Broadcast {
 /// One printer, called from both, on purpose. A scenario shown through a printer of its
 /// own would be showing a reader something other than the game the conformance suite
 /// asserts on, and the whole point of `--scenario` is that those are the same game.
-func printPlayByPlay(
-    home: Team, away: Team, players: [PlayerID: Player], rules: Rules, result: GameResult
-) {
-    print(
+func playByPlayLines(
+    home: Team, away: Team, players: [PlayerID: Player], rules: Rules, isPostseason: Bool,
+    result: GameResult
+) -> [String] {
+    var lines = [
         padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11)
-            + pad("ball", 10) + pad("concept", 14) + "what happened")
-    print("")
+            + pad("ball", 10) + pad("concept", 14) + "what happened",
+        "",
+    ]
 
-    var broadcast = Broadcast(home: home, away: away, players: players, rules: rules)
-    broadcast.run(result.plays)
+    var broadcast = Broadcast(
+        home: home, away: away, players: players, rules: rules, isPostseason: isPostseason)
+    lines += broadcast.run(result.plays)
 
     // The scoreboard is the stream summed, and saying so out loud is cheap. If these two
     // ever disagree the printer is wrong or the engine is, and either is worth knowing
@@ -877,11 +953,25 @@ func printPlayByPlay(
         "\(away.identity.abbreviation) \(result.awayScore), "
         + "\(home.identity.abbreviation) \(result.homeScore)"
     if derived != engine {
-        print("")
-        print("  !! the stream sums to \(derived) and the engine reported \(engine)")
+        lines.append("")
+        lines.append("  !! the stream sums to \(derived) and the engine reported \(engine)")
     }
-    print("")
-    print("        \(result.plays.count) plays")
+    lines.append("")
+    lines.append("        \(result.plays.count) plays")
+    return lines
+}
+
+/// The same broadcast, written out.
+func printPlayByPlay(
+    home: Team, away: Team, players: [PlayerID: Player], rules: Rules, isPostseason: Bool,
+    result: GameResult
+) {
+    for line in playByPlayLines(
+        home: home, away: away, players: players, rules: rules, isPostseason: isPostseason,
+        result: result)
+    {
+        print(line)
+    }
 }
 
 print("gamelog — seed \(seed), week \(week), season \(season)")
@@ -892,4 +982,5 @@ print("\(homeTeam.stadium.name) · \(weatherLine(weather))")
 print("")
 
 printPlayByPlay(
-    home: homeTeam, away: awayTeam, players: world.players, rules: setup.rules, result: result)
+    home: homeTeam, away: awayTeam, players: world.players, rules: setup.rules,
+    isPostseason: setup.isPostseason, result: result)

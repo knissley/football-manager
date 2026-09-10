@@ -68,8 +68,15 @@ season is what checks one. A band is evidence about a rate and never about a rul
 10. Each team has two timeouts in regular-season overtime. `[2025 · 16-1-3-e]` —
     `test:overtimeTimeoutsAreTwo`
 11. A postseason game plays 15-minute overtime periods until somebody wins, so a game level
-    after the fifth period plays a sixth. `[2025 · 16-1-4, 16-1-4-d]` —
-    `test:postseasonPlaysASixthPeriod`
+    after the fifth period plays a sixth. `[2025 · 16-1-4, 16-1-4-d, 16-1-4-e, 16-1-4-f,
+    16-1-4-i]` — `test:postseasonPlaysASixthPeriod`; **modelling**: the book puts a *third*
+    overtime period back in play with a free kick, because 16-1-4-e gives its first choice
+    of 4-2-2's privileges to the captain who lost the toss before overtime, and 16-1-4-i
+    tosses again after a fourth; at the other boundaries the teams only change goals
+    (16-1-4-f, 4-2-3) and play continues from the same spot. The engine restarts the first
+    overtime period and no later one, which is
+    [#86](https://github.com/knissley/football-manager/issues/86)'s — pinned by
+    `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`
 12. The second half opens with a kickoff by the team that received the opening one.
     `[2025 · 4-2-2]` — `test:halftimePossession`; **modelling**: the second-half choice
     belongs to the captain who lost the pregame toss, and neither the toss nor a deferral is
