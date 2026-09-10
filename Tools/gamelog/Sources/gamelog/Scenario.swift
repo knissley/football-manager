@@ -36,6 +36,41 @@ func printScenarioList() {
     print("  \(RulesScenario.allCases.count) scenarios.")
 }
 
+/// One scripted game as `--scenario <name>` prints it: the header, then the game.
+///
+/// Returned rather than printed so that the tool's own suite can assert on the very lines
+/// a reader sees — the drive summaries in particular, which are where the clock
+/// arithmetic shows up.
+func scenarioLines(_ scenario: RulesScenario) -> [String] {
+    let game = scenario.game
+    // The same two clubs the scenario itself plays between: `ScenarioWorld.setup` takes
+    // the first two teams of the league at the game's seed, and this is that league.
+    let world = ScenarioWorld.world(seed: game.seed)
+    let home = world.teams[0]
+    let away = world.teams[1]
+    let trace = scenario.run()
+
+    var lines = ["gamelog — scenario \(scenario.slug)"]
+    for expectation in scenario.expectations { lines.append("  \(expectation)") }
+    lines.append("")
+    lines.append(
+        "\(away.identity.fullName) (\(away.identity.abbreviation)) at "
+            + "\(home.identity.fullName) (\(home.identity.abbreviation))")
+    lines.append(
+        "\(home.stadium.name) · scripted game at seed \(game.seed)"
+            + (game.isPostseason ? ", postseason" : "")
+            + (scenario.usesBaselineCaller
+                ? ", played by the baseline caller" : ", played by the scripted caller"))
+    // Said once, at the top, because it is the first thing that looks wrong otherwise: a
+    // scripted outcome credits nobody, so there is no ball carrier to name.
+    lines.append("every play is dictated by the scenario; nobody is credited, so nobody is named")
+    lines.append("")
+
+    lines += playByPlayLines(
+        home: home, away: away, players: world.players, rules: game.rules, result: trace.result)
+    return lines
+}
+
 /// `--scenario <name>`: one scripted game, through the same printer a seeded game goes
 /// through.
 func printScenario(named name: String) {
@@ -47,31 +82,5 @@ func printScenario(named name: String) {
         print("unknown scenario: \(name) — try --scenario list")
         exit(1)
     }
-
-    let game = scenario.game
-    // The same two clubs the scenario itself plays between: `ScenarioWorld.setup` takes
-    // the first two teams of the league at the game's seed, and this is that league.
-    let world = ScenarioWorld.world(seed: game.seed)
-    let home = world.teams[0]
-    let away = world.teams[1]
-    let trace = scenario.run()
-
-    print("gamelog — scenario \(scenario.slug)")
-    for expectation in scenario.expectations { print("  \(expectation)") }
-    print("")
-    print(
-        "\(away.identity.fullName) (\(away.identity.abbreviation)) at "
-            + "\(home.identity.fullName) (\(home.identity.abbreviation))")
-    print(
-        "\(home.stadium.name) · scripted game at seed \(game.seed)"
-            + (game.isPostseason ? ", postseason" : "")
-            + (scenario.usesBaselineCaller
-                ? ", played by the baseline caller" : ", played by the scripted caller"))
-    // Said once, at the top, because it is the first thing that looks wrong otherwise: a
-    // scripted outcome credits nobody, so there is no ball carrier to name.
-    print("every play is dictated by the scenario; nobody is credited, so nobody is named")
-    print("")
-
-    printPlayByPlay(
-        home: home, away: away, players: world.players, rules: game.rules, result: trace.result)
+    for line in scenarioLines(scenario) { print(line) }
 }

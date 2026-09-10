@@ -305,6 +305,12 @@ struct Broadcast {
     let players: [PlayerID: Player]
     let rules: Rules
 
+    // What has been printed so far. Held rather than written out as it goes so that the
+    // same fold can be read by a test as well as by a person: the tool's own suite asserts
+    // on these lines, and a printer that only ever reached standard output could not be
+    // asserted on at all.
+    private var lines: [String] = []
+
     // Running state, all of it a fold over the stream rather than anything the engine
     // handed over.
     private var homeScore: Int16 = 0
@@ -428,12 +434,18 @@ struct Broadcast {
         ).advancement
     }
 
-    mutating func run(_ plays: [PlayRecord]) {
+    private mutating func emit(_ line: String) {
+        lines.append(line)
+    }
+
+    /// Walk the stream and return the broadcast, one line at a time.
+    mutating func run(_ plays: [PlayRecord]) -> [String] {
         ambiguousShortNames = collidingShortNames(in: plays)
         for play in plays { show(play) }
         closeDrive(after: nil)
-        print("        " + String(repeating: "═", count: 40))
-        print("        final · \(scoreline())")
+        emit("        " + String(repeating: "═", count: 40))
+        emit("        final · \(scoreline())")
+        return lines
     }
 
     func scoreline() -> String {
@@ -474,9 +486,9 @@ struct Broadcast {
             let label =
                 ending == rules.quarters / 2
                 ? "halftime" : "end of \(periodLabel(quarter: ending, rules: rules))"
-            print("        " + String(repeating: "═", count: 40))
-            print("        \(label) · \(scoreline())")
-            print("        " + String(repeating: "═", count: 40))
+            emit("        " + String(repeating: "═", count: 40))
+            emit("        \(label) · \(scoreline())")
+            emit("        " + String(repeating: "═", count: 40))
             quarter = situation.quarter
         }
 
@@ -514,9 +526,9 @@ struct Broadcast {
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
-        print(line)
+        emit(line)
 
-        for penalty in outcome.penalties { print(flagLine(penalty, on: play)) }
+        for penalty in outcome.penalties { emit(flagLine(penalty, on: play)) }
     }
 
     private mutating func applyScore(_ advancement: Advancement, offense: TeamID) {
@@ -561,7 +573,7 @@ struct Broadcast {
         }
         let yards = Int(drive.startBallOn) - max(0, min(100, finish))
 
-        print(
+        emit(
             "        ── \(abbreviation(drive.team)) drive: \(drive.snaps) "
                 + "play\(drive.snaps == 1 ? "" : "s"), \(yardText(yards)), "
                 + "\(minutesAndSeconds(seconds)) — \(driveResult(last, endOfGame: next == nil))")
@@ -858,16 +870,17 @@ struct Broadcast {
 /// One printer, called from both, on purpose. A scenario shown through a printer of its
 /// own would be showing a reader something other than the game the conformance suite
 /// asserts on, and the whole point of `--scenario` is that those are the same game.
-func printPlayByPlay(
+func playByPlayLines(
     home: Team, away: Team, players: [PlayerID: Player], rules: Rules, result: GameResult
-) {
-    print(
+) -> [String] {
+    var lines = [
         padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11)
-            + pad("ball", 10) + pad("concept", 14) + "what happened")
-    print("")
+            + pad("ball", 10) + pad("concept", 14) + "what happened",
+        "",
+    ]
 
     var broadcast = Broadcast(home: home, away: away, players: players, rules: rules)
-    broadcast.run(result.plays)
+    lines += broadcast.run(result.plays)
 
     // The scoreboard is the stream summed, and saying so out loud is cheap. If these two
     // ever disagree the printer is wrong or the engine is, and either is worth knowing
@@ -877,11 +890,22 @@ func printPlayByPlay(
         "\(away.identity.abbreviation) \(result.awayScore), "
         + "\(home.identity.abbreviation) \(result.homeScore)"
     if derived != engine {
-        print("")
-        print("  !! the stream sums to \(derived) and the engine reported \(engine)")
+        lines.append("")
+        lines.append("  !! the stream sums to \(derived) and the engine reported \(engine)")
     }
-    print("")
-    print("        \(result.plays.count) plays")
+    lines.append("")
+    lines.append("        \(result.plays.count) plays")
+    return lines
+}
+
+func printPlayByPlay(
+    home: Team, away: Team, players: [PlayerID: Player], rules: Rules, result: GameResult
+) {
+    for line in playByPlayLines(
+        home: home, away: away, players: players, rules: rules, result: result)
+    {
+        print(line)
+    }
 }
 
 print("gamelog — seed \(seed), week \(week), season \(season)")
