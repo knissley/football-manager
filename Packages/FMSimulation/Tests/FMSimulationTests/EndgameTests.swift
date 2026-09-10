@@ -1,5 +1,4 @@
 import FMCore
-import FMGeneration
 import FMRandom
 import Testing
 
@@ -165,28 +164,7 @@ struct EndgameTests {
     // MARK: - In a real game
 
     private func game(seed: UInt64) -> GameResult {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let homeRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        let awayRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in homeRoster + awayRoster { players[player.id] = player }
-
-        return GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(
-                GameSetup(
-                    game: GameID(1),
-                    home: GameTeam(
-                        id: TeamID(1), depthChart: RosterGenerator.depthChart(from: homeRoster),
-                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-                    away: GameTeam(
-                        id: TeamID(2), depthChart: RosterGenerator.depthChart(from: awayRoster),
-                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-                    players: players, seed: seed))
+        TestWorld.game(seed: seed)
     }
 
     /// Timeouts are spent, and the counts in the stream are what records it — no new

@@ -7,6 +7,10 @@ for a command and read the output.
 **Everything is reproducible from a seed.** The same seed prints the same world
 every time, so anything surprising can be re-run exactly.
 
+**Every tool builds its world the same way.** `WorldGenerator.generate(seed:shape:season:)`
+in `FMGeneration` is the single entry point, so `worldgen --seed 7` and
+`simharness --seed 7` are looking at the same league, and so are the engine's tests.
+
 ## worldgen — look at generated content
 
 ```bash
@@ -17,7 +21,7 @@ cd Tools/worldgen && swift run worldgen --help
 | --- | --- |
 | `swift run worldgen --show roster --team 3` | A full 53-man roster |
 | `swift run worldgen --show starters --team 7` | Projected starting lineup |
-| `swift run worldgen --show league --teams 32` | Talent summary for every team |
+| `swift run worldgen --show league --teams 32` | Talent summary and strength offset for every team |
 | `swift run worldgen --show teams --teams 32` | Cities, colours, stadiums, divisions |
 | `swift run worldgen --show class` | This year's draft class, top prospects and shape |
 | `swift run worldgen --show pipeline` | All three visible classes at a glance |
@@ -25,6 +29,12 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
+
+`--teams` is rounded down to the nearest legal shape — two conferences of divisions of
+four — so it is really a multiple of eight, and the header prints what was built. The
+`STR` column in `--show league` is the strength offset the team was drawn at, in overall
+points either side of the league's middle; it sums to zero across the league by
+construction, so a run whose column is flat is a bug and not a quiet season.
 
 Useful invocations:
 
@@ -102,6 +112,16 @@ the bands sourced from the 2024 season; `--rulebook 2025` plays with the touchba
 rather than tuned. The default run plays `Rules.standard` against the 2025 targets, so
 the 2024-sourced rows warn at startup until D2 lands.
 
+Games are played between teams of drawn strength, from the same generator `worldgen`
+prints — the header names the spread the league was drawn at. Before that, every
+calibration game was between two clubs of exactly league-average strength, which is not a
+matchup that occurs in the sport and made every row that depends on one team being better
+than the other meaningless. Because it is the shipping world, the harness also inherits
+the roughly one-in-eight clubs whose roster was assembled for a scheme they no longer
+play ([decision 214](design-decisions.md#world-generation)), which it did not before: a
+few points of scheme fit come off those teams, so the calibration table is measured over
+a league with badly-fitted rosters in it rather than a league of perfectly-fitted ones.
+
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than
 emergent properties. Rows that depend on the *shape* of the yardage distribution rather
@@ -127,11 +147,12 @@ drive summary at each change of possession and a scoreboard at the end of each p
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
 
-`--home` and `--away` are indices into `gamelog`'s own league, and the header names the
-two teams it picked. **They do not agree with `worldgen`**, which draws a larger college
-pool before its league and so builds a different world from the same seed; the indices
-mean something across `gamelog` and `simharness` and nothing outside them. G1 (#3) is the
-one world generator that makes all three agree.
+`--home` and `--away` are indices into the league at that seed, in identifier order, and
+the header names the two teams it picked. They agree with `worldgen` and `simharness`:
+all three call `WorldGenerator.generate(seed:shape:season:)`, and every stage of it draws
+from its own labelled substream, so `worldgen`'s larger college pool no longer shifts the
+league behind it. At seed 7, `--home 3` and `worldgen --seed 7 --show roster --team 3` are
+the same club.
 
 `--week` is what the weather is drawn from: week 1 in a warm city is not the same game as
 week 17 in a cold one.

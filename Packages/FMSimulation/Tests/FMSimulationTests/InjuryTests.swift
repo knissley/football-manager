@@ -1,5 +1,4 @@
 import FMCore
-import FMGeneration
 import FMRandom
 import Testing
 
@@ -12,28 +11,7 @@ import Testing
 struct InjuryTests {
 
     private func game(seed: UInt64) -> GameResult {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let homeRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        let awayRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in homeRoster + awayRoster { players[player.id] = player }
-
-        return GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(
-                GameSetup(
-                    game: GameID(1),
-                    home: GameTeam(
-                        id: TeamID(1), depthChart: RosterGenerator.depthChart(from: homeRoster),
-                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-                    away: GameTeam(
-                        id: TeamID(2), depthChart: RosterGenerator.depthChart(from: awayRoster),
-                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-                    players: players, seed: seed))
+        TestWorld.game(seed: seed)
     }
 
     private func injuries(_ seeds: ClosedRange<UInt64>) -> [(GameResult, InjuryEvent)] {
@@ -356,28 +334,6 @@ struct NonContactInjuryTests {
     }
 
     private func scrambleGame(seed: UInt64) -> [PlayRecord] {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let roster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in roster { players[player.id] = player }
-        let chart = RosterGenerator.depthChart(from: roster)
-
-        let result = GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(
-                GameSetup(
-                    game: GameID(1),
-                    home: GameTeam(
-                        id: TeamID(1), depthChart: chart,
-                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-                    away: GameTeam(
-                        id: TeamID(2), depthChart: chart,
-                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-                    players: players, seed: seed))
-
-        return result.plays.filter { $0.outcome.kind == .scramble }
+        TestWorld.game(seed: seed).plays.filter { $0.outcome.kind == .scramble }
     }
 }

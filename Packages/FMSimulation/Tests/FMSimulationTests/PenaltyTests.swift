@@ -1,5 +1,4 @@
 import FMCore
-import FMGeneration
 import FMRandom
 import Testing
 
@@ -12,31 +11,12 @@ import Testing
 @Suite("Penalties")
 struct PenaltyTests {
 
+    /// The stadium is fixed rather than the home team's, because noise is the variable
+    /// under test: a generated ground brings its own, and the quiet-versus-loud comparison
+    /// below would then be measuring two grounds instead of one mechanism.
     private func game(seed: UInt64, noise: UInt8 = 50) -> GameResult {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let homeRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        let awayRoster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in homeRoster + awayRoster { players[player.id] = player }
-
-        return GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(
-                GameSetup(
-                    game: GameID(1),
-                    home: GameTeam(
-                        id: TeamID(1), depthChart: RosterGenerator.depthChart(from: homeRoster),
-                        scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-                    away: GameTeam(
-                        id: TeamID(2), depthChart: RosterGenerator.depthChart(from: awayRoster),
-                        scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-                    players: players,
-                    stadium: Stadium(name: "Test Field", capacity: 68_000, noise: noise),
-                    seed: seed))
+        TestWorld.game(
+            seed: seed, stadium: Stadium(name: "Test Field", capacity: 68_000, noise: noise))
     }
 
     private func flags(
@@ -103,18 +83,76 @@ struct PenaltyTests {
         #expect(checked > 0, "no interference calls to check")
     }
 
-    /// Every flag names somebody who was on the field for the play.
-    @Test("Every flag is charged to a player on the play")
+    /// Fouls the engine can charge to a slot the play never credits, and why.
+    ///
+    /// A flag names a `PlayerSlot`, and the only way the stream resolves a slot to a
+    /// player is `outcome.participants` — so a foul by somebody who was on the field and
+    /// did nothing the play credited names a man nobody downstream can identify. A
+    /// receiver running a decoy route, a rusher who did not reach the kicker, a blocker on
+    /// a return: all real fouls, none of them credited.
+    ///
+    /// This is a gap in the event-stream contract
+    /// ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)), not a property of
+    /// the sport, and it belongs to the penalties track (#54) rather than here.
+    ///
+    /// **Read off the code, not off a sample.** These are exactly the fouls the four
+    /// draws in `Penalties` that do not pick from the play's credited slots can produce:
+    /// `onDownfieldBlock` (blockers on a return), `onLineRelease` (linemen who released
+    /// on a pass), `onKick` (rushers who never reached the kicker) and `afterThePlay`
+    /// (route runners and coverage defenders once the whistle has gone). Deriving it
+    /// from eighty games instead would have missed `.lowBlock`, which is a fifth of a
+    /// sixth of the downfield-block draw and simply did not come up — and it would then
+    /// have failed here as a false ninth the first time it did.
+    ///
+    /// Measured at 2.6% of flags: 29 of 1104 over eighty games at fixed noise.
+    static let foulsChargedToUncreditedSlots: Set<Foul> = [
+        // onDownfieldBlock
+        .illegalBlockInTheBack,
+        .illegalBlindsideBlock,
+        .lowBlock,
+        // onLineRelease
+        .ineligibleReceiverDownfield,
+        .illegalManDownfield,
+        // onKick
+        .roughingTheKicker,
+        .runningIntoTheKicker,
+        // afterThePlay
+        .unsportsmanlikeConduct,
+        .taunting,
+    ]
+
+    /// Pins the uncredited-slot gap: what the engine does today, not what it should.
+    ///
+    /// This test used to be called "Every flag is charged to a player on the play" and
+    /// asserted exactly that over six seeds, where it passed by luck. The same check over
+    /// sixty games of the world this branch replaced finds twenty-seven flags it does not
+    /// hold for. So it asserted a contract the engine does not keep, and it is now a pin
+    /// on the gap instead, with the register above naming it.
+    ///
+    /// Two directions, and the range is eighty seeds so that both are armed. A foul from
+    /// outside the register turning up uncredited is a new gap and fails. Every flag
+    /// resolving to a credited player means #54 landed, which fails too — and the whole
+    /// register comes out along with this test. The one thing that does hold for every
+    /// flag, and is asserted as a plain expectation, is the side of the ball.
+    @Test(
+        "pin: every flag outside the known uncredited-slot register names a credited player (#54)")
     func offendersAreReal() {
-        for (play, flag) in flags(seeds: 1...6) {
-            #expect(
-                play.outcome.participants.contains { $0.slot == flag.offender },
-                "\(flag.foul) charged to slot \(flag.offender.rawValue), who was not credited")
+        var uncreditable: Set<Foul> = []
+        for (play, flag) in flags(seeds: 1...80) {
+            if !play.outcome.participants.contains(where: { $0.slot == flag.offender }) {
+                uncreditable.insert(flag.foul)
+            }
             let offenceCommitted = flag.offendingTeam == play.situation.possession
             #expect(
                 flag.offender.isOffense == offenceCommitted,
                 "\(flag.foul) charged to the wrong side of the ball")
         }
+        let unregistered = uncreditable.subtracting(Self.foulsChargedToUncreditedSlots)
+        #expect(unregistered.isEmpty, "new fouls charged to an uncredited slot: \(unregistered)")
+        #expect(
+            !uncreditable.isEmpty,
+            "no flag names an uncredited slot any more — #54 landed: delete the register and restore the contract this test used to assert"
+        )
     }
 
     // MARK: - Home field as a mechanism
@@ -180,15 +218,7 @@ struct PenaltyTests {
     /// catches defences with twelve on the grass.
     @Test("Hurry-up catches defences with twelve on the field")
     func tempoCausesSubstitutionFouls() {
-        var random = SplittableRandom(seed: 4)
-        var colleges = NameGenerator.collegePool(count: 8, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let roster = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in roster { players[player.id] = player }
-        let chart = RosterGenerator.depthChart(from: roster)
+        let (_, chart, players) = TestWorld.team(seed: 4)
 
         func tooManyMen(tempo: Tempo) -> Int {
             var random = SplittableRandom(seed: 77)

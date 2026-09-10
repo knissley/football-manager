@@ -1,6 +1,4 @@
 import FMCore
-import FMGeneration
-import FMRandom
 import Testing
 
 @testable import FMSimulation
@@ -19,6 +17,10 @@ import Testing
 /// A checked-in constant is the only form of this test that can fail for that reason,
 /// which is why the number below is written down rather than computed twice.
 /// ([ADR-0003](../../../../docs/adr/0003-deterministic-seeded-simulation.md))
+///
+/// The game is built by `TestWorld`, which is `WorldGenerator.generate(seed:shape:season:)` —
+/// so this pins the whole path from seed to final whistle, world generation included, and
+/// not merely the engine's half of it.
 @Suite("Golden seed")
 struct GoldenSeedTests {
 
@@ -37,32 +39,9 @@ struct GoldenSeedTests {
         mutating func mix(_ number: some BinaryInteger) { mix(UInt64(bitPattern: Int64(number))) }
     }
 
-    private func setup(seed: UInt64) -> GameSetup {
-        var random = SplittableRandom(seed: seed)
-        var colleges = NameGenerator.collegePool(count: 20, using: &random)
-        if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-        var ids = IdentifierSequence<PlayerSubject>()
-        let home = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        let away = RosterGenerator.roster(
-            season: 2030, colleges: colleges, ids: &ids, using: &random)
-        var players: [PlayerID: Player] = [:]
-        for player in home + away { players[player.id] = player }
-
-        return GameSetup(
-            game: GameID(1),
-            home: GameTeam(
-                id: TeamID(1), depthChart: RosterGenerator.depthChart(from: home),
-                scheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder)),
-            away: GameTeam(
-                id: TeamID(2), depthChart: RosterGenerator.depthChart(from: away),
-                scheme: TeamScheme(offense: .airRaid, defense: .nickelMatch)),
-            players: players, seed: seed)
-    }
-
     private func checksum(seed: UInt64) -> UInt64 {
         let result = GameSimulator(resolver: CrudeResolver(), caller: BaselineCaller())
-            .simulate(setup(seed: seed))
+            .simulate(TestWorld.setup(seed: seed))
         var sum = Checksum()
         sum.mix(result.homeScore)
         sum.mix(result.awayScore)
@@ -104,9 +83,9 @@ struct GoldenSeedTests {
     @Test(
         "A seed produces the same game in every process",
         arguments: [
-            (UInt64(1), UInt64(8_506_620_023_489_985_209)),
-            (UInt64(5), UInt64(8_841_975_023_701_611_735)),
-            (UInt64(12), UInt64(15_584_503_308_422_963_415)),
+            (UInt64(1), UInt64(13_806_335_861_224_657_726)),
+            (UInt64(5), UInt64(9_478_541_507_379_167_073)),
+            (UInt64(12), UInt64(4_610_122_684_818_551_251)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

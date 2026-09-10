@@ -69,42 +69,18 @@ while let argument = arguments.next() {
 
 // MARK: - The world
 
-/// A league and the players in it, which is all a game needs to be set up.
-struct GeneratedWorld {
-    let teams: [Team]
-    let players: [PlayerID: Player]
-    let charts: [TeamID: DepthChart]
-}
-
 /// Build the world this game is played in.
 ///
-/// Deliberately the same sequence of draws `Tools/simharness` makes, so `--seed 7`
-/// names the same thirty-two teams the calibration harness plays and a game watched here
-/// is a game from that world rather than from a parallel one.
+/// `WorldGenerator.generate(seed:shape:season:)`, with exactly the arguments
+/// `Tools/simharness` passes — so `--seed 7` names the same thirty-two teams, of the same
+/// drawn strength, that the calibration harness plays, and a game watched here is a game
+/// from that world rather than from a parallel one.
 ///
-/// This is the *only* place the world is built, so adopting G1's single world generator
-/// is a one-function swap.
-func buildWorld(seed: UInt64, season: Int) -> GeneratedWorld? {
-    var random = SplittableRandom(seed: seed)
-    var colleges = NameGenerator.collegePool(count: 80, using: &random)
-    if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
-
-    guard let league = try? LeagueGenerator.league(shape: .standard, using: &random).get() else {
-        return nil
-    }
-
-    var ids = IdentifierSequence<PlayerSubject>()
-    var players: [PlayerID: Player] = [:]
-    var charts: [TeamID: DepthChart] = [:]
-
-    for team in league.teams {
-        let roster = RosterGenerator.roster(
-            builtFor: team.scheme, season: season, colleges: colleges, ids: &ids, using: &random)
-        for player in roster { players[player.id] = player }
-        charts[team.id] = RosterGenerator.depthChart(from: roster)
-    }
-
-    return GeneratedWorld(teams: league.teams, players: players, charts: charts)
+/// No draft pipeline and no rivalries: neither reaches a snap.
+func buildWorld(seed: UInt64, season: Int) -> WorldGenerator.GeneratedWorld? {
+    try? WorldGenerator.generate(
+        seed: seed, shape: .standard, season: season, parts: .teamsAndRosters, collegeCount: 80
+    ).get()
 }
 
 guard let world = buildWorld(seed: seed, season: season) else {
@@ -131,10 +107,10 @@ let weather = WeatherGenerator.forGame(
 let setup = GameSetup(
     game: GameID(1),
     home: GameTeam(
-        id: homeTeam.id, depthChart: world.charts[homeTeam.id] ?? DepthChart(),
+        id: homeTeam.id, depthChart: world.depthChart(of: homeTeam.id),
         scheme: homeTeam.scheme),
     away: GameTeam(
-        id: awayTeam.id, depthChart: world.charts[awayTeam.id] ?? DepthChart(),
+        id: awayTeam.id, depthChart: world.depthChart(of: awayTeam.id),
         scheme: awayTeam.scheme),
     players: world.players,
     stadium: homeTeam.stadium,
