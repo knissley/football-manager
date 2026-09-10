@@ -46,8 +46,14 @@ extension GameSimulator {
 
         /// Who receives the second-half kickoff — the team that did not receive first.
         private let secondHalfReceiver: TeamID
-        /// Which teams have had the ball in overtime, for the both-teams-touch rule.
-        private var overtimePossessors: Set<TeamID> = []
+        /// How many opportunities to possess the ball have begun in overtime, capped at
+        /// two because the rules only ever ask whether *both* sides have had one.
+        ///
+        /// A kickoff is the receiving team's opportunity, and a defence that takes the
+        /// ball away has thereby had its own (2025 rulebook, 16-1-5-b, 16-1-5-c), so the
+        /// count moves on every kickoff and every change of possession. Two means the
+        /// game is in sudden death: the next score that separates the sides wins.
+        private var overtimePossessions: UInt8 = 0
 
         init(setup: GameSetup) {
             self.setup = setup
@@ -162,8 +168,9 @@ extension GameSimulator {
             record(effective, calls: calls, decisions: decisions, situation: before)
             score(advancement)
             runClock(effective, tempo: calls.offense.tempo)
+            let wasKickoff = pendingKickoff
             reposition(advancement, replayed: effective.kind == .penaltyOnly)
-            checkForEnd(scored: advancement.scoring)
+            checkForEnd(advancement, wasKickoff: wasKickoff)
         }
 
         private mutating func record(
@@ -236,8 +243,12 @@ extension GameSimulator {
             if advancement.possessionChanged {
                 possession = defending
             }
-            if clock.quarter > setup.rules.quarters && !pendingKickoff {
-                overtimePossessors.insert(possession)
+            // Overtime counts opportunities to possess: the receiving team's on a kickoff,
+            // whoever ends up with it, and the new possessor's on a change of possession
+            // (16-1-5-b, 16-1-5-c).
+            if clock.quarter > setup.rules.quarters, pendingKickoff || advancement.possessionChanged
+            {
+                overtimePossessions = min(2, overtimePossessions + 1)
             }
 
             ballOn = advancement.ballOn
@@ -260,41 +271,92 @@ extension GameSimulator {
 
         // MARK: - Ending periods and the game
 
-        private mutating func checkForEnd(scored: Scoring?) {
+        private mutating func checkForEnd(_ advancement: Advancement, wasKickoff: Bool) {
             let rules = setup.rules
 
-            // Overtime: both teams get a possession *unless the defence scores*. A
-            // safety or a return touchdown ends it where the offence scoring does not,
-            // which is the whole point of that clause.
             if clock.quarter > rules.quarters {
-                if let scored, scored == .safety || scored == .defensiveTouchdown {
-                    isOver = true
-                    return
-                }
-                let bothHaveHadIt = overtimePossessors.count >= 2
-                if bothHaveHadIt && homeScore != awayScore && !pendingTry {
-                    isOver = true
-                    return
-                }
-                if clock.isExpired {
-                    isOver = true
-                }
+                checkForOvertimeEnd(advancement, wasKickoff: wasKickoff)
                 return
             }
 
             guard clock.isExpired else { return }
 
-            if clock.quarter == rules.quarters {
-                if homeScore != awayScore {
-                    isOver = true
+            // A level game at the end of regulation goes to overtime, in every kind of
+            // game (4-1-1, 16-1-3): whether it may end level is a question for the end
+            // of the overtime period, not this one.
+            if clock.quarter == rules.quarters && homeScore != awayScore {
+                isOver = true
+                return
+            }
+            startNextPeriod()
+        }
+
+        /// Overtime, as Rule 16 (2025) gives it. Regular season: one period, each side
+        /// owed an opportunity to possess, and sudden death once both have had it; level
+        /// at the end is a tie and the period is never extended (16-1-3). Postseason: the
+        /// same possession rules, and another period whenever one ends undecided
+        /// (16-1-4).
+        private mutating func checkForOvertimeEnd(_ advancement: Advancement, wasKickoff: Bool) {
+            let rules = setup.rules
+
+            // A safety ends it whenever it comes: against the opening drive it is the one
+            // named exception to each side getting a turn (16-1-3-a), and once both have
+            // possessed any score that separates the sides wins (16-1-3-c).
+            if advancement.scoring == .safety {
+                isOver = true
+                return
+            }
+
+            let suddenDeath = overtimePossessions >= 2
+            // The play that starts a possession — the kickoff — is not the play that
+            // ends one. A score, a change of possession, or the try that closes a
+            // scoring sequence is.
+            let possessionEnded =
+                !wasKickoff
+                && (advancement.possessionChanged || advancement.scoring != nil
+                    || advancement.requiresKickoff)
+
+            if suddenDeath && homeScore != awayScore {
+                if pendingTry {
+                    // A touchdown that puts the scorer ahead has decided it, and there is
+                    // no try in sudden death (4-8-2-c). One that leaves him behind is
+                    // still owed its try, which may level or win it.
+                    if scoreDifferential > 0 {
+                        pendingTry = false
+                        isOver = true
+                    }
                     return
                 }
-                if rules.mayEndInATie(isPostseason: setup.isPostseason) {
+                if possessionEnded {
                     isOver = true
                     return
                 }
             }
 
+            guard clock.isExpired else { return }
+
+            // Regular season: the period is never extended, not for a second team that
+            // has not possessed and not for a possession still running. Whoever leads
+            // has won, and level is a tie (16-1-3-d).
+            if rules.mayEndInATie(isPostseason: setup.isPostseason) {
+                isOver = true
+                return
+            }
+
+            // Postseason: another period, and play simply continues — no kickoff, the
+            // ball where it was (16-1-4-d).
+            guard let next = clock.advancingPeriod(rules: rules, isPostseason: setup.isPostseason)
+            else {
+                isOver = true
+                return
+            }
+            clock = next
+            previousBehavior = .stopsUntilSnap
+        }
+
+        /// The next period of regulation, or the first period of overtime.
+        private mutating func startNextPeriod() {
+            let rules = setup.rules
             guard let next = clock.advancingPeriod(rules: rules, isPostseason: setup.isPostseason)
             else {
                 isOver = true
@@ -302,9 +364,10 @@ extension GameSimulator {
             }
             clock = next
 
-            // Halftime and overtime both restart with a kickoff and fresh timeouts.
+            // Halftime and the first overtime period both restart with a kickoff and
+            // fresh timeouts. Later overtime periods do not come through here.
             let startsHalf = next.quarter == (rules.quarters / 2) + 1
-            let startsOvertime = next.quarter > rules.quarters
+            let startsOvertime = next.quarter == rules.quarters + 1
             if startsHalf || startsOvertime {
                 homeTimeouts = rules.timeoutsPerHalf
                 awayTimeouts = rules.timeoutsPerHalf
@@ -314,7 +377,7 @@ extension GameSimulator {
                 distance = rules.yardsToGain
                 pendingKickoff = true
                 pendingTry = false
-                if startsOvertime { overtimePossessors.removeAll() }
+                if startsOvertime { overtimePossessions = 0 }
             }
             previousBehavior = .stopsUntilSnap
         }

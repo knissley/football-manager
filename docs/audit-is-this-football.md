@@ -441,7 +441,7 @@ where an unordered collection's iteration order reaches an output: the generator
 are over arrays or explicitly sorted, and `SchemeFit.combined` accumulates each key in
 array order. This was the only one.
 
-## S9 — There is no overtime in the regular season — **open**
+## S9 — There is no overtime in the regular season — **fixed**
 
 `GameSimulator.State.checkForEnd` — the state machine in `GameState.swift` — ends any
 tied regulation game when ties are allowed (`Rules.mayEndInATie`, called from there), so
@@ -454,7 +454,14 @@ postseason`, in `GameSimulatorTests.swift`, is green and wrong.
 
 The tie counts above are measured, at `--games 400` on seeds 7 and 11. The rest
 reproduces as [A1 · #15](https://github.com/knissley/football-manager/issues/15)
-describes, which is the issue that closes it.
+describes, which is the issue that closed it.
+
+**Fixed by A1 (#15), in the wave 1 PR.** A level game always plays overtime: one
+ten-minute period in the regular season, each side owed an opportunity to possess and
+sudden death once both have had one, a tie only if still level at the end of it
+(2025 rulebook, 16-1-3); fifteen-minute periods until decided in the postseason
+(16-1-4). The `ties` test is rewritten to assert that. The engine's overtime scenarios
+are in `RulesConformanceTests`, seven of them, one per clause.
 
 ## S10 — A touchdown at the end of a half gets no try — **open**
 
@@ -572,7 +579,7 @@ table is a snapshot.
 | S6 21 of 33 fouls never occur | fixed | — |
 | S7 Calibration runs in conditions no game is played in | fixed | — |
 | S8 The simulation is not deterministic | fixed | — |
-| S9 There is no overtime in the regular season | **open** | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
+| S9 There is no overtime in the regular season | fixed | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
 | S10 A touchdown at the end of a half gets no try | **open** | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
 | S11 The team that scored the safety kicks off | **open** | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
