@@ -160,7 +160,195 @@ public enum FranchiseSet {
     /// Colours are `PalettePools`' own values as hex — a dark primary against a light
     /// secondary, which is what `TeamColors.hasReadableContrast` asks for.
     public static let initial: [Franchise] = [
-        // The table lands in the commit that turns these contracts green.
+
+        // MARK: North — hard winters, water and heavy industry
+
+        Franchise(
+            city: "Birchford", region: .north, market: .medium, climate: .cold, altitude: 640,
+            nickname: "Whiteout", abbreviation: "BRF",
+            primary: 0x14_3428, secondary: 0xB0_D278, accent: 0xF0_ECE0,
+            stadium: "Northgate Park", roof: .open, surface: .hybrid, capacity: 66_200, noise: 74),
+        Franchise(
+            city: "Norwold", region: .north, market: .major, climate: .cold, altitude: 320,
+            nickname: "Quarrymen", abbreviation: "NRW",
+            primary: 0x28_1642, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Centennial Bowl", roof: .dome, surface: .artificial, capacity: 74_600,
+            noise: 92),
+        Franchise(
+            city: "Frostmere", region: .north, market: .small, climate: .cold, altitude: 900,
+            nickname: "Blacksmiths", abbreviation: "FRM",
+            primary: 0x18_181A, secondary: 0xC8_C8CE, accent: 0xEC_BE3E,
+            stadium: "Union Grounds", roof: .open, surface: .grass, capacity: 55_400, noise: 85),
+        Franchise(
+            city: "Granite Harbor", region: .north, market: .large, climate: .coastal,
+            altitude: 120,
+            nickname: "Shipwrights", abbreviation: "GRH",
+            primary: 0x0E_3A4A, secondary: 0xF6_D6A0, accent: 0xF0_ECE0,
+            stadium: "Drydock Field", roof: .open, surface: .grass, capacity: 69_400, noise: 76),
+        Franchise(
+            city: "Kettlebrook", region: .north, market: .large, climate: .cold, altitude: 780,
+            nickname: "Ironworkers", abbreviation: "KTB",
+            primary: 0x0C_2340, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Foundry Yard", roof: .open, surface: .grass, capacity: 71_500, noise: 79),
+        Franchise(
+            city: "Alderwick", region: .north, market: .medium, climate: .cold, altitude: 430,
+            nickname: "Stags", abbreviation: "ALW",
+            primary: 0x5C_101C, secondary: 0xB0_D278, accent: 0xF0_ECE0,
+            stadium: "Old Mill Grounds", roof: .open, surface: .grass, capacity: 63_400, noise: 72),
+        Franchise(
+            city: "Pinecrest", region: .north, market: .medium, climate: .cold, altitude: 1_150,
+            nickname: "Goshawks", abbreviation: "PNC",
+            primary: 0x3A_3E14, secondary: 0xF6_D6A0, accent: 0xF0_ECE0,
+            stadium: "Lakeside Field", roof: .open, surface: .hybrid, capacity: 64_900, noise: 75),
+        Franchise(
+            city: "Steelfall", region: .north, market: .large, climate: .temperate, altitude: 260,
+            nickname: "Riverboats", abbreviation: "STF",
+            primary: 0x60_2C0C, secondary: 0xC8_C8CE, accent: 0xF0_ECE0,
+            stadium: "Cathedral Stadium", roof: .open, surface: .artificial, capacity: 68_300,
+            noise: 78),
+
+        // MARK: South — heat, water and the trades that follow both
+
+        Franchise(
+            city: "Bayou Landing", region: .south, market: .medium, climate: .hot, altitude: 20,
+            nickname: "Herons", abbreviation: "BYL",
+            primary: 0x0E_3A4A, secondary: 0xB0_D278, accent: 0xF0_ECE0,
+            stadium: "Cypress Field", roof: .open, surface: .grass, capacity: 65_500, noise: 73),
+        Franchise(
+            city: "Verano Springs", region: .south, market: .major, climate: .hot, altitude: 40,
+            nickname: "Wildfire", abbreviation: "VRN",
+            primary: 0x60_2C0C, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Palmetto Bowl", roof: .dome, surface: .artificial, capacity: 76_400,
+            noise: 94),
+        Franchise(
+            city: "Goldleaf", region: .south, market: .small, climate: .hot, altitude: 350,
+            nickname: "Swelter", abbreviation: "GDL",
+            primary: 0x3A_3E14, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Municipal Grounds", roof: .open, surface: .grass, capacity: 57_800, noise: 70),
+        Franchise(
+            city: "Magnolia Reach", region: .south, market: .large, climate: .hot, altitude: 90,
+            nickname: "Rattlers", abbreviation: "MGR",
+            primary: 0x7A_1A14, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Delta Park", roof: .open, surface: .artificial, capacity: 70_100, noise: 77),
+        Franchise(
+            city: "Sunderly", region: .south, market: .large, climate: .hot, altitude: 30,
+            nickname: "Longshoremen", abbreviation: "SDL",
+            primary: 0x0C_2340, secondary: 0xE8_7A8C, accent: 0xF0_ECE0,
+            stadium: "Tidewater Coliseum", roof: .dome, surface: .hybrid, capacity: 68_800,
+            noise: 91),
+        Franchise(
+            city: "Sable Crossing", region: .south, market: .large, climate: .temperate,
+            altitude: 480,
+            nickname: "Wranglers", abbreviation: "SBC",
+            primary: 0x18_181A, secondary: 0xF6_D6A0, accent: 0xEC_BE3E,
+            stadium: "Stockyard Field", roof: .open, surface: .hybrid, capacity: 67_900, noise: 76),
+        Franchise(
+            city: "Camellia Point", region: .south, market: .medium, climate: .temperate,
+            altitude: 210,
+            nickname: "Tanners", abbreviation: "CML",
+            primary: 0x5C_101C, secondary: 0xF6_D6A0, accent: 0xF0_ECE0,
+            stadium: "Azalea Stadium", roof: .open, surface: .grass, capacity: 62_700, noise: 71),
+        Franchise(
+            city: "Tallow Bend", region: .south, market: .medium, climate: .hot, altitude: 65,
+            nickname: "Monsoon", abbreviation: "TLB",
+            primary: 0x48_143E, secondary: 0xE8_7A8C, accent: 0xF0_ECE0,
+            stadium: "Bayfront Arena", roof: .dome, surface: .artificial, capacity: 64_100,
+            noise: 89),
+
+        // MARK: East — ports, mill towns and the weather off the water
+
+        Franchise(
+            city: "Halvern", region: .east, market: .large, climate: .cold, altitude: 60,
+            nickname: "Undertow", abbreviation: "HLV",
+            primary: 0x28_1642, secondary: 0x9E_D6EC, accent: 0xF0_ECE0,
+            stadium: "Riverfront Coliseum", roof: .dome, surface: .artificial, capacity: 72_300,
+            noise: 93),
+        Franchise(
+            city: "Kingsbridge", region: .east, market: .large, climate: .temperate, altitude: 95,
+            nickname: "Sentinels", abbreviation: "KBR",
+            primary: 0x48_143E, secondary: 0xC8_C8CE, accent: 0xF0_ECE0,
+            stadium: "Trestle Field", roof: .open, surface: .hybrid, capacity: 70_600, noise: 79),
+        Franchise(
+            city: "Dunmore Heights", region: .east, market: .medium, climate: .cold, altitude: 540,
+            nickname: "Wardens", abbreviation: "DNM",
+            primary: 0x14_3428, secondary: 0xC8_C8CE, accent: 0xF0_ECE0,
+            stadium: "Highline Stadium", roof: .open, surface: .artificial, capacity: 64_400,
+            noise: 74),
+        Franchise(
+            city: "Wrenford", region: .east, market: .medium, climate: .temperate, altitude: 180,
+            nickname: "Foxes", abbreviation: "WRN",
+            primary: 0x5C_101C, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Memorial Field", roof: .open, surface: .grass, capacity: 63_900, noise: 72),
+        Franchise(
+            city: "Ashport", region: .east, market: .major, climate: .coastal, altitude: 15,
+            nickname: "Kestrels", abbreviation: "ASH",
+            primary: 0x0C_2340, secondary: 0x9E_D6EC, accent: 0xF0_ECE0,
+            stadium: "Gaslight Park", roof: .open, surface: .grass, capacity: 77_200, noise: 83),
+        Franchise(
+            city: "Thorne Harbor", region: .east, market: .large, climate: .coastal, altitude: 25,
+            nickname: "Barracudas", abbreviation: "THB",
+            primary: 0x0E_3A4A, secondary: 0xE8_7A8C, accent: 0xF0_ECE0,
+            stadium: "Windward Park", roof: .open, surface: .hybrid, capacity: 67_600, noise: 77),
+        Franchise(
+            city: "Lockridge", region: .east, market: .small, climate: .cold, altitude: 720,
+            nickname: "Millers", abbreviation: "LKR",
+            primary: 0x60_2C0C, secondary: 0xB0_D278, accent: 0xF0_ECE0,
+            stadium: "Beacon Grounds", roof: .open, surface: .grass, capacity: 56_900, noise: 69),
+        Franchise(
+            city: "Fallstead", region: .east, market: .medium, climate: .temperate, altitude: 300,
+            nickname: "Griffins", abbreviation: "FST",
+            primary: 0x3A_3E14, secondary: 0xE8_7A8C, accent: 0xF0_ECE0,
+            stadium: "Lantern Field", roof: .open, surface: .artificial, capacity: 65_100,
+            noise: 74),
+
+        // MARK: West — high desert, mountains and one long coast
+
+        Franchise(
+            city: "Junipero Mesa", region: .west, market: .medium, climate: .arid, altitude: 3_100,
+            nickname: "Jackals", abbreviation: "JNM",
+            primary: 0x3A_3E14, secondary: 0xF4_9428, accent: 0xF0_ECE0,
+            stadium: "Trailhead Coliseum", roof: .dome, surface: .artificial, capacity: 63_800,
+            noise: 88),
+        Franchise(
+            city: "Vermillion Flats", region: .west, market: .medium, climate: .arid,
+            altitude: 2_100,
+            nickname: "Vipers", abbreviation: "VMF",
+            primary: 0x18_181A, secondary: 0xF4_9428, accent: 0xF0_ECE0,
+            stadium: "Adobe Stadium", roof: .open, surface: .artificial, capacity: 64_700,
+            noise: 75),
+        Franchise(
+            city: "Silverpeak", region: .west, market: .medium, climate: .mountain, altitude: 5_200,
+            nickname: "Ibex", abbreviation: "SVP",
+            primary: 0x0C_2340, secondary: 0xC8_C8CE, accent: 0xF0_ECE0,
+            stadium: "Alpenglow Grounds", roof: .open, surface: .hybrid, capacity: 61_400,
+            noise: 77),
+        Franchise(
+            city: "Redmesa", region: .west, market: .large, climate: .arid, altitude: 4_400,
+            nickname: "Prospectors", abbreviation: "RDM",
+            primary: 0x7A_1A14, secondary: 0xF6_D6A0, accent: 0xF0_ECE0,
+            stadium: "Copperworks Field", roof: .open, surface: .grass, capacity: 68_600, noise: 78),
+        Franchise(
+            city: "Sundown Bay", region: .west, market: .major, climate: .coastal, altitude: 30,
+            nickname: "Condors", abbreviation: "SDB",
+            primary: 0x0E_3A4A, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Boardwalk Bowl", roof: .open, surface: .grass, capacity: 75_800, noise: 82),
+        Franchise(
+            city: "Cascade Junction", region: .west, market: .large, climate: .temperate,
+            altitude: 640,
+            nickname: "Otters", abbreviation: "CSJ",
+            primary: 0x14_3428, secondary: 0x9E_D6EC, accent: 0xF0_ECE0,
+            stadium: "Timberline Field", roof: .open, surface: .grass, capacity: 67_300, noise: 76),
+        Franchise(
+            city: "Wildhorse Ridge", region: .west, market: .small, climate: .arid, altitude: 1_800,
+            nickname: "Smelters", abbreviation: "WHR",
+            primary: 0x60_2C0C, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
+            stadium: "Ashfield Coliseum", roof: .open, surface: .artificial, capacity: 58_600,
+            noise: 71),
+        Franchise(
+            city: "Alta Verde", region: .west, market: .large, climate: .mountain, altitude: 4_900,
+            nickname: "Wyverns", abbreviation: "ALV",
+            primary: 0x48_143E, secondary: 0xB0_D278, accent: 0xF0_ECE0,
+            stadium: "Ridgeline Park", roof: .open, surface: .hybrid, capacity: 67_100, noise: 80),
     ]
 
     /// The franchises of one region, in file order.

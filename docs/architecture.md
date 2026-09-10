@@ -45,7 +45,9 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     The only source of randomness in the sim.
     │
     ├── FMGeneration      World generation. → FMCore, FMRandom
-    │                     Names, franchises, rosters, draft classes, seeded rivalries.
+    │                     Names, rosters, draft classes, seeded rivalries — and the
+    │                     thirty-two curated franchises a world starts from, which
+    │                     are a table rather than a draw (FranchiseSet).
     │                     One entry point: WorldGenerator.generate(seed:shape:season:).
     │
     ├── FMSimulation      Match engine + season engine. → FMCore, FMRandom
@@ -101,7 +103,9 @@ computed in `FMAnalysis`*, never something `FMNarrative` produces. Otherwise
 `FMGeneration` runs **once, at world creation**. It answers "what does this league
 look like on day one" — franchises, rosters, staff, a draft class, plausible
 history. Nothing it contains is a rule about how the world should behave
-afterwards.
+afterwards. Not all of it is generated: the franchises are curated data
+([decision 215](design-decisions.md#world-generation)) and only what a career is
+played *with* is drawn from the seed.
 
 Everything after day one is `FMSimulation`: games, development, and every roster
 transaction, including the ones AI teams make.

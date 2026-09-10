@@ -25,13 +25,13 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - ✅ **The `PlayRecord` event stream shape** — the most important design work in the
   project (`Packages/FMCore`, specified in [play-record.md](play-record.md)).
 - World generation: ✅ names, colleges, players with hidden ceilings and development
-  traits, and 53-man rosters with a league talent spread; ✅ franchises — fictional
-  cities with regions, nicknames, legible colours, and stadiums whose roof, climate,
-  altitude and noise are real simulation input; ✅ draft classes — a three-year college
-  pipeline with hidden ceilings, production carrying independent error, red flags, early
-  declarations and mean-reverting class strength; ✅ seeded rivalry history — a
-  fabricated event log in the same shape lived history will use, folded to intensity with
-  decay (`Packages/FMGeneration`).
+  traits, and 53-man rosters with a league talent spread; ✅ franchises — one curated set
+  of thirty-two fictional clubs, with regions, nicknames, legible colours, and stadiums
+  whose roof, climate, altitude and noise are real simulation input; ✅ draft classes — a
+  three-year college pipeline with hidden ceilings, production carrying independent
+  error, red flags, early declarations and mean-reverting class strength; ✅ seeded
+  rivalry history — a fabricated event log in the same shape lived history will use,
+  folded to intensity with decay (`Packages/FMGeneration`).
 - ✅ **One world generator** — `WorldGenerator.generate(seed:shape:season:)` in
   `FMGeneration` returns the league, its teams, every roster and depth chart, the
   colleges, the draft pipeline and the rivalries. Team strength is drawn from the seed
@@ -295,9 +295,10 @@ better, and a human tester cannot reliably fleece the trade AI.
   last resort, and is expected to be the least used path rather than the default one.
   **The identity randomisers — team, stadium and city names — are not refined before
   this point**, so the city that stutters with itself and the real place names among the
-  stems (#4) wait for the revisit instead of being fixed twice. The curated set itself
-  lands much earlier, with #69 after wave 1 of the audit backlog; what waits for M8 is
-  the editing surface and the randomiser behind it.
+  stems (#4) wait for the revisit instead of being fixed twice. **The curated set itself
+  landed early, with #69** — `FMGeneration.FranchiseSet` is the thirty-two, and a world is
+  built from it by default. What waits for M8 is the editing surface and the randomiser
+  behind it.
 
 *Exit:* a ten-season career review reads like a history worth screenshotting.
 

@@ -13,7 +13,9 @@ every time, so anything surprising can be re-run exactly.
 
 **Every tool builds its world the same way.** `WorldGenerator.generate(seed:shape:season:)`
 in `FMGeneration` is the single entry point, so `worldgen --seed 7` and
-`simharness --seed 7` are looking at the same league, and so are the engine's tests.
+`simharness --seed 7` are looking at the same league, and so are the engine's tests. Since
+[decision 215](design-decisions.md#world-generation) that league's thirty-two clubs are
+curated rather than drawn, so two seeds are two sets of players in one set of buildings.
 
 ## worldgen — look at generated content
 
@@ -33,6 +35,17 @@ cd Tools/worldgen && swift run worldgen --help
 | `swift run worldgen --show colleges` | The generated college pool |
 
 Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
+`--franchises curated|random`
+
+**The clubs are the same every time.** A world starts from the curated thirty-two in
+`FMGeneration.FranchiseSet` ([decision 215](design-decisions.md#world-generation)), so
+`--show teams` prints the same league at every seed — the same cities, nicknames,
+colours and grounds, down to which of them have roofs. What the seed still moves is
+everything a career is played with: rosters, strengths, schemes, the draft pipeline
+and the rivalries. `--franchises random` is the old pool draw, kept as a last resort
+behind the flag and deliberately not refined before M8; it is the only way to see two
+seeds name two different leagues. A league larger than thirty-two — `--teams 64` — is
+the curated set finished from the pools.
 
 `--teams` is rounded down to the nearest legal shape — two conferences of divisions of
 four — so it is really a multiple of eight, and the header prints what was built. The
@@ -60,10 +73,15 @@ swift run worldgen --seed 99 --show roster --team 3
 # three quarters league-wide, higher on a contender — and how many are rookies.
 swift run worldgen --seed 7 --show roster --team 3
 
-# Does the world read as a league someone drew, or as output?
-# Watch for: repeated city stems, colliding abbreviations, a "South" division
-# full of cold-weather cities, every stadium a temperate dome.
-swift run worldgen --seed 42 --show teams
+# The league a career starts in. Two seeds, one league: this is the check that
+# the curated set is what a world is built from.
+swift run worldgen --seed 7 --show teams
+swift run worldgen --seed 11 --show teams
+
+# Does a drawn world read as a league someone drew, or as output? Watch for:
+# repeated city stems, colliding abbreviations, a "South" division full of
+# cold-weather cities, every stadium a temperate dome.
+swift run worldgen --seed 42 --show teams --franchises random
 
 # Is the class a distribution or a ranking? Watch for: the same positions at the
 # top every year, a flat ceiling histogram, production that never disagrees with
