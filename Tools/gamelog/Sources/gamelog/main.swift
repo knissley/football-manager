@@ -210,7 +210,8 @@ func concept(_ calls: Calls) -> String {
     case .spike: return "spike"
     case .kickoff: return "kickoff"
     case .extraPoint: return "extra point"
-    case .twoPointConversion: return "two-point try"
+    case .twoPointPass: return "two-point pass"
+    case .twoPointRun: return "two-point run"
     case .onsideKick: return "onside kick"
     }
 }
@@ -484,7 +485,8 @@ struct Broadcast {
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
         let family = CrudePlaybook.family(of: play.calls.offense.design)
-        let isTry = family == .extraPoint || family == .twoPointConversion
+        let isTry =
+            family == .extraPoint || family == .twoPointPass || family == .twoPointRun
         let isKickoff = family == .kickoff || family == .onsideKick
 
         // A kickoff and a try belong to the sequence between drives rather than to a
