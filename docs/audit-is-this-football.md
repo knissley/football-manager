@@ -590,10 +590,10 @@ from the previous spot, which stands in for the spot of the foul the record does
 carry (14-3-6; the wave 1 review). The record also lacks the spot where possession was
 lost, and cannot express a kicking-team kickoff touchdown —
 [B7 · #58](https://github.com/knissley/football-manager/issues/58). A foul by the team
-scored upon, or a dead-ball conduct foul by the scorer, is still recorded declined with
-the score standing, until [C9 · #48](https://github.com/knissley/football-manager/issues/48)
-enforces it on the try or the kickoff (14-2-3) and re-tries after a live-ball foul on a
-try.
+scored upon, and a dead-ball conduct foul by the scorer, are carried to the try after a
+touchdown and to the free kick after a field goal, a safety or a try (14-2-3, 11-3-3
+Items 1, 4-a and 7), and a live-ball foul by the scorer on a successful try brings the
+try back (11-3-3 Item 3-a).
 
 ## S14 — The completion-percentage row is a false pass — **open**
 
@@ -658,10 +658,8 @@ and [A14 · #86](https://github.com/knissley/football-manager/issues/86) (postse
 overtime halves: a third period, and a fifth, put back in play with a kick at the toss
 loser's first choice, three timeouts a half, and the kickoff that opens a half settled
 before it is played whichever way the half before it ended);
-[B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
-possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
-[C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a
-foul on a try), both open.
+and [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
+possession was lost, and a kicking-team kickoff touchdown, neither in the record), open.
 
 | finding | status | closed by |
 | --- | --- | --- |
@@ -812,7 +810,9 @@ argument for watching a game.
   ([#28](https://github.com/knissley/football-manager/issues/28))
 - **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
   it, `afterThePlay` is called from the run path only, and roughing the kicker on a made
-  field goal erases the three points.
+  field goal erases the three points. **Fixed**: a foul on a scoring play is carried to
+  the try or the free kick, a place kick is resolved before the rush at the kicker is
+  drawn, and conduct fouls are drawn after completions and sacks as well as runs.
   ([#48](https://github.com/knissley/football-manager/issues/48))
 - **C10** — the baseline caller reads `DownAndDistanceClass` as law rather than
   description: `isPassingDown` includes second and 8 and third and 4, and the caller never
@@ -826,9 +826,14 @@ argument for watching a game.
   ([#57](https://github.com/knissley/football-manager/issues/57))
 - **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside
   kicks are fourth quarter only, and nothing records which season the defaults describe.
+  **Fixed**: the touchback is the 35, an onside kick may be declared at any time while
+  trailing, and `Rules.rulebookSeason` records the book — which the harness reads.
   ([#41](https://github.com/knissley/football-manager/issues/41))
 - **D2** — the kickoff is a touchback coin flip that ignores where the kick is taken from,
-  so a penalty on the kicking team changes nothing about the kick.
+  so a penalty on the kicking team changes nothing about the kick. **Fixed**: the kick is
+  aimed — through the end zone or into the landing zone — and every branch of it reads the
+  restraining line the kick is taken from. What is still absent is the formation: nobody
+  lines up, so there is no setup zone and no alignment foul.
   ([#46](https://github.com/knissley/football-manager/issues/46))
 - **F2** — `PlayContext.effective` substitutes `player.overall` for any rating the player
   lacks, so a running back's route running is his overall.

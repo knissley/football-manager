@@ -56,7 +56,7 @@ struct RulebookSeasonTests {
     /// Both the 2025 and the 2026 books let the kicking team declare at any time during
     /// the game. What 2025 requires, and 2026 dropped, is that it be **trailing**.
     @Test(
-        "football · Rule 6-1-1-c, 6-1-6 · the kicking team may declare an onside kick at any time during the game, and only while trailing",
+        "football · Rule 6-1-1-c, 6-1-6 · the kicking team may declare an onside kick in any period, and only while it trails",
         .tags(.football))
     func onsideKicksAreDeclaredWheneverTrailing() {
         for quarter in UInt8(1)...4 {

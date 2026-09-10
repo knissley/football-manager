@@ -366,16 +366,22 @@ struct PenaltyEnforcementTests {
     }
 
     /// A foul by the team scored upon during a touchdown is enforced on the try
-    /// (14-2-3), which the engine does not model yet (C9): the score stands, and the
-    /// flag is recorded declined until then.
+    /// (14-2-3), and the score stands either way.
+    ///
+    /// Rewritten rather than deleted: it used to assert that the flag was recorded
+    /// *declined*, which was the engine having nowhere to put it and not a rule, and it
+    /// said so in the assertion's own message. The half of it that was always football —
+    /// the score stands — is unchanged; the half that was a placeholder now asserts the
+    /// article.
     @Test(
-        "football · Rule 14-2-3 · a defensive foul on a touchdown play leaves the score standing",
+        "football · Rule 14-2-3 · a defensive foul on a touchdown play leaves the score standing and goes on the try",
         .tags(.football))
     func defensiveFoulOnATouchdown() {
         let decision = rules.enforce(
             penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 20),
             outcome: outcome(20, .touchdown), offendingTeamHadBall: false)
-        #expect(decision.accepted == false, "recorded declined until C9 enforces it on the try")
+        #expect(decision.accepted)
+        #expect(decision.deferredTo == .theTry)
         #expect(decision.advancement.scoring == .touchdown)
         #expect(decision.advancement.requiresTry)
     }

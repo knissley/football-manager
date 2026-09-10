@@ -78,10 +78,24 @@ extension Rules {
     ) -> PenaltyDecision {
         let declined = advance(from: situation, outcome: outcome)
 
-        // A foul during a score by the team scored upon, or a personal foul by the
-        // scorer, is enforced on the try or the kickoff (14-2-3), which the engine does
-        // not model yet: the score stands and the flag is recorded declined until it
-        // does.
+        // A foul on a play that scored is not enforced on that play. The score stands and
+        // the yardage is carried to whatever the rules put in play next — the try after a
+        // touchdown, the free kick after a field goal, a safety or a try (14-2-3, 11-3-3
+        // Item 4-a). There is nothing to decline: the offended team is not being asked
+        // whether to give the points back.
+        if let deferred = deferredEnforcement(
+            penalty, declined: declined, outcome: outcome,
+            offendingTeamHadBall: offendingTeamHadBall)
+        {
+            let record = PenaltyRecord(
+                foul: penalty.foul, offender: penalty.offender,
+                offendingTeam: penalty.offendingTeam, yards: penalty.foul.yards,
+                wasAccepted: true, awardedFirstDown: false,
+                enforcementSpot: penalty.enforcementSpot)
+            return PenaltyDecision(
+                penalty: record, accepted: true, advancement: declined, deferredTo: deferred)
+        }
+
         guard
             let accepted = enforcedAdvancement(
                 penalty, on: situation, outcome: outcome, declined: declined,
@@ -106,6 +120,63 @@ extension Rules {
             penalty: takesIt ? accepted.record : declining(penalty),
             accepted: takesIt,
             advancement: takesIt ? accepted.advancement : declined)
+    }
+
+    /// Where a foul on a play that scored is carried to, or `nil` when it is enforced on
+    /// the down like any other foul (2025 rulebook, 14-2-3, 11-3-3).
+    ///
+    /// Three answers, and which one it is depends on the score rather than on the foul:
+    ///
+    /// - **A touchdown**: the try, whatever kind of foul it was and whichever side
+    ///   committed it. The article says so in as many words.
+    /// - **A field goal or a safety by the opponent**: the succeeding free kick, and only
+    ///   for a personal or unsportsmanlike foul. Every other foul there leaves the
+    ///   offended team a choice between the points and a replayed down, and no team gives
+    ///   up points for five yards, so it is declined in the ordinary way below.
+    /// - **A successful try**: the succeeding free kick for a foul by the defending team
+    ///   (11-3-3 Item 4-a). A foul by the *scoring* team repeats the try instead
+    ///   (Item 3-a), which is a live-ball enforcement and not a deferral, so it is `nil`
+    ///   here and handled where the score is nullified.
+    ///
+    /// A foul by the scoring team on any other score wipes it: the down is replayed, and
+    /// there is nothing to carry.
+    private func deferredEnforcement(
+        _ penalty: PenaltyRecord, declined: Advancement, outcome: Outcome,
+        offendingTeamHadBall: Bool
+    ) -> DeferredEnforcement? {
+        guard let scoring = declined.scoring, declined.points > 0 else { return nil }
+        let scorerHadBall: Bool
+        switch scoring {
+        case .touchdown, .fieldGoal, .extraPoint, .twoPointConversion: scorerHadBall = true
+        case .defensiveTouchdown, .safety: scorerHadBall = false
+        }
+        let offenderScored = scorerHadBall == offendingTeamHadBall
+
+        // A dead-ball foul by either side after a score goes on whatever follows,
+        // whatever the foul was: 11-3-3 Item 1 for a touchdown, Item 7 after a try, and
+        // 14-2-3's "whether a live ball or dead ball foul" for the rest.
+        let afterTheWhistle = penalty.foul.isDeadBall
+
+        switch scoring {
+        case .touchdown, .defensiveTouchdown:
+            if afterTheWhistle { return .theTry }
+            // During the down, 14-2-3's subject is a personal or unsportsmanlike foul by
+            // the side that did *not* score. The scorer's own live-ball foul is enforced
+            // and the down replayed, which wipes the touchdown (14-3-6), and any other
+            // foul by the defence is simply declined.
+            guard !offenderScored else { return nil }
+            return penalty.foul.isPersonalOrUnsportsmanlike ? .theTry : nil
+        case .extraPoint, .twoPointConversion:
+            // Every foul by the defending team on a try goes on the kickoff (11-3-3
+            // Item 4-a), not only the personal ones. The scoring team's own live-ball
+            // foul brings the try back instead (Item 3-a), which is not a deferral.
+            if offenderScored && !afterTheWhistle { return nil }
+            return .theFreeKick
+        case .fieldGoal, .safety:
+            if afterTheWhistle { return .theFreeKick }
+            guard !offenderScored else { return nil }
+            return penalty.foul.isPersonalOrUnsportsmanlike ? .theFreeKick : nil
+        }
     }
 
     private func declining(_ penalty: PenaltyRecord) -> PenaltyRecord {
@@ -133,6 +204,10 @@ extension Rules {
         // which the record does not carry either, so the previous spot stands in for
         // it and the down is replayed there.
         var nullifiesTheScore = false
+        // A try the scoring team fouled during is played *again* (11-3-3 Item 3-a): the
+        // point comes off and the attempt comes back, from wherever the enforcement puts
+        // the ball. Every other nullified score is a down replayed, which owes nothing.
+        var repeatsTheTry = false
         if let scoring = declined.scoring, declined.points > 0 {
             let scorerHadBall: Bool
             switch scoring {
@@ -142,6 +217,7 @@ extension Rules {
             let offenderScored = scorerHadBall == offendingTeamHadBall
             if !offenderScored || foul.isDeadBall { return nil }
             nullifiesTheScore = true
+            repeatsTheTry = outcome.kind == .extraPoint || outcome.kind == .twoPointConversion
         }
 
         let changed = declined.possessionChanged
@@ -255,6 +331,15 @@ extension Rules {
                 advancement = Advancement(
                     ballOn: ballOn, down: downs.down, distance: downs.distance)
             }
+        }
+
+        if repeatsTheTry {
+            // The try is owed again rather than a down being played from here, so the
+            // spot the walk-off produced is where it will be snapped from and the down is
+            // the try's own.
+            advancement = Advancement(
+                ballOn: advancement.ballOn, down: .first, distance: max(1, advancement.ballOn),
+                requiresTry: true)
         }
 
         let record = PenaltyRecord(

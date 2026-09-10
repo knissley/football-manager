@@ -287,11 +287,22 @@ its season and source belong to issue #2.
 - A personal or unsportsmanlike foul by a team whose opponent has the ball at the end of
   the down may be enforced from the dead-ball spot. `[2025 · 14-2-4]`
 - **A foul during a score.** A personal or unsportsmanlike foul during a down in which
-  the opponent kicks a field goal or scores a safety is enforced on the free kick; during
-  a touchdown, any foul is enforced on the try; the offended team may instead take the
-  penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
-  engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
-  the flag is recorded declined.
+  the opponent kicks a field goal or scores a safety is enforced on the free kick; on a
+  touchdown it is enforced on the try, whether it came during the down, after the whistle
+  or between downs; the offended team may instead take the penalty with customary
+  enforcement and give up the points. `[2025 · 14-2-3]` A foul after the whistle by either
+  team goes on whichever of the two follows it. `[2025 · 11-3-3 Item 1]`,
+  `[2025 · 11-3-3 Item 7]` The engine carries all of those to the spot the rules put in
+  play next; the option to give up the points is not modelled, because no caller would
+  take it.
+- **A foul on a try.** An offensive foul during a *successful* try repeats the try, from
+  the enforced spot, and the caller may change its mind about which try it is attempting.
+  `[2025 · 11-3-3 Item 3-a]` A defensive foul leaves the point and is enforced on the
+  ensuing kickoff. `[2025 · 11-3-3 Item 4-a]`
+- **The kicker.** Roughing him is fifteen yards and an automatic first down; running into
+  him is five and the down is replayed. `[2025 · 12-2-12]`, `[2025 · 6-2-3]` Neither
+  cancels a kick that was already away: the rush is over before the ball comes down, so
+  the kick is a fact and the flag is a choice on top of it.
 - **The passing game.** Between the snap and the moment a forward pass from behind the
   line is over, a foul by either team is enforced from the previous spot; the catch is the
   boundary, and with the ball in a receiver's hands the down has become a run.

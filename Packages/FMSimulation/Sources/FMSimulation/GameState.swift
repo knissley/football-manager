@@ -66,6 +66,14 @@ extension GameSimulator {
         /// moved it (2025 rulebook, 11-3-3): the spot the try moves to if the caller
         /// changes its mind after a flag.
         private var otherTrySpot: UInt8 = 0
+        /// A foul on a play that scored, owed to the spot the rules put in play next
+        /// (2025 rulebook, 14-2-3, 11-3-3).
+        ///
+        /// The rules layer cannot walk it off, because that spot does not exist when the
+        /// flag is enforced: the try has not been chosen and the free kick has not been
+        /// set up. So `Rules.enforce` says *where* it is owed and this holds it until the
+        /// spot is built, which is `chooseTry` for a try and `reposition` for a free kick.
+        private var owedEnforcement: (penalty: PenaltyRecord, spot: DeferredEnforcement)?
         var pendingKickoff = false
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
@@ -240,11 +248,34 @@ extension GameSimulator {
             } else {
                 ballOn = goingForTwo ? rules.twoPointSnapYard : rules.extraPointSnapYard
                 otherTrySpot = goingForTwo ? rules.extraPointSnapYard : rules.twoPointSnapYard
+                // A foul during the touchdown is enforced here (14-2-3), and it moves
+                // both options, because 11-3-3 spots the other one as any enforced
+                // penalty has left it. Only on the first ask: a flag *on* the try is
+                // enforced by `reposition` and must not be walked off twice.
+                if let owed = owedEnforcement, owed.spot == .theTry {
+                    ballOn = walkOff(owed.penalty, from: ballOn)
+                    otherTrySpot = walkOff(owed.penalty, from: otherTrySpot)
+                    owedEnforcement = nil
+                }
             }
             tryGoesForTwo = goingForTwo
             tryNeedsRedecision = false
             down = .first
             distance = max(1, ballOn)
+        }
+
+        /// Walk an owed penalty off a spot in the possessing team's frame.
+        ///
+        /// The team that has the ball at the spot is the one about to snap it or kick it,
+        /// so a foul by that team moves the spot back and a foul by the other moves it
+        /// forward. Half the distance to a goal line applies here as anywhere (14-2-1).
+        private func walkOff(_ penalty: PenaltyRecord, from spot: UInt8) -> UInt8 {
+            let against = penalty.offendingTeam == possession
+            let yards = Int(penalty.yards)
+            let raw = against ? Int(spot) + yards : Int(spot) - yards
+            if against, raw >= 100 { return UInt8(min(99, Int(spot) + (100 - Int(spot)) / 2)) }
+            if !against, raw <= 0 { return UInt8(max(1, Int(spot) - Int(spot) / 2)) }
+            return UInt8(max(1, min(99, raw)))
         }
 
         /// The situation as it reads when a flag flies before the snap: the interval
@@ -298,6 +329,9 @@ extension GameSimulator {
                     offendingTeamHadBall: penalty.offendingTeam == possession)
                 advancement = decision.advancement
                 effective.penalties = [decision.penalty]
+                if let deferred = decision.deferredTo {
+                    owedEnforcement = (decision.penalty, deferred)
+                }
             } else {
                 advancement = rules.advance(from: before, outcome: outcome)
             }
@@ -312,7 +346,14 @@ extension GameSimulator {
             let wasKickoff = pendingKickoff
             let replayed = effective.kind == .penaltyOnly
             reposition(advancement, replayed: replayed)
-            if pendingTry, replayed, let penalty = effective.penalties.first {
+            // A flag on the try moves both of its options — the one being attempted, which
+            // `reposition` has just enforced, and the other (11-3-3). Both a flag before
+            // the snap and a foul during a successful try do this: the second is the try
+            // being *repeated* (Item 3-a) rather than replayed, and it is the same
+            // question about where the other option now is.
+            if pendingTry, replayed || advancement.requiresTry,
+                let penalty = effective.penalties.first
+            {
                 moveTheOtherTryOption(for: penalty, before: before, outcome: outcome)
             }
             checkForEnd(advancement, wasKickoff: wasKickoff, replayed: replayed)
@@ -702,13 +743,25 @@ extension GameSimulator {
             down = advancement.down
             distance = advancement.distance
 
-            // Order matters: a try is owed before the kickoff that follows it.
+            // Order matters: a try is owed before the kickoff that follows it — unless
+            // the try itself has to be played again, which a foul by the scoring team
+            // during a successful one owes (11-3-3 Item 3-a). `advancement.requiresTry`
+            // is how the rules layer says so, and the ball is already at the enforced
+            // spot.
+            if pendingTry, advancement.requiresTry {
+                // The choice already made stands, so `chooseTry` is not asked again: it
+                // would reset the spot to the standard one and throw the enforcement
+                // away. Whether the caller may change its mind is `tryNeedsRedecision`,
+                // set by `moveTheOtherTryOption` exactly as it is for a flag before the
+                // snap.
+                return
+            }
             if pendingTry {
                 pendingTry = false
                 tryGoesForTwo = nil
                 tryNeedsRedecision = false
                 pendingKickoff = true
-                ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
+                ballOn = freeKickSpot()
                 return
             }
 
@@ -724,7 +777,21 @@ extension GameSimulator {
                 pendingTry = true
             } else if advancement.requiresKickoff {
                 pendingKickoff = true
+                ballOn = freeKickSpot(from: ballOn)
             }
+        }
+
+        /// Where the free kick is made from, with any penalty the rules owed it walked off
+        /// (2025 rulebook, 14-2-3, 11-3-3 Item 4-a, 11-3-3 Item 7).
+        ///
+        /// `from` is the spot the advancement already put the ball on — the kicking team's
+        /// 35 after a score, its 20 after a safety — and `nil` means the ordinary kickoff
+        /// spot, which is what a try's own advancement does not supply.
+        private mutating func freeKickSpot(from spot: UInt8? = nil) -> UInt8 {
+            let base = spot ?? setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
+            guard let owed = owedEnforcement, owed.spot == .theFreeKick else { return base }
+            owedEnforcement = nil
+            return walkOff(owed.penalty, from: base)
         }
 
         // MARK: - Ending periods and the game

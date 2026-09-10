@@ -2163,7 +2163,7 @@ struct RulesConformanceTests {
             kick.play.outcome.penalties.first?.awardedFirstDown == false,
             "five yards carries no first down")
         trace.expectPlay(
-            kick.index + 1, possession: kicker, down: .fourth, ballOn: 15,
+            kick.index + 1, possession: kicker, down: kick.play.situation.down, ballOn: 15,
             "the same down again, five yards on from the 20")
     }
 

@@ -417,6 +417,14 @@ public struct CrudeResolver: PlayResolver {
                     spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
                     context: context, participants: &participants, random: &random)
 
+            // A sack is a play worth reacting to by anybody's reckoning, and it could not
+            // draw a word after the whistle either.
+            if penalty == nil {
+                penalty = Penalties.afterThePlay(
+                    Outcome(kind: .sack, yards: loss, endedIn: .tackled),
+                    personnel: personnel, context: context, random: &random)
+            }
+
             return (
                 Outcome(
                     kind: .sack,
@@ -510,6 +518,15 @@ public struct CrudeResolver: PlayResolver {
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
             var gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
             let kind: PlayKind = isTry ? .twoPointConversion : .pass
+
+            // What somebody says once the whistle has gone. Drawn from the run path
+            // alone until now, so no completion and no sack in the league ever drew a
+            // word afterwards — two thirds of a team's snaps are dropbacks.
+            if penalty == nil, !isTry {
+                penalty = Penalties.afterThePlay(
+                    Outcome(kind: kind, yards: gained, endedIn: afterCatch.ending),
+                    personnel: personnel, context: context, random: &random)
+            }
 
             // A receiver can put it on the ground too. A try is left alone: it cannot
             // fumble into anything but a failed try.
@@ -958,23 +975,20 @@ public struct CrudeResolver: PlayResolver {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
         var decisions: [DecisionPoint] = []
 
-        // The rush at the punter, which the rules protect him from.
-        if let foul = Penalties.onKick(
+        // The rush at the punter, which the rules protect him from. Drawn here and
+        // carried on whatever the punt turns out to be, rather than reported as a play
+        // that never happened: the rush is over before the ball comes down, so the punt
+        // is a fact the offended team weighs the flag against (14-2, 12-2-12, 6-2-3). It
+        // used to be `.penaltyOnly`, which gave the punting team the flag every time
+        // because there was no punt to decline in favour of.
+        let kickerFoul = Penalties.onKick(
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
-        {
-            return (
-                Outcome(
-                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
-                    participants: participants, penalties: [foul], clockRunoff: 4),
-                []
-            )
-        }
 
         if landing <= 0 {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchback, participants: participants,
-                    clockRunoff: 6),
+                    penalties: kickerFoul.map { [$0] } ?? [], clockRunoff: 6),
                 []
             )
         }
@@ -1007,10 +1021,14 @@ public struct CrudeResolver: PlayResolver {
                     foul: .illegalTouching, offender: toucher, offendingTeam: context.offense,
                     yards: 0, wasAccepted: false)
             }
+            // One flag a play, and the rush at the kicker is the one the rules layer can
+            // enforce: only the first penalty on a record is enforced, so a second would
+            // be dropped in silence.
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
-                    participants: participants, penalties: illegal.map { [$0] } ?? [],
+                    participants: participants,
+                    penalties: (kickerFoul ?? illegal).map { [$0] } ?? [],
                     finalSpot: UInt8(max(1, min(99, landing + drift))), clockRunoff: 6),
                 []
             )
@@ -1027,6 +1045,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .fairCatch, participants: participants,
+                    penalties: kickerFoul.map { [$0] } ?? [],
                     finalSpot: UInt8(max(1, min(99, landing))), clockRunoff: 6),
                 []
             )
@@ -1052,7 +1071,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
-                    penalties: blockBack.map { [$0] } ?? [],
+                    penalties: (kickerFoul ?? blockBack).map { [$0] } ?? [],
                     finalSpot: 100, clockRunoff: 12),
                 decisions
             )
@@ -1060,28 +1079,26 @@ public struct CrudeResolver: PlayResolver {
         return (
             Outcome(
                 kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
-                penalties: blockBack.map { [$0] } ?? [],
+                penalties: (kickerFoul ?? blockBack).map { [$0] } ?? [],
                 finalSpot: UInt8(max(1, min(99, run.spot))), clockRunoff: 8),
             decisions
         )
     }
 
+    /// A place kick, and the rush at the kicker the rules protect him from.
+    ///
+    /// **The kick is resolved first and the flag drawn after it.** The rush happens while
+    /// the ball is in the air, so a foul on the kicker does not stop the kick — and
+    /// reporting one as `.penaltyOnly` said that it did: a made field goal with roughing
+    /// on it erased three points and handed the offence a first down instead. Resolved in
+    /// this order the kick is a fact and the flag is a choice on top of it, which is what
+    /// 14-2-3 and 12-2-12 need to be able to say anything.
     private func kick(
         _ family: PlayFamily, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        if let foul = Penalties.onKick(
+        let kickerFoul = Penalties.onKick(
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
-        {
-            return (
-                Outcome(
-                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
-                    participants: participation(
-                        for: SlotLayout.specialist, personnel, role: .kicker),
-                    penalties: [foul], clockRunoff: 4),
-                []
-            )
-        }
 
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
@@ -1121,6 +1138,7 @@ public struct CrudeResolver: PlayResolver {
                 kind: family == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
                 endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
                 participants: participation(for: SlotLayout.specialist, personnel, role: .kicker),
+                penalties: kickerFoul.map { [$0] } ?? [],
                 clockRunoff: family == .extraPoint ? 0 : 5),
             []
         )

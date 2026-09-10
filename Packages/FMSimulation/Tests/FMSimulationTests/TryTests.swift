@@ -43,10 +43,20 @@ struct TryTests {
                 case .twoPointConversion: standard = rules.twoPointSnapYard
                 default: continue
                 }
-                let flagOnTheTry =
+                // Two ways a try is not at its standard spot, and both are 11-3-3's.
+                // A flag before the snap replays it from the enforced spot, and the play
+                // before it is the flag. A foul during the touchdown is enforced *on*
+                // the try (14-2-3), and the play before it is the touchdown with an
+                // accepted penalty on it — which is the only thing an accepted penalty
+                // on a scoring play can mean.
+                let flagBeforeTheSnap =
                     previous.outcome.kind == .penaltyOnly
                     && previous.situation.possession == play.situation.possession
                     && previous.calls.offense == play.calls.offense
+                let foulDuringTheTouchdown =
+                    previous.outcome.endedIn == .touchdown
+                    && previous.outcome.penalties.first?.wasAccepted == true
+                let flagOnTheTry = flagBeforeTheSnap || foulDuringTheTouchdown
                 if flagOnTheTry {
                     moved += 1
                     #expect(

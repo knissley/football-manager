@@ -111,10 +111,12 @@ struct FoulDuringAScoreTests {
         #expect(decision.advancement.points == rules.fieldGoal)
     }
 
-    /// On a touchdown the book does not distinguish the kinds of foul at all: whatever it
-    /// was, it goes on the try.
+    /// The article's subject runs through both of its sentences: a personal or
+    /// unsportsmanlike foul by the side that did *not* score. What the touchdown clause
+    /// adds is *when* — live ball, dead ball, or between downs — and where it goes, which
+    /// is the try rather than the free kick.
     @Test(
-        "football · Rule 14-2-3 · a foul during a touchdown is enforced on the try, whatever kind of foul it was",
+        "football · Rule 14-2-3 · a personal foul by the defence during a touchdown is enforced on the try, and the six points stand",
         .tags(.football))
     func aFoulDuringATouchdownGoesOnTheTry() {
         let before = situation(ballOn: 12, down: .first, distance: 10)
@@ -128,6 +130,14 @@ struct FoulDuringAScoreTests {
         #expect(decision.advancement.scoring == .touchdown)
         #expect(decision.advancement.points == rules.touchdown)
         #expect(decision.advancement.requiresTry)
+
+        // A dead-ball foul after the score is on the try too, and this one is not a
+        // personal foul: 11-3-3 Item 1 puts every foul after a touchdown on the try.
+        let afterTheWhistle = rules.enforce(
+            penalty(.taunting, byTeam: TeamID(1)), on: before, outcome: score,
+            offendingTeamHadBall: true)
+        #expect(afterTheWhistle.deferredTo == .theTry)
+        #expect(afterTheWhistle.advancement.points == rules.touchdown)
     }
 
     /// 11-3-3 Item 3-a. The try is *repeated* — the point comes off and the attempt comes

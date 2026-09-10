@@ -135,9 +135,18 @@ struct GoldenSeedTests {
             // can now miss the landing zone and hand over 6-2-4's spot, and an onside kick
             // dies where the rules let it be recovered rather than ten yards past it on
             // the branch where the receiving team came up with it.
-            (UInt64(1), UInt64(6_202_845_544_835_067_374)),
-            (UInt64(5), UInt64(11_893_553_472_174_351_963)),
-            (UInt64(12), UInt64(2_167_134_667_287_202_943)),
+            // And moved by a foul on a play that scored. A place kick is resolved before
+            // the rush at the kicker is drawn, so a flag there no longer cancels the
+            // kick; a personal or unsportsmanlike foul during a field goal, a safety or a
+            // try is carried to the free kick and one during a touchdown to the try
+            // (2025 rulebook, 14-2-3, 11-3-3), so the spot the next play is made from
+            // moves; an offensive foul on a successful try brings the try back (11-3-3
+            // Item 3-a) where it used to end the sequence; and `afterThePlay` is drawn on
+            // completions and sacks as well as runs, which is a flag on plays that could
+            // not draw one at all.
+            (UInt64(1), UInt64(5_375_534_536_715_646_457)),
+            (UInt64(5), UInt64(3_124_004_378_098_102_246)),
+            (UInt64(12), UInt64(15_626_393_571_278_336_379)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

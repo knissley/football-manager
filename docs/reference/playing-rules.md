@@ -266,6 +266,10 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
   `test:onsideRecoveryKeepsPossession`
+- **6-2-3** — A receiving-team player may not run into the kicker before he recovers his
+  balance: five yards. It is Rule 12 Section 2's article 12 seen from the kicking game, and
+  the five-yard half of it — running into him rather than roughing him — so it carries no
+  automatic first down. — `test:runningIntoTheKickerReplaysTheDown`
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
   the turf or a man in front of the landing zone, hands the receiving team its choice of
   three spots: the ball 25 yards on from where it was kicked, at the inbounds line; the spot
@@ -337,13 +341,19 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:triesAreSnappedFromTheRightSpot`, `test:walkOffTryIsTheCallerChoice`
 - **11-3-2-b**, **11-3-2-c** — Either team can score on a try: a try that ends in a
   touchdown is two points whoever scores it, and what would be a safety on a try is one
-  point to the opponent. — not yet enforced,
-  [#48](https://github.com/knissley/football-manager/issues/48)
+  point to the opponent. — not yet enforced and no issue carries it: the resolver ends
+  every try as the offence's own success or failure, so the defence never has the ball
+  on one
 - **11-3-3** — Fouls on a try, and where the re-try is snapped from; half the distance on a
-  try is measured from the other try spot. Its **Item 2** is the one the engine leans on: a
-  foul that kills the play before the snap is treated as it would be before a scrimmage
-  play. — `test:falseStartOnTheKickMovesItBack`, `test:offsideOnTheConversionMovesItIn`,
-  `test:falseStartOnATryMovesTheTry`
+  try is measured from the other try spot. Its **Item 2** is a foul that kills the play
+  before the snap, treated as it would be before a scrimmage play; **Item 3-a** repeats the
+  try after a foul by the scoring team during a successful one; **Item 4-a** puts a foul by
+  the defending team on the ensuing kickoff. — `test:falseStartOnTheKickMovesItBack`,
+  `test:offsideOnTheConversionMovesItIn`, `test:falseStartOnATryMovesTheTry`,
+  `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`, `test:holdingOnASuccessfulTryRepeatsIt`,
+  `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; the loss-of-down exception in
+  Item 3-b is not modelled, because no foul the engine draws on a try carries a loss of
+  down
 - **11-3-4** — After a try, the team on defence for it receives the succeeding free kick. —
   `test:afterTheTryTheDefendingTeamReceives`, `test:kickoffReturnTouchdownGetsItsTry`
 - **11-4-1** — A field goal has to be place-kicked or drop-kicked, struck at or behind the
@@ -382,6 +392,11 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:roughingOnACompletion`, `test:roughingOnAnIncompletion`
 - **12-2-15** — Facemask: fifteen, an automatic first down if by the defence. —
   `test:facemaskAtTheEndOfARun`, `test:facemaskByTheFormerOffenseOnAReturn`
+- **12-2-12** — Roughing the kicker is fifteen yards and an automatic first down; running
+  into him is five and the down is replayed. Both are in the personal-fouls section, which
+  is what decides whether 14-2-3 carries one to a succeeding spot. —
+  `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
+  `test:personalFoulsAreNamedByTheBook`
 - **12-2-16** — Horse-collar tackle: fifteen and an automatic first down. —
   `test:everyFoulIsCalled`
 - **12-3-1** — Unsportsmanlike conduct after the play: fifteen from the succeeding spot, and
@@ -392,11 +407,13 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 - **14-2-1** — Half the distance to the goal is measured from the spot of enforcement,
   whichever spot that is. — `test:halfTheDistanceFromTheEnforcementSpot`
 - **14-2-3** — A personal or unsportsmanlike foul during a down in which the opponent kicks
-  a field goal or scores a safety is enforced on the free kick; during a touchdown, any foul
-  is enforced on the try; the offended team may instead take customary enforcement and give
-  up the points. — `test:defensiveFoulOnATouchdown` covers the score standing; enforcement
-  on the try or the kickoff is not yet enforced,
-  [#48](https://github.com/knissley/football-manager/issues/48)
+  a field goal or scores a safety is enforced on the free kick; on a touchdown it is
+  enforced on the try, whether it came during the down, after the whistle or between downs;
+  the offended team may instead take customary enforcement and give up the points. —
+  `test:defensiveFoulOnATouchdown`, `test:roughingOnAMadeFieldGoalMovesTheFreeKick`,
+  `test:aPersonalFoulDuringASafetyMovesTheFreeKick`, `test:aFoulDuringATouchdownGoesOnTheTry`,
+  `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:roughingOnAMadeFieldGoalMovesTheKickoff`;
+  the option to give up the points is not modelled, since no caller would take it
 - **14-2-4** — A personal or unsportsmanlike foul by a team whose opponent has the ball at
   the end of the down may be enforced from the dead-ball spot. —
   `test:facemaskByTheFormerOffenseOnAReturn`

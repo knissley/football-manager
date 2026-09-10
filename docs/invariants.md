@@ -393,10 +393,23 @@ season is what checks one. A band is evidence about a rate and never about a rul
     double foul with no change of possession offsets and replays the down.
     `[2025 · 14-5-1]` — `test:flagsAreEnforced`
 79. A personal or unsportsmanlike foul during a down in which the opponent kicks a field
-    goal or scores a safety is enforced on the free kick, and any foul during a touchdown is
-    enforced on the try. `[2025 · 14-2-3]` — **not yet enforced**,
-    [#48](https://github.com/knissley/football-manager/issues/48): the score stands and the
-    flag is recorded declined
+    goal or scores a safety is enforced on the free kick, and one during a touchdown is
+    enforced on the try; a dead-ball foul after any score goes on whichever of the two
+    follows it. `[2025 · 14-2-3, 11-3-3 Item 1, 11-3-3 Item 7]` —
+    `test:roughingOnAMadeFieldGoalMovesTheFreeKick`,
+    `test:aPersonalFoulDuringASafetyMovesTheFreeKick`, `test:aFoulDuringATouchdownGoesOnTheTry`,
+    `test:defensiveFoulOnATouchdown`, `test:roughingOnAMadeFieldGoalMovesTheKickoff`,
+    `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:personalFoulsAreNamedByTheBook`
+    An offensive foul during a *successful try* repeats the try, and a defensive one
+    leaves the point and is enforced on the succeeding free kick.
+    `[2025 · 11-3-3 Item 3-a, 11-3-3 Item 4-a]` —
+    `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`,
+    `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`,
+    `test:holdingOnASuccessfulTryRepeatsIt`.
+    And the kicker is protected either way: roughing him is fifteen yards and an automatic
+    first down, running into him is five with the down replayed, and neither cancels a
+    kick that was already away. `[2025 · 12-2-12, 6-2-3]` —
+    `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`
 80. The basic spot when a run is followed by a change of possession is the spot where
     possession was lost. `[2025 · 14-3-5]` — **not yet enforced**,
     [#58](https://github.com/knissley/football-manager/issues/58): the record does not carry

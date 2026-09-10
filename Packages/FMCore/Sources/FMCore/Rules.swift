@@ -130,10 +130,12 @@ public struct Rules: Sendable, Hashable, Codable {
     /// down short of the landing zone, is worth to the receiving team: the ball this many
     /// yards from the spot of the kick (2025 rulebook, 6-2-4).
     ///
-    /// The article offers three spots and the receiving team elects. Two of them are
-    /// never better than a third: the out-of-bounds spot is downfield of this award, and
-    /// the spot the ball came down at beats it only when the kick travelled less than
-    /// this far. So `freeKickAward` is the choice, made as the receiving team would.
+    /// The article offers three spots and the receiving team elects: this award, measured
+    /// downfield from wherever the kick was made and placed on the nearer hash; the spot
+    /// the ball crossed the sideline; or where it came down. Two of the three are never
+    /// better than the first — the out-of-bounds spot lies beyond it, and where the ball
+    /// came down beats it only on a kick that fell short of it. So `freeKickAward` is the
+    /// election, made as the receiving team would make it.
     ///
     /// A safety kick pays 30 rather than 25 under the same article. The engine does not
     /// carry that: `advance` is a function of the situation and the outcome, and neither
@@ -311,13 +313,14 @@ extension Rules {
     /// goal lines or came down short of the landing zone (2025 rulebook, 6-2-4), in the
     /// receiving team's own frame.
     ///
-    /// The article offers three spots and lets the receiving team elect: the ball
-    /// `freeKickOutOfBoundsYards` from the spot of the kick at the inbounds line; the
-    /// out-of-bounds spot; or where the ball came down, but only when that is nearer than
-    /// the award. The first is never worse than the second — a kick has to travel past
-    /// the award to go out of bounds downfield of it — and the third beats the first only
-    /// on a kick that did not travel that far. So the election is arithmetic: the ball
-    /// stops at the lesser of the award and the distance the kick actually covered.
+    /// The article offers three spots and lets the receiving team elect: this award,
+    /// measured downfield from wherever the kick was made and placed on the nearer hash;
+    /// the spot the ball crossed the sideline; or where it came down, but that one only
+    /// when it is nearer than the award. The first is never worse than the second — a
+    /// kick has to travel past the award to cross a sideline downfield of it — and the
+    /// third beats the first only on a kick that did not travel that far. So the election
+    /// is arithmetic: the ball stops at the lesser of the award and the distance the kick
+    /// actually covered.
     ///
     /// `kickFrom` and `deadAt` are both in the kicking team's frame; the result is
     /// flipped, because the receiving team is about to snap it.
