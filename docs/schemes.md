@@ -119,26 +119,33 @@ zone team's are athletes. This biases the *shape* of the ratings, and the overal
 is still corrected to its target afterwards — so fitting the scheme shows up as a
 bonus in that scheme rather than as free rating points.
 
-A twelve-team league at seed 2030, with the extremes highlighted:
+A thirty-two team league at seed 67, four rows picked out of it:
 
 ```
-TEAM OFFENSE     DEFENSE       MEAN   QB   RB    OL   WR   FIT
-4    vertical    4-3 under     63.2   73   74  68.9   72   0.2   off built for zone run
-6    spread      bend/break    64.5   91   63  69.3   76   0.8   off built for air raid
-10   power run   nickel match  68.2   88   94  79.2   78   1.2
-11   air raid    nickel match  70.0   94   79  73.8   88   1.0
+TEAM OFFENSE     DEFENSE          STR  MEAN   QB   RB    OL   WR   FIT
+12   vertical    press blitz     -2.3  64.4   81   72  67.0   70   1.1   off built for west coast
+14   air raid    bend/break      +3.0  65.6   78   72  75.7   74  -2.4   off built for vertical, def built for press blitz
+24   air raid    3-4 okie        +6.0  69.1   94   79  72.3   90   1.0
+25   power run   3-4 okie        +4.1  66.6   81   81  76.2   79   1.6
 ```
 
-Team 10 is a power-run club: a 94-rated back behind the best line in the league,
-with an adequate quarterback. Team 11 runs an air raid: a 94 passer and an 88
-receiver, and a back nobody would build around. Same league, same generator,
+Regenerate the whole table with `swift run worldgen --seed 67 --teams 32 --show league`.
+`STR` is the strength offset the club was drawn at, in overall points either side of the
+league's middle; `FIT` is the mean scheme fit of its roster.
+
+Team 25 is a power-run club: a back and a line, and a quarterback who is merely
+adequate — nothing about it was assembled to throw. Team 24 runs an air raid: a
+94-rated passer and a 90 receiver, a thinner line, and a fit of 1.0 saying the
+roster suits what the club does with it. Same league, same generator,
 recognisably different clubs.
 
-Teams 4 and 6 are the **deliberate mismatches**, at roughly twelve percent of the
-league. Team 6 is a spread offence whose roster was assembled for an air raid —
-mild, both pass-heavy. Team 4 is the interesting one: it runs vertical shots with
-a line built to zone block, which is why its scheme fit is the worst in the
-league at 0.2.
+Teams 12 and 14 are **deliberate mismatches** — five of the thirty-two here,
+against a design rate of twelve percent. Team 12's is the mild kind: vertical
+shots run by a roster built for a west-coast offence, both of them
+quarterback-led, and its fit is unremarkable at 1.1. Team 14 is the interesting
+one. It is an air raid whose offence was assembled to take vertical shots and
+whose defence was built to blitz, now playing a soft two-high shell, and its fit
+of -2.4 is the worst in the league and the only negative one in it.
 
 That mismatch is a story rather than a generation flaw. It is a team that ought
 to change, a good AI will, and it puts the trade market's logic into the world on

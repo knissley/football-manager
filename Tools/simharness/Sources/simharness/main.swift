@@ -135,25 +135,27 @@ func header() {
 
 // MARK: - Build a world
 
-var random = SplittableRandom(seed: seed)
-var colleges = NameGenerator.collegePool(count: 80, using: &random)
-if colleges.isEmpty { colleges = [College(name: "Fallback State", profile: .midMajor)] }
+// The same world `worldgen` prints and the tests play in, from the same call. Until this
+// existed the harness gave every team `Strength.leagueAverage`, so four hundred games were
+// four hundred meetings between two identical clubs and no row that depends on one team
+// being better than another meant anything.
+//
+// No draft pipeline and no rivalries: neither reaches a snap, and generating them would
+// double the work before the first kickoff.
+let generated = WorldGenerator.generate(
+    seed: seed, shape: .standard, season: 2030, parts: .teamsAndRosters, collegeCount: 80)
 
-guard let world = try? LeagueGenerator.league(shape: .standard, using: &random).get() else {
-    print("could not generate a league")
+let world: WorldGenerator.GeneratedWorld
+switch generated {
+case .failure(let error):
+    print("could not generate a league:")
+    for explanation in error.explanations { print("  - \(explanation)") }
     exit(1)
+case .success(let value):
+    world = value
 }
 
-var ids = IdentifierSequence<PlayerSubject>()
-var players: [PlayerID: Player] = [:]
-var charts: [TeamID: DepthChart] = [:]
-
-for team in world.teams {
-    let roster = RosterGenerator.roster(
-        builtFor: team.scheme, season: 2030, colleges: colleges, ids: &ids, using: &random)
-    for player in roster { players[player.id] = player }
-    charts[team.id] = RosterGenerator.depthChart(from: roster)
-}
+let players = world.players
 
 // MARK: - Simulate
 
@@ -183,9 +185,9 @@ for index in 0..<games {
     let setup = GameSetup(
         game: GameID(UInt64(index + 1)),
         home: GameTeam(
-            id: home.id, depthChart: charts[home.id] ?? DepthChart(), scheme: home.scheme),
+            id: home.id, depthChart: world.depthChart(of: home.id), scheme: home.scheme),
         away: GameTeam(
-            id: away.id, depthChart: charts[away.id] ?? DepthChart(), scheme: away.scheme),
+            id: away.id, depthChart: world.depthChart(of: away.id), scheme: away.scheme),
         players: players,
         stadium: home.stadium,
         weather: weather,
@@ -223,6 +225,12 @@ let thirdDownConversions = thirdDowns.filter {
 }
 
 print("simharness — \(results.count) games, seed \(seed)")
+// No target: this is the world the games were played in, not a result. It is printed so a
+// run that looks flat can be told apart from a league that was drawn flat.
+let offsets = world.teams.map { world.strength(of: $0.id).offset }
+print(
+    "  \(world.teams.count) teams, strength offset "
+        + "\(oneDecimal(offsets.min() ?? 0)) to \(oneDecimal(offsets.max() ?? 0))")
 print("")
 print("  Rulebook")
 print(
@@ -1041,6 +1049,9 @@ let decided = Double(max(1, homeWins + awayWins))
 print(
     "    \(pad("home win rate", 30))\(pad(oneDecimal(Double(homeWins) / decided * 100) + "%", 9))crowd only, see M3"
 )
+// The one row here that can go negative, now that home and away are not the same team:
+// at 200 games, five seeds in twenty give the road side the edge. `oneDecimal` keeps the
+// sign on a value in (-1, 0) since E1 (#2), so this needs nothing of its own.
 print(
     "    \(pad("home scoring edge (points)", 30))\(pad(oneDecimal(Double(homePoints - awayPoints) / Double(max(1, results.count))), 9))crowd only, see M3"
 )

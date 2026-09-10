@@ -4,8 +4,9 @@
 //   swift run --package-path Tools/worldgen -- --seed 42 --show roster --team 3
 //   swift run --package-path Tools/worldgen -- --show league --teams 32
 //
-// Regenerating with the same seed always prints the same world, so anything
-// surprising here can be reproduced exactly.
+// Every mode reads one world, built by `WorldGenerator.generate(seed:shape:season:)` —
+// the same call the harness and the tests make. Regenerating with the same seed always
+// prints the same world, so anything surprising here can be reproduced exactly.
 
 import FMCore
 import FMGeneration
@@ -41,7 +42,8 @@ while let argument = arguments.next() {
             worldgen — inspect generated content
 
               --seed <n>      world seed (default 2030)
-              --teams <n>     teams in the league (default 32)
+              --teams <n>     teams in the league (default 32), rounded down to the
+                              nearest legal shape: two conferences of divisions of four
               --team <n>      which team to show (default 0)
               --season <n>    season number (default 2030)
               --show <mode>   roster | starters | league | teams | standings
@@ -127,24 +129,48 @@ func oneDecimal(_ value: Double) -> String {
     return "\(scaled / 10).\(abs(scaled % 10))"
 }
 
+/// Signed, so a strength column reads as an offset from the league's middle rather than
+/// as a rating.
+///
+/// The sign is written here and the magnitude formatted separately: `oneDecimal` divides
+/// by ten in integer arithmetic, so it renders -0.4 as "0.4" and a small negative offset
+/// would read as a small positive one.
+func signedOneDecimal(_ value: Double) -> String {
+    (value < 0 ? "-" : "+") + oneDecimal(value < 0 ? -value : value)
+}
+
 // MARK: - Build the world
 
-var random = SplittableRandom(seed: seed)
-var ids = IdentifierSequence<PlayerSubject>()
-let colleges = NameGenerator.collegePool(count: 120, using: &random)
-
-var rosters: [[Player]] = []
-var identities: [SchemeIdentity.Identity] = []
-for index in 0..<teamCount {
-    let offset =
-        teamCount == 1 ? 0 : -8.0 + 16.0 * Double(index) / Double(teamCount - 1)
-    let identity = SchemeIdentity.identity(using: &random)
-    identities.append(identity)
-    rosters.append(
-        RosterGenerator.roster(
-            strength: .init(offset: offset), builtFor: identity.builtFor,
-            season: season, colleges: colleges, ids: &ids, using: &random))
+/// The nearest legal league to a requested team count: two conferences of divisions of
+/// four. A count that is not a multiple of eight rounds down, and the header prints what
+/// was actually built rather than what was asked for.
+func shape(forTeams requested: Int) -> LeagueShape {
+    let divisions = max(1, requested / 8)
+    let total = 2 * divisions * 4
+    return LeagueShape(
+        conferences: 2,
+        divisionsPerConference: divisions,
+        teamsPerDivision: 4,
+        // A short league cannot play seventeen games: with eight teams there are only
+        // fourteen opponents to meet, counting everyone twice.
+        regularSeasonGames: min(17, 2 * (total - 1)),
+        playoffTeamsPerConference: min(divisions * 4, divisions + 3))
 }
+
+let generated = WorldGenerator.generate(
+    seed: seed, shape: shape(forTeams: teamCount), season: season)
+
+let world: WorldGenerator.GeneratedWorld
+switch generated {
+case .failure(let error):
+    print("That is not a league:")
+    for explanation in error.explanations { print("  - \(explanation)") }
+    exit(1)
+case .success(let value):
+    world = value
+}
+
+let teams = world.teams
 
 func describe(_ offense: OffensiveScheme) -> String {
     switch (offense.blocking, offense.passing) {
@@ -158,21 +184,6 @@ func describe(_ offense: OffensiveScheme) -> String {
     }
 }
 
-/// Names whichever side of the ball the roster does not suit. Reporting only
-/// the offence made a defensive mismatch look like a contradiction: "plays air
-/// raid, built for air raid".
-func mismatchNote(_ identity: SchemeIdentity.Identity) -> String {
-    guard identity.isMismatched else { return "" }
-    var parts: [String] = []
-    if identity.played.offense != identity.builtFor.offense {
-        parts.append("off built for \(describe(identity.builtFor.offense))")
-    }
-    if identity.played.defense != identity.builtFor.defense {
-        parts.append("def built for \(describe(identity.builtFor.defense))")
-    }
-    return "   " + parts.joined(separator: ", ")
-}
-
 func describe(_ defense: DefensiveScheme) -> String {
     switch (defense.front, defense.coverage, defense.pressure) {
     case (.fourMan, .singleHigh, .balanced): return "4-3 under"
@@ -182,6 +193,21 @@ func describe(_ defense: DefensiveScheme) -> String {
     case (.multiple, .twoHighSoft, .conservative): return "bend/break"
     default: return "custom"
     }
+}
+
+/// Names whichever side of the ball the roster does not suit. Reporting only
+/// the offence made a defensive mismatch look like a contradiction: "plays air
+/// raid, built for air raid".
+func mismatchNote(_ identity: SchemeIdentity.Identity?) -> String {
+    guard let identity, identity.isMismatched else { return "" }
+    var parts: [String] = []
+    if identity.played.offense != identity.builtFor.offense {
+        parts.append("off built for \(describe(identity.builtFor.offense))")
+    }
+    if identity.played.defense != identity.builtFor.defense {
+        parts.append("def built for \(describe(identity.builtFor.defense))")
+    }
+    return "   " + parts.joined(separator: ", ")
 }
 
 // `season` is passed rather than captured: top-level variables in main.swift are
@@ -210,52 +236,59 @@ func printPlayers(_ players: [Player], title: String, season: Int) {
 
 switch mode {
 case "roster":
-    guard teamIndex >= 0 && teamIndex < rosters.count else {
-        print("no team \(teamIndex); the league has \(rosters.count)")
+    guard let team = world.team(at: teamIndex) else {
+        print("no team \(teamIndex); the league has \(teams.count)")
         exit(1)
     }
-    let roster = rosters[teamIndex]
+    let roster = world.roster(of: team.id)
     printPlayers(
-        roster, title: "Team \(teamIndex) — 53-man roster (seed \(seed))", season: season)
+        roster,
+        title: "\(team.identity.fullName) — 53-man roster (seed \(seed))",
+        season: season)
     print("")
+    print("  strength offset \(signedOneDecimal(world.strength(of: team.id).offset))")
     print("  mean overall \(oneDecimal(mean(roster.map { Int($0.overall) })))")
 
 case "starters":
-    guard teamIndex >= 0 && teamIndex < rosters.count else {
-        print("no team \(teamIndex)")
+    guard let team = world.team(at: teamIndex) else {
+        print("no team \(teamIndex); the league has \(teams.count)")
         exit(1)
     }
-    let starters = RosterGenerator.projectedStarters(from: rosters[teamIndex])
+    let starters = RosterGenerator.projectedStarters(from: world.roster(of: team.id))
     printPlayers(
-        starters, title: "Team \(teamIndex) — projected starters (seed \(seed))", season: season)
+        starters,
+        title: "\(team.identity.fullName) — projected starters (seed \(seed))",
+        season: season)
 
 case "league":
-    print("League of \(teamCount), seed \(seed)")
+    print("League of \(teams.count), seed \(seed)")
     print("")
     print(
         pad("TEAM", 5) + pad("OFFENSE", 12) + pad("DEFENSE", 14)
-            + padLeft("MEAN", 6) + padLeft("QB", 5) + padLeft("RB", 5)
+            + padLeft("STR", 6) + padLeft("MEAN", 6) + padLeft("QB", 5) + padLeft("RB", 5)
             + padLeft("OL", 6) + padLeft("WR", 5) + padLeft("FIT", 6))
-    for (index, roster) in rosters.enumerated() {
-        let identity = identities[index]
+    for (index, team) in teams.enumerated() {
+        let roster = world.roster(of: team.id)
         func best(_ position: Position) -> String {
             "\(roster.filter { $0.position == position }.map { Int($0.overall) }.max() ?? 0)"
         }
         let line = roster.filter(\.position.isOffensiveLine).map { Int($0.overall) }
-        let fit = mean(roster.map { $0.schemeFit(identity.played) })
+        let fit = mean(roster.map { $0.schemeFit(team.scheme) })
         print(
             pad("\(index)", 5)
-                + pad(describe(identity.played.offense), 12)
-                + pad(describe(identity.played.defense), 14)
+                + pad(describe(team.scheme.offense), 12)
+                + pad(describe(team.scheme.defense), 14)
+                + padLeft(signedOneDecimal(world.strength(of: team.id).offset), 6)
                 + padLeft(oneDecimal(mean(roster.map { Int($0.overall) })), 6)
                 + padLeft(best(.quarterback), 5)
                 + padLeft(best(.runningBack), 5)
                 + padLeft(oneDecimal(mean(line)), 6)
                 + padLeft(best(.wideReceiver), 5)
                 + padLeft(oneDecimal(fit), 6)
-                + mismatchNote(identity))
+                + mismatchNote(world.identity(of: team.id)))
     }
-    let all = rosters.flatMap { $0 }
+    let all = teams.flatMap { world.roster(of: $0.id) }
+    let offsets = teams.map { world.strength(of: $0.id).offset }
     print("")
     print("  \(all.count) players")
     print("  mean overall     \(oneDecimal(mean(all.map { Int($0.overall) })))")
@@ -264,67 +297,50 @@ case "league":
     print("  under 60         \(all.filter { $0.overall < 60 }.count)")
     print("  mean age         \(oneDecimal(mean(all.map { $0.age(in: season) })))")
     print("  star developers  \(all.filter { $0.hidden.developmentTrait == .star }.count)")
+    // The strength draw itself, so a league that is secretly flat — or secretly ordered —
+    // is visible without reading every row.
+    print(
+        "  strength offset  \(signedOneDecimal(offsets.min() ?? 0)) to "
+            + "\(signedOneDecimal(offsets.max() ?? 0)), mean "
+            + "\(signedOneDecimal(offsets.reduce(0, +) / Double(max(1, offsets.count))))")
 
 case "teams", "standings":
-    var structureRandom = SplittableRandom(seed: seed)
-    let shape = LeagueShape(
-        conferences: 2,
-        divisionsPerConference: max(1, teamCount / 8),
-        teamsPerDivision: 4,
-        regularSeasonGames: 17,
-        playoffTeamsPerConference: max(1, teamCount / 8) + 3)
-
-    switch LeagueGenerator.league(shape: shape, using: &structureRandom) {
-    case .failure(let error):
-        print("That is not a league:")
-        for explanation in error.explanations {
-            print("  - \(explanation)")
-        }
-        exit(1)
-    case .success(let world):
-        print("\(world.league.name), seed \(seed)")
-        print("")
-        for conference in world.league.conferences {
-            print("\(conference.name) Conference")
-            for division in conference.divisions {
-                print("  \(division.name)")
-                for id in division.teams {
-                    guard let team = world.team(id) else { continue }
-                    let ground = team.stadium
-                    let roof = ground.isIndoors ? "dome" : "\(ground.climate)"
-                    let altitude = ground.isHighAltitude ? ", \(ground.altitudeFeet)ft" : ""
-                    print(
-                        "    " + pad(team.identity.abbreviation, 5)
-                            + pad(team.identity.fullName, 32)
-                            + pad("\(team.market)", 8)
-                            + pad(ground.name, 26)
-                            + "\(roof), \(ground.capacity / 1000)k, noise \(ground.noise)"
-                            + altitude)
-                }
+    print("\(world.league.name), seed \(seed)")
+    print("")
+    for conference in world.league.conferences {
+        print("\(conference.name) Conference")
+        for division in conference.divisions {
+            print("  \(division.name)")
+            for id in division.teams {
+                guard let team = world.team(id) else { continue }
+                let ground = team.stadium
+                let roof = ground.isIndoors ? "dome" : "\(ground.climate)"
+                let altitude = ground.isHighAltitude ? ", \(ground.altitudeFeet)ft" : ""
+                print(
+                    "    " + pad(team.identity.abbreviation, 5)
+                        + pad(team.identity.fullName, 32)
+                        + pad("\(team.market)", 8)
+                        + pad(ground.name, 26)
+                        + "\(roof), \(ground.capacity / 1000)k, noise \(ground.noise)"
+                        + altitude)
             }
-            print("")
         }
-
-        let stadiums = world.teams.map(\.stadium)
-        print("League texture")
-        print("  domes            \(stadiums.filter(\.isIndoors).count) of \(stadiums.count)")
-        print("  grass fields     \(stadiums.filter { $0.surface == .grass }.count)")
-        print("  high altitude    \(stadiums.filter(\.isHighAltitude).count)")
-        print("  major markets    \(world.teams.filter { $0.market == .major }.count)")
-        print("  small markets    \(world.teams.filter { $0.market == .small }.count)")
-        print(
-            "  loudest          \(stadiums.max { $0.noise < $1.noise }.map { "\($0.name) (\($0.noise))" } ?? "-")"
-        )
+        print("")
     }
 
-case "class", "pipeline":
-    var draftRandom = SplittableRandom(seed: seed)
-    var identifiers = IdentifierSequence<PlayerSubject>()
-    let classes = DraftClassGenerator.pipeline(
-        firstDraftSeason: season, teams: teamCount, shape: .standard, colleges: colleges,
-        identifiers: &identifiers, using: &draftRandom)
+    let stadiums = teams.map(\.stadium)
+    print("League texture")
+    print("  domes            \(stadiums.filter(\.isIndoors).count) of \(stadiums.count)")
+    print("  grass fields     \(stadiums.filter { $0.surface == .grass }.count)")
+    print("  high altitude    \(stadiums.filter(\.isHighAltitude).count)")
+    print("  major markets    \(teams.filter { $0.market == .major }.count)")
+    print("  small markets    \(teams.filter { $0.market == .small }.count)")
+    print(
+        "  loudest          \(stadiums.max { $0.noise < $1.noise }.map { "\($0.name) (\($0.noise))" } ?? "-")"
+    )
 
-    for generated in classes {
+case "class", "pipeline":
+    for generated in world.draftPipeline {
         let draftClass = generated.draftClass
         let headline = draftClass.strength.headline.map { " · deep at \($0)" } ?? ""
         print(
@@ -381,61 +397,45 @@ case "class", "pipeline":
     }
 
 case "rivalries":
-    var rivalryRandom = SplittableRandom(seed: seed)
-    let rivalryShape = LeagueShape(
-        conferences: 2, divisionsPerConference: max(1, teamCount / 8), teamsPerDivision: 4,
-        regularSeasonGames: 17, playoffTeamsPerConference: max(1, teamCount / 8) + 3)
+    func name(_ id: TeamID) -> String {
+        world.team(id)?.identity.fullName ?? "?"
+    }
 
-    switch LeagueGenerator.league(shape: rivalryShape, using: &rivalryRandom) {
-    case .failure(let error):
-        print("That is not a league:")
-        for explanation in error.explanations { print("  - \(explanation)") }
-        exit(1)
-    case .success(let world):
-        let rivalries = RivalryGenerator.rivalries(
-            league: world.league, teams: world.teams, currentSeason: season,
-            using: &rivalryRandom)
+    print("Rivalries, seed \(seed), season \(season)")
+    print("")
+    let hottest = world.rivalries.sorted { $0.intensity(in: season) > $1.intensity(in: season) }
+    for rivalry in hottest.prefix(12) {
+        let heat = rivalry.heat(in: season)
+        print(
+            "  " + pad("\(name(rivalry.pair.lower)) v \(name(rivalry.pair.higher))", 54)
+                + pad("\(rivalry.origin)", 12)
+                + pad("\(heat)", 11)
+                + oneDecimal(rivalry.intensity(in: season)))
+        for event in rivalry.liveHistory(in: season, limit: 2) {
+            let who = event.aggrievedTeam.map { " (\(name($0)) on the wrong end)" } ?? ""
+            print("      \(event.season)  \(event.kind)\(who)")
+        }
+    }
 
-        func name(_ id: TeamID) -> String {
-            world.team(id)?.identity.fullName ?? "?"
-        }
-
-        print("Rivalries, seed \(seed), season \(season)")
-        print("")
-        let hottest = rivalries.sorted { $0.intensity(in: season) > $1.intensity(in: season) }
-        for rivalry in hottest.prefix(12) {
-            let heat = rivalry.heat(in: season)
-            print(
-                "  " + pad("\(name(rivalry.pair.lower)) v \(name(rivalry.pair.higher))", 54)
-                    + pad("\(rivalry.origin)", 12)
-                    + pad("\(heat)", 11)
-                    + oneDecimal(rivalry.intensity(in: season)))
-            for event in rivalry.liveHistory(in: season, limit: 2) {
-                let who = event.aggrievedTeam.map { " (\(name($0)) on the wrong end)" } ?? ""
-                print("      \(event.season)  \(event.kind)\(who)")
-            }
-        }
-
-        print("")
-        print("League texture")
-        print("  rivalries        \(rivalries.count)")
-        for heat in RivalryHeat.allCases {
-            let count = rivalries.filter { $0.heat(in: season) == heat }.count
-            print(
-                "    " + pad("\(heat)", 14) + String(repeating: "#", count: count / 2) + " \(count)"
-            )
-        }
-        let events = rivalries.flatMap(\.history)
-        print("  seeded events    \(events.count)")
-        for origin in RivalryOrigin.allCases {
-            let count = rivalries.filter { $0.origin == origin }.count
-            print("    " + pad("\(origin)", 14) + "\(count)")
-        }
+    print("")
+    print("League texture")
+    print("  rivalries        \(world.rivalries.count)")
+    for heat in RivalryHeat.allCases {
+        let count = world.rivalries.filter { $0.heat(in: season) == heat }.count
+        print(
+            "    " + pad("\(heat)", 14) + String(repeating: "#", count: count / 2) + " \(count)"
+        )
+    }
+    let events = world.rivalries.flatMap(\.history)
+    print("  seeded events    \(events.count)")
+    for origin in RivalryOrigin.allCases {
+        let count = world.rivalries.filter { $0.origin == origin }.count
+        print("    " + pad("\(origin)", 14) + "\(count)")
     }
 
 case "colleges":
     print("College pool, seed \(seed)")
-    for college in colleges.prefix(40) {
+    for college in world.colleges.prefix(40) {
         print("  " + pad(college.name, 36) + "\(college.profile)")
     }
 

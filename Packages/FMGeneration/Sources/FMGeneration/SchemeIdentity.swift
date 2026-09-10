@@ -120,9 +120,18 @@ extension SchemeIdentity {
 
     public static func identity(using random: inout SplittableRandom) -> Identity {
         let played = scheme(using: &random)
-        guard random.nextBool(probability: mismatchProbability) else {
-            return Identity(played: played, builtFor: played)
-        }
+        return Identity(played: played, builtFor: builtFor(playing: played, using: &random))
+    }
+
+    /// The scheme a roster suits, given the scheme its club plays.
+    ///
+    /// Separate from `identity(using:)` because a generated *team* already has a scheme —
+    /// `LeagueGenerator` draws it — and only the other half is still open. Drawing both
+    /// again would give the world two answers to what a club runs.
+    public static func builtFor(
+        playing played: TeamScheme, using random: inout SplittableRandom
+    ) -> TeamScheme {
+        guard random.nextBool(probability: mismatchProbability) else { return played }
         // The roster was assembled for something else — by a previous regime,
         // or by a draft that did not go to plan.
         var builtFor = scheme(using: &random)
@@ -131,6 +140,6 @@ extension SchemeIdentity {
             builtFor = scheme(using: &random)
             attempts += 1
         }
-        return Identity(played: played, builtFor: builtFor)
+        return builtFor
     }
 }
