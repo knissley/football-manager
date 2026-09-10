@@ -14,7 +14,10 @@ tested; these are the values a generated league starts with.
 
 `[2025 · 6-1-5]` is Rule 6, Section 1, Article 5 of the 2025 rulebook; a fourth part is
 the clause, so `[2025 · 4-7-1-b]` is that article's (b). No rulebook text is reproduced
-here — the rules are in our own words and the number is how you find the original.
+here: the rules are in our own words and the number is how you find the original. Terms of
+art are the exception, and have to be — a *free kick*, the *line to gain*, *half the
+distance to the goal* have no synonyms worth having, so short phrases coincide with the
+book's even where no sentence does.
 
 Every rule statement below was checked against the 2025 book itself. A line that is not a
 rule — a modelling convention, a calibration band, a fact about our engine — says which it
@@ -29,9 +32,8 @@ line nobody has checked; grep for that phrase before trusting a number.
   snap. `[2025 · 5-1-1]`
 - A series is four scrimmage downs to reach the line to gain. `[2025 · 3-8-2]`,
   `[2025 · 7-3-1]`
-- The line to gain is 10 yards in advance of the spot of the snap that started the series,
-  **or the goal line if that is nearer** — which is what first and goal is.
-  `[2025 · 3-8-3]`
+- The line to gain sits ten yards downfield of wherever the series began, **or on the goal
+  line when that is closer** — which is what first and goal is. `[2025 · 3-8-3]`
 
 ## Game length
 
@@ -39,9 +41,10 @@ line nobody has checked; grep for that phrase before trusting a number.
   `[2025 · 4-1-1]`
 - Halftime is 13 minutes; the other intermissions are at least two. `[2025 · 4-1-2]`,
   `[2025 · 4-1-3]`
-- The two-minute warning is an automatic timeout taken at the end of the last down snapped
-  or kicked before two minutes remain — in the **second and fourth periods**, not every
-  half of every kind of period. `[2025 · 3-41]`
+- The two-minute warning stops the game without anyone asking: whichever down is under way
+  when the clock runs past 2:00 finishes, and then the clock is dead. It belongs to the
+  **second and fourth periods** only, not to every half of every kind of period.
+  `[2025 · 3-41]`
 - Play clock: 40 seconds from the end of the previous play; 25 seconds after an
   administrative stoppage — change of possession, charged timeout, two-minute warning, end
   of a period, penalty enforcement, a free kick. `[2025 · 4-6-1]`, `[2025 · 4-6-2]`
@@ -49,8 +52,8 @@ line nobody has checked; grep for that phrase before trusting a number.
 
 ## Clock stoppage
 
-This is where accuracy matters most. The clock stops at the end of a down in which any of
-these happens, and starts again as the second column says. `[2025 · 4-4]`, `[2025 · 4-3]`
+This is where accuracy matters most. Any of these kills the clock as the down closes, and
+the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 
 | Event | Restarts on | Cite |
 | --- | --- | --- |
@@ -61,7 +64,7 @@ these happens, and starts again as the second column says. `[2025 · 4-4]`, `[20
 | **Change of possession** | Snap | `4-4-i`, `4-3-2-a-1` |
 | Foul | Generally as if the foul had not occurred; on the snap in the listed late-game cases | `4-4-e`, `4-3-2-e` |
 | Two-minute warning | Snap | `4-4-h` |
-| Runner out of bounds | **Ready for play**, except on the snap after a change of possession, after the two-minute warning of the first half, or inside the last five minutes of the second half | `4-4-c`, `4-3-2-a` |
+| Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five | `4-4-c`, `4-3-2-a` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` |
 | During the Try | The Try is untimed | `4-3-2-h`, `11-3-1` |
 | First down gained | Does not stop the clock | — |
@@ -77,15 +80,15 @@ of the interval between snaps is the offense's tempo choice against the play clo
 The clock penalty that makes the end of a half a rules problem rather than an arithmetic
 one. In our own words:
 
-- After the two-minute warning of either half a team may not conserve time by: a foul by
-  either team that stops the clock during a dead-ball period; intentional grounding; an
-  illegal forward pass; throwing a backward pass out of bounds; spiking or throwing the
-  ball in the field of play after a down has ended, other than after a touchdown; or
-  illegally batting or kicking the ball out of bounds. Five yards, unless a larger
-  distance penalty applies. `[2025 · 4-7-1]`
-- **When the offence does one of them while the clock is running, ten seconds come off**,
-  the play clock is reset to 30, and the game clock starts on the ready-for-play signal.
-  `[2025 · 4-7-1]` Item 1
+- Inside the final two minutes of either half, neither side may buy time with any of six
+  acts: a flag thrown between downs by either side that kills a running clock; intentional
+  grounding; an illegal forward pass; a backward pass thrown out of bounds; a spike or a
+  throw-away in the field of play once a down is over, a touchdown excepted; and an illegal
+  bat or kick that puts the ball out of bounds. Five yards, or more if some other penalty
+  is bigger. `[2025 · 4-7-1]`
+- **When the offence does one of them with the clock running, ten seconds come off**, the
+  play clock goes back to 30, and the game clock restarts at the ready-for-play signal
+  rather than at the snap. `[2025 · 4-7-1]` Item 1
 - The offence may use a charged timeout instead of the runoff, and then the clock starts
   on the snap. `[2025 · 4-7-1]` Item 1
 - **The defence may always decline the runoff and keep the yardage. Declining the yardage
@@ -113,17 +116,17 @@ one. In our own words:
 | Try by kick | 1 | `[2025 · 11-1-2-d]` |
 | Try by pass or run | 2 | `[2025 · 11-1-2-d]` |
 
-A field goal must be a place kick or drop kick from on or behind the line of scrimmage,
-and must not touch the ground or a teammate before it passes through the goal.
+A field goal has to be place-kicked or drop-kicked, struck at or behind the line, and it
+must reach the goal without grazing the turf or one of the kicker's own men.
 `[2025 · 11-4-1]`
 
 Field goal distance = yards to goal line + 10 (end zone) + 7 (snap depth). Ball on the
 opponent's 30 is a 47-yard attempt. Get this formula right once, in one place. The snap
 depth is a modelling constant, not a rule.
 
-**A miss is a field-position event.** If a missed field goal crosses the line and the
-receivers do not touch it, they take the ball at the spot of the kick — or at their 20 if
-the kick came from inside the 20. `[2025 · 11-4-2]`
+**A miss is a field-position event.** When a missed kick crosses the line and the
+receivers never touch it, the ball comes back to where it was struck — or to their own 20,
+if it was struck from nearer than that. `[2025 · 11-4-2]`
 
 **After a safety, the team that was scored upon puts the ball in play with a free kick
 from its own 20**, and that kick alone may be a punt as well as a drop kick or place kick.
@@ -147,15 +150,15 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 
 ## Overtime
 
-**Regular season** — one 10-minute period after an intermission of no more than three
-minutes. `[2025 · 16-1-3]`
+**Regular season** — a single 10-minute period, after a break of three minutes at most.
+`[2025 · 16-1-3]`
 
-- **Both teams must have the opportunity to possess the ball**, whatever the first
-  possession produced. The one exception in the article: if the team that kicked off
-  scores a safety on the receiving team's first possession, it has won. `[2025 · 16-1-3-a]`
+- **Each side is owed a turn with the ball**, whatever the first turn produced. The
+  article names one exception: a team that kicks off and then scores a safety against the
+  receivers' opening drive has won on the spot. `[2025 · 16-1-3-a]`
 - Once both have had that opportunity, whoever has more points has won. `[2025 · 16-1-3-b]`
-- If the first team does not score on its initial possession, or the score is level after
-  both have possessed, **the next score by any method wins**. `[2025 · 16-1-3-c]`
+- If the side that had it first came away with nothing, or the two are still level once
+  both have had their turn, **the next points of any kind win it**. `[2025 · 16-1-3-c]`
 - A defence that takes the ball away has thereby had its possession — possession is gained
   by catching, intercepting or recovering a loose ball — so a first-possession turnover
   puts the game into sudden death, and a defensive touchdown on the first possession ends
@@ -225,31 +228,32 @@ nobody moves until the ball comes down.
 - **At least nine receiving players must be in the setup zone**, at least six of them with
   a foot on the restraining line — seven if the team puts more than nine in the zone. That
   leaves at most two returners deep. `[2025 · 6-1-3-b]`
-- **At most three of those players may be off the restraining line, and never more than
-  one in each of the three areas the sidelines and the inbounds lines cut the setup zone
-  into.** This is the 2025 modification to the formation. `[2025 · 6-1-3-b]` Item 2
-- The kicking team's ten line up with their front foot on their restraining line, feet on
-  the ground, and nobody but the kicker and the men deep may move until the ball touches
-  the ground or a player in the landing zone or the end zone. `[2025 · 6-1-3-a]`,
+- **Three of them at most may stand off that line, and only one to a lane**: the sidelines
+  and the inbounds lines cut the zone into three lanes across the field, and no lane may
+  hold two of the three. This is the 2025 modification to the formation.
+  `[2025 · 6-1-3-b]` Item 2
+- The kicking team's ten put a front foot on their restraining line and keep both feet
+  down, and nobody but the kicker and the men deep may move until the kick has come down —
+  in the end zone, or in the landing zone — or been touched there. `[2025 · 6-1-3-a]`,
   `[2025 · 6-1-3-c]`
 - **A kick that comes down in the landing zone is live and gets returned.** There is no
   fair catch available: a fair catch is defined only on a scrimmage kick.
   `[2025 · 6-1-4]`, `[2025 · 10-2-1]`
-- **Short, or out of bounds:** if the kick goes out of bounds between the goal lines, or
-  first touches the ground or a player short of the landing zone, the receiving team may
-  take the ball **25 yards from the spot of the kick** — its own 40 when the kick was from
-  the 35 — or at the out-of-bounds spot, or where the ball came down, whichever it
-  prefers. From a safety kick the distance is 30 yards. `[2025 · 6-2-4]`
+- **Short, or out of bounds:** a kick that crosses a sideline before reaching a goal line,
+  or that first hits the turf or a man in front of the landing zone, hands the receiving
+  team a choice — the ball **twenty-five yards on from where it was kicked**, which is its
+  own 40 when the kick came from the 35, or the spot where it left the field, or wherever
+  it came down. A safety kick pays thirty yards instead. `[2025 · 6-2-4]`
 - **Landing zone, then the end zone:** the ball is live; downed there or out of bounds
   behind the goal line, it is a touchback at the **20**. `[2025 · 6-1-5-a]`
 - **Into the end zone without touching down in the landing zone first** — downed there,
   out of bounds behind the goal line, or off the goal post — it is a touchback at the
   **35**. This is the 2025 change; it was the 30 in 2024. `[2025 · 6-1-5]`
-- A kickoff or safety kick that reaches the end zone and stays inbounds is a live ball and
-  must be returned or downed. `[2025 · 6-1-5]`
-- The kicking team may recover the ball once it has touched the ground or a player in the
-  landing zone or the end zone; a recovery there is the kicking team's ball at the dead
-  ball spot. `[2025 · 6-1-4-c]`, `[2025 · 6-1-4-d]`
+- A kickoff or safety kick that reaches the end zone and stays inbounds is still alive:
+  the receiving team either brings it out or kills it where it is. `[2025 · 6-1-5]`
+- Once the kick has come down in the end zone or the landing zone, off the turf or off a
+  man, the kicking team may take it; a legal recovery there is its ball where the play
+  died. `[2025 · 6-1-4-c]`, `[2025 · 6-1-4-d]`
 
 The two touchback spots are the point of the rule: a kicker who will not put the ball in
 the landing zone hands over the 35, so leg strength is a decision rather than a formality.
@@ -264,9 +268,9 @@ the landing zone hands over the 35, so leg strength is a decision rather than a 
 - The kicking team's restraining line is still its **35** (its 20 on a safety kick), with
   the rest of the unit's front feet on that line and no more than five players either side
   of the ball. `[2025 · 6-1-6-b]`, `[2025 · 6-1-6-c]`
-- The kicking team may recover only after the ball **reaches the receiving team's
-  restraining line** — ten yards in advance of its own — or is touched by a receiving team
-  player first. `[2025 · 6-1-6-e]`, `[2025 · 6-1-6-g]`
+- The kicking team may recover only once the ball has **got to the receiving team's
+  restraining line**, ten yards on from its own, or a receiver has put a hand on it first.
+  `[2025 · 6-1-6-e]`, `[2025 · 6-1-6-g]`
 - The receiving team puts eight or nine players between its restraining line and 15 yards
   behind it, the onside kick setup zone. A kick that goes untouched beyond that zone is
   dead and the receiving team's, and costs the kicking team 15 yards.
@@ -282,9 +286,9 @@ declaring at any point when trailing.
 
 - A punt that reaches the end zone untouched by the receivers is a touchback, and the
   receiving team snaps at its own 20. `[2025 · 11-6-2-c]`, `[2025 · 11-6-3]`
-- A fair catch is an unhindered catch of a scrimmage kick beyond the line after a valid
-  signal; the receiving team then snaps from the spot, or may take a fair catch kick.
-  `[2025 · 10-2-1]`, `[2025 · 10-2-4]`
+- A fair catch is what a returner gets for signalling properly and then being left alone
+  to take a punt in that has crossed the line. His team snaps from where he caught it, or
+  may ask for a fair catch kick instead. `[2025 · 10-2-1]`, `[2025 · 10-2-4]`
 - A ball downed inside the 10 is a significant field-position win and the AI should value
   it. Modelling, not a rule.
 - Blocks and muffs are low-probability branches worth modeling — they're memorable and
@@ -297,9 +301,9 @@ The book's own list of what changed for 2025, with what it touches here.
 | Rule | What changed | Touches |
 | --- | --- | --- |
 | `6` | The 2024 form of the kickoff is made permanent | The kicking game — #46 |
-| `6-1-3` | Alignment for receiving-team players in the setup zone, on a kickoff or a safety kick: at most three of them off the restraining line, and never more than one in each of the three areas bordered by the sidelines and the inbounds lines | #46 |
+| `6-1-3` | Where the receiving team stands in the setup zone, on any free kick from a kickoff to a safety kick: three men at most off the restraining line, and only one to a lane across the field | #46 |
 | `6-1-5` | **Touchback spot moves to the 35** when the kick reaches the end zone without touching down in the landing zone first — downed there, out of bounds behind the goal line, or off the goal post | `Rules.kickoffTouchbackOwnYard` — #41, #46 |
-| `6-1-6` | Alignment for the kicking team on an onside kick, **and an onside kick may be declared at any time when trailing** | `PlayCaller.kicksOnside` — #41, #46 |
+| `6-1-6` | Where the kicking team stands for an onside kick, **and a trailing team may now call for one in any quarter** | `PlayCaller.kicksOnside` — #41, #46 |
 | `15-9` | Replay assist may advise the on-field crew on more objective aspects of a play | Officiating; not modelled |
 | `16-1-3` | **Regular-season overtime gives both teams a possession** whatever the first one produced, within one 10-minute period | `GameState`, `Rules` — #15 |
 
