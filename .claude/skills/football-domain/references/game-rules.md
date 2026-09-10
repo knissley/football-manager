@@ -211,12 +211,59 @@ All cites are the 2025 book.
 **Accept/decline:** simulate the play outcome and the penalty outcome, then let the
 non-penalized team take whichever is better. Offsetting penalties replay the down.
 
-**Where a foul is enforced from** is its own rule — Rule 14 `[2025 · 14-4]` for the spots,
-`[2025 · 8-6]` for the passing game — and is not in this table. The engine gets some of
-them wrong today; that is issue #18.
+**Where a foul is enforced from** is its own rule, and the next section carries it.
 
 The 10–14 penalties per game the harness aims at is a calibration band, not a rule, and
 its season and source belong to issue #2.
+
+### Where a foul is enforced from
+
+- The spots a penalty can be enforced from are the previous spot (where the ball was last
+  put in play), the spot of the foul, the spot of a backward pass or fumble, the dead-ball
+  spot, the succeeding spot (where the ball will next be put in play), the other try
+  spot, and the spot of a change of possession. `[2025 · 14-3-4]`
+- **Half the distance to the goal is measured from the spot of enforcement**, whichever
+  spot that is. `[2025 · 14-2-1]`
+- A foul before the snap is enforced from the succeeding spot and the down stays; a foul
+  at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]`
+- **The basic spot.** For a foul during a run that is not followed by a change of
+  possession, the basic spot is the dead-ball spot; when the run is followed by a change
+  of possession, it is the spot where possession was lost; during a backward pass or
+  fumble, the spot of the pass or the fumble. `[2025 · 14-3-5]`
+- **The three-and-one method.** A foul during a run, a backward pass or a fumble is
+  enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
+  advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
+  Exceptions: the offence's fouls behind the line of scrimmage are enforced from the
+  previous spot, and so are the defence's when the basic spot is behind the line.
+  `[2025 · 14-3-6]`
+- When a run with a foul in it is followed by a change of possession: a defensive foul
+  gives the ball back to the offence before enforcement; an offensive foul must be
+  declined by the defence to keep the ball, unless it was a personal or unsportsmanlike
+  foul, in which case the defence keeps the ball and the foul is enforced from the
+  dead-ball spot. `[2025 · 14-4-3]`
+- A personal or unsportsmanlike foul by a team whose opponent has the ball at the end of
+  the down may be enforced from the dead-ball spot. `[2025 · 14-2-4]`
+- **A foul during a score.** A personal or unsportsmanlike foul during a down in which
+  the opponent kicks a field goal or scores a safety is enforced on the free kick; during
+  a touchdown, any foul is enforced on the try; the offended team may instead take the
+  penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
+  engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
+  the flag is recorded declined.
+- **The passing game.** A foul by either team from the snap until a forward pass thrown
+  from behind the line ends is enforced from the previous spot, and the pass play ends
+  and a running play begins at the instant of the catch. `[2025 · 8-6-1]` Interference by
+  the defence is enforced from the spot of the foul; in the end zone it is first down at
+  the 1, or half the distance from the previous spot when that was inside the 2.
+  `[2025 · 8-6-1-b]` A personal foul by the defence before a completion is enforced from
+  the previous spot or the dead-ball spot, whichever is better for the offence; if the
+  play scores, on the try. `[2025 · 8-6-1-d]`
+- Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
+  automatic first down when it is the defence's. `[2025 · 12-3-1]`
+- Horse-collar tackle: fifteen yards and an automatic first down. `[2025 · 12-2-16]`
+  Impermissible use of the helmet: fifteen, an automatic first down if by the defence.
+  `[2025 · 12-2-10]` Blindside block: fifteen. `[2025 · 12-2-7]` Illegal use of hands by
+  the offence: ten. `[2025 · 12-1-3-a]` An ineligible player downfield on a pass: five
+  from the previous spot. `[2025 · 8-3-1]`
 
 ## Kickoffs
 
@@ -329,7 +376,6 @@ tree while this doc was written; the rest are the audit's findings, taken on its
   `PlayCaller` protocol extension, not a method on one caller: `BaselineCaller` and every
   other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
   #41, #46.
-- Live-ball fouls are enforced from the wrong spot. #18.
 
 The dynamic kickoff is not in the engine at all: `Rules` carries one
 `kickoffTouchbackOwnYard` and `Advancement` has one kickoff touchback spot, so there is no

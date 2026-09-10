@@ -171,7 +171,8 @@ enum Penalties {
     /// who won — and the deep ones, where the spot foul hurts most.
     static func whenBeatenInCoverage(
         defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
-        personnel: Lineup, context: PlayContext, random: inout SplittableRandom
+        lineOfScrimmage: UInt8, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> PenaltyRecord? {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
@@ -190,12 +191,16 @@ enum Penalties {
 
         // Deep, it is interference and enforced from the spot. Underneath, it is holding
         // or illegal contact and costs five.
-        // Anything past the sticks is deep enough for the spot foul to be the call.
+        // Anything past the sticks is deep enough for the spot foul to be the call. The
+        // spot is measured — the route's depth, give or take — and reported in the
+        // offence's frame, with zero meaning the end zone (8-6-1-b).
         if routeDepth >= 10 {
-            let spot = UInt8(max(1, min(99, routeDepth + Int(random.next(upperBound: 6)) - 3)))
+            let depth = max(1, routeDepth + Int(random.next(upperBound: 6)) - 3)
+            let spot = max(0, Int(lineOfScrimmage) - depth)
             return PenaltyRecord(
                 foul: .defensivePassInterference, offender: defender,
-                offendingTeam: context.defense, yards: spot, wasAccepted: false)
+                offendingTeam: context.defense, yards: UInt8(min(99, depth)),
+                wasAccepted: false, enforcementSpot: UInt8(spot))
         }
         // Illegal contact is a rare call in the modern game; grabbing is the usual one.
         let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact

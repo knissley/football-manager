@@ -495,6 +495,20 @@ print(
     "    " + pad("declined", 28)
         + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%   (no target: the source counts accepted fouls only)"
 )
+// The contact family is enforced from the dead-ball spot with the gain counting (A6,
+// #18); measured from the previous spot it was declined against its own play's gain
+// most of the time. No target, for the same reason as the row above: this is a rules
+// check, and a family accepted far more often than declined is what the rule gives.
+let contactFouls: Set<String> = [
+    "facemask", "unnecessaryRoughness", "roughingThePasser", "horseCollarTackle",
+    "illegalUseOfHelmet",
+]
+let contactFlags = flags.filter { contactFouls.contains("\($0.foul)") }
+let contactDeclined = contactFlags.filter { !$0.wasAccepted }.count
+print(
+    "    " + pad("contact fouls declined", 28)
+        + "\(oneDecimal(Double(contactDeclined) / Double(max(1, contactFlags.count)) * 100))% of \(contactFlags.count)   (no target: a rules check for #18, enforced from the dead-ball spot)"
+)
 
 // Player-games lost is the calibration row. A season is seventeen games, so the rate per
 // game times seventeen is what has to land in range.

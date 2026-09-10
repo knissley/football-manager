@@ -126,16 +126,18 @@ extension Snap {
             clockRunoff: seconds)
     }
 
-    /// A pass that falls incomplete because a defender interfered, `spot` yards past the
-    /// line of scrimmage. Interference is measured rather than fixed, and the resolver's
-    /// contract carries the measurement in `yards`.
-    func incompletion(interferenceAt spot: UInt8, seconds: UInt16 = 5) -> Outcome {
+    /// A pass that falls incomplete because a defender interfered, `depth` yards past
+    /// the line of scrimmage. Interference is measured rather than fixed, and the
+    /// resolver's contract carries the spot in the offence's frame, with zero meaning
+    /// the end zone.
+    func incompletion(interferenceAt depth: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(
             kind: .pass, yards: 0, endedIn: .incomplete,
             penalties: [
                 PenaltyRecord(
                     foul: .defensivePassInterference, offender: PlayerSlot(11),
-                    offendingTeam: defense, yards: spot, wasAccepted: false)
+                    offendingTeam: defense, yards: min(depth, ballOn), wasAccepted: false,
+                    enforcementSpot: UInt8(max(0, Int(ballOn) - Int(depth))))
             ],
             clockRunoff: seconds)
     }

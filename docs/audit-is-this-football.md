@@ -531,7 +531,7 @@ end on it (4-5-4 Note 4). Article 3, the defensive foul in the last forty second
 not modelled and the `Rules` doc comment says so. Fourteen clock scenarios in
 `RulesConformanceTests` cover the three.
 
-## S13 — Live-ball fouls are enforced from the previous spot — **open**
+## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
 `Rules.enforcedAdvancement` measures every foul from `situation.ballOn`, the previous spot.
 A facemask at the end of a 20-yard run therefore offers the offence 15 yards from the old
@@ -547,6 +547,19 @@ This is S6's sequel. S6 made all thirty-three fouls *occur*; whether the yardage
 follows is football is a separate question, and for the contact fouls the answer is no.
 Reproduces as the issue describes. Closed by
 [A6 · #18](https://github.com/knissley/football-manager/issues/18).
+
+**Fixed by A6 (#18), in the wave 1 PR.** Every foul carries its enforcement family
+(`Foul.enforcement`: the previous spot, the spot of the foul, or the succeeding spot,
+2025 rulebook 14-3-4), a spot foul carries its measured spot in
+`PenaltyRecord.enforcementSpot` rather than in `yards`, and `Rules.enforce` is one
+routine that computes the accepted branch in the frame of the team that snaps next. The
+contact family is walked off from the dead-ball spot with the gain counting (14-3-5-a,
+14-3-6, 8-6-1-d), so a facemask at the end of a twenty-yard run is thirty-five yards and
+a first down; interference in the end zone is the 1 (8-6-1-b); half the distance is
+measured from the enforcement spot (14-2-1). The case table is in
+`PenaltyEnforcementTests`, and the harness prints how often the contact family is
+declined. A foul by the team scored upon is still recorded declined with the score
+standing, until C9 enforces it on the try or the kickoff (14-2-3).
 
 ## S14 — The completion-percentage row is a false pass — **open**
 
@@ -614,7 +627,7 @@ table is a snapshot.
 | S10 A touchdown at the end of a half gets no try | fixed | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
 | S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | fixed | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32), [A10 · #56](https://github.com/knissley/football-manager/issues/56) |
-| S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
+| S13 Live-ball fouls are enforced from the previous spot | fixed | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
 | S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
 | S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
 

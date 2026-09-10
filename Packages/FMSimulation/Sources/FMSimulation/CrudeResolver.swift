@@ -329,8 +329,8 @@ public struct CrudeResolver: PlayResolver {
             if penalty == nil {
                 penalty = Penalties.whenBeatenInCoverage(
                     defender: defender, receiver: receiver, separationCentimetres: separation,
-                    routeDepth: depth.yards, personnel: personnel, context: context,
-                    random: &random)
+                    routeDepth: depth.yards, lineOfScrimmage: situation.ballOn,
+                    personnel: personnel, context: context, random: &random)
             }
         }
 
@@ -677,11 +677,14 @@ public struct CrudeResolver: PlayResolver {
         }
 
         // A run that got into space was blocked in space, and that is where a hold in the
-        // back comes from.
+        // back comes from. The block that sprang the run is placed halfway along it — a
+        // modelling convention, with no draw behind it — and that spot is what the foul
+        // is enforced from (14-3-6).
         if penalty == nil, gained >= 5 {
             penalty = Penalties.onDownfieldBlock(
                 blockers: blocking, onOffense: true, personnel: personnel, context: context,
                 random: &random)
+            penalty?.enforcementSpot = UInt8(max(1, Int(situation.ballOn) - Int(gained) / 2))
         }
 
         // Contact fouls are drawn where the contact happened, on the man who made it.
@@ -929,10 +932,15 @@ public struct CrudeResolver: PlayResolver {
             random: &random)
 
         // Blocks in the back are what bring a return back, and the return team is on the
-        // defensive slots because the kicking team has possession.
-        let blockBack = Penalties.onDownfieldBlock(
+        // defensive slots because the kicking team has possession. The block is placed
+        // halfway along the return, in the kicking team's frame like every other spot —
+        // a modelling convention — and the rules flip it into the returners' frame to
+        // enforce it (14-3-6).
+        var blockBack = Penalties.onDownfieldBlock(
             blockers: SlotLayout.catchPursuit.map(\.0), onOffense: false, personnel: personnel,
             context: context, random: &random)
+        let reached = run.scores ? 100 : run.spot
+        blockBack?.enforcementSpot = UInt8(max(1, min(99, (landing + reached) / 2)))
 
         if run.scores {
             return (

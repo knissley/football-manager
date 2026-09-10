@@ -6,9 +6,10 @@ the matchup that beat the man committing them, with accept/decline evaluated on 
 branches. The harness prints the per-foul rates and the road-versus-home pre-snap ratio.
 *Not built:* officiating in any form — there is no `OfficiatingProfile`, no per-category
 tightness and no crew, so the whole [Officiating](#officiating) section is design. Nor is
-there an officiating slider. *Known wrong:* live-ball fouls are
-enforced from the previous spot (#18), and fouls after a score are not enforced on the
-kickoff (#48). A flag on a try moves the try (#19, fixed in wave 1).
+there an officiating slider. *Known wrong:* fouls after a score are not
+enforced on the kickoff or the try (#48, C9); until then a foul by the team scored upon is
+recorded declined and the score stands. Live-ball fouls are enforced from the right spot
+(#18) and a flag on a try moves the try (#19), both fixed in wave 1.
 
 A soul-crushing offside in a playoff game has to be possible. Getting there means
 being careful about *why* flags happen, because the obvious implementation — roll
@@ -125,9 +126,38 @@ sounds like a broadcast rather than a rulebook subset, and bounded enough that
 each one can have real enforcement.
 
 Each carries its standard yardage (5, 10 or 15), whether it awards an automatic
-first down, and which side can commit it. **Pass interference is the only spot
-foul**, enforced from where it happened, which is what makes deep interference
-the highest-variance call in the sport.
+first down, which side can commit it, and **where it is enforced from**, which is
+`Foul.enforcement` and one of three families (2025 rulebook, 14-3-4):
+
+- **The previous spot.** Every foul before the snap (14-4-1); the offence's fouls at
+  or behind the line — holding, illegal use of hands, ineligible downfield (14-3-6,
+  exception 1); and the passing game until the catch — defensive holding, illegal
+  contact, interference by the offence (8-6-1). Walked off from the line of scrimmage,
+  the down replayed unless the foul carries a first down.
+- **The spot of the foul.** Interference by the defence (8-6-1-b), which is what makes
+  deep interference the highest-variance call in the sport; in the end zone it is the 1,
+  or half the distance from the previous spot when that was inside the 2. And a block in
+  the back, a blindside block or a low block beyond the line by the team in possession,
+  which is behind the basic spot of a run that went on past it (14-3-6). The resolver
+  measures the spot and reports it as `PenaltyRecord.enforcementSpot`; a block during a
+  run is placed halfway along it, and a block during a return halfway along the return,
+  both modelling conventions.
+- **The succeeding spot** — the dead-ball spot, with the play's gain counting. The
+  contact family: facemask, unnecessary roughness, horse collar, the helmet, roughing
+  the passer on a completion (14-3-5-a, 14-3-6, 8-6-1-d); and conduct after the
+  whistle (12-3-1). On a play that lost yards or fell incomplete the previous spot is the
+  better one for the offence, and that is the one used. A defensive foul in this family
+  is an automatic first down.
+
+Enforcement is computed **in the frame of the team that will snap next**, once, in
+`Rules.enforce`. A foul by the team that ended the play without the ball is walked off
+against it; a foul by a defence that took the ball away gives it back (14-4-3-a); a
+personal foul by an offence that lost the ball leaves the new possessor in possession,
+walked off from the dead-ball spot in its frame (14-4-3-b). Half the distance to the
+goal is measured from whichever spot the foul is enforced from (14-2-1), so a facemask at
+the 6 after a run gives the 3. Measuring every foul from the previous spot, as the engine
+did until wave 1, offered the offence fifteen yards from the old line against its own
+twenty-yard run, so the whole contact family was declined.
 
 Declined penalties are recorded too. A flag that was thrown and waved off is part
 of what happened, and discarding it would make the play log disagree with what a
