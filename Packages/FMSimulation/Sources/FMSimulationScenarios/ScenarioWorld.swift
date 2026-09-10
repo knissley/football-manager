@@ -11,9 +11,9 @@ import Synchronization
 /// Seven copies of it, each subtly different, and none of them the world the game ships —
 /// two teams of exactly equal strength never meet in a real league.
 ///
-/// This is `WorldGenerator.generate(seed:shape:season:)`, the same call `worldgen` and the
-/// harness make, so a scenario plays a game between two clubs of drawn strength, with
-/// drawn schemes, from a real league.
+/// This is `WorldGenerator.generate(seed:shape:franchises:season:)`, the same call
+/// `worldgen` and the harness make, so a scenario plays a game between two clubs of drawn
+/// strength, with drawn schemes, from a real league.
 ///
 /// `.minimal` — eight teams — because a suite builds a fresh world per seed and a
 /// thirty-two team league is four times the generation for two rosters' worth of use. No

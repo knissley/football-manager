@@ -86,7 +86,7 @@ if let scenarioName {
 
 /// Build the world this game is played in.
 ///
-/// `WorldGenerator.generate(seed:shape:season:)`, with exactly the arguments
+/// `WorldGenerator.generate(seed:shape:franchises:season:)`, with exactly the arguments
 /// `Tools/simharness` passes — so `--seed 7` names the same thirty-two teams, of the same
 /// drawn strength, that the calibration harness plays, and a game watched here is a game
 /// from that world rather than from a parallel one.

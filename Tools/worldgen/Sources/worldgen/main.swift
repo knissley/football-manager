@@ -4,9 +4,10 @@
 //   swift run --package-path Tools/worldgen -- --seed 42 --show roster --team 3
 //   swift run --package-path Tools/worldgen -- --show league --teams 32
 //
-// Every mode reads one world, built by `WorldGenerator.generate(seed:shape:season:)` —
-// the same call the harness and the tests make. Regenerating with the same seed always
-// prints the same world, so anything surprising here can be reproduced exactly.
+// Every mode reads one world, built by
+// `WorldGenerator.generate(seed:shape:franchises:season:)` — the same call the harness and
+// the tests make. Regenerating with the same seed always prints the same world, so
+// anything surprising here can be reproduced exactly.
 
 import FMCore
 import FMGeneration

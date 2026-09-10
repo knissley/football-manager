@@ -254,10 +254,17 @@ public enum TeamGenerator {
     /// When it is not, this returns the **whole name** and the ledger records that, so
     /// the real stem is never spent and a drawn city may repeat it. Four curated cities
     /// end in a word the pools do not know — Junipero Mesa, Alta Verde, Vermillion Flats
-    /// and Tallow Bend — so a league large enough to draw on top of the curated set can
-    /// field Vermillion Flats beside Vermillion Heights. Nothing ships at that size:
-    /// only a shape past thirty-two teams draws a city at all, and the stutter is the
-    /// same class of fault [#4](https://github.com/knissley/football-manager/issues/4)
+    /// and Tallow Bend — so a league that draws a city beside one of those four can field
+    /// Vermillion Flats next to Vermillion Heights.
+    ///
+    /// Nothing ships in that state, but the reason is narrower than "past thirty-two".
+    /// `FranchiseSet.initial` is thirty-two lines and a career is played at thirty-two,
+    /// so on the *curated* source only a shape past thirty-two draws a city at all. The
+    /// other two sources draw at every size — `.randomised` draws all of them, and a
+    /// short `.set` has the rest of its league drawn around its own lines, seven of eight
+    /// in the tests' minimal world — so a curated line the pools cannot read the suffix
+    /// off can be stuttered there at any size. Neither of those ships either. The stutter
+    /// is the same class of fault [#4](https://github.com/knissley/football-manager/issues/4)
     /// found in the randomiser, deferred with it to the pre-release revisit of
     /// generation ([M8](../../../../docs/roadmap.md)).
     static func stem(ofCity city: String) -> String {
