@@ -7,7 +7,29 @@
 /// Rules belong to the world, not to the engine: both the crude resolver and the
 /// spatial one ask the same questions of the same values
 /// ([ADR-0012](../../../../docs/adr/0012-play-resolver-seam.md)).
+///
+/// **The defaults are one season's book, and `rulebookSeason` says which.** A value here
+/// that came from a different season than that one is a silent contradiction: the
+/// touchback sat at the 2024 spot while the overtime rules were the 2025 ones for weeks,
+/// and nothing in the tree recorded it. Before moving a number, read the article in
+/// [`docs/reference/playing-rules.md`](../../../../docs/reference/playing-rules.md).
+///
+/// **Bumping the season invalidates calibration.** A band in
+/// `Tools/simharness/Sources/simharness/Targets.swift` carries the real-league seasons it
+/// was sourced from and a `rulesSensitiveTo` set of the rule areas it depends on; the
+/// harness reads `Rules.standard.rulebookSeason`, compares it against those, and prints
+/// every row it has made stale. So a rulebook bump is: change the defaults here, add the
+/// `RuleChange` for what moved, and re-source the rows the harness then lists. Never
+/// widen a band to make one of them pass.
 public struct Rules: Sendable, Hashable, Codable {
+
+    // MARK: - The book
+
+    /// The season of the rulebook these defaults were read from.
+    ///
+    /// It is data rather than a comment because the harness reads it: see the note on the
+    /// type. Changing it without changing the values below is how the two came apart.
+    public var rulebookSeason: Int
 
     // MARK: - Structure
 
@@ -84,11 +106,25 @@ public struct Rules: Sendable, Hashable, Codable {
     public var fieldGoalSnapDepth: UInt8
     /// Yards from the kicking team's own goal line.
     public var kickoffFromOwnYard: UInt8
-    /// Where a kickoff touchback places the ball, from the receiving team's own goal.
+    /// Where a free kick that reaches the end zone **without first touching the ground or
+    /// a player in the landing zone** is spotted, from the receiving team's own goal
+    /// (2025 rulebook, 6-1-5-b, 6-1-5-c, 6-1-5-d): downed there, out of bounds behind the
+    /// goal line, or off the goal post or uprights. It was the 30 in the 2024 book.
+    ///
+    /// The book's other touchback — a kick that comes down in the landing zone first and
+    /// is then dead in the end zone, which is spotted at the 20 (6-1-5-a) — is not a
+    /// value here because the crude resolver never produces one: a kick it puts in the
+    /// landing zone is returned. See the kickoff in `CrudeResolver`.
     public var kickoffTouchbackOwnYard: UInt8
     public var puntTouchbackOwnYard: UInt8
     /// Where the team scored upon kicks off after a safety, from its own goal.
     public var safetyKickoffOwnYard: UInt8
+    /// The first period in which the kicking team may declare an onside kick.
+    ///
+    /// The 2025 book lets it declare at any time during the game, so this is `1`; the
+    /// 2024 book allowed it only in the fourth quarter. Being trailing is required under
+    /// both and is not configurable — see `mayDeclareOnsideKick` (6-1-1-c, 6-1-6).
+    public var onsideKickEarliestQuarter: UInt8
 
     // MARK: - Overtime
 
@@ -98,6 +134,7 @@ public struct Rules: Sendable, Hashable, Codable {
     public var regularSeasonTiesAllowed: Bool
 
     public init(
+        rulebookSeason: Int = 2024,
         quarters: UInt8 = 4,
         quarterLength: UInt16 = 900,
         twoMinuteWarning: UInt16 = 120,
@@ -125,10 +162,12 @@ public struct Rules: Sendable, Hashable, Codable {
         kickoffTouchbackOwnYard: UInt8 = 30,
         puntTouchbackOwnYard: UInt8 = 20,
         safetyKickoffOwnYard: UInt8 = 20,
+        onsideKickEarliestQuarter: UInt8 = 4,
         regularSeasonOvertimeLength: UInt16 = 600,
         postseasonOvertimeLength: UInt16 = 900,
         regularSeasonTiesAllowed: Bool = true
     ) {
+        self.rulebookSeason = rulebookSeason
         self.quarters = quarters
         self.quarterLength = quarterLength
         self.twoMinuteWarning = twoMinuteWarning
@@ -156,12 +195,41 @@ public struct Rules: Sendable, Hashable, Codable {
         self.kickoffTouchbackOwnYard = kickoffTouchbackOwnYard
         self.puntTouchbackOwnYard = puntTouchbackOwnYard
         self.safetyKickoffOwnYard = safetyKickoffOwnYard
+        self.onsideKickEarliestQuarter = onsideKickEarliestQuarter
         self.regularSeasonOvertimeLength = regularSeasonOvertimeLength
         self.postseasonOvertimeLength = postseasonOvertimeLength
         self.regularSeasonTiesAllowed = regularSeasonTiesAllowed
     }
 
+    /// The 2025 rulebook, which is what the engine plays.
     public static let standard = Rules()
+
+    /// The seasons whose books are written down here.
+    public static let supportedRulebooks = [2024, 2025]
+
+    /// The rules in force under a season's book, or `nil` for a season nobody has read.
+    ///
+    /// The variants live here rather than in the harness that plays them, so that a rule
+    /// value has one home: a tool that built its own copy of an older book would drift
+    /// from this one and nothing would notice.
+    ///
+    /// 2024 differs from 2025 in the kicking game alone — the touchback at the 30 rather
+    /// than the 35 (6-1-5), and an onside kick only in the fourth quarter (6-1-6). Both
+    /// are the changes the 2025 book's own list names.
+    public static func rulebook(_ season: Int) -> Rules? {
+        switch season {
+        case 2025:
+            return .standard
+        case 2024:
+            var earlier = Rules.standard
+            earlier.rulebookSeason = 2024
+            earlier.kickoffTouchbackOwnYard = 30
+            earlier.onsideKickEarliestQuarter = 4
+            return earlier
+        default:
+            return nil
+        }
+    }
 }
 
 /// Which of Rule 4's closing rules a period is played under: see
@@ -212,6 +280,24 @@ extension Rules {
 
     public var kickoffTouchbackSpot: UInt8 { ballOnFromOwnYard(kickoffTouchbackOwnYard) }
     public var puntTouchbackSpot: UInt8 { ballOnFromOwnYard(puntTouchbackOwnYard) }
+
+    /// Whether the rules let the kicking team declare an onside kick now (2025 rulebook,
+    /// 6-1-1-c, 6-1-6): at any time during the game, and only while it is trailing.
+    ///
+    /// **Both halves of that matter and they are easy to swap.** Declaring at any time is
+    /// the 2025 change from a fourth quarter that was the 2024 rule, and it is
+    /// `onsideKickEarliestQuarter`. Being behind is not a 2025 change and is not
+    /// optional: a later book drops it, this one does not, and a team level or ahead may
+    /// not ask.
+    ///
+    /// `scoreDifferential` is the kicking team's, because the kicking team has the ball
+    /// on a free kick.
+    ///
+    /// This is the *rule*. Whether a coach wants one is `PlayCaller.kicksOnside`, and the
+    /// two are kept apart so that no caller can declare one the book does not allow.
+    public func mayDeclareOnsideKick(quarter: UInt8, scoreDifferential: Int16) -> Bool {
+        quarter >= onsideKickEarliestQuarter && scoreDifferential < 0
+    }
 
     /// Seconds in a half.
     public var halfLength: UInt16 { UInt16(quarters / 2) * quarterLength }

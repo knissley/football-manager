@@ -22,6 +22,47 @@ struct SpecialTeamsTests {
         BaselineCaller().kicksOnside(situation: situation, classified: SituationClass(situation))
     }
 
+    /// The declaration as the simulator makes it: the book first, the coach second.
+    private func declares(_ situation: Situation, rules: Rules = .standard) -> Bool {
+        GameSimulator<CrudeResolver, BaselineCaller>.declaresOnsideKick(
+            caller: BaselineCaller(), situation: situation,
+            classified: SituationClass(situation, rules: rules), rules: rules)
+    }
+
+    /// The 2025 book's onside kick, as the engine is allowed to reach it.
+    ///
+    /// Both halves of 6-1-6 are easy to get wrong in opposite directions. *When* moved:
+    /// the 2024 book allowed the declaration in the fourth quarter alone, and this one
+    /// allows it at any time during the game. *Who* did not: the kicking team has to be
+    /// trailing, and a later book drops that clause, so a reading of the wrong edition
+    /// hands every team an unconditional onside kick.
+    @Test(
+        "football · Rule 6-1-1-c, 6-1-6 · a trailing team may declare an onside kick in any period, and a team that is not trailing may not declare one at all",
+        .tags(.football))
+    func onsideDeclarationFollowsTheBook() {
+        // Three scores down with the third quarter running out: legal in 2025, and a
+        // spot the baseline caller wants one from.
+        let thirdQuarter = situation(quarter: 3, clock: 60, differential: -18)
+        #expect(declares(thirdQuarter), "the 2025 book allows it at any time")
+
+        guard let earlier = Rules.rulebook(2024) else {
+            Issue.record("no 2024 rulebook variant")
+            return
+        }
+        #expect(
+            !declares(thirdQuarter, rules: earlier),
+            "the 2024 book allowed it in the fourth quarter alone")
+
+        // The fourth quarter is legal under both books, so what separates them there is
+        // nothing, and what separates a legal declaration from an illegal one is the
+        // scoreboard.
+        let trailingLate = situation(quarter: 4, clock: 100, differential: -10)
+        #expect(declares(trailingLate))
+        #expect(declares(trailingLate, rules: earlier))
+        #expect(!declares(situation(quarter: 4, clock: 100, differential: 0)), "level")
+        #expect(!declares(situation(quarter: 4, clock: 100, differential: 4)), "leading")
+    }
+
     /// You kick it away when a stop gets you the ball back, and you kick onside when it
     /// does not. Getting this wrong in either direction is glaring: a team kicking onside
     /// while ahead looks broken, and one that never does it cannot come back from ten.
