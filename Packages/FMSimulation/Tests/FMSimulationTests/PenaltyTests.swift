@@ -93,35 +93,52 @@ struct PenaltyTests {
     ///
     /// This is a gap in the event-stream contract
     /// ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)), not a property of
-    /// the sport, and it belongs to the penalties track rather than here. It is registered
-    /// rather than tolerated silently: the test below fails the moment a *different* foul
-    /// joins the list, and the list shrinks to nothing when the engine credits every man
-    /// it flags.
+    /// the sport, and it belongs to the penalties track (#54) rather than here.
     ///
-    /// Measured over eighty games at fixed noise: 29 of 1104 flags, 2.6%.
+    /// **Read off the code, not off a sample.** These are exactly the fouls the four
+    /// draws in `Penalties` that do not pick from the play's credited slots can produce:
+    /// `onDownfieldBlock` (blockers on a return), `onLineRelease` (linemen who released
+    /// on a pass), `onKick` (rushers who never reached the kicker) and `afterThePlay`
+    /// (route runners and coverage defenders once the whistle has gone). Deriving it
+    /// from eighty games instead would have missed `.lowBlock`, which is a fifth of a
+    /// sixth of the downfield-block draw and simply did not come up — and it would then
+    /// have failed here as a false ninth the first time it did.
+    ///
+    /// Measured at 2.6% of flags: 29 of 1104 over eighty games at fixed noise.
     static let foulsChargedToUncreditedSlots: Set<Foul> = [
-        .illegalBlindsideBlock,
+        // onDownfieldBlock
         .illegalBlockInTheBack,
-        .illegalManDownfield,
+        .illegalBlindsideBlock,
+        .lowBlock,
+        // onLineRelease
         .ineligibleReceiverDownfield,
+        .illegalManDownfield,
+        // onKick
         .roughingTheKicker,
         .runningIntoTheKicker,
-        .taunting,
+        // afterThePlay
         .unsportsmanlikeConduct,
+        .taunting,
     ]
 
-    /// Every flag names somebody who was on the field for the play, and on the right side
-    /// of the ball.
+    /// Pins the uncredited-slot gap: what the engine does today, not what it should.
     ///
-    /// This asserted that every offender was a credited participant and passed on six
-    /// seeds by luck: the same check over sixty games of the world it used to build finds
-    /// twenty-seven flags it does not hold for. So it asserted something the engine does
-    /// not do, and has been rewritten to assert what it does — every foul outside the
-    /// register above resolves to a credited player, and no new foul joins the register.
-    @Test("Every flag is charged to a player on the play")
+    /// This test used to be called "Every flag is charged to a player on the play" and
+    /// asserted exactly that over six seeds, where it passed by luck. The same check over
+    /// sixty games of the world this branch replaced finds twenty-seven flags it does not
+    /// hold for. So it asserted a contract the engine does not keep, and it is now a pin
+    /// on the gap instead, with the register above naming it.
+    ///
+    /// Two directions, and the range is eighty seeds so that both are armed. A foul from
+    /// outside the register turning up uncredited is a new gap and fails. Every flag
+    /// resolving to a credited player means #54 landed, which fails too — and the whole
+    /// register comes out along with this test. The one thing that does hold for every
+    /// flag, and is asserted as a plain expectation, is the side of the ball.
+    @Test(
+        "pin: every flag outside the known uncredited-slot register names a credited player (#54)")
     func offendersAreReal() {
         var uncreditable: Set<Foul> = []
-        for (play, flag) in flags(seeds: 1...12) {
+        for (play, flag) in flags(seeds: 1...80) {
             if !play.outcome.participants.contains(where: { $0.slot == flag.offender }) {
                 uncreditable.insert(flag.foul)
             }
@@ -132,6 +149,10 @@ struct PenaltyTests {
         }
         let unregistered = uncreditable.subtracting(Self.foulsChargedToUncreditedSlots)
         #expect(unregistered.isEmpty, "new fouls charged to an uncredited slot: \(unregistered)")
+        #expect(
+            !uncreditable.isEmpty,
+            "no flag names an uncredited slot any more — #54 landed: delete the register and restore the contract this test used to assert"
+        )
     }
 
     // MARK: - Home field as a mechanism

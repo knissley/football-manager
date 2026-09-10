@@ -157,7 +157,7 @@ struct GoldenWorldTests {
     /// Two runs in one process, which is the weaker check — but it distinguishes "the
     /// world moved because generation changed" from "the world moves every time", which
     /// is the first question to ask when the constants above go red.
-    @Test("A world is identical to itself, seed by seed")
+    @Test("contract: a world is identical to itself, seed by seed")
     func selfConsistent() {
         for seed in UInt64(1)...4 {
             #expect(worldChecksum(seed: seed) == worldChecksum(seed: seed))

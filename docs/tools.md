@@ -99,7 +99,11 @@ Games are played between teams of drawn strength, from the same generator `world
 prints — the header names the spread the league was drawn at. Before that, every
 calibration game was between two clubs of exactly league-average strength, which is not a
 matchup that occurs in the sport and made every row that depends on one team being better
-than the other meaningless.
+than the other meaningless. Because it is the shipping world, the harness also inherits
+the roughly one-in-eight clubs whose roster was assembled for a scheme they no longer
+play ([decision 213](design-decisions.md#world-generation)), which it did not before: a
+few points of scheme fit come off those teams, so the calibration table is measured over
+a league with badly-fitted rosters in it rather than a league of perfectly-fitted ones.
 
 The crude resolver owns the parametric rows — completion percentage, sack rate,
 interception rate — because at matchup-lite fidelity those are inputs rather than

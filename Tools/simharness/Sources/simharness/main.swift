@@ -883,8 +883,13 @@ let decided = Double(max(1, homeWins + awayWins))
 print(
     "    \(pad("home win rate", 30))\(pad(oneDecimal(Double(homeWins) / decided * 100) + "%", 9))crowd only, see M3"
 )
+// The one row here that can go negative, now that home and away are not the same team.
+// `oneDecimal` divides by ten in integer arithmetic, so it renders -0.4 as "0.4" and a
+// road-team edge would read as a home one. The sign is written here and the magnitude
+// formatted separately.
+let scoringEdge = Double(homePoints - awayPoints) / Double(max(1, results.count))
 print(
-    "    \(pad("home scoring edge (points)", 30))\(pad(oneDecimal(Double(homePoints - awayPoints) / Double(max(1, results.count))), 9))crowd only, see M3"
+    "    \(pad("home scoring edge (points)", 30))\(pad((scoringEdge < 0 ? "-" : "") + oneDecimal(abs(scoringEdge)), 9))crowd only, see M3"
 )
 
 // The mechanism itself, rather than the outcome: crowd noise raises the *visiting*
