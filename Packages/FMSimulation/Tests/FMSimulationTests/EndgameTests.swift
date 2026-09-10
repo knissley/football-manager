@@ -79,35 +79,58 @@ struct EndgameTests {
                 != .kneel)
     }
 
-    /// A knee on fourth down gives the ball up on downs — unless the period cannot
-    /// survive the play clock standing in front of it. A down that ended in bounds
-    /// leaves the game clock running, the next snap has to come inside the forty seconds
-    /// of 4-6-1, and nothing extends a period that expires between downs: 4-8-1 extends
-    /// one only while the ball is in play and 4-8-2 only for a foul in the down that
-    /// expired it. With less than a play clock left and the clock running there is no
-    /// fourth-down snap to give away, and the knee is the offence standing on the ball.
+    /// A knee on fourth down gives the ball up on downs, and while the down can still be
+    /// snapped that is all it does. A down that ended in bounds leaves the game clock
+    /// running, and the next snap has to come inside the forty seconds 4-6-1 gives the
+    /// offence to put the ball in play; nothing extends a period that expires between
+    /// downs, because 4-8-1 extends one only while the ball is in play and 4-8-2 only
+    /// for a foul in the down that expired it. So with more clock than a play clock, or
+    /// with the game clock stopped and the offence free to snap when it likes, the down
+    /// is real and a knee hands it over.
     ///
     /// Rewritten. This used to assert that fourth down is never a kneel, and it made
-    /// that case at twenty seconds with the clock running — which is exactly the case
-    /// where the down is never played. The rule was true; it was stated too widely.
+    /// that case at twenty seconds with the clock running, where the down cannot be
+    /// snapped at all. The rule was true; it was stated too widely. What the offence
+    /// does *instead* of that snap is not something these articles settle — it is the
+    /// pin below.
     @Test(
-        "football · Rules 4-6-1, 4-8-1, 4-8-2 · a knee on fourth down is a turnover on downs unless the period expires in the play clock before the snap",
+        "football · Rules 4-6-1, 4-8-1, 4-8-2 · a knee on fourth down is a turnover on downs whenever the down can still be snapped: more than a play clock left, or a game clock that is stopped",
         .tags(.football))
-    func fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst() {
+    func fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped() {
         // Forty-five seconds and a running clock: the ball has to be snapped, and a knee
         // would hand it over.
         #expect(
             concept(situation(down: .fourth, clock: 45, differential: 7, defenseTimeouts: 0))
                 != .kneel)
-        // Twenty, and the play clock runs the period out before there can be a snap.
-        #expect(
-            concept(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
-                == .kneel)
-        // A stopped clock is a snap whenever the offence likes, so the down is real again.
+        // A stopped clock is a snap whenever the offence likes, so the down is real
+        // however little is left.
         #expect(
             concept(
                 situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0),
                 clockRunning: false) != .kneel)
+    }
+
+    /// Not a rule, and the pin says why.
+    ///
+    /// With a running clock and less than a play clock left, 4-6-1, 4-8-1 and 4-8-2
+    /// together say only that **no fourth-down snap happens**: the offence may let the
+    /// forty seconds run out and take the delay of the game as the period expires, and
+    /// nothing extends a period that ends between downs. They do not say the offence
+    /// kneels — a knee is a snap. This engine has no outcome meaning *let the play clock
+    /// expire*, so its caller kneels instead, which is a snap that never occurred and a
+    /// down on the record that was never played. That is one extra knee in every victory
+    /// formation, and it is measurable: about a fifth of a knee a game.
+    ///
+    /// #101 owns the real fix — a down recorded that was never snapped — and #49 the
+    /// calibration it moves. When either lands this pin fails, and the football sentence
+    /// is that the period simply ends.
+    @Test(
+        "pin · a fourth-down knee inside the play clock is the engine's stand-in for declining the snap: 4-6-1 lets the offence take the delay of game as the period expires and 4-8-1 ends the period between downs, so the sport plays no down here at all",
+        .tags(.pin))
+    func fourthDownKneelStandsInForDecliningTheSnap() {
+        #expect(
+            concept(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
+                == .kneel)
     }
 
     /// A half is worth ending too, and the old guard would not let the caller do it: it
@@ -218,11 +241,18 @@ struct EndgameTests {
     /// what this knee leaves, so a lead that could be knelt out on first down can still
     /// be knelt out on second. Count them wrong and the caller kneels twice and then
     /// runs an ordinary play, which is what a lead gets fumbled away on.
+    ///
+    /// The window stops where fourth down starts, deliberately. Every down inside it is
+    /// a down the sport really snaps, and the articles above are what decide it. What
+    /// happens on the fourth down of a knelt-out sequence is not theirs to decide, and
+    /// the pin below is where the engine's answer to it is written down. Measured: with
+    /// the fourth-down knee removed this test still passes and that pin fails, which is
+    /// what makes this claim the sport's and that one the engine's.
     @Test(
-        "football · Rules 4-6-1, 4-3-2, 4-8-1, 4-8-2 · a lead knelt out stays knelt out: the play clock and the defence's timeouts decide it, and the period ends between downs",
+        "football · Rules 4-6-1, 4-3-2, 4-8-1, 4-8-2 · a lead knelt out stays knelt out through every down that is really snapped: the play clock and the defence's timeouts decide it, and the period ends between downs",
         .tags(.football)
     )
-    func theGameEndsInVictoryFormation() {
+    func aKneltOutLeadStaysKnelt() {
         let trace = mustBeKnelt()
         guard
             let first = trace.first(where: {
@@ -232,15 +262,39 @@ struct EndgameTests {
             Issue.record("the leading side never took a knee in the fourth quarter")
             return
         }
-        let rest = trace.plays[first.index...]
+        let snapped = trace.plays[first.index...].prefix { $0.situation.down != .fourth }
+        #expect(snapped.count > 1, "the sequence was one down long, so nothing is asserted")
         #expect(
-            rest.allSatisfy { $0.outcome.kind == .kneel },
-            "after the first knee the leading side ran \(rest.filter { $0.outcome.kind != .kneel }.count) more plays"
+            snapped.allSatisfy { $0.outcome.kind == .kneel },
+            "after the first knee the leading side ran \(snapped.filter { $0.outcome.kind != .kneel }.count) more plays"
         )
         #expect(
-            rest.allSatisfy { $0.situation.possession == first.play.situation.possession },
+            snapped.allSatisfy { $0.situation.possession == first.play.situation.possession },
             "the ball changed hands after the knee")
-        #expect(trace.plays.last?.situation.quarter == 4, "the game did not end in regulation")
+    }
+
+    /// Not a rule, and the pin says why: it is the same stand-in the fourth-down pin
+    /// above records, seen at the end of a whole game. The sport ends this game between
+    /// downs — the offence lets the forty seconds of 4-6-1 run out, takes the delay of
+    /// the game, and 4-8-1 declines to extend a period whose time expired with the ball
+    /// dead. The engine has no outcome for that, so the game's last play is a
+    /// fourth-down knee: a snap that never happened, at 0:00 of the fourth period.
+    ///
+    /// #101 owns the real fix. When it lands this fails, and the sentence becomes that
+    /// the knelt-out game's last *down* is third.
+    @Test(
+        "pin · a knelt-out game's last play is a fourth-down knee, because declining the snap is not something this engine can record",
+        .tags(.pin)
+    )
+    func theKneltOutGameEndsOnAFourthDownKnee() {
+        let trace = mustBeKnelt()
+        guard let last = trace.plays.last else {
+            Issue.record("the scripted game produced no plays")
+            return
+        }
+        #expect(last.situation.quarter == 4, "the game did not end in regulation")
+        #expect(last.situation.down == .fourth, "the last down was \(last.situation.down)")
+        #expect(last.outcome.kind == .kneel, "the last play was a \(last.outcome.kind)")
     }
 
     // MARK: - Spiking
