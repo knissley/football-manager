@@ -372,12 +372,20 @@ season is what checks one. A band is evidence about a rate and never about a rul
     enforced on the try. `[2025 · 14-2-3]` — **not yet enforced**,
     [#48](https://github.com/knissley/football-manager/issues/48): the score stands and the
     flag is recorded declined
-80. The basic spot when a run is followed by a change of possession is the spot where
+80. The basic spot when a **run** is followed by a change of possession is the spot where
     possession was lost, and a defensive foul there gives the ball back to the offence
     before enforcement. `[2025 · 14-3-5-b, 14-4-3-a]` —
-    `test:defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost`; the record's
-    half of it — every takeaway says where possession was lost — is
-    `test:takeawaysCarryTheSpot`
+    `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble`; the
+    record's half of it — every takeaway says where possession was lost — is
+    `test:takeawaysCarryTheSpot`. The same flag on a **pass** is a different rule: a foul
+    between the snap and the end of a forward pass from behind the line is enforced from
+    the previous spot, and the pass ends and a running play begins at the catch — so a
+    defensive personal foul before an interception leaves the offence the ball where it
+    snapped, not where the ball was caught. `[2025 · 14-4-5, 8-6-1]` —
+    `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot`; **modelling**:
+    the record says nothing about *when* in a down a flag flew, so a foul by the
+    intercepting team during its own return is the same record as one before the catch and
+    is walked off the same way, which is right for the second and wrong for the first
 
 ## Kickoffs and onside kicks
 

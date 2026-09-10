@@ -128,9 +128,32 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// A run of `yards` with a flag on it, at the end of which the ball comes loose and
+    /// the other side gets it and takes it back to `spot` in the offence's frame.
+    ///
+    /// The fumble is where the run ended, so that is both where possession was lost and
+    /// the basic spot for the flag: a run followed by a change of possession takes the
+    /// spot where possession went (2025 rulebook, 14-3-5-b). The offence's own gain is
+    /// nothing once it no longer has the ball, which is the contract the crude resolver
+    /// honours for the same event.
+    public func rush(
+        _ yards: Int16, fumbledAndReturnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 7
+    ) -> Outcome {
+        Outcome(
+            kind: .rush, yards: 0, endedIn: .fumbleLost, penalties: [record(foul)],
+            finalSpot: spot, possessionLostAt: UInt8(max(1, Int(ballOn) - Int(yards))),
+            clockRunoff: seconds)
+    }
+
     /// A pass intercepted `depth` yards past the line and returned to `spot` in the
-    /// offence's frame, with a flag on somebody during the return. Where possession was
-    /// lost is on the record, because it is the basic spot for a foul on the return.
+    /// offence's frame, with a flag on the defence during the down.
+    ///
+    /// Where possession was lost is on the record because every takeaway carries it, not
+    /// because the flag is enforced from there: a foul between the snap and the end of a
+    /// forward pass thrown from behind the line is enforced from the previous spot (2025
+    /// rulebook, 14-4-5). The record says nothing about *when* in the down a flag flew, so
+    /// this is one scripted play and not two: a foul before the catch and a foul by the
+    /// intercepting team on its own return are the same record.
     public func interception(
         caught depth: UInt8, returnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 8
     ) -> Outcome {

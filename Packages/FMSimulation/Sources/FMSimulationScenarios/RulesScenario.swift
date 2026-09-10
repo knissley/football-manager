@@ -120,8 +120,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case interferenceInTheEndZone = "interference-in-the-end-zone"
     case interferenceInTheEndZoneFromTheOne = "interference-in-the-end-zone-from-the-one"
     case onsideKickRecovered = "onside-kick-recovered"
-    case roughnessByTheDefenseOnAnInterceptionReturn =
-        "roughness-by-the-defense-on-an-interception-return"
+    case roughnessByTheDefenseOnARunThatEndsInAFumbleLost =
+        "roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost"
+    case roughnessByTheDefenseBeforeAnInterception =
+        "roughness-by-the-defense-before-an-interception"
     case kickoffFumbledAndReturnedByTheKickers = "kickoff-fumbled-and-returned-by-the-kickers"
 }
 
@@ -255,8 +257,10 @@ extension RulesScenario {
         case .interferenceInTheEndZoneFromTheOne:
             return RulesScenarios.interferenceInTheEndZoneFromTheOne
         case .onsideKickRecovered: return RulesScenarios.onsideKickRecovered
-        case .roughnessByTheDefenseOnAnInterceptionReturn:
-            return RulesScenarios.roughnessByTheDefenseOnAnInterceptionReturn
+        case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
+            return RulesScenarios.roughnessByTheDefenseOnARunThatEndsInAFumbleLost
+        case .roughnessByTheDefenseBeforeAnInterception:
+            return RulesScenarios.roughnessByTheDefenseBeforeAnInterception
         case .kickoffFumbledAndReturnedByTheKickers:
             return RulesScenarios.kickoffFumbledAndReturnedByTheKickers
         }
@@ -568,9 +572,13 @@ extension RulesScenario {
                 "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap",
                 "football · Rule 6-1-6, 6-1-4-c, 6-1-4-d · an onside kick the kicking team recovers is its ball, first and ten, where it was recovered",
             ]
-        case .roughnessByTheDefenseOnAnInterceptionReturn:
+        case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
             return [
-                "football · Rule 14-3-5-b, 14-4-3-a · a defensive personal foul on an interception return gives the ball back to the offence fifteen yards past the spot where possession was lost, and a first down"
+                "football · Rule 14-3-5-b, 14-4-3-a, 12-2-8 · a defensive personal foul during a run that ends in a fumble lost gives the ball back to the offence fifteen yards past the spot of the fumble, and a first down"
+            ]
+        case .roughnessByTheDefenseBeforeAnInterception:
+            return [
+                "football · Rule 14-4-5, 8-6-1, 12-2-8 · a defensive personal foul before a forward pass is intercepted is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down"
             ]
         case .kickoffFumbledAndReturnedByTheKickers:
             return [

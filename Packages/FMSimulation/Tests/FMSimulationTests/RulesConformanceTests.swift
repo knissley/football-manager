@@ -1757,28 +1757,55 @@ struct RulesConformanceTests {
 
     // MARK: A foul on a takeaway, and a kickoff the kickers carry in
 
-    /// The basic spot for a foul during a run followed by a change of possession is the
-    /// spot where possession was lost (14-3-5-b), and a defensive foul reverts the ball
-    /// to the offence before enforcement (14-4-3-a). The offence snapped from its 30,
-    /// was picked off at its 40, and gets the ball back fifteen past the 40 — at the
-    /// 45 — first and ten. Not fifteen past the 30, which is what enforcing from the
-    /// previous spot gave while the record carried no spot where possession was lost.
+    /// A run is a run until somebody else has the ball. The basic spot for a foul during
+    /// a run followed by a change of possession is the spot where possession was lost
+    /// (14-3-5-b), and a defensive foul reverts the ball to the offence before
+    /// enforcement (14-4-3-a); unnecessary roughness by the defence is fifteen and an
+    /// automatic first down (12-2-8). The offence snapped from its 30, ran to its 40 with
+    /// a defender flagged on the way, and lost the ball there — so it gets it back
+    /// fifteen past its own 40, at the opponents' 45, first and ten. Not fifteen past the
+    /// 30, which is what enforcing from the previous spot gives.
     @Test(
-        "football · Rule 14-3-5-b, 14-4-3-a · a defensive personal foul on an interception return gives the ball back to the offence fifteen yards past the spot where possession was lost, and a first down",
+        "football · Rule 14-3-5-b, 14-4-3-a, 12-2-8 · a defensive personal foul during a run that ends in a fumble lost gives the ball back to the offence fifteen yards past the spot of the fumble, and a first down",
         .tags(.football)
     )
-    func defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost() {
-        let trace = RulesScenario.roughnessByTheDefenseOnAnInterceptionReturn.run()
+    func defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble() {
+        let trace = RulesScenario.roughnessByTheDefenseOnARunThatEndsInAFumbleLost.run()
+        guard let strip = trace[1] else {
+            Issue.record("the script never put the ball on the ground")
+            return
+        }
+        #expect(strip.situation.ballOn == 70, "the scenario meant the snap from the own 30")
+        #expect(strip.outcome.possessionLostAt == 60, "stripped at the own 40")
+        trace.expectPlay(1, kind: .rush, endedIn: .fumbleLost)
+        trace.expectPlay(
+            2, possession: strip.situation.possession, down: .first, distance: 10, ballOn: 45,
+            "the offence's ball, fifteen past where it lost possession, first and ten")
+    }
+
+    /// The same flag on a pass is a different rule. A foul by either team between the snap
+    /// and the end of a forward pass thrown from behind the line is enforced from the
+    /// previous spot (14-4-5, and the same sentence as 8-6-1); the passing play ends and a
+    /// running play begins at the instant the pass is caught, so a foul before the catch
+    /// is never measured from it. The offence snapped from its 30 and gets the ball there
+    /// plus fifteen, at its own 45, first and ten (12-2-8), and the interception is wiped
+    /// out. Not fifteen past the catch, which is the running rule applied to a pass.
+    @Test(
+        "football · Rule 14-4-5, 8-6-1, 12-2-8 · a defensive personal foul before a forward pass is intercepted is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseBeforeAnInterception.run()
         guard let pick = trace[1] else {
-            Issue.record("the script did not reach the interception")
+            Issue.record("the script never threw the interception")
             return
         }
         #expect(pick.situation.ballOn == 70, "the scenario meant the snap from the own 30")
         #expect(pick.outcome.possessionLostAt == 60, "picked off at the own 40")
         trace.expectPlay(1, kind: .pass, endedIn: .intercepted)
         trace.expectPlay(
-            2, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 45,
-            "the offence's ball, fifteen past where it lost possession, first and ten")
+            2, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 55,
+            "the offence's ball, fifteen past the previous spot, first and ten")
     }
 
     /// Any player of either team may recover a fumble and advance it (8-7-3 Item 1), and

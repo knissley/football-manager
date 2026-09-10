@@ -692,12 +692,37 @@ public enum RulesScenarios {
         }
     }
 
-    /// The first snap from scrimmage, at the offence's own 30, is picked off ten yards
-    /// downfield — at its 40 — and run back to its 25, and a defender is flagged for
-    /// unnecessary roughness on the way. The ball reverts to the offence before
-    /// enforcement, and the basic spot is where it lost possession, not where it snapped.
-    static var roughnessByTheDefenseOnAnInterceptionReturn: ScriptedGame {
+    /// The first snap from scrimmage, at the offence's own 30, is a run of ten yards on
+    /// which a defender is flagged for unnecessary roughness; the back is stripped at the
+    /// end of it, at his own 40, and the defence takes it back to the offence's 25.
+    ///
+    /// A run followed by a change of possession takes the spot where possession went as
+    /// its basic spot (14-3-5-b), and a defensive foul gives the ball back to the offence
+    /// before the walk-off (14-4-3-a): fifteen from its own 40, not fifteen from its 30.
+    static var roughnessByTheDefenseOnARunThatEndsInAFumbleLost: ScriptedGame {
         ScriptedGame { snap in
+            snap.index == 1
+                ? snap.rush(10, fumbledAndReturnedTo: 75, foulBy: .unnecessaryRoughness)
+                : plod(snap)
+        }
+    }
+
+    /// The same field position and the same flag, thrown instead of run: the first snap
+    /// from scrimmage, at the offence's own 30, is a pass a defender is flagged for
+    /// unnecessary roughness on before it is picked off ten yards downfield — at the
+    /// offence's 40 — and run back to its 25.
+    ///
+    /// A foul between the snap and the end of a forward pass thrown from behind the line
+    /// is enforced from the previous spot (14-4-5, the same sentence as 8-6-1), because
+    /// the passing play does not end until the ball is caught: fifteen from its own 30,
+    /// and the interception is wiped out. The offence throws on first down from its own 30
+    /// so that the record's concept is the play the script gives it.
+    static var roughnessByTheDefenseBeforeAnInterception: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
             snap.index == 1
                 ? snap.interception(caught: 10, returnedTo: 75, foulBy: .unnecessaryRoughness)
                 : plod(snap)
