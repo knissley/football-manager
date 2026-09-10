@@ -99,6 +99,14 @@ that a run lands inside one. A row going `OFF` in CI is reporting, not a failure
 `0.0%` in that row is honest about the suite and unfair to the harness, and both halves
 of that sentence are worth remembering.
 
+**No longer quite zero.** Wave 3's dynamic kickoff (#46) put four `.football` tests on the
+resolver itself — a kick into the landing zone is returned, a penalty on the free kick
+changes what the kick can do, a kick that misses the zone hands over 6-2-4's spot, and an
+onside kick dies where the rules let it be recovered. They assert the *shape* the articles
+require of the play rather than a rate, which is what a suite can do about a resolver and
+a harness cannot. The census above is left as it was taken; the finding stands for
+everything the resolver draws that is only a rate.
+
 **Fifty-two of the rules layer's eighty-two tests are `.unit`, and many of them are
 football claims with no citation.** Three suites are the clearest: `Tries and touchbacks`
 (11 of 11 — what an extra point is worth, where a kickoff touchback is spotted), the
