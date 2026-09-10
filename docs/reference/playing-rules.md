@@ -202,6 +202,12 @@ no landing zone, no setup zone and no second touchback spot. That is
 [#46](https://github.com/knissley/football-manager/issues/46)'s problem, and the entries
 below are what it is held to.
 
+- **6-1-1-a** — A kickoff puts the ball in play at the start of each half, after a try,
+  and after a successful field goal. —
+  `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
+  `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+  `test:touchdownAsTheSecondQuarterExpires`, `test:afterTheTryTheDefendingTeamReceives`,
+  `test:afterAFieldGoalTheTeamScoredUponReceives`
 - **6-1-1-b** — The kick after a safety may be a punt as well as a drop kick or a place
   kick. — `test:afterASafetyTheTeamScoredUponKicks`
 - **6-1-1-c**, **6-1-6** — Only a trailing team may attempt an onside kick, and it must
@@ -250,6 +256,11 @@ below are what it is held to.
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
   and costs the kicking team 15 yards. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
+- **6-1-7** — A free kick ends when either team possesses the ball, or when the ball is
+  dead before that; a running play begins when the receiving team establishes
+  possession. — `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+  `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
+  `test:onsideRecoveryKeepsPossession`
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
   the turf or a man in front of the landing zone, hands the receiving team its choice of
   three spots: the ball 25 yards on from where it was kicked, at the inbounds line; the spot
@@ -268,6 +279,9 @@ below are what it is held to.
   `test:offsideOnTheConversionMovesItIn`
 - **7-4-8** — Illegal motion: five yards. — `test:everyFoulIsCalled`
 - **7-5-1** — Illegal formation by the offence: five yards. — `test:everyFoulIsCalled`
+- **7-6-1** — The offence puts the ball in play with a snap at the spot where the previous
+  down ended, unless a penalty moves it or the down ended out of bounds. —
+  `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`
 
 ## Rule 8 — Forward pass
 
@@ -334,6 +348,10 @@ below are what it is held to.
   `test:afterAFieldGoalTheTeamScoredUponReceives`
 - **11-5-2** — After a safety the team scored upon puts the ball in play with a free kick
   from its own 20. — `test:afterASafetyTheTeamScoredUponKicks`
+- **11-6-2-a**, **11-6-3** — A kickoff dead in the receivers' possession in their end zone
+  is a touchback, and they snap next at their restart spot for a free kick. —
+  `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`, `test:touchbackConsumesNoTime`;
+  the spot is `Rules.kickoffTouchbackOwnYard`, a 2024 value until D1
 - **11-6-2-c**, **11-6-3** — A punt that reaches the end zone untouched by the receivers is
   a touchback, and they snap at their own 20. — `test:touchbacksDiffer`
 

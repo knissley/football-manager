@@ -87,8 +87,15 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`; the change of ends
     is not modelled either, for the reason 4-2-3 gives
 12. The second half opens with a kickoff, the captain who lost the pregame toss having the
-    first choice of 4-2-2's privileges: to receive, or to kick off. `[2025 · 4-2-2,
-    4-2-2-a]` — `test:halftimePossession`; the choice is the captain's, a `PlayCaller`
+    first choice of 4-2-2's privileges: to receive, or to kick off. The kick hands the ball
+    to the receivers however the first half ended — on a play, or between downs on an
+    injury timeout's runoff or the last-forty-seconds election: a touchback is theirs at
+    their restart spot, a return theirs where it ended. `[2025 · 4-2-2, 4-2-2-a, 6-1-1-a,
+    6-1-7, 11-6-2, 11-6-3, 7-6-1, 4-5-4 Note 4]` — `test:halftimePossession`,
+    `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
+    `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`; the choice is the
+    captain's, a `PlayCaller`
     decision (`electsToReceive`) that defaults to receive and is read off the stream as
     the kickoff it decides, the same way a two-point or an onside call is; **modelling**:
     neither the toss nor a deferral is drawn — the side that kicks off to open the game
