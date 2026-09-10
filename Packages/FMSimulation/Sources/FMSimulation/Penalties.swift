@@ -36,7 +36,7 @@ enum Penalties {
 
     /// What one draw on the target's matchup has to carry to replace a draw on each of
     /// the four reads the coverage loop used to make.
-    static let throwsPerCoverageRead = 4.4
+    static let throwsPerCoverageRead = 4.0
 
     /// How much of that draw is the receiver's foul rather than the defender's.
     ///
@@ -249,10 +249,17 @@ enum Penalties {
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
         // One matchup a play rather than one per read, so the per-matchup rate has to
-        // carry what four reads used to. Chosen to leave the interference rate where it
-        // was — 0.72 and 0.67 calls a game over 400 games at seeds 7 and 11 — because
-        // moving *where* a foul is drawn should not move how often it is called. Both
-        // rates are outside their bands and that is the retune's problem (#49).
+        // carry what four reads used to. The coverage loop read four route runners and
+        // drew on each of them; this draws once. Four is the whole of the multiplier and
+        // nothing in it is fitted to a band.
+        //
+        // It does not put the interference rate back where it was, and it is not meant
+        // to: the old draw fired on every dropback including the ones nobody threw, and
+        // the first flag in the loop stopped the three reads behind it, so one draw at
+        // four times the rate is not four draws. Measured over 400 games at seeds 7 and
+        // 11: 0.84 and 0.82 defensive interference calls a game, against 0.71 and 0.67
+        // before the foul moved here. Both sit under the sourced band, and where the rate
+        // belongs is the retune's question rather than this draw's.
         let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * throwsPerCoverageRead
         guard random.nextBool(probability: max(0.004, min(0.45, chance))) else { return nil }
 
