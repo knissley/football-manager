@@ -207,6 +207,59 @@ struct EndgameTests {
         #expect(kneels > 0, "ten games and nobody ever took a knee")
     }
 
+    // MARK: - The runoff decisions (A5, #32)
+
+    /// Not a rule: the rulebook gives the offence a timeout instead of the runoff and
+    /// the defence the right to decline it (4-7-1 Item 1), and which way each goes is a
+    /// coaching decision. These pin the protocol's baseline answers, which every caller
+    /// inherits: the offence spends a timeout only at fifteen seconds or less with one
+    /// in hand; the defence accepts the runoff when level or leading and declines it
+    /// when trailing; and after a defensive dead-ball foul the offence has the clock
+    /// wait for the snap unless it leads.
+    @Test(
+        "pin · the baseline runoff decisions: a timeout at 15 seconds or less with one in hand, the defence declines only when trailing, the offence takes the snap start unless it leads (PlayCaller defaults; coaching decisions, not rules)"
+    )
+    func runoffDecisionDefaults() {
+        func at(_ clock: UInt16, differential: Int16 = 0, timeouts: UInt8 = 1) -> Situation {
+            situation(clock: clock, differential: differential, offenseTimeouts: timeouts)
+        }
+        func classified(_ situation: Situation) -> SituationClass { SituationClass(situation) }
+
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(situation: at(15), classified: classified(at(15))))
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(situation: at(16), classified: classified(at(16)))
+                == false)
+        #expect(
+            caller.takesTimeoutInsteadOfRunoff(
+                situation: at(10, timeouts: 0), classified: classified(at(10, timeouts: 0)))
+                == false)
+
+        // `scoreDifferential` is the offence's, so a positive number means the defence trails.
+        #expect(
+            caller.declinesRunoff(
+                situation: at(40, differential: 7), classified: classified(at(40, differential: 7)))
+        )
+        #expect(caller.declinesRunoff(situation: at(40), classified: classified(at(40))) == false)
+        #expect(
+            caller.declinesRunoff(
+                situation: at(40, differential: -7),
+                classified: classified(at(40, differential: -7)))
+                == false)
+
+        #expect(
+            caller.startsClockOnTheSnap(
+                afterDefensiveFoul: at(40, differential: -7),
+                classified: classified(at(40, differential: -7))))
+        #expect(
+            caller.startsClockOnTheSnap(afterDefensiveFoul: at(40), classified: classified(at(40))))
+        #expect(
+            caller.startsClockOnTheSnap(
+                afterDefensiveFoul: at(40, differential: 7),
+                classified: classified(at(40, differential: 7)))
+                == false)
+    }
+
     // MARK: - The walk-off
 
     /// A game the baseline caller plays to a walk-off: one side leads by `deficit` from

@@ -164,6 +164,56 @@ struct ClockStoppageTests {
     }
 }
 
+@Suite("The ten-second runoff")
+struct TenSecondRunoffTests {
+
+    private let rules = Rules.standard
+
+    private func carriesRunoff(
+        _ foul: Foul, byOffense: Bool = true, quarter: UInt8 = 4, clock: UInt16 = 40,
+        running: Bool = true
+    ) -> Bool {
+        rules.carriesRunoff(
+            foul: foul, byOffense: byOffense, quarter: quarter, clockRemaining: clock,
+            clockWasRunning: running)
+    }
+
+    @Test("football · Rule 4-7-1 Item 1 · the runoff is ten seconds")
+    func tenSeconds() {
+        #expect(rules.tenSecondRunoff == 10)
+    }
+
+    /// After the two-minute warning of either half, with the clock running, an
+    /// offensive dead-ball foul that stops the clock carries the runoff; the same foul
+    /// outside the window, with the clock stopped, or by the defence does not.
+    @Test(
+        "football · Rule 4-7-1 Item 1, 4-7-1 Item 2, 4-7-2 · the runoff applies to an offensive dead-ball foul after the two-minute warning of either half with the clock running, and never to the defence"
+    )
+    func window() {
+        for foul in [
+            Foul.falseStart, .delayOfGame, .illegalFormation, .illegalMotion,
+            .illegalShift, .illegalSubstitution,
+        ] {
+            #expect(carriesRunoff(foul), "\(foul) inside two minutes of the fourth quarter")
+            #expect(
+                carriesRunoff(foul, quarter: 2, clock: 90), "\(foul) inside two minutes of the half"
+            )
+        }
+        #expect(carriesRunoff(.falseStart, quarter: 4, clock: 130) == false, "outside two minutes")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 4, clock: 120) == false,
+            "at the warning the clock is stopped")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 1, clock: 40) == false,
+            "no warning in the first period")
+        #expect(carriesRunoff(.falseStart, quarter: 3, clock: 40) == false, "nor the third")
+        #expect(carriesRunoff(.falseStart, running: false) == false, "with the clock stopped")
+        #expect(carriesRunoff(.offside, byOffense: false) == false, "never against the defence")
+        #expect(carriesRunoff(.neutralZoneInfraction, byOffense: false) == false)
+        #expect(carriesRunoff(.encroachment, byOffense: false) == false)
+    }
+}
+
 @Suite("Running the clock")
 struct GameClockTests {
 
