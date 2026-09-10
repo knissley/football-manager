@@ -256,9 +256,9 @@ below are what it is held to.
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
   and costs the kicking team 15 yards. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
-- **6-1-7** — The free-kick down is over once a side has the ball, or once it is dead
-  without anyone having it; from the moment the receivers secure it they are running a
-  play of their own. — `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+- **6-1-7** — A free kick ends once a side has the ball, or once the ball is dead with
+  nobody having it; from the moment the receivers secure it, a running play has begun. —
+  `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
   `test:onsideRecoveryKeepsPossession`
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
@@ -279,8 +279,8 @@ below are what it is held to.
   `test:offsideOnTheConversionMovesItIn`
 - **7-4-8** — Illegal motion: five yards. — `test:everyFoulIsCalled`
 - **7-5-1** — Illegal formation by the offence: five yards. — `test:everyFoulIsCalled`
-- **7-6-1** — The next snap comes from wherever the last down finished, moved only by
-  an enforced penalty or brought in from the sideline when the down ended there. —
+- **7-6-1** — The next snap comes from wherever the last down finished, moved only by an
+  enforced penalty, or brought in to the inbounds line when the down ended outside it. —
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`
 
 ## Rule 8 — Forward pass
