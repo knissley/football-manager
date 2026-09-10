@@ -248,8 +248,18 @@ public enum TeamGenerator {
     ///
     /// A drawn city carries its stem, because the two pools share words and parsing one
     /// back out is guesswork. A *curated* city carries no stem — it was written, not
-    /// assembled — so the ledger reads one off it this way, which is right whenever the
-    /// last word is a suffix the pools use and harmlessly conservative when it is not.
+    /// assembled — so the ledger reads one off it this way, and that is right only when
+    /// the last word is a suffix the pools use.
+    ///
+    /// When it is not, this returns the **whole name** and the ledger records that, so
+    /// the real stem is never spent and a drawn city may repeat it. Four curated cities
+    /// end in a word the pools do not know — Junipero Mesa, Alta Verde, Vermillion Flats
+    /// and Tallow Bend — so a league large enough to draw on top of the curated set can
+    /// field Vermillion Flats beside Vermillion Heights. Nothing ships at that size:
+    /// only a shape past thirty-two teams draws a city at all, and the stutter is the
+    /// same class of fault [#4](https://github.com/knissley/football-manager/issues/4)
+    /// found in the randomiser, deferred with it to the pre-release revisit of
+    /// generation ([M8](../../../../docs/roadmap.md)).
     static func stem(ofCity city: String) -> String {
         let words = city.split(separator: " ").map(String.init)
         guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {

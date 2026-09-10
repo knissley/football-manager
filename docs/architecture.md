@@ -48,7 +48,8 @@ FootballManager.xcodeproj          App target — SwiftUI, composition root
     │                     Names, rosters, draft classes, seeded rivalries — and the
     │                     thirty-two curated franchises a world starts from, which
     │                     are a table rather than a draw (FranchiseSet).
-    │                     One entry point: WorldGenerator.generate(seed:shape:season:).
+    │                     One entry point:
+    │                     WorldGenerator.generate(seed:shape:franchises:season:).
     │
     ├── FMSimulation      Match engine + season engine. → FMCore, FMRandom
     │                     `GameSimulator` drives the sport's rules and asks a
@@ -118,8 +119,9 @@ estimates, through choices it can get wrong. An AI that reused generation's
 heuristics would be handing itself outcomes instead of earning them, and every
 trade and draft it made would be theatre.
 
-There is exactly one way in: `WorldGenerator.generate(seed:shape:season:)` returns the
-league, its teams, their rosters and depth charts, the colleges, the draft pipeline and
+There is exactly one way in: `WorldGenerator.generate(seed:shape:franchises:season:)`
+returns the league, its teams, their rosters and depth charts, the colleges, the draft
+pipeline and
 the rivalries. Every tool and every game-building test calls it, so the league the harness
 calibrates against is the league the tool prints and the league the tests play in.
 

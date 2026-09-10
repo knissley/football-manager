@@ -178,7 +178,7 @@ public enum FranchiseSet {
             city: "Frostmere", region: .north, market: .small, climate: .cold, altitude: 900,
             nickname: "Blacksmiths", abbreviation: "FRM",
             primary: 0x18_181A, secondary: 0xC8_C8CE, accent: 0xEC_BE3E,
-            stadium: "Union Grounds", roof: .open, surface: .grass, capacity: 55_400, noise: 85),
+            stadium: "Kilnstead Grounds", roof: .open, surface: .grass, capacity: 55_400, noise: 85),
         Franchise(
             city: "Granite Harbor", region: .north, market: .large, climate: .coastal,
             altitude: 120,
@@ -197,7 +197,7 @@ public enum FranchiseSet {
             stadium: "Old Mill Grounds", roof: .open, surface: .grass, capacity: 63_400, noise: 72),
         Franchise(
             city: "Pinecrest", region: .north, market: .medium, climate: .cold, altitude: 1_150,
-            nickname: "Goshawks", abbreviation: "PNC",
+            nickname: "Goshawks", abbreviation: "PIN",
             primary: 0x3A_3E14, secondary: 0xF6_D6A0, accent: 0xF0_ECE0,
             stadium: "Lakeside Field", roof: .open, surface: .hybrid, capacity: 64_900, noise: 75),
         Franchise(
@@ -218,7 +218,7 @@ public enum FranchiseSet {
             city: "Verano Springs", region: .south, market: .major, climate: .hot, altitude: 40,
             nickname: "Wildfire", abbreviation: "VRN",
             primary: 0x60_2C0C, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
-            stadium: "Palmetto Bowl", roof: .dome, surface: .artificial, capacity: 76_400,
+            stadium: "Solstice Stadium", roof: .dome, surface: .artificial, capacity: 76_400,
             noise: 94),
         Franchise(
             city: "Goldleaf", region: .south, market: .small, climate: .hot, altitude: 350,
@@ -239,7 +239,7 @@ public enum FranchiseSet {
         Franchise(
             city: "Sable Crossing", region: .south, market: .large, climate: .temperate,
             altitude: 480,
-            nickname: "Wranglers", abbreviation: "SBC",
+            nickname: "Wranglers", abbreviation: "SCR",
             primary: 0x18_181A, secondary: 0xF6_D6A0, accent: 0xEC_BE3E,
             stadium: "Stockyard Field", roof: .open, surface: .hybrid, capacity: 67_900, noise: 76),
         Franchise(
@@ -252,7 +252,7 @@ public enum FranchiseSet {
             city: "Tallow Bend", region: .south, market: .medium, climate: .hot, altitude: 65,
             nickname: "Monsoon", abbreviation: "TLB",
             primary: 0x48_143E, secondary: 0xE8_7A8C, accent: 0xF0_ECE0,
-            stadium: "Bayfront Arena", roof: .dome, surface: .artificial, capacity: 64_100,
+            stadium: "Levee Arena", roof: .dome, surface: .artificial, capacity: 64_100,
             noise: 89),
 
         // MARK: East — ports, mill towns and the weather off the water
@@ -261,7 +261,7 @@ public enum FranchiseSet {
             city: "Halvern", region: .east, market: .large, climate: .cold, altitude: 60,
             nickname: "Undertow", abbreviation: "HLV",
             primary: 0x28_1642, secondary: 0x9E_D6EC, accent: 0xF0_ECE0,
-            stadium: "Riverfront Coliseum", roof: .dome, surface: .artificial, capacity: 72_300,
+            stadium: "Quayside Coliseum", roof: .dome, surface: .artificial, capacity: 72_300,
             noise: 93),
         Franchise(
             city: "Kingsbridge", region: .east, market: .large, climate: .temperate, altitude: 95,
@@ -314,7 +314,7 @@ public enum FranchiseSet {
             altitude: 2_100,
             nickname: "Vipers", abbreviation: "VMF",
             primary: 0x18_181A, secondary: 0xF4_9428, accent: 0xF0_ECE0,
-            stadium: "Adobe Stadium", roof: .open, surface: .artificial, capacity: 64_700,
+            stadium: "Sagebrush Stadium", roof: .open, surface: .artificial, capacity: 64_700,
             noise: 75),
         Franchise(
             city: "Silverpeak", region: .west, market: .medium, climate: .mountain, altitude: 5_200,
@@ -331,7 +331,7 @@ public enum FranchiseSet {
             city: "Sundown Bay", region: .west, market: .major, climate: .coastal, altitude: 30,
             nickname: "Condors", abbreviation: "SDB",
             primary: 0x0E_3A4A, secondary: 0xEC_BE3E, accent: 0xF0_ECE0,
-            stadium: "Boardwalk Bowl", roof: .open, surface: .grass, capacity: 75_800, noise: 82),
+            stadium: "Cliffwalk Park", roof: .open, surface: .grass, capacity: 75_800, noise: 82),
         Franchise(
             city: "Cascade Junction", region: .west, market: .large, climate: .temperate,
             altitude: 640,

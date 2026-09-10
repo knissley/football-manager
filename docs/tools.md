@@ -11,8 +11,9 @@ for a command and read the output.
 **Everything is reproducible from a seed.** The same seed prints the same world
 every time, so anything surprising can be re-run exactly.
 
-**Every tool builds its world the same way.** `WorldGenerator.generate(seed:shape:season:)`
-in `FMGeneration` is the single entry point, so `worldgen --seed 7` and
+**Every tool builds its world the same way.**
+`WorldGenerator.generate(seed:shape:franchises:season:)` in `FMGeneration` is the single
+entry point, so `worldgen --seed 7` and
 `simharness --seed 7` are looking at the same league, and so are the engine's tests. Since
 [decision 215](design-decisions.md#world-generation) that league's thirty-two clubs are
 curated rather than drawn, so two seeds are two sets of players in one set of buildings.
@@ -264,8 +265,9 @@ Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
 
 `--home` and `--away` are indices into the league at that seed, in identifier order, and
 the header names the two teams it picked. They agree with `worldgen` and `simharness`:
-all three call `WorldGenerator.generate(seed:shape:season:)`, and every stage of it draws
-from its own labelled substream, so `worldgen`'s larger college pool no longer shifts the
+all three call `WorldGenerator.generate(seed:shape:franchises:season:)`, and every stage of
+it draws from its own labelled substream, so `worldgen`'s larger college pool no longer
+shifts the
 league behind it. At seed 7, `--home 3` and `worldgen --seed 7 --show roster --team 3` are
 the same club.
 

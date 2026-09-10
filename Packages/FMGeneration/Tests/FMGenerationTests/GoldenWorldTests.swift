@@ -55,7 +55,16 @@ struct GoldenWorldTests {
             // moved, and with them the roster each club was built for. From here a seed
             // moves the rosters, the strengths and the schemes, and nothing moves the
             // franchises ([decision 215](../../../../docs/design-decisions.md)).
-            (UInt64(1), UInt64(2_134_004_337_304_310_404)),
+            //
+            // And all three once more in review of #69, which found real marks in eight
+            // cells of that table: six stadium names that were a real arena, two real
+            // bowl games, a demolished venue, an 1860s ballpark and a corporate sponsor,
+            // and two abbreviations that are corporate marks holding real stadium naming
+            // rights (rule 8, [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)).
+            // Renamed, and nothing else about the identity touched. Every one of the
+            // eight is a string the engine never reads — `GoldenSeedTests` did not move
+            // — but the world checksum covers the identity, so it did.
+            (UInt64(1), UInt64(9_640_392_912_359_852_668)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -76,8 +85,8 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(6_119_734_260_284_112_653)),
-            (UInt64(7), UInt64(6_840_825_119_120_793_898)),
+            (UInt64(5), UInt64(207_628_132_540_486_439)),
+            (UInt64(7), UInt64(2_330_269_064_591_620_310)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

@@ -32,8 +32,8 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
   error, red flags, early declarations and mean-reverting class strength; ✅ seeded
   rivalry history — a fabricated event log in the same shape lived history will use,
   folded to intensity with decay (`Packages/FMGeneration`).
-- ✅ **One world generator** — `WorldGenerator.generate(seed:shape:season:)` in
-  `FMGeneration` returns the league, its teams, every roster and depth chart, the
+- ✅ **One world generator** — `WorldGenerator.generate(seed:shape:franchises:season:)`
+  in `FMGeneration` returns the league, its teams, every roster and depth chart, the
   colleges, the draft pipeline and the rivalries. Team strength is drawn from the seed
   and centred on the league, so a club's quality owes nothing to its position in the
   table. Every tool and every game-building test builds its world with this call.
@@ -64,8 +64,10 @@ Docs, CLAUDE.md, project skills, ADR practice, twenty scoping decisions recorded
 - ✅ `DefensiveCall` — the defensive call as composed data, so defense is first-class in
   the model before either caller is written.
 
-*Exit:* ✅ the world generator — `WorldGenerator.generate(seed:shape:season:)`, which the
-exit criterion used to call `generateWorld(seed:)` — is reproducible byte-for-byte, pinned
+*Exit:* ✅ the world generator —
+`WorldGenerator.generate(seed:shape:franchises:season:)`, which the exit criterion used
+to call `generateWorld(seed:)` — is reproducible
+byte-for-byte, pinned
 by a whole-world checksum at three seeds in `GoldenWorldTests`. Still owed: a season sims
 headless, and the event stream carries everything M2 needs without changes.
 
