@@ -92,10 +92,12 @@ Which rules must be true of a game, and what checks each, is
 - **4-5-4 Note 4** — A half can end on a runoff. — `test:runoffAtEightSecondsEndsTheHalf`
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
 - **4-6-1** — 40 seconds from the end of the previous play, and letting it expire is delay
-  of game. — `Rules.playClock` carries the number; nothing counts it down
+  of game. — not yet enforced: `Rules.playClock` carries the number and nothing counts it
+  down
 - **4-6-2** — 25 seconds after an administrative stoppage: a change of possession, a
   charged timeout, the two-minute warning, the end of a period, penalty enforcement, a free
-  kick. — `Rules.playClockAfterStoppage` carries the number; nothing counts it down
+  kick. — not yet enforced: `Rules.playClockAfterStoppage` carries the number and nothing
+  counts it down
 - **4-7-1** — Neither side may conserve time after the two-minute warning of either half by
   any of six acts: a flag between downs by either side that kills a running clock;
   intentional grounding; an illegal forward pass; a backward pass thrown out of bounds; a
@@ -123,8 +125,8 @@ Which rules must be true of a game, and what checks each, is
   leaves the clock where a correct ruling would not have stopped it runs ten seconds off.
   Neither team may decline it; either may spend a timeout to prevent it. — not yet
   enforced: there is no replay system
-- **4-8-1** — If time expires while the ball is in play, the period continues until the
-  down ends. — `test:touchdownAsTheFirstQuarterExpires`
+- **4-8-1** — A period whose time runs out with the ball still live does not end there:
+  the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`
 - **4-8-2** — A period may be extended by one untimed down when something in the down that
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
   `test:walkOffTryIsTheCallerChoice`
@@ -226,14 +228,15 @@ below are what it is held to.
   spot was inside the 2. The offence's is ten from the previous spot and the down is
   replayed. — `test:spotFouls`, `test:interferenceInTheEndZoneSpotsAtTheOne`,
   `test:interferenceInTheEndZoneFromInsideTheTwo`, `test:offensiveInterference`
-- **8-6-1** — A foul by either team from the snap until a forward pass thrown from behind
-  the line ends is enforced from the previous spot, and the pass play ends and a running
-  play begins at the instant of the catch. — `test:roughingOnAnIncompletion`
+- **8-6-1** — Between the snap and the moment a forward pass from behind the line is over,
+  a foul by either team is enforced from the previous spot. The catch is the boundary: with
+  the ball in a receiver's hands the down has become a run, and the running rules govern
+  what follows. — `test:roughingOnAnIncompletion`
 - **8-6-1-b** — Interference by the defence is enforced from the spot of the foul. —
   `test:interferenceDownfield`
 - **8-6-1-d** — A personal foul by the defence before a completion is enforced from the
-  previous spot or the dead-ball spot, whichever is better for the offence; if the play
-  scores, on the try. — `test:roughingOnACompletion`
+  dead-ball spot or the previous spot, whichever favours the offence; if the play scores,
+  on the try. — `test:roughingOnACompletion`
 
 ## Rule 10 — Opportunity to catch a kick
 

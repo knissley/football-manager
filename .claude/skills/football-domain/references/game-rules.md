@@ -232,16 +232,15 @@ its season and source belong to issue #2.
 
 - The spots a penalty can be enforced from are the previous spot (where the ball was last
   put in play), the spot of the foul, the spot of a backward pass or fumble, the dead-ball
-  spot, the succeeding spot (where the ball will next be put in play), the other try
-  spot, and the spot of a change of possession. `[2025 · 14-3-4]`
+  spot, the succeeding spot (where the next down will start), the other try spot, and the
+  spot of a change of possession. `[2025 · 14-3-4]`
 - **Half the distance to the goal is measured from the spot of enforcement**, whichever
   spot that is. `[2025 · 14-2-1]`
 - A foul before the snap is enforced from the succeeding spot and the down stays; a foul
   at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]`
-- **The basic spot.** For a foul during a run that is not followed by a change of
-  possession, the basic spot is the dead-ball spot; when the run is followed by a change
-  of possession, it is the spot where possession was lost; during a backward pass or
-  fumble, the spot of the pass or the fumble. `[2025 · 14-3-5]`
+- **The basic spot.** A run with no change of possession in it takes the dead-ball spot;
+  a run that ends in one takes the spot where possession went; a backward pass or a fumble
+  takes the spot of the pass or the fumble. `[2025 · 14-3-5]`
 - **The three-and-one method.** A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
@@ -261,14 +260,14 @@ its season and source belong to issue #2.
   penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
   engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
   the flag is recorded declined.
-- **The passing game.** A foul by either team from the snap until a forward pass thrown
-  from behind the line ends is enforced from the previous spot, and the pass play ends
-  and a running play begins at the instant of the catch. `[2025 · 8-6-1]` Interference by
-  the defence is enforced from the spot of the foul; in the end zone it is first down at
-  the 1, or half the distance from the previous spot when that was inside the 2.
-  `[2025 · 8-6-1-b]` A personal foul by the defence before a completion is enforced from
-  the previous spot or the dead-ball spot, whichever is better for the offence; if the
-  play scores, on the try. `[2025 · 8-6-1-d]`
+- **The passing game.** Between the snap and the moment a forward pass from behind the
+  line is over, a foul by either team is enforced from the previous spot; the catch is the
+  boundary, and with the ball in a receiver's hands the down has become a run.
+  `[2025 · 8-6-1]` Interference by the defence is enforced from the spot of the foul; in
+  the end zone it is first down at the 1, or half the distance from the previous spot when
+  that was inside the 2. `[2025 · 8-6-1-b]` A personal foul by the defence before a
+  completion is enforced from the dead-ball spot or the previous spot, whichever favours
+  the offence; if the play scores, on the try. `[2025 · 8-6-1-d]`
 - Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
   automatic first down when it is the defence's. `[2025 · 12-3-1]`
 - Horse-collar tackle: fifteen yards and an automatic first down. `[2025 · 12-2-16]`

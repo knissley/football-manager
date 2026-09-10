@@ -85,18 +85,6 @@ private enum Scan {
         return found
     }
 
-    /// Every function declared in a Swift source, by name.
-    static func declaredFunctions(in source: String) -> Set<String> {
-        var found: Set<String> = []
-        var rest = Substring(source)
-        while let keyword = rest.range(of: "func ") {
-            rest = rest[keyword.upperBound...]
-            let name = rest.prefix { identifier.contains($0) && $0 != "." }
-            if !name.isEmpty { found.insert(String(name)) }
-        }
-        return found
-    }
-
     /// Every test function carrying a `@Test` attribute, by name.
     static func testFunctions(in source: String) -> Set<String> {
         var found: Set<String> = []
@@ -128,6 +116,17 @@ private enum Scan {
         return rows
     }
 
+    /// One entry's lines as a single line, with runs of whitespace collapsed.
+    ///
+    /// An entry is wrapped prose, so a phrase the checks look for — "not yet enforced" —
+    /// can be split by a line break and its indent. Joining without collapsing leaves
+    /// "not yet   enforced", which matches nothing, and the check passes on a doc that
+    /// says nothing.
+    static func joined(_ lines: [String]) -> String {
+        lines.joined(separator: " ").split(separator: " ", omittingEmptySubsequences: true)
+            .joined(separator: " ")
+    }
+
     /// The numbered entries of `invariants.md`, each as its number and its whole text.
     ///
     /// An entry starts at the left margin with `12. ` and runs until the next one or the
@@ -140,20 +139,49 @@ private enum Scan {
             let startsEntry = !digits.isEmpty && line.dropFirst(digits.count).hasPrefix(". ")
             if startsEntry {
                 if let open = current {
-                    entries.append((open.number, open.lines.joined(separator: " ")))
+                    entries.append((open.number, joined(open.lines)))
                 }
                 current = (String(digits), [line])
             } else if line.hasPrefix("#") {
                 if let open = current {
-                    entries.append((open.number, open.lines.joined(separator: " ")))
+                    entries.append((open.number, joined(open.lines)))
                 }
                 current = nil
             } else if current != nil {
                 current?.lines.append(line)
             }
         }
-        if let open = current { entries.append((open.number, open.lines.joined(separator: " "))) }
+        if let open = current { entries.append((open.number, joined(open.lines))) }
         return entries.map { ($0.0, $0.1) }
+    }
+
+    /// The article entries of `playing-rules.md`, each as its article and its whole text.
+    ///
+    /// An entry is a bullet that opens with a bold article number — `- **4-3-2-a-1** —` —
+    /// and runs until the next bullet or the next heading. A bullet that opens any other
+    /// way is prose about the section and is not an entry.
+    static func articleEntries(in document: String) -> [(article: String, text: String)] {
+        var entries: [(String, String)] = []
+        var current: (article: String, lines: [String])?
+        func close() {
+            if let open = current {
+                entries.append((open.article, joined(open.lines)))
+            }
+            current = nil
+        }
+        for line in document.components(separatedBy: "\n") {
+            if line.hasPrefix("- ") || line.hasPrefix("#") {
+                close()
+                guard line.hasPrefix("- **") else { continue }
+                let afterMarker = line.dropFirst(4)
+                guard let end = afterMarker.range(of: "**") else { continue }
+                current = (String(afterMarker[afterMarker.startIndex..<end.lowerBound]), [line])
+            } else if current != nil {
+                current?.lines.append(line)
+            }
+        }
+        close()
+        return entries
     }
 }
 
@@ -166,11 +194,15 @@ struct InvariantsTraceabilityTests {
         try Tree.documents.map { ($0, try Tree.read($0)) }
     }
 
-    private func declaredTestFunctions() -> Set<String> {
+    /// Every `@Test` function in every package, and only those.
+    ///
+    /// Not every declared function: a doc that named a private helper would otherwise
+    /// resolve and claim a check that never runs.
+    private func testFunctions() -> Set<String> {
         var found: Set<String> = []
         for url in Tree.testSources() {
             guard let source = try? String(contentsOf: url, encoding: .utf8) else { continue }
-            found.formUnion(Scan.declaredFunctions(in: source))
+            found.formUnion(Scan.testFunctions(in: source))
         }
         return found
     }
@@ -184,7 +216,7 @@ struct InvariantsTraceabilityTests {
         for (path, text) in try documents() {
             #expect(text.count > 500, "\(path) is missing or nearly empty")
         }
-        let functions = declaredTestFunctions()
+        let functions = testFunctions()
         #expect(
             functions.count > 200, "found \(functions.count) test functions; expected the suites")
         let rows = Scan.calibrationRows(in: try Tree.read(Tree.targets))
@@ -193,7 +225,7 @@ struct InvariantsTraceabilityTests {
 
     @Test("contract: every test named in the invariants and the reference exists")
     func everyNamedTestExists() throws {
-        let functions = declaredTestFunctions()
+        let functions = testFunctions()
         var named = 0
         for (path, text) in try documents() {
             let references = Scan.references("test", in: text)
@@ -256,19 +288,43 @@ struct InvariantsTraceabilityTests {
     }
 
     /// Every truth carries either a check or an admission that there is none — never
-    /// silence, which reads as "we do this" and often is not.
-    @Test("contract: every invariant names a test, a harness row, or the issue that will")
+    /// silence, which reads as "we do this" and often is not. An admission says which
+    /// issue will enforce it, or says in as many words that no issue carries it yet.
+    @Test("contract: every invariant names a test, a harness row, or says it is not enforced")
     func everyInvariantIsTraceable() throws {
         let entries = Scan.numberedEntries(in: try Tree.read(Tree.invariants))
         #expect(entries.count > 100, "found \(entries.count) invariants; expected the list")
         for entry in entries {
+            let checked = entry.text.contains("`test:") || entry.text.contains("`row:")
+            let admitted = entry.text.contains("not yet enforced")
+            let untraceable =
+                "invariant \(entry.number) names no test, no row, and does not say it is"
+                + " not yet enforced: \(entry.text.prefix(80))"
+            #expect(checked || admitted, "\(untraceable)")
+            guard admitted else { continue }
+            let accounted = entry.text.contains("/issues/") || entry.text.contains("no issue")
+            let unaccounted =
+                "invariant \(entry.number) is not yet enforced and names neither the issue"
+                + " that will nor the absence of one"
+            #expect(accounted, "\(unaccounted)")
+        }
+    }
+
+    /// The same promise on the other side of the reference: Done-when 1 for this issue is
+    /// that every row of the rules reference names a test that exists, and
+    /// `everyNamedTestExists` alone would stay green if every name were deleted.
+    @Test("contract: every article in the reference names a test or says it is not modelled")
+    func everyArticleIsTraceable() throws {
+        let entries = Scan.articleEntries(in: try Tree.read(Tree.playingRules))
+        #expect(entries.count > 100, "found \(entries.count) articles; expected the index")
+        for entry in entries {
             let traced =
-                entry.text.contains("`test:") || entry.text.contains("`row:")
+                entry.text.contains("`test:") || entry.text.contains("not modelled")
                 || entry.text.contains("not yet enforced")
-            #expect(
-                traced,
-                "invariant \(entry.number) names no test, no row, and no issue: \(entry.text.prefix(80))"
-            )
+            let untraceable =
+                "\(entry.article) names no test and does not say the engine skips it:"
+                + " \(entry.text.prefix(80))"
+            #expect(traced, "\(untraceable)")
         }
     }
 }

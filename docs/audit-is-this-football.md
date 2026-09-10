@@ -742,20 +742,17 @@ chase individual rows.
 #### The open engine findings that have no section above
 
 One line each, with the issue that closes it. None was re-measured here; each is as its
-issue describes. Three of them — A9, A10 and C12 — were found by the play-by-play printer's
-author reading one game end to end rather than by any aggregate, which is the whole
+issue describes. C12 below was found by the play-by-play printer's author reading one game
+end to end rather than by any aggregate, and so were two findings that stood on this list
+until wave 1 fixed them: A9, the kickoff return that got no try
+([#55](https://github.com/knissley/football-manager/issues/55)), and A10, the pre-snap foul
+that ran the clock ([#56](https://github.com/knissley/football-manager/issues/56)), which
+the S12 row above credits. Three findings out of one game read end to end is the whole
 argument for watching a game.
 
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
-- **A9** — a kickoff returned for a touchdown gets no try, and the scoring team keeps the
-  ball: the next play is an ordinary first down from the opponent's 15. A punt return
-  touchdown is not affected. Found by reading `gamelog --seed 7 --home 3 --away 11` end to
-  end. ([#55](https://github.com/knissley/football-manager/issues/55))
-- **A10** — a pre-snap foul on a play that never happened still runs the clock, and a spike
-  is called at normal tempo, so a game ended on eleven seconds charged to a no-play. Found
-  in the same game. ([#56](https://github.com/knissley/football-manager/issues/56))
 - **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
   so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
   snap count is not a query the record can answer.

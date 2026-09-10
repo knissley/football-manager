@@ -273,11 +273,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
 69. Its exception: an offensive foul behind the line of scrimmage is enforced from the
     previous spot, and so is a defensive one when the basic spot is behind the line.
     `[2025 · 14-3-6]` — `test:blockInTheBackBehindTheLine`, `test:contactFoulOnALoss`
-70. A foul by either team between the snap and the end of a forward pass thrown from behind
-    the line is enforced from the previous spot, and the running play begins at the catch.
-    `[2025 · 8-6-1]` — `test:roughingOnAnIncompletion`, `test:enforcementFamilies`
-71. A personal foul by the defence before a completion is enforced from the previous spot or
-    the dead-ball spot, whichever is better for the offence. `[2025 · 8-6-1-d]` —
+70. Between the snap and the moment a forward pass from behind the line is over, a foul by
+    either team is enforced from the previous spot; the catch is the boundary, and what
+    follows it is a run. `[2025 · 8-6-1]` — `test:roughingOnAnIncompletion`,
+    `test:enforcementFamilies`
+71. A personal foul by the defence before a completion is enforced from the dead-ball spot
+    or the previous spot, whichever favours the offence. `[2025 · 8-6-1-d]` —
     `test:roughingOnACompletion`
 72. Defensive pass interference is a first down at the spot of the foul.
     `[2025 · 8-5-4, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
