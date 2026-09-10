@@ -157,6 +157,7 @@ See [contracts.md](contracts.md).
 | 79 | **Presets generate structures over a canonical representation** | Same two-tier pattern as gameplan, so a deeper authoring surface is additive |
 | 80 | **All four failure modes are live** | Walking, holdouts and trade demands, league-wide relationship damage, and locker room effects — the last kept legible as an interrogable Finding |
 | 81 | **Every offer, counter and signing is a `ContractEvent`** | "How did our cap get like this" walks the real history: the restructure that bought a playoff run and the dead money that paid for it |
+| 208 | **A conversion discharges only as much guarantee as the base left cannot carry** | Converted money is cash paid, so proration is its only cap treatment ([#5](https://github.com/knissley/football-manager/issues/5)). What that leaves open is a guarantee on the base being converted: the season's guarantee is clamped to the base and roster bonus still there, so it survives whole whenever the money left can still cover it and shrinks only when it must. Rejected: discharging it dollar for dollar with the conversion, which assumes the converted dollars were the guaranteed ones. The [salary cap reference](../.claude/skills/football-domain/references/salary-cap.md) settles neither — it says dead money counts guaranteed salary *still owed* and stops there. The clamp errs toward more dead money rather than less, backs out in one `min`, and a finance screen showing guaranteed money remaining is where it gets checked against a real deal |
 
 ## Draft and scouting
 

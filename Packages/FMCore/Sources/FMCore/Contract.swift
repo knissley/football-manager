@@ -245,8 +245,14 @@ extension Contract {
     /// money later.
     ///
     /// The converted amount leaves this season's base salary and prorates over
-    /// the remaining seasons (capped at five). It becomes fully guaranteed,
-    /// because it is paid immediately.
+    /// the remaining seasons (capped at five). That proration is its *only* cap
+    /// treatment: the cash is paid at the conversion, so the converted money is
+    /// no longer salary that could be owed on a release. Charging it as a
+    /// guarantee as well would count the same dollars twice in dead money.
+    ///
+    /// A guarantee on the base salary being converted is discharged by that
+    /// payment, so what stays guaranteed is the base and roster bonus left in
+    /// the season — never more than the player could still be owed.
     ///
     /// Returns `nil` if the season is not under contract or the amount exceeds
     /// the base salary available to convert.
@@ -257,7 +263,10 @@ extension Contract {
         var updated = self
         let index = season - firstSeason
         updated.years[index].baseSalary -= amount
-        updated.years[index].guaranteedSalary += amount
+        updated.years[index].guaranteedSalary = min(
+            existing.guaranteedSalary,
+            updated.years[index].baseSalary + existing.rosterBonus
+        )
 
         let remainingYears = lastSeason - season + 1
         updated.proratedBonuses.append(
