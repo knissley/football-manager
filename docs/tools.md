@@ -288,9 +288,13 @@ A drive summary reads `── NRW drive: 4 plays, 34 yards, 1:52 — touchdown`:
 scrimmage, net yards, the clock the drive had the ball, and how it ended. A drive that ran
 out of period rather than out of downs is named by the break it ran into — `end of half`,
 `end of regulation`, or `end of game`. Overtime is where that is easy to get wrong, and
-#87 is where it was: a postseason period that ends undecided is **not** a break, because
-the next one begins with the ball where it was and the same side in possession (16-1-4-d),
-so a drive runs straight through it and is printed once, when it really ends. The last
+#87 is where it was: the end of a first or a third postseason overtime period is **not** a
+break, because the next one begins with the ball where it was and the same side in
+possession (16-1-4-f, 4-2-3), so a drive runs straight through it and is printed once,
+when it really ends. The end of a second or a fourth is one — the third and the fifth
+period open a new half with a kickoff (16-1-4-e, 16-1-4-i) — and the drive chart ends a
+drive there as it does at halftime, because both read `Rules.periodResumesWithKickoff`.
+The last
 drive of a game runs to 0:00, because in regulation the clock is the only thing that ends
 a game — a kick that wins it at 0:03 does not, the horn does. The exception is again
 overtime, where a score ends the game where it stands: a walk-off drive is charged to the
@@ -372,6 +376,11 @@ swift run gamelog --scenario play-ending-just-before-the-two-minute-warning-of-a
 # play snapped outside 5:00 of the fourth quarter carries him out inside it, and the
 # next snap comes with the clock stopped rather than a huddle later.
 swift run gamelog --scenario runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter | tail -30
+
+# A14 (#86): a third postseason overtime period opens a new half — a kickoff at 3OT
+# 15:00, kicked to the side that lost the toss before overtime, and three timeouts each
+# again; the 2OT boundary before it is played straight through.
+swift run gamelog --scenario third-postseason-overtime-period | tail -60
 ```
 
 The men are not named in a scenario — a scripted outcome credits nobody, so the log says

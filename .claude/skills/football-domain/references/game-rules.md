@@ -189,7 +189,11 @@ from its own 20**, and that kick alone may be a punt as well as a drop kick or p
 - Level at the end of a period, or a second team's initial possession unfinished, means
   another period. `[2025 · 16-1-4-d]`
 - Three timeouts per half, two-minute intermissions between periods, and a fresh coin toss
-  after the fourth. `[2025 · 16-1-4-e]`, `[2025 · 16-1-4-g]`, `[2025 · 16-1-4-i]`
+  after the fourth. A half is two periods: the captain who lost the toss before overtime
+  has the first choice of 4-2-2's privileges at the start of the **third** period, so a
+  third period — and a fifth, after the new toss — is put back in play with a free kick,
+  and the three timeouts are renewed with it. `[2025 · 16-1-4-e]`, `[2025 · 16-1-4-g]`,
+  `[2025 · 16-1-4-i]`
 - **Timing pairs the periods into halves.** At the end of a second overtime period the
   timing rules are the first half's, and at the end of a fourth the fourth period's — so
   the two-minute warning, the out-of-bounds window and the runoff belong to a second and a

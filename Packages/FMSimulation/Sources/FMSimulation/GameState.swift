@@ -67,8 +67,15 @@ extension GameSimulator {
         /// Every player's day, drawn once when the game starts.
         private let form: [PlayerID: Double]
 
-        /// Who receives the second-half kickoff — the team that did not receive first.
-        private let secondHalfReceiver: TeamID
+        /// The captain who lost the last coin toss, as the engine stands in for a toss
+        /// it does not draw: the side that kicks off after one. The loser's first choice
+        /// of 4-2-2's privileges comes two periods on — at the second half (4-2-2), and
+        /// at a third postseason overtime period (16-1-4-e).
+        private var tossLoser: TeamID
+        /// A half has opened whose first choice is `tossLoser`'s, and the caller has not
+        /// yet said which privilege it takes. Until it does, the loser has the ball to
+        /// kick off with.
+        private(set) var firstChoicePending = false
         /// How many opportunities to possess the ball have begun in overtime, capped at
         /// two because the rules only ever ask whether *both* sides have had one.
         ///
@@ -91,9 +98,10 @@ extension GameSimulator {
 
             // The away team receives to open. A coin toss is a real event and belongs in
             // the stream when there is a stream to put it in; hard-coding it here keeps
-            // the opening deterministic and visible rather than buried in a draw.
+            // the opening deterministic and visible rather than buried in a draw. The
+            // side that kicks off stands for the captain who lost the toss.
             possession = setup.home.id
-            secondHalfReceiver = setup.away.id
+            tossLoser = setup.home.id
             ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
             down = .first
             distance = setup.rules.yardsToGain
@@ -163,6 +171,14 @@ extension GameSimulator {
                 awayTimeouts -= 1
             }
             previousBehavior = .stopsUntilSnap
+        }
+
+        /// The answer to the first choice a half opened with (4-2-2-a): the toss loser
+        /// receives, and the other side kicks off to it, or the loser kicks off itself.
+        mutating func settleFirstChoice(receives: Bool) {
+            guard firstChoicePending else { return }
+            firstChoicePending = false
+            if receives { possession = defending }
         }
 
         /// Choose the try, and put the ball where it is snapped from.
@@ -602,18 +618,19 @@ extension GameSimulator {
                 return
             }
 
-            // Postseason: another period, and play simply continues — no kickoff, the
-            // ball where it was (16-1-4-d).
-            guard let next = clock.advancingPeriod(rules: rules, isPostseason: setup.isPostseason)
-            else {
-                isOver = true
-                return
-            }
-            clock = next
-            previousBehavior = .stopsUntilSnap
+            // Postseason: another period (16-1-4-d). Whether play carries on from the
+            // spot or a half opens with a kick is the period's to say.
+            startNextPeriod()
         }
 
-        /// The next period of regulation, or the first period of overtime.
+        /// The next period: of regulation, or of overtime.
+        ///
+        /// A period that opens a half is put back in play with a free kick, and which
+        /// periods those are is `Rules.periodResumesWithKickoff` — one predicate, because
+        /// the printer in Tools/gamelog ends a drive on the same boundaries, and a second
+        /// copy of the answer is how the two come to disagree. Every other period carries
+        /// on from the spot: the teams change goals, and possession, the down, the ball
+        /// and the line to gain are unchanged (4-2-3, 16-1-4-f).
         private mutating func startNextPeriod() {
             let rules = setup.rules
             guard let next = clock.advancingPeriod(rules: rules, isPostseason: setup.isPostseason)
@@ -623,28 +640,36 @@ extension GameSimulator {
             }
             clock = next
 
-            // Halftime and the first overtime period both restart with a kickoff, and
-            // which periods those are is `Rules.periodResumesWithKickoffAsModelled` —
-            // one predicate, because the printer in Tools/gamelog ends a drive on the
-            // same two boundaries and a second copy of the answer is how the two come to
-            // disagree. A third overtime period begins a half by the book (16-1-4-e) and
-            // is not restarted here; that gap is #86's, and the predicate carries it.
-            if rules.periodResumesWithKickoffAsModelled(quarter: next.quarter) {
-                // Which of the two it is decides the possession and the timeouts: three
-                // for a half, two for regular-season overtime (16-1-3-e), three for
-                // postseason overtime (16-1-4-g).
-                let startsOvertime = next.quarter > rules.quarters
+            if rules.periodResumesWithKickoff(quarter: next.quarter) {
+                // A half's timeouts: three (4-5-1), in each postseason overtime half as
+                // well (16-1-4-g), and two for the regular season's one overtime period
+                // (16-1-3-e).
                 let timeouts =
-                    startsOvertime && !setup.isPostseason
+                    next.quarter > rules.quarters && !setup.isPostseason
                     ? rules.regularSeasonOvertimeTimeouts : rules.timeoutsPerHalf
                 homeTimeouts = timeouts
                 awayTimeouts = timeouts
-                possession = startsOvertime ? possession : secondHalfReceiver
+
+                if rules.periodFollowsACoinToss(quarter: next.quarter) {
+                    // The toss (16-1-2, 16-1-4-i) is not drawn: the side with the ball
+                    // kicks off, and stands for the captain who lost it.
+                    tossLoser = possession
+                } else {
+                    // The first choice of 4-2-2's privileges is the toss loser's — at
+                    // the second half (4-2-2), and at a third overtime period
+                    // (16-1-4-e) — and is put to that side's caller before the kick.
+                    // Until it answers, the loser has the ball to kick off with.
+                    possession = tossLoser
+                    firstChoicePending = true
+                }
                 ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
                 down = .first
                 distance = rules.yardsToGain
                 pendingKickoff = true
-                if startsOvertime { overtimePossessions = 0 }
+                // Overtime's opportunities to possess are counted from its first period
+                // (16-1-3-a, 16-1-4-a). A later toss continues the same overtime
+                // (16-1-4-i): a side that has had its opportunity has had it.
+                if next.quarter == rules.quarters + 1 { overtimePossessions = 0 }
             }
             previousBehavior = .stopsUntilSnap
         }

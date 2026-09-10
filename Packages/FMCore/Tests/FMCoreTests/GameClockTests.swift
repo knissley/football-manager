@@ -68,52 +68,70 @@ struct RulesTests {
         #expect(rules.opensHalf(quarter: 9))
         #expect(rules.opensHalf(quarter: 10) == false)
         #expect(rules.opensHalf(quarter: 11))
+        // And the kick and the toss repeat with it: a seventh period opens as a third
+        // does, after a ninth's toss as a fifth's.
+        #expect(rules.periodResumesWithKickoff(quarter: 11))
+        #expect(rules.periodResumesWithKickoff(quarter: 10) == false)
+        #expect(rules.periodFollowsACoinToss(quarter: 11) == false)
+        #expect(rules.periodFollowsACoinToss(quarter: 13))
     }
 
     /// The boundary set the engine and the tools share: `GameState.startNextPeriod`
-    /// restarts possession and the spot by it, and `Tools/gamelog` ends a drive by it.
-    /// Both read the predicate rather than restating it, so this is where it is checked.
-    /// A third and a fifth overtime period are its modelling and are pinned below
-    /// instead.
+    /// restarts possession, the spot and the timeouts by it, and `Tools/gamelog` ends a
+    /// drive by it. Both read the predicate rather than restating it, so this is where
+    /// its answers are swept.
     @Test(
-        "periodResumesWithKickoffAsModelled(quarter:) is true at the second half and the first overtime period, and false at every other period swept here",
+        "periodResumesWithKickoff(quarter:) is true at the second half, the first overtime period, a third postseason overtime period and a fifth, and false at every other period swept here",
         .tags(.unit))
-    func periodResumesWithKickoffAsModelledAnswers() {
+    func periodResumesWithKickoffAnswers() {
         let secondHalf = rules.quarters / 2 + 1
         let overtime = rules.quarters + 1
-        #expect(rules.periodResumesWithKickoffAsModelled(quarter: secondHalf))
-        #expect(rules.periodResumesWithKickoffAsModelled(quarter: overtime))
-        // Every period of regulation, a second overtime period, and a fourth. A period
-        // inside a half only changes ends (4-2-3), which 16-1-4-f carries into the ends
-        // of a first and a third overtime period, and nothing is resumed at the start of
-        // a first period at all.
-        var swept: [UInt8] = Array(UInt8(1)...(rules.quarters + 2))
-        swept.append(rules.quarters + 4)
-        for quarter in swept where quarter != secondHalf && quarter != overtime {
-            #expect(
-                rules.periodResumesWithKickoffAsModelled(quarter: quarter) == false,
-                "period \(quarter)")
+        let restarted: Set<UInt8> = [secondHalf, overtime, rules.quarters + 3, rules.quarters + 5]
+        for quarter in restarted {
+            #expect(rules.periodResumesWithKickoff(quarter: quarter), "period \(quarter)")
+        }
+        // Every other period of regulation, and a second and a fourth overtime period. A
+        // period inside a half only changes ends (4-2-3), which 16-1-4-f carries into the
+        // ends of a first and a third overtime period, and nothing is resumed at the
+        // start of a first period at all.
+        for quarter in UInt8(1)...(rules.quarters + 5) where !restarted.contains(quarter) {
+            #expect(rules.periodResumesWithKickoff(quarter: quarter) == false, "period \(quarter)")
         }
     }
 
     /// 16-1-4-e gives the beginning of a third overtime period the first choice of
-    /// 4-2-2's two privileges to the captain who lost the toss before overtime, and
-    /// 16-1-4-i tosses again after a fourth: the book puts a third postseason overtime
-    /// period, and by the same reading a fifth, back in play with a kick — which is what
-    /// `opensHalf` computes and the predicate does not. The engine restarts only the
-    /// first overtime period and plays on at every later boundary. That is a gap rather
-    /// than a reading of an unclear article, it is owned by
-    /// [#86](https://github.com/knissley/football-manager/issues/86), and this is what
-    /// makes it fail loudly when #86 closes it.
+    /// 4-2-2's two privileges to the captain who lost the toss before overtime, so a
+    /// third postseason overtime period is put back in play with a kick, and 16-1-4-i
+    /// tosses again at the end of a fourth, so a fifth is too — the same two periods
+    /// `opensHalf` opens a half at, which is what gives each side its three timeouts
+    /// (16-1-4-g). Rewritten from the pin that recorded the engine restarting only the
+    /// first overtime period.
     @Test(
-        "pin · the engine does not put a third or a fifth postseason overtime period back in play with a kick, though 16-1-4-e gives a third period's first 4-2-2 choice to the toss loser and 16-1-4-i tosses again after a fourth — the gap is #86's",
-        .tags(.pin))
-    func aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick() {
-        #expect(rules.periodResumesWithKickoffAsModelled(quarter: rules.quarters + 3) == false)
-        #expect(rules.periodResumesWithKickoffAsModelled(quarter: rules.quarters + 5) == false)
-        // What the book makes of the same two periods, which the timing half already has.
+        "football · Rule 16-1-4-e, 4-2-2, 16-1-4-i, 16-1-4-g · a third postseason overtime period is put back in play with a kick, the captain who lost the toss before overtime having first choice of 4-2-2's privileges, and so is a fifth after the toss of 16-1-4-i; both open a half",
+        .tags(.football))
+    func aThirdPostseasonOvertimePeriodIsRestartedWithAKick() {
+        #expect(rules.periodResumesWithKickoff(quarter: rules.quarters + 3))
+        #expect(rules.periodResumesWithKickoff(quarter: rules.quarters + 5))
         #expect(rules.opensHalf(quarter: rules.quarters + 3))
         #expect(rules.opensHalf(quarter: rules.quarters + 5))
+        // The third opens with the loser's choice, the fifth after a toss.
+        #expect(rules.periodFollowsACoinToss(quarter: rules.quarters + 3) == false)
+        #expect(rules.periodFollowsACoinToss(quarter: rules.quarters + 5))
+    }
+
+    /// Before the game, before overtime, and again at the end of a fourth overtime
+    /// period; not before any other period, whose first choice belongs to the captain
+    /// who lost the toss before.
+    @Test(
+        "football · Rule 4-2-2, 16-1-2, 16-1-4-i · the coin is tossed before the game, before overtime, and again at the end of a fourth postseason overtime period, and before no other period",
+        .tags(.football))
+    func coinTosses() {
+        #expect(rules.periodFollowsACoinToss(quarter: 1))
+        #expect(rules.periodFollowsACoinToss(quarter: rules.quarters + 1))
+        #expect(rules.periodFollowsACoinToss(quarter: rules.quarters + 5))
+        for quarter in UInt8(2)...(rules.quarters + 4) where quarter != rules.quarters + 1 {
+            #expect(rules.periodFollowsACoinToss(quarter: quarter) == false, "period \(quarter)")
+        }
     }
 
     @Test("Overtime length and ties depend on the stage", .tags(.unit))

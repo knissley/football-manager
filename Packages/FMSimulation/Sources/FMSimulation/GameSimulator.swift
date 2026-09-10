@@ -227,6 +227,18 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         state.apply(
             resolved.outcome, calls: calls, decisions: resolved.decisions, deadBall: deadBall)
 
+        // A half that opens with one side's first choice of 4-2-2's privileges — the
+        // second half, and a third postseason overtime period (16-1-4-e) — puts the
+        // choice to that side's caller before its kickoff. The situation is the
+        // chooser's: it has the ball to kick off with until it answers.
+        if state.firstChoicePending {
+            let opening = state.situation()
+            state.settleFirstChoice(
+                receives: caller.electsToReceive(
+                    situation: opening,
+                    classified: SituationClass(opening, rules: state.setup.rules)))
+        }
+
         // Injuries are drawn from who was involved, after the play is recorded, so the
         // event can point at the snap it happened on.
         if let play = state.plays.last,

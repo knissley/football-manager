@@ -48,13 +48,21 @@ Which rules must be true of a game, and what checks each, is
   16. — `test:quarters`, `test:structure`, `test:regulationTieGoesToOvertime`
 - **4-1-2**, **4-1-3** — Halftime is 13 minutes; the other intermissions are at least two.
   — not modelled: the engine has no intermission clock
-- **4-2-2** — The coin toss, not more than three minutes before the first-half kickoff. The
-  second-half first choice belongs to the captain who lost the pregame toss, unless the
-  winner deferred. — `test:halftimePossession`; neither the toss nor a deferral is modelled
+- **4-2-2**, **4-2-2-a** — The coin toss, not more than three minutes before the first-half
+  kickoff; the winner takes one of two privileges — to receive the kickoff or to kick off
+  (a), or the choice of goal (b) — and the loser the other. The second-half first choice
+  belongs to the captain who lost the pregame toss, unless the winner deferred. —
+  `test:halftimePossession`, `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`, `test:coinTosses`; the
+  choice of (a) is the captain's, `PlayCaller.electsToReceive`, defaulting to receive; the
+  toss itself, a deferral and the choice of goal are not modelled — the side that kicks
+  off after a toss stands for the captain who lost it
 - **4-2-3** — The teams change goals at the end of the first and third periods; possession,
-  the down, the position of the ball and the line to gain are unchanged. — not modelled, and
-  it need not be: a spot is stored relative to whoever has the ball, so there is no end of
-  the field to swap. `test:ownYardConversion`, `test:scoreIsPossessionRelative`
+  the down, the position of the ball and the line to gain are unchanged. — the change of
+  ends is not modelled, and it need not be: a spot is stored relative to whoever has the
+  ball, so there is no end of the field to swap. `test:ownYardConversion`,
+  `test:scoreIsPossessionRelative`; that play carries on across such a boundary is
+  `test:secondPostseasonOvertimePeriodCarriesOn`
 - **4-3-1** — A free kick starts the game clock when the ball is legally touched in the
   field of play. — `test:returnedKickoffAdvancesTheClock`
 - **4-3-1-a**, **4-3-1-b**, **4-3-1-c** — It does not start on a touchback, on a kick the
@@ -405,22 +413,30 @@ below are what it is held to.
   `test:postseasonPlaysASixthPeriod`
 - **16-1-4-d** — Level at the end of a period, or a second team's initial possession
   unfinished, means another period. — `test:postseasonPlaysASixthPeriod`
-- **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Three timeouts per half, two-minute
-  intermissions between periods, and a fresh coin toss after the fourth. 16-1-4-e also
-  gives the beginning of the **third** overtime period the first choice of 4-2-2's two
-  privileges to the captain who lost the toss before overtime, so a third period is put
-  back in play with a free kick, as is a fifth after the toss of 16-1-4-i. — not
-  modelled: the engine restarts only the first overtime period and plays on from the same
-  spot at every later boundary, which is
-  [#86](https://github.com/knissley/football-manager/issues/86)'s and is pinned by
-  `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`. Not modelled either is the
-  toss itself, though the one after a fourth overtime period is read as restarting the
-  pairing 16-1-4-h describes, so a fifth period is timed as a first: a reading, pinned by
+- **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Two-minute intermissions between periods and
+  no halftime after the second; three timeouts per half; a fresh coin toss at the end of a
+  fourth overtime period. 16-1-4-e gives the beginning of the **third** overtime period
+  the first choice of 4-2-2's two privileges to the captain who lost the toss before
+  overtime, so a third period is put back in play with a free kick, as is a fifth after
+  the toss of 16-1-4-i; a half being two periods (16-1-4-e, f, h), the three timeouts are
+  renewed at the third and the fifth. —
+  `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`,
+  `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
+  `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`, `test:coinTosses`; the
+  intermissions are not modelled, nor is the toss itself: the side that kicks off after
+  one stands for the captain who lost it, and after a fourth overtime period that is the
+  side with the ball, pinned by
+  `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`. Past the fourth the
+  pairing repeats — a seventh period opens as a third does — which is a reading rather
+  than a sentence in the book, pinned by
   `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`
 - **16-1-4-f** — The teams change goals at the end of the first and third overtime
   periods, under 4-2-3: possession, the down, the ball and the line to gain are
-  unchanged. — `test:periodResumesWithKickoffAsModelledAnswers`; the change of ends
-  itself is not modelled, for the reason 4-2-3 gives
+  unchanged. — `test:secondPostseasonOvertimePeriodCarriesOn`,
+  `test:periodResumesWithKickoffAnswers`; the change of ends itself is not modelled, for
+  the reason 4-2-3 gives
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
   half does and a fourth as the fourth period does, so the warning, the out-of-bounds
   windows and the runoff belong to those two and a first or third overtime period has
