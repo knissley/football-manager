@@ -148,10 +148,10 @@ first down, which side can commit it, and **where it is enforced from**, which i
   whistle (12-3-1). On a play that lost yards or fell incomplete the previous spot is the
   better one for the offence, and that is the one used. A defensive foul in this family
   is an automatic first down. A live-ball foul in this family by the team that scored
-  wipes its score (4-8-2-b) and is enforced from the previous spot, which stands in for
-  the spot of the foul the record does not carry (14-3-6); a dead-ball conduct foul by
-  the scorer leaves the score standing, recorded declined, until C9 (#48) enforces it
-  on the try or the kickoff.
+  wipes its score, because the play is enforced and replayed: from the spot of the foul
+  by the three-and-one method (14-3-6), which the record does not carry, so the
+  previous spot stands in; a dead-ball conduct foul by the scorer leaves the score
+  standing, recorded declined, until C9 (#48) enforces it on the try or the kickoff.
 
 Enforcement is computed **in the frame of the team that will snap next**, once, in
 `Rules.enforce`. A foul by the team that ended the play without the ball is walked off

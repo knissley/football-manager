@@ -100,10 +100,11 @@ extension Rules {
         // A score by the team the offender is not on stands (14-2-3), and so does the
         // scorer's own when the foul came after the ball was dead: a dead-ball foul is
         // enforced on the try or the kickoff that follows, which the record does not
-        // carry yet (C9). A live-ball foul by the scorer wipes its score (4-8-2-b): a
-        // contact foul during its own run is enforced by the three-and-one method from
-        // the spot of the foul (14-3-6), which the record does not carry either, so the
-        // previous spot stands in for it and the down is replayed there.
+        // carry yet (C9). A live-ball foul by the scorer wipes its score, because the
+        // play it came on is enforced and replayed: a contact foul during its own run
+        // is enforced by the three-and-one method from the spot of the foul (14-3-6),
+        // which the record does not carry either, so the previous spot stands in for
+        // it and the down is replayed there.
         var nullifiesTheScore = false
         if let scoring = declined.scoring, declined.points > 0 {
             let scorerHadBall: Bool
