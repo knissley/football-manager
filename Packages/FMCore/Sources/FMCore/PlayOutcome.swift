@@ -415,9 +415,15 @@ public struct Outcome: Sendable, Hashable, Codable {
     /// arithmetic over the three spots.
     public var fieldedAt: Int8?
     /// On a takeaway, the spot where possession was lost, in the offence's frame like
-    /// `Situation.ballOn`: where the pass was intercepted, or where the ball came loose.
-    /// `nil` on every other play. It is the basic spot for a foul during a run followed
-    /// by a change of possession (2025 rulebook, 14-3-5-b), which `Rules.enforce` reads.
+    /// `Situation.ballOn` and every other spot on the record: where the pass was
+    /// intercepted, or where the ball came loose. `nil` on every other play.
+    ///
+    /// It is the basic spot for a foul during a **run** followed by a change of
+    /// possession (2025 rulebook, 14-3-5-b), which is the one case `Rules.enforce` reads
+    /// it for. On an interception it is a fact about the play and not an enforcement
+    /// spot: a foul between the snap and the end of a forward pass thrown from behind the
+    /// line is enforced from the previous spot, and the pass ends and a running play
+    /// begins at the instant the ball is caught (14-4-5).
     public var possessionLostAt: UInt8?
     /// Seconds taken off the clock, live action and play clock together.
     public var clockRunoff: UInt16

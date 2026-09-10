@@ -211,11 +211,20 @@ extension Rules {
                 // (12-2-8, 12-2-10, 12-2-11, 12-2-15, 12-2-16, 12-3-1).
                 awardsFirstDown = true
                 if lostDuringThePlay {
-                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d), and the basic
-                    // spot is where it lost possession (14-3-5-b). A kick carries no such
-                    // spot, and neither does a takeaway written by a resolver that did not
-                    // record one; the previous spot stands in for it then.
-                    let lost = outcome.possessionLostAt.map(Int.init) ?? previous
+                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d). Where it is
+                    // walked off from depends on what kind of play the foul was during,
+                    // and only a *run* is measured from the takeaway: a run followed by a
+                    // change of possession has the spot where possession was lost as its
+                    // basic spot (14-3-5-b). A forward pass does not — a foul between the
+                    // snap and the end of the pass is enforced from the previous spot, and
+                    // the pass ends and a running play begins at the instant the ball is
+                    // caught (14-4-5), so an interception is never the spot for a foul
+                    // that preceded it. A kick carries no takeaway spot either, and
+                    // neither does a fumble written by a resolver that recorded none.
+                    let lost =
+                        outcome.endedIn == .fumbleLost
+                        ? (outcome.possessionLostAt.map(Int.init) ?? previous)
+                        : previous
                     (ballOn, moved) = walk(from: lost, yards: yards, towardOpponentGoal: true)
                 } else {
                     // The offence's play stands: from the dead-ball spot or the previous

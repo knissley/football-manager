@@ -109,7 +109,8 @@ Outcome
   penalties     [PenaltyRecord]    including declined ones, and both branches
   finalSpot     UInt8?             where the ball came to rest, on a play that changed hands
   fieldedAt     Int8?              where a kick was fielded; negative in the end zone
-  possessionLostAt UInt8?          where a takeaway was, in the offence's frame
+  possessionLostAt UInt8?          where a takeaway was, in the offence's frame like
+                                   every other spot here
   clockRunoff   UInt16
   pointsScored  UInt8              what this play put on the board
   scoring       Scoring?           what kind of score, which says who scored it
@@ -279,12 +280,30 @@ that as the kicking team's touchdown, its try, and its kickoff after it (8-7-3 I
 fumbles a kick — a muff is not modelled — so only a scripted game reaches it today.
 
 **A takeaway says where possession was lost.** `Outcome.possessionLostAt` is where the
-pass was intercepted or where the ball came loose, in the offence's frame like
-`Situation.ballOn`, and `nil` on every other play. It is the basic spot for a foul during
-a run followed by a change of possession (14-3-5-b), so a defensive personal foul on an
-interception return is enforced from there once the ball reverts to the offence
-(14-4-3-a) — the previous spot stood in for it, with a comment saying so, while the record
-did not carry it.
+pass was intercepted or where the ball came loose, and `nil` on every other play. It is
+in the **offence's frame** — the frame of the team that snapped, the same as
+`Situation.ballOn`, `Outcome.finalSpot`, `Outcome.fieldedAt` and a penalty's
+`enforcementSpot`. Every spot on the record is in that one frame, and the new possessor's
+frame was the alternative and was rejected for that reason: one frame per record is a
+rule a reader can hold, and two would mean asking which field a number belongs to before
+reading it. A reader who wants the takeaway in the new possessor's frame subtracts it
+from 100, exactly as the rules layer does with `finalSpot`.
+
+**What it is the spot *for* is a rule, not a fact about the record.** It is the basic
+spot for a foul during a **run** followed by a change of possession (14-3-5-b), so a
+defensive personal foul on a run that ends in a fumble lost is walked off from the fumble
+once the ball reverts to the offence (14-4-3-a). It is **not** the spot for a foul on a
+pass that was intercepted: a foul between the snap and the end of a forward pass thrown
+from behind the line is enforced from the previous spot, and the passing play ends and a
+running play begins at the instant the ball is caught (14-4-5). `Rules.enforce` reads the
+field only on a fumble lost for that reason. The record carries the spot on every
+takeaway either way, because where a pass was picked off is worth knowing whether or not
+a flag was thrown on the play.
+
+The record carries no time within a down, so a foul by the intercepting team during its
+own return is the same record as a foul before the catch, and is walked off the same way:
+right for the second, wrong for the first, and
+[#58](https://github.com/knissley/football-manager/issues/58) is where that is tracked.
 
 **What happened while the ball was dead is on the next snap.** A charged timeout is not a
 play and produces no record of its own ([decision 192](design-decisions.md)), but it is
