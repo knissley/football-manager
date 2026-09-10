@@ -249,6 +249,8 @@ swift format lint --strict --recursive --parallel Packages/ Tools/
 swift format --in-place --recursive --parallel Packages/ Tools/
 scripts/lint-sim.sh                                       # banned primitives, no Foundation;
                                                           # see docs/tools.md
+scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
+                                                          # when you change it or add a rule
 
 # Planned — land with the backlog
 scripts/test-census.sh                                    # test kinds per package (I6)
