@@ -286,6 +286,18 @@ better, and a human tester cannot reliably fleece the trade AI.
 - Awards, records, league leaders, Hall of Fame ceremonies.
 - Draft storylines, random league events, franchise history.
 - Sliders UI.
+- **Revisit generation: curated initial franchises, renames by hand, the randomiser
+  last.** A career starts from one curated set of franchises — team names, cities and
+  stadium names written once and kept — while the rosters are always generated, so every
+  start is a different league playing in the same buildings. From here a user edits a
+  team, city or stadium name by hand
+  ([decision 106](design-decisions.md#league-customisation)); a random rename exists as a
+  last resort, and is expected to be the least used path rather than the default one.
+  **The identity randomisers — team, stadium and city names — are not refined before
+  this point**, so the city that stutters with itself and the real place names among the
+  stems (#4) wait for the revisit instead of being fixed twice. The curated set itself
+  lands much earlier, with #69 after wave 1 of the audit backlog; what waits for M8 is
+  the editing surface and the randomiser behind it.
 
 *Exit:* a ten-season career review reads like a history worth screenshotting.
 
