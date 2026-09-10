@@ -661,7 +661,7 @@ extension RulesScenario {
             ]
         case .runningIntoTheKickerOnAMissedFieldGoal:
             return [
-                "football · Rule 6-2-3 · running into the kicker on a missed field goal is five yards and the down is replayed"
+                "football · Rule 12-2-12 Item 2 · running into the kicker on a missed field goal is five yards and the down is replayed"
             ]
         case .holdingOnASuccessfulTry:
             return [

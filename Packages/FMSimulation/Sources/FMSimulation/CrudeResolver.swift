@@ -978,7 +978,7 @@ public struct CrudeResolver: PlayResolver {
         // The rush at the punter, which the rules protect him from. Drawn here and
         // carried on whatever the punt turns out to be, rather than reported as a play
         // that never happened: the rush is over before the ball comes down, so the punt
-        // is a fact the offended team weighs the flag against (14-2, 12-2-12, 6-2-3). It
+        // is a fact the offended team weighs the flag against (14-2, 12-2-12). It
         // used to be `.penaltyOnly`, which gave the punting team the flag every time
         // because there was no punt to decline in favour of.
         let kickerFoul = Penalties.onKick(

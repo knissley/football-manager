@@ -407,10 +407,13 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`,
     `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`,
     `test:holdingOnASuccessfulTryRepeatsIt`.
-    And the kicker is protected either way: roughing him is fifteen yards and an automatic
-    first down, running into him is five with the down replayed, and neither cancels a
-    kick that was already away. `[2025 · 12-2-12, 6-2-3]` —
-    `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`
+    And the kicker on a kick from scrimmage is protected either way, by the two halves of
+    one article: roughing him is fifteen yards and an automatic first down, running into
+    him is five with the down replayed, and neither cancels a kick that was already away.
+    Only the first is a personal foul — the article says so of each — so only the first is
+    carried anywhere when the kick was good. `[2025 · 12-2-12]` —
+    `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
+    `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
 80. The basic spot when a run is followed by a change of possession is the spot where
     possession was lost. `[2025 · 14-3-5]` — **not yet enforced**,
     [#58](https://github.com/knissley/football-manager/issues/58): the record does not carry

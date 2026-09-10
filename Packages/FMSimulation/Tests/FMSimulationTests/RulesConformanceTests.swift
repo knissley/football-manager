@@ -2174,11 +2174,12 @@ struct RulesConformanceTests {
             "the free kick is from the 35, unmoved")
     }
 
-    /// And the five-yard half of 12-2-12's article, which 6-2-3 spells out: running into
-    /// the kicker is not a personal foul's fifteen and does not carry a first down, so the
-    /// offence takes five yards and kicks again.
+    /// And the five-yard half of that article, its Item 2: running into the kicker is not
+    /// a personal foul's fifteen and does not carry a first down, so the offence takes five
+    /// yards and kicks again. (6-2-3 is a different article about a different play — a
+    /// free kicker — and does not govern this one.)
     @Test(
-        "football · Rule 6-2-3 · running into the kicker on a missed field goal is five yards and the down is replayed",
+        "football · Rule 12-2-12 Item 2 · running into the kicker on a missed field goal is five yards and the down is replayed",
         .tags(.football)
     )
     func runningIntoTheKickerReplaysTheDown() {

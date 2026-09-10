@@ -46,7 +46,7 @@ struct RulebookSeasonTests {
     /// the whole point of the kickoff rule: a kicker who will not put the ball in the
     /// landing zone hands over the 35.
     @Test(
-        "football · Rule 6-1-5, 11-6-2-c · a kickoff touchback comes out fifteen yards further than a punt's",
+        "football · Rule 6-1-5, 11-6-2-c, 11-6-3 · a kickoff touchback comes out fifteen yards further than a punt's",
         .tags(.football))
     func aKickoffTouchbackOutrunsAPunts() {
         #expect(rules.puntTouchbackOwnYard == 20)
