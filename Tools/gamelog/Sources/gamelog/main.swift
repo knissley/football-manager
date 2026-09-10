@@ -607,21 +607,23 @@ struct Broadcast {
     /// When the game ended, for the drive that still had the ball when the stream ran
     /// out.
     ///
-    /// A game ends with the clock or with a score. A last play that scored nothing left
-    /// nothing but the clock to end it, so the drive had the ball to 0:00 — which is
-    /// what charging every last drive to the end of its period assumes, and it is right
-    /// exactly then. When a score ended it the same assumption is wrong by everything
-    /// still on the clock: a field goal on the first snap of a second overtime period
-    /// was credited fifteen minutes of possession.
+    /// The end of the period, all but once. In regulation the engine ends a game only
+    /// when the clock runs out — `GameState.checkForEnd` — so the drive had the ball to
+    /// 0:00 however its last play finished, a score included: the kick that wins it at
+    /// 0:03 does not end the game, the horn does. The one place a game ends with time on
+    /// the clock is overtime, where `GameState.checkForOvertimeEnd` ends it on the score
+    /// that settles it, and there the same assumption is wrong by everything still on
+    /// the clock: a field goal on the first snap of a second overtime period was
+    /// credited fifteen minutes of possession.
     ///
-    /// A drive that ended in a score ended when the ball crossed the line. What the
-    /// record carries is the clock as it stood *before* the interval to the snap was
-    /// burned — the reading at the end of the play before it — and how long the play
-    /// itself took. So this is that reading plus the play: short by the pre-snap
-    /// interval, which is nowhere in the stream and nothing here can recover, and never
-    /// past the end of the period.
+    /// That drive ended when the ball crossed the line. What the record carries is the
+    /// clock as it stood *before* the interval to the snap was burned — the reading at
+    /// the end of the play before it — and how long the play itself took. So a walk-off
+    /// is that reading plus the play: short by the pre-snap interval, which is nowhere
+    /// in the stream and nothing here can recover, and never past the end of the period.
     private func endOfGame(on last: PlayRecord) -> Int {
         let periodEnd = elapsed(quarter: last.situation.quarter, remaining: 0)
+        guard last.situation.quarter > rules.quarters else { return periodEnd }
         let advancement = advancement(for: last)
         guard advancement.scoring != nil, advancement.points != 0 else { return periodEnd }
         let lastReading = elapsed(

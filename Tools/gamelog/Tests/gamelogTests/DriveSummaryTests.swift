@@ -51,14 +51,17 @@ struct DriveSummaryTests {
     /// plus the play itself. All but the last term is derived from `Rules` and the record
     /// alone, which is what makes it a check on the tool rather than a copy of it.
     ///
-    /// **The last term is not independent.** The interval before a snap is nowhere in a
-    /// `PlayRecord`, so neither the tool nor this can say when the final play of a game
-    /// actually ended; both take the reading plus the play's own seconds, clamped to the
-    /// end of the period, and this expectation is *pinned* to that approximation on
-    /// purpose — a game that ends on a score has to be measured the same way on both
-    /// sides or the sum can never balance. It is worth five seconds in both of the games
-    /// below. What the test is for survives either definition: the bug it was written
-    /// against had their drives summing to 5257 and 5207 against a little over 4500.
+    /// **The last term is not independent, and it is only ever asked here.** Both games
+    /// below are won in overtime, which is the one place a game ends with time on the
+    /// clock; a game that runs out of clock instead had the ball to 0:00 and the tool
+    /// charges the whole period, as this does. For a walk-off the interval before the
+    /// snap is nowhere in a `PlayRecord`, so neither the tool nor this can say when the
+    /// winning play ended: both take the reading plus the play's own seconds, clamped to
+    /// the end of the period, and this expectation is *pinned* to that approximation on
+    /// purpose — the two sides have to measure it the same way or the sum can never
+    /// balance. It is worth five seconds in both games. What the test is for survives
+    /// either definition: the bug it was written against had their drives summing to
+    /// 5257 and 5207 against a little over 4500.
     private func clockPlayed(through play: PlayRecord, rules: Rules, isPostseason: Bool) -> Int {
         func length(ofPeriod period: UInt8) -> Int {
             period <= rules.quarters
