@@ -398,7 +398,8 @@ struct ScenarioResolver: PlayResolver {
     }
 
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let snap = Snap(
             index: log.count(), situation: situation, calls: calls,

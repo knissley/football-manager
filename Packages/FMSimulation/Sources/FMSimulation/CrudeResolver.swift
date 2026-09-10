@@ -19,12 +19,10 @@ public struct CrudeResolver: PlayResolver {
     public init() {}
 
     public func resolve(
-        situation: Situation, calls: Calls, context: PlayContext,
+        situation: Situation, calls: Calls, onField personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        let personnel = Lineup.onField(
-            context, family: family, situation: situation, random: &random)
 
         // A flag before the snap means the play never happened, whatever was called.
         // Every snap can draw one, kicks included. Tries and kickoffs used to be excluded

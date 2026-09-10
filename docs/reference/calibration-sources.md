@@ -136,6 +136,32 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
 
+### Who took the snap
+
+Player-snaps per team-game on plays from scrimmage, by the roster position group of each
+man on the field. The source's participation feed lists every man on every play by his
+roster position; the engine counts the roster position of each man `PlayRecord.onField`
+names, so the two measure the same thing. The defence's front is one group because the
+feed writes a four-man front's edge rushers as DE and a three-man front's as OLB, and a
+line and a linebacker corps would be split by scheme rather than by job. Plays the feed
+has no row for still had twenty-two men on them, so the per-snap count over the plays it
+covers is scaled to the plays from scrimmage a team runs.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:snaps.quarterback` — quarterback player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.backfield` — backfield player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.receiver` — receiver player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.tightEnd` — tight end player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.offensiveLine` — offensive line player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.frontSeven` — front seven player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.defensiveBack` — defensive back player-snaps per team-game | 2023-24 | S2 |
+
+Per snap, that is one quarterback and five linemen, 1.1 backs, 1.3 tight ends and 2.6
+receivers on offence, and 6.1 in the front seven against 4.9 defensive backs — which is the
+personnel rows above said another way, and the check on the record is that the count
+comes out of `onField` rather than out of the substitution the engine made.
+
 ### The shape of a carry
 
 | Row | Season | Source |

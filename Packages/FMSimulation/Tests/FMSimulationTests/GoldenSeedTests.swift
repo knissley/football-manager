@@ -58,6 +58,7 @@ struct GoldenSeedTests {
             sum.mix(play.outcome.yards)
             sum.mix(play.outcome.clockRunoff)
             sum.mix(play.outcome.finalSpot ?? 200)
+            for entry in play.onField { sum.mix(entry) }
             for participant in play.outcome.participants {
                 sum.mix(participant.player.rawValue)
                 sum.mix(participant.role.rawValue)
@@ -104,9 +105,16 @@ struct GoldenSeedTests {
             // ceiling along, so every rating on both rosters moved — an older league is a
             // slightly better one — and a game between two rosters of different players is
             // a different game.
-            (UInt64(1), UInt64(3_162_683_895_152_383_395)),
-            (UInt64(5), UInt64(10_979_753_660_678_002_318)),
-            (UInt64(12), UInt64(2_862_180_237_269_468_990)),
+            //
+            // And moved by the record rather than by the game: the twenty-two roster
+            // indices of `PlayRecord.onField` are mixed in from here on, so the same
+            // three games hash differently. Nothing a play produced changed — the lineup
+            // is drawn by the simulator immediately before the snap is resolved, where
+            // the resolver used to draw it, so every stream is spent in the same order —
+            // and `Tools/gamelog` prints the same game before and after.
+            (UInt64(1), UInt64(17_223_483_701_319_831_608)),
+            (UInt64(5), UInt64(4_265_818_114_416_681_660)),
+            (UInt64(12), UInt64(12_047_314_371_920_317_166)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

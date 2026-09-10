@@ -4,8 +4,9 @@
 fills them on every snap, and `Tools/playsize` measures the footprint this doc quotes.
 Two caveats a reader needs: the record is not yet versioned and the play concept is
 stored by reference rather than by value (#33), and several facts the doc implies are
-derivable are not on the record yet — who was on the field (#21), whether a pass was
-completed and where the points came from (#22), and where a kick was fielded (#58).
+derivable are not on the record yet — whether a pass was completed and where the points
+came from (#22), and where a kick was fielded (#58). Who was on the field is on the
+record ([below](#who-was-on-the-field)).
 
 The highest-stakes artifact in the project. Everything downstream is a query over it
 ([ADR-0007](adr/0007-event-stream-contract.md)), and it gets designed before the engine
@@ -58,10 +59,11 @@ PlayRecord
   calls         Calls           what each side chose, and who chose it
   decisions     [DecisionPoint] the observable causal chain
   outcome       Outcome         what happened
+  onField       [UInt8]         the 22 men on the field, as roster indices in slot order
   trajectory    TrajectoryRef?  opt-in, usually absent   ← designed, not built
 ```
 
-*Designed, not built:* the record has the first six fields and no `trajectory`. There is
+*Designed, not built:* the record has the first seven fields and no `trajectory`. There is
 no `TrajectoryRef` type and nothing to point it at — trajectories are per-tick positions,
 and they arrive with the spatial engine at M5. The sizing section below costs a trajectory
 anyway, because whether records or trajectories dominate storage is a decision that has
@@ -129,6 +131,33 @@ A crude engine emits a handful of these per play; the spatial engine emits many.
 cases, same meaning** — which is exactly what lets the engine be replaced without touching
 anything above it.
 
+### Who was on the field
+
+Credit and presence are two different facts, and the record carries both. `participants`
+is sparse by design ([decision 97](design-decisions.md#foundational)) — only the men who
+did something the play names — which is right for credit and useless for the question a
+box score asks first: who took the snap. A lineman who blocked nobody worth naming was
+credited on three to five snaps in five; a safety on a sixth of run plays; and a snap
+count, the development model's main lever
+([ADR-0013](adr/0013-fluid-positions.md)), was whatever the credits added up to.
+
+So every play carries `onField`: twenty-two roster indices in slot order, one byte each,
+offence in 0 through 10 and defence in 11 through 21 — the same convention `PlayerSlot`
+fixes, so on a kickoff the kicking team is the offence. The index points into
+`GameResult.rosters`, each team's roster for the game in depth-chart order: every man on
+the chart who was available at kickoff, once, at the first position he appears. The table
+is fixed before the first snap, so a man who leaves hurt keeps his index and an early play
+still means what it meant. `PlayRecord.vacant` (255) marks a slot nobody stood in, which
+only happens when a position has run out of men.
+
+`PlayRecord.player(at:rosters:)` resolves a slot, and `snapCounts(rosters:)` over a
+game's plays is the snap count. Both are queries; the record stores the index and nothing
+else. The contract — twenty-two entries on every play including kicks, tries and flag-only
+snaps, every index inside its roster, every credit the same man the slot resolves to,
+nobody twice, nobody after he left hurt, and a team's quarterback snaps summing to its
+plays from scrimmage — is `OnFieldTests`, and the harness reads player-snaps per position
+group off it (`snaps.*` in the [calibration table](match-engine.md#calibration)).
+
 ## Identity
 
 A play is addressed by `PlayRef` — `(game, index)` — and nothing is stored for it. The
@@ -173,18 +202,26 @@ Measured against the real types (`swift run --package-path Tools/playsize`):
 ```
 Situation      29 B     OffensiveCall   10 B     DecisionPoint    8 B
 Calls          41 B     DefensiveCall    6 B     Participation   24 B
-PlayRef        10 B     PlayRecord     131 B  (fixed part)
+PlayRef        10 B     PlayRecord     144 B  (fixed part)
 ```
 
-A realistic play — twelve decision points, ten credited participants — is **467 bytes**
-in Swift's in-memory layout:
+A realistic play — twelve decision points, ten credited participants, and the twenty-two
+men on the field — is **502 bytes** in Swift's in-memory layout:
 
 ```
-per game (150 plays)          68 KB
-your season (17 games)      1,162 KB
-league season (272 games)      18 MB
-ten seasons, league-wide      181 MB
+per game (150 plays)          73 KB
+your season (17 games)      1,250 KB
+league season (272 games)      19 MB
+ten seasons, league-wide      195 MB
 ```
+
+**Presence costs thirty-three bytes a play.** Twenty-two of them are the roster indices
+themselves and eleven are the third array's pointer with the padding it brings, which
+took the fixed part from 133 to 144. Credits stay sparse; what was added is the one fact
+the sparse credits could not carry. (The 133 was itself two bytes over the 131 this doc
+used to quote: `Outcome.finalSpot` was not absorbed by padding as
+[decision 179](design-decisions.md#the-crude-engine) supposed, and the tool has measured
+133 since it landed.)
 
 Three things changed as a result of measuring.
 
@@ -206,12 +243,12 @@ the 8-byte `DefensiveCallID` became a 6-byte value stored inline. Storing both c
 value, so a playbook edit cannot rewrite history, was close to free.
 
 **The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~68 KB of records — 1.6×, not the 6× asserted before. Records and
+game against ~73 KB of records — 1.5×, not the 6× asserted before. Records and
 trajectories are the same order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 181 MB of league-wide history for a
+in full; replay everything else from its seed.** 195 MB of league-wide history for a
 ten-season career is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not

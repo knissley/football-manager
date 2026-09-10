@@ -115,12 +115,16 @@ public protocol PlayResolver: Sendable {
     /// - Parameters:
     ///   - situation: the state before the ball is snapped.
     ///   - calls: what each side chose.
-    ///   - context: who is on the field, and the rules in force.
+    ///   - onField: the twenty-two men standing there, by slot. Who plays is
+    ///     substitution, which the game decides and the record carries; the resolver
+    ///     is handed the eleven a side and asks nothing about who else was available.
+    ///   - context: the rotations, the rules in force, and the conditions.
     ///   - random: the play's own stream, already split from the game's seed.
     /// - Returns: the outcome and the decision points that explain it.
     func resolve(
         situation: Situation,
         calls: Calls,
+        onField: Lineup,
         context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint])

@@ -15,7 +15,8 @@ struct ScriptedResolver: PlayResolver {
     let script: [Outcome]
 
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let index = min(callCount.value, script.count - 1)
         callCount.value += 1
@@ -40,7 +41,8 @@ struct ScriptedResolver: PlayResolver {
 /// contradict the outcome ([ADR-0012](../../../../docs/adr/0012-play-resolver-seam.md)).
 struct StalemateResolver: PlayResolver {
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
         switch family {
@@ -66,7 +68,8 @@ struct StalemateResolver: PlayResolver {
 /// kicking decision exists. A stalemate never leaves its own end and cannot exercise it.
 struct GrinderResolver: PlayResolver {
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
         switch family {

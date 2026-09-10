@@ -440,6 +440,13 @@ cannot measure yet or whose sample is too thin to fail on.
 | snaps against base | 20.2-25.0% | 2023-24 | — | S2 | yes | Four defensive backs on the field. |
 | yards per carry, even count | 4.3-5.0 | 2023-24 | — | S2 | yes | First and ten, designed runs; blockers are five linemen plus tight ends plus extra backs, the box is eleven less the defensive backs, as the harness counts it. By defenders actually in the box the figure was 4.5–4.7. |
 | yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. |
+| quarterback snaps per team-game | 58.9-66.8 | 2023-24 | — | S2 | yes | Player-snaps on plays from scrimmage by roster position group, the source's participation feed scaled to plays from scrimmage. One a snap by construction on both sides. |
+| backfield snaps per team-game | 64.2-72.4 | 2023-24 | — | S2 | yes | Running backs and fullbacks. |
+| receiver snaps per team-game | 150.3-171.0 | 2023-24 | — | S2 | yes | — |
+| tight end snaps per team-game | 77.1-87.2 | 2023-24 | — | S2 | yes | — |
+| offensive line snaps per team-game | 296.7-332.9 | 2023-24 | — | S2 | yes | Five a snap by construction in the engine; the source has a sixth now and then. |
+| front seven snaps per team-game | 363.7-405.1 | 2023-24 | — | S2 | yes | Edge, interior and linebacker together: the source lists a four-man front's edge rushers as ends and a three-man front's as outside linebackers, so a narrower split would follow the scheme rather than the job. |
+| defensive back snaps per team-game | 285.5-323.9 | 2023-24 | — | S2 | yes | Cornerbacks and safeties. |
 | carries stuffed (0 or fewer) | 17.5-19.9% | 2023-24 | — | S1 | yes | — |
 | carries of 2 or fewer | 40.6-46.5% | 2023-24 | — | S1 | yes | — |
 | carries of 10 or more | 9.6-11.2% | 2023-24 | — | S1 | yes | — |

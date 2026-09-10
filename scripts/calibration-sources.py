@@ -63,6 +63,23 @@ PRE_SNAP_OFFENSE = {
     "Offensive Too Many Men on Field",
     "Illegal Substitution",
 }
+# The roster position a participation row lists a man at, folded into the engine's
+# `PositionGroup`s for the snaps-per-group rows. Every man on the field is counted by the
+# position the source lists him at, whichever side's string he appears in — a lineman
+# reporting as an extra blocker is still a lineman — because the engine counts the roster
+# position of each man `PlayRecord.onField` names. The defence's front is one group: the
+# source writes a four-man front's edge rushers as DE and a three-man front's as OLB, so a
+# line and a linebacker corps would be split by scheme rather than by job.
+POSITION_GROUPS = [
+    ("quarterback", {"QB"}),
+    ("backfield", {"RB", "FB", "HB"}),
+    ("receiver", {"WR"}),
+    ("tightEnd", {"TE"}),
+    ("offensiveLine", {"C", "G", "T", "OL", "OT", "OG"}),
+    ("frontSeven", {"DE", "DT", "NT", "DL", "LB", "ILB", "OLB", "MLB"}),
+    ("defensiveBack", {"CB", "S", "FS", "SS", "DB"}),
+]
+
 # The ten most common accepted fouls in 2023 and 2024 combined, mapped to `Foul` cases.
 PENALTY_ROWS = [
     ("Offensive Holding", "offensiveHolding"),
@@ -106,6 +123,23 @@ def personnel_count(text, units):
             except ValueError:
                 return None
     return total if text else None
+
+
+def group_counts(text):
+    """'1 RB, 1 TE, 3 WR' -> {'backfield': 1, 'tightEnd': 1, 'receiver': 3}."""
+    counts = Counter()
+    for part in text.split(","):
+        pieces = part.strip().split(" ")
+        if len(pieces) != 2:
+            continue
+        try:
+            number = int(pieces[0])
+        except ValueError:
+            continue
+        for group, codes in POSITION_GROUPS:
+            if pieces[1] in codes:
+                counts[group] += number
+    return counts
 
 
 def load_participation(path):
@@ -213,6 +247,7 @@ def read_season(directory, season):
                     and (row["kickoff_returner_player_id"] or num(row, "return_yards") is not None)
                 ):
                     c["kickoffReturns"] += 1
+                    c["kickoffReturnYards"] += num(row, "return_yards", 0.0)
                 if flag(row, "return_touchdown"):
                     c["kickReturnTouchdowns"] += 1
             if flag(row, "punt_attempt") and play_type == "punt":
@@ -220,6 +255,9 @@ def read_season(directory, season):
                 distance = num(row, "kick_distance", 0.0)
                 returned = num(row, "return_yards", 0.0)
                 c["puntNetYards"] += distance - returned - (20 if flag(row, "touchback") else 0)
+                if not flag(row, "punt_blocked") and num(row, "kick_distance") is not None:
+                    c["puntsKicked"] += 1
+                    c["puntGrossYards"] += distance
                 if (
                     row["punt_returner_player_id"]
                     and not flag(row, "punt_fair_catch")
@@ -228,6 +266,7 @@ def read_season(directory, season):
                     and not flag(row, "punt_blocked")
                 ):
                     c["puntReturns"] += 1
+                    c["puntReturnYards"] += returned
                 if flag(row, "return_touchdown"):
                     c["kickReturnTouchdowns"] += 1
             if flag(row, "field_goal_attempt") and play_type == "field_goal":
@@ -355,6 +394,13 @@ def read_season(directory, season):
 
             part = participation.get((game, row["play_id"]))
             if part is not None and part["offense_personnel"] and part["defense_personnel"]:
+                # Who was on the field, by group. Scaled to plays from scrimmage when the
+                # per-team-game rate is taken, because a play with no participation row
+                # still had twenty-two men on it.
+                c["groupSnaps"] += 1
+                for side in ("offense_personnel", "defense_personnel"):
+                    for group, count in group_counts(part[side]).items():
+                        c["snaps:" + group] += count
                 backs = personnel_count(part["offense_personnel"], "RB")
                 ends = personnel_count(part["offense_personnel"], "TE")
                 backs_db = personnel_count(part["defense_personnel"], ("CB", "FS", "SS", "S", "DB"))
@@ -518,7 +564,11 @@ METRICS = [
     ("onsideRecovery2024", "onside kicks recovered % (2024 rules)", OLD, 1, share("onsideRecovered", "onsideKicks")),
     ("puntsPerTeamGame", "punts per team-game", PLAY, 1, per_team_game("punts")),
     ("netPunt", "net punt yards", PLAY, 1, lambda c: div(c["puntNetYards"], c["punts"])),
+    ("grossPunt", "gross punt yards, blocked punts excluded", PLAY, 1, lambda c: div(c["puntGrossYards"], c["puntsKicked"])),
     ("puntsReturned", "punts returned, share of punts %", PLAY, 1, share("puntReturns", "punts")),
+    ("puntReturnYards", "yards per punt return", PLAY, 1, lambda c: div(c["puntReturnYards"], c["puntReturns"])),
+    ("kickoffReturnYards2025", "yards per kickoff return (2025 rules)", NEW, 1, lambda c: div(c["kickoffReturnYards"], c["kickoffReturns"])),
+    ("kickoffReturnYards2024", "yards per kickoff return (2024 rules)", OLD, 1, lambda c: div(c["kickoffReturnYards"], c["kickoffReturns"])),
     ("fourthDownPunted", "fourth downs punted %", PLAY, 1, share("fourthPunts", "fourthDowns")),
     ("fourthDownKicked", "fourth downs kicked %", PLAY, 1, share("fourthKicks", "fourthDowns")),
     ("fourthDownWentForIt", "fourth downs gone for %", PLAY, 1, share("fourthGoes", "fourthDowns")),
@@ -547,6 +597,19 @@ METRICS = [
 ] + [
     ("penalty." + foul, f"{name} per game, both teams", PLAY, 2, per_game("penalty:" + name))
     for name, foul in PENALTY_ROWS
+] + [
+    # Player-snaps by position group per team-game on plays from scrimmage: the group's
+    # men per snap over the plays with a participation row, times the plays from
+    # scrimmage a team runs, so a play the participation feed missed still counts its
+    # twenty-two.
+    (
+        "snaps." + group,
+        f"{group} player-snaps per team-game, plays from scrimmage",
+        PLAY,
+        1,
+        (lambda g: lambda c: div(c["snaps:" + g], c["groupSnaps"]) * div(c["scrimmage"], 2 * c["games"]))(group),
+    )
+    for group, _ in POSITION_GROUPS
 ]
 
 

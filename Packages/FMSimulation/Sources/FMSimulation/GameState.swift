@@ -67,6 +67,13 @@ extension GameSimulator {
         /// Every player's day, drawn once when the game starts.
         private let form: [PlayerID: Double]
 
+        /// Each team's roster for the game, the table `PlayRecord.onField` indexes, and
+        /// the index of every man in it. Both fixed before the first kickoff: a player
+        /// who leaves hurt keeps his index, so the indices in an early play still mean
+        /// what they meant.
+        let rosters: [TeamID: [PlayerID]]
+        private let rosterIndex: [TeamID: [PlayerID: UInt8]]
+
         /// Who receives the second-half kickoff — the team that did not receive first.
         private let secondHalfReceiver: TeamID
         /// How many opportunities to possess the ball have begun in overtime, capped at
@@ -88,6 +95,16 @@ extension GameSimulator {
             clock = .start(setup.rules)
             homeTimeouts = setup.rules.timeoutsPerHalf
             awayTimeouts = setup.rules.timeoutsPerHalf
+
+            rosters = [setup.home.id: setup.home.roster, setup.away.id: setup.away.roster]
+            rosterIndex = rosters.mapValues { roster in
+                // A roster is at most the men a club dresses, and `PlayRecord.vacant` is
+                // the one index a man can never have.
+                precondition(roster.count < Int(PlayRecord.vacant), "a roster too large to index")
+                var index: [PlayerID: UInt8] = [:]
+                for (position, player) in roster.enumerated() { index[player] = UInt8(position) }
+                return index
+            }
 
             // The away team receives to open. A coin toss is a real event and belongs in
             // the stream when there is a stream to put it in; hard-coding it here keeps
@@ -145,6 +162,22 @@ extension GameSimulator {
                 clockIsRunning: previousBehavior != .stopsUntilSnap,
                 form: form,
                 rules: setup.rules)
+        }
+
+        /// The lineup as the record carries it: twenty-two roster indices in slot order,
+        /// the offensive slots into the possessing team's roster and the defensive slots
+        /// into the other's.
+        ///
+        /// Every man `Lineup.fill` can place comes from a rotation that is a subset of
+        /// the roster this table was built from, so a lookup cannot fail by
+        /// construction; `vacant` is written for an empty slot and for nothing else.
+        func rosterIndices(of lineup: Lineup) -> [UInt8] {
+            (0..<PlayerSlot.count).map { index in
+                let slot = PlayerSlot(index)
+                guard let player = lineup[slot] else { return PlayRecord.vacant }
+                let team = slot.isOffense ? possession : defending
+                return rosterIndex[team]?[player] ?? PlayRecord.vacant
+            }
         }
 
         /// Spend a timeout, which stops the clock until the snap.
@@ -215,6 +248,7 @@ extension GameSimulator {
 
         mutating func apply(
             _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint],
+            onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count),
             deadBall: DeadBallChoices? = nil
         ) {
             let before = situation()
@@ -235,7 +269,9 @@ extension GameSimulator {
                 advancement = rules.advance(from: before, outcome: outcome)
             }
 
-            record(effective, calls: calls, decisions: decisions, situation: before)
+            record(
+                effective, calls: calls, decisions: decisions, onField: onField,
+                situation: before)
             score(advancement)
             if effective.kind == .penaltyOnly {
                 runClockForDeadBallFoul(effective, choices: deadBall, tempo: calls.offense.tempo)
@@ -273,7 +309,8 @@ extension GameSimulator {
         }
 
         private mutating func record(
-            _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint], situation: Situation
+            _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint], onField: [UInt8],
+            situation: Situation
         ) {
             plays.append(
                 PlayRecord(
@@ -282,7 +319,8 @@ extension GameSimulator {
                     situation: situation,
                     calls: calls,
                     decisions: decisions,
-                    outcome: outcome))
+                    outcome: outcome,
+                    onField: onField))
         }
 
         private mutating func score(_ advancement: Advancement) {
@@ -650,8 +688,8 @@ extension GameSimulator {
                 winner = nil
             }
             return GameResult(
-                game: setup.game, plays: plays, injuries: injuries, homeScore: homeScore,
-                awayScore: awayScore, winner: winner)
+                game: setup.game, plays: plays, injuries: injuries, rosters: rosters,
+                homeScore: homeScore, awayScore: awayScore, winner: winner)
         }
     }
 }

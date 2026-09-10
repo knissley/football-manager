@@ -736,6 +736,36 @@ report("personnel11", Double(groups[11] ?? 0) / snaps * 100)
 report("packageNickel", Double(packages[.nickel] ?? 0) / snaps * 100)
 report("packageBase", Double(packages[.base] ?? 0) / snaps * 100)
 
+// Who took the snap, from presence rather than credit. Every play carries the roster
+// index of each of the twenty-two men on the field, so a snap count is a query over the
+// stream, and these rows are player-snaps per team-game by the roster position group of
+// each man — the same construction the source's participation feed allows, and a
+// number the credits alone could never produce: a lineman was credited on three to five
+// snaps in five, and a safety on a sixth of run plays.
+print("    player-snaps by position group, per team-game, plays from scrimmage")
+var snapsByGroup: [PositionGroup: Int] = [:]
+for result in results {
+    for play in result.plays where play.outcome.kind.isScrimmagePlay {
+        for index in 0..<PlayerSlot.count {
+            guard let player = play.player(at: PlayerSlot(index), rosters: result.rosters),
+                let group = players[player]?.position.group
+            else { continue }
+            snapsByGroup[group, default: 0] += 1
+        }
+    }
+}
+@MainActor
+func groupSnaps(_ groups: PositionGroup...) -> Double {
+    Double(groups.reduce(0) { $0 + (snapsByGroup[$1] ?? 0) }) / teamGames
+}
+report("snaps.quarterback", groupSnaps(.quarterback))
+report("snaps.backfield", groupSnaps(.backfield))
+report("snaps.receiver", groupSnaps(.receiver))
+report("snaps.tightEnd", groupSnaps(.tightEnd))
+report("snaps.offensiveLine", groupSnaps(.offensiveLine))
+report("snaps.frontSeven", groupSnaps(.edge, .defensiveInterior, .linebacker))
+report("snaps.defensiveBack", groupSnaps(.cornerback, .safety))
+
 // The matchup, which is the point of having personnel at all. A run into a light box
 // should go further than one into a stacked one, and if it does not then the substitution
 // is decoration.

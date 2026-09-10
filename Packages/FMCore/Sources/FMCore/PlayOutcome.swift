@@ -459,6 +459,9 @@ public struct PlayRef: Sendable, Hashable, Codable, Comparable {
 /// improves history retroactively.
 public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
 
+    /// The index of a slot nobody stood in.
+    public static let vacant: UInt8 = 255
+
     public var game: GameID
     /// Order within the game, starting at zero. Also the label used to split a
     /// per-play random stream, which is why it must be stable.
@@ -467,6 +470,19 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
     public var calls: Calls
     public var decisions: [DecisionPoint]
     public var outcome: Outcome
+    /// Who was on the field: twenty-two roster indices in slot order.
+    ///
+    /// Offence in 0 through 10, indexing the possessing team's roster in the game's
+    /// roster table, and defence in 11 through 21 indexing the other side's — the same
+    /// convention `PlayerSlot` fixes, so on a kickoff the kicking team is the offence.
+    /// `vacant` marks a slot nobody stood in, which happens only when a position has run
+    /// out of men.
+    ///
+    /// Presence and credit are kept apart on purpose. Crediting all twenty-two made the
+    /// participants three-quarters of a record and answered nothing the credits did not;
+    /// what the credits could never answer is who took the snap, and a byte-wide index
+    /// answers it for twenty-two bytes a play. A snap count is `snapCounts(rosters:)`.
+    public var onField: [UInt8]
 
     public init(
         game: GameID,
@@ -474,7 +490,8 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         situation: Situation,
         calls: Calls,
         decisions: [DecisionPoint] = [],
-        outcome: Outcome
+        outcome: Outcome,
+        onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count)
     ) {
         self.game = game
         self.index = index
@@ -482,6 +499,28 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         self.calls = calls
         self.decisions = decisions
         self.outcome = outcome
+        self.onField = onField
+    }
+
+    /// The player standing in `slot`, resolved through the game's roster table.
+    ///
+    /// `rosters` holds the two teams of the game; the offensive slots read the
+    /// possessing team's and the defensive slots the other's. `nil` for a vacant slot,
+    /// for `PlayerSlot.none`, and for a table that does not hold this play's teams.
+    public func player(at slot: PlayerSlot, rosters: [TeamID: [PlayerID]]) -> PlayerID? {
+        guard !slot.isNone, Int(slot.rawValue) < onField.count else { return nil }
+        let index = onField[Int(slot.rawValue)]
+        guard index != Self.vacant else { return nil }
+        let team: TeamID?
+        if slot.isOffense {
+            team = situation.possession
+        } else {
+            // Two keys, one of them the possessing team, so which comes first when the
+            // keys are walked cannot change the answer.
+            team = rosters.keys.first { $0 != situation.possession }
+        }
+        guard let team, let roster = rosters[team], Int(index) < roster.count else { return nil }
+        return roster[Int(index)]
     }
 
     /// How anything outside the stream refers to this play.
@@ -505,5 +544,24 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
         guard outcome.kind.isScrimmagePlay, !outcome.endedIn.isTurnover else { return false }
         guard !situation.isGoalToGo else { return false }
         return outcome.yards >= Int16(situation.distance)
+    }
+}
+
+extension Sequence where Element == PlayRecord {
+
+    /// How many of these plays each man was on the field for.
+    ///
+    /// The snap count is a query over presence, not over credit: a lineman who blocked
+    /// nobody the record thought worth naming still took the snap.
+    public func snapCounts(rosters: [TeamID: [PlayerID]]) -> [PlayerID: Int] {
+        var counts: [PlayerID: Int] = [:]
+        for play in self {
+            for index in 0..<PlayerSlot.count {
+                if let player = play.player(at: PlayerSlot(index), rosters: rosters) {
+                    counts[player, default: 0] += 1
+                }
+            }
+        }
+        return counts
     }
 }

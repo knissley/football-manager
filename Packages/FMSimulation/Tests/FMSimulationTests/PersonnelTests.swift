@@ -139,8 +139,11 @@ struct PersonnelTests {
             var total = 0
             let carries = 4_000
             for _ in 0..<carries {
+                let onField = Lineup.onField(
+                    context, family: .insideRun, situation: situation, random: &random)
                 let resolved = CrudeResolver().resolve(
-                    situation: situation, calls: calls, context: context, random: &random)
+                    situation: situation, calls: calls, onField: onField, context: context,
+                    random: &random)
                 total += Int(resolved.outcome.yards)
             }
             return Double(total) / Double(carries)

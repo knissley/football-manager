@@ -36,7 +36,7 @@ so, then what checks it:
   sport. The rule is still the rule; the note says what we do instead.
 
 A rule is not a rate. Entries 1 to 88 are rules, and a scenario is what checks one. Entries
-89 to 110 are what a league of games has to *look* like, and a harness band over a sourced
+89 to 111 are what a league of games has to *look* like, and a harness band over a sourced
 season is what checks one. A band is evidence about a rate and never about a rule.
 
 ## Game length and overtime
@@ -466,18 +466,26 @@ what every one of them was derived from is in
 109. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
-110. Over a season, team win totals spread about as widely as they really do. —
+110. Every man on the field is in the record, and each position group takes about as many
+     snaps a game as it really does: one quarterback and five linemen a snap, a back and a
+     tight end and change, close to three receivers, a front seven of six or seven and
+     four or five defensive backs. — `row:snaps.quarterback`, `row:snaps.backfield`,
+     `row:snaps.receiver`, `row:snaps.tightEnd`, `row:snaps.offensiveLine`,
+     `row:snaps.frontSeven`, `row:snaps.defensiveBack`; the record's half of it is
+     `test:everyPlayCarriesTwentyTwoSlots`, `test:creditsAgreeWithTheField`,
+     `test:quarterbackSnapsSumToScrimmagePlays`
+111. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
 
 ## What the harness cannot check yet
 
-111. A completion is a completion whether it gained a yard, none, or lost one. The record
+112. A completion is a completion whether it gained a yard, none, or lost one. The record
      cannot say a pass was caught, so the harness infers one from positive yards and reads
      several points low while showing green. — **not yet enforced**,
      [#22](https://github.com/knissley/football-manager/issues/22) and
      [#42](https://github.com/knissley/football-manager/issues/42); S14 in the
      [audit](audit-is-this-football.md)
-112. Players miss games at about the rate they really do, and heavy rain takes points off a
+113. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
