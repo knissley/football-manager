@@ -441,12 +441,7 @@ public struct BaselineCaller: PlayCaller {
         let runShare: Double
         switch situation.downAndDistance {
         case .firstDown: runShare = 0.61
-        // Near the goal line the field is short and the throw is the higher-value call
-        // more often than a run-first lean suggests. A run-heavy goal line put too many
-        // touchdowns on the ground and left the passing distribution without a mean high
-        // enough to have a tail.
-        case .goalToGo: runShare = 0.38
-        case .secondShort, .thirdShort, .fourthShort: runShare = 0.70
+        case .secondShort: runShare = 0.70
         case .secondMedium: runShare = 0.53
         case .secondLong: runShare = 0.22
         // Third and five is a down the sport runs on constantly; third and eight is one
@@ -454,6 +449,12 @@ public struct BaselineCaller: PlayCaller {
         // the bucket at six.
         case .thirdMedium, .fourthMedium: runShare = 0.20
         case .thirdLong, .fourthLong: runShare = 0.08
+        // Unreachable. `isShortYardage` is these three buckets exactly, and the branch
+        // above answers all of them and returns; the switch has to be exhaustive, so
+        // they carry the same lean that branch does rather than a second number nobody
+        // can reach. A goal-line lean that disagreed with it sat here for a while and
+        // could be tuned all day without moving a single snap.
+        case .goalToGo, .thirdShort, .fourthShort: runShare = 0.72
         }
 
         if random.nextBool(probability: runShare) {
@@ -540,6 +541,22 @@ public struct BaselineCaller: PlayCaller {
         // the officials' spot less than the play clock says, because the play clock has
         // not started yet while they set the ball. Count what the *game* clock loses, and
         // never more: counting high hands the ball over, counting low costs one snap.
+        //
+        // The quantity wanted is whether the *game* clock restarts on the ready, and what
+        // is read is whether the *play* clock does. The two agree everywhere this
+        // arithmetic can be reached, and the coupling is worth stating because nothing
+        // else does. They part company on one ending: a runner out of bounds outside the
+        // late windows leaves the game clock waiting for the ready (4-3-2-a) while the
+        // next snap is against the ordinary forty from the end of the play (4-6-1), so
+        // the game clock loses the spot and the play clock does not — and a spot counted
+        // at zero there would count six seconds high, the direction that hands the ball
+        // over. It cannot arise: kneeling at all needs `time.isTwoMinute`, and inside two
+        // minutes of a half 4-3-2-a-2 and a-3 hold the clock until the snap after a
+        // runner goes out, which is `clockIsRunning == false` and no count at all. Every
+        // other ending that stops the clock on the ready — an enforced penalty — puts the
+        // snap against a clock that starts on the whistle too (4-6-2, 4-6-3), so the two
+        // agree. If the late windows or the play clock after an ending ever move, this is
+        // what moves with them.
         let inForce = context.playClock
         let spotting = inForce.startsOnTheReady ? Int(GameClock.readyForPlayDelay) : 0
         let standing = max(0, Int(inForce.intendedSnap(at: .bleedClock)) - spotting)
