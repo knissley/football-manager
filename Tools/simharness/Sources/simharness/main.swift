@@ -222,7 +222,16 @@ func rate(_ count: Int) -> Double { Double(count) / teamGames }
 let scrimmage = allPlays.filter { $0.outcome.kind.isScrimmagePlay }
 let dropbacks = allPlays.filter { $0.outcome.kind.isDropback }
 let attempts = allPlays.filter { $0.outcome.kind.isPassAttempt }
-let completions = attempts.filter { $0.outcome.yards > 0 || $0.outcome.endedIn == .touchdown }
+// A completion is what the record says, not what the yards imply: a ball caught for a
+// loss is one. Inferring it from `yards > 0` scored every catch for nothing as an
+// incompletion and read the completion row three points low while showing green.
+let completions = attempts.filter(\.isCompletion)
+// The older inference, kept for the rows whose bands were sourced against it — yards
+// per completion and the catch leaders — until the harness read-out is re-baselined as
+// a whole.
+let completionsThatGained = attempts.filter {
+    $0.outcome.yards > 0 || $0.outcome.endedIn == .touchdown
+}
 let sacks = allPlays.filter { $0.outcome.kind == .sack }
 let carries = allPlays.filter { $0.outcome.kind == .rush }
 let interceptions = allPlays.filter { $0.outcome.endedIn == .intercepted }
@@ -322,7 +331,7 @@ let scrimmageYards =
     attemptYards + rushYards
     + Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
 report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
-let receptionYards = attemptYards / Double(max(1, completions.count))
+let receptionYards = attemptYards / Double(max(1, completionsThatGained.count))
 report("yardsPerCompletion", receptionYards)
 
 print("")
@@ -828,18 +837,15 @@ report("dropback40plus", dropbackShare { $0 >= 40 })
 // decision point, so pressure is a query and not a counter the resolver keeps.
 let pressured = dropbacks.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
 report("pressureRate", Double(pressured.count) / Double(max(1, dropbacks.count)) * 100)
-// Every caught ball, including the ones that went backwards. The completion percentage
-// row above counts only gains, which is the harness's older definition and is kept there
-// so the measured value does not move under this change; the gap between the two is
-// exactly this row.
-let caught = attempts.filter {
-    $0.outcome.endedIn != .incomplete && $0.outcome.endedIn != .intercepted
-        && $0.outcome.endedIn != .penaltyEnforced
+// Every caught ball, including the ones that went backwards, read from the record's own
+// pass result. This is the gap between the completion row and the older gains-only
+// inference, stated as a share of completions.
+let caughtForNothing = completions.filter {
+    $0.outcome.yards <= 0 && $0.outcome.endedIn != .touchdown
 }
-let caughtForNothing = caught.filter { $0.outcome.yards <= 0 && $0.outcome.endedIn != .touchdown }
 report(
     "completionsZeroOrFewer",
-    Double(caughtForNothing.count) / Double(max(1, caught.count)) * 100)
+    Double(caughtForNothing.count) / Double(max(1, completions.count)) * 100)
 
 print("")
 print("  How drives end")

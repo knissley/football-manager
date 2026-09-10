@@ -136,7 +136,7 @@ extension Snap {
     /// the end zone.
     public func incompletion(interferenceAt depth: UInt8, seconds: UInt16 = 5) -> Outcome {
         Outcome(
-            kind: .pass, yards: 0, endedIn: .incomplete,
+            kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
             penalties: [
                 PenaltyRecord(
                     foul: .defensivePassInterference, offender: PlayerSlot(11),
@@ -169,15 +169,20 @@ extension Outcome {
     }
 
     public static func incompletion(seconds: UInt16 = 5) -> Outcome {
-        Outcome(kind: .pass, yards: 0, endedIn: .incomplete, clockRunoff: seconds)
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+            clockRunoff: seconds)
     }
 
-    public static let spike = Outcome(kind: .spike, yards: 0, endedIn: .incomplete, clockRunoff: 1)
+    public static let spike = Outcome(
+        kind: .spike, yards: 0, endedIn: .incomplete, passResult: .incomplete, clockRunoff: 1)
 
     /// Picked off and returned to `spot`, in the throwing team's frame: 100 is the
     /// interceptor's own goal line crossed the other way, a touchdown.
     public static func interception(to spot: UInt8, seconds: UInt16 = 6) -> Outcome {
-        Outcome(kind: .pass, yards: 0, endedIn: .intercepted, finalSpot: spot, clockRunoff: seconds)
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+            finalSpot: spot, clockRunoff: seconds)
     }
 
     public static let pickSix = interception(to: 100, seconds: 12)
@@ -258,10 +263,12 @@ extension Outcome {
             clockRunoff: 0)
     }
 
+    /// A two-point pass, caught in the end zone or not.
     public static func twoPoint(converted: Bool) -> Outcome {
         Outcome(
             kind: .twoPointConversion, yards: converted ? 2 : 0,
-            endedIn: converted ? .touchdown : .incomplete, clockRunoff: 0)
+            endedIn: converted ? .touchdown : .incomplete,
+            passResult: converted ? .complete : .incomplete, clockRunoff: 0)
     }
 }
 

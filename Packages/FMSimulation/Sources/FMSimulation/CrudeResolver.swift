@@ -69,7 +69,7 @@ public struct CrudeResolver: PlayResolver {
         case .spike:
             return (
                 Outcome(
-                    kind: .spike, yards: 0, endedIn: .incomplete,
+                    kind: .spike, yards: 0, endedIn: .incomplete, passResult: .incomplete,
                     participants: quarterbackOnly(.passer, personnel), clockRunoff: 1), []
             )
         }
@@ -429,7 +429,9 @@ public struct CrudeResolver: PlayResolver {
 
         guard let target = best else {
             return (
-                Outcome(kind: .pass, yards: 0, endedIn: .incomplete, participants: participants),
+                Outcome(
+                    kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+                    participants: participants),
                 decisions
             )
         }
@@ -494,8 +496,9 @@ public struct CrudeResolver: PlayResolver {
             let spot = UInt8(max(1, min(100, caught + back)))
             return (
                 Outcome(
-                    kind: .pass, yards: 0, endedIn: .intercepted, participants: participants,
-                    penalties: penalty.map { [$0] } ?? [], finalSpot: spot, clockRunoff: runoff),
+                    kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+                    participants: participants, penalties: penalty.map { [$0] } ?? [],
+                    finalSpot: spot, clockRunoff: runoff),
                 decisions
             )
 
@@ -524,7 +527,7 @@ public struct CrudeResolver: PlayResolver {
                 fumble?.ending ?? (reachesEndZone ? .touchdown : afterCatch.ending)
             return (
                 Outcome(
-                    kind: kind, yards: gained, endedIn: ending,
+                    kind: kind, yards: gained, endedIn: ending, passResult: .complete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
                     finalSpot: fumble?.finalSpot,
                     clockRunoff: runoff),
@@ -535,6 +538,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: isTry ? .twoPointConversion : .pass, yards: 0, endedIn: .incomplete,
+                    passResult: .incomplete,
                     participants: participants, penalties: penalty.map { [$0] } ?? [],
                     clockRunoff: runoff),
                 decisions

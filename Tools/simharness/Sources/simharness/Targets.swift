@@ -267,7 +267,7 @@ struct CalibrationTarget: Sendable {
             id: "completionPercentage", label: "completion percentage", low: 61.2, high: 68.6,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "Completions over attempts. The harness still counts a completion only when it gains, so it reads about three points low; the gap is the zero-or-fewer row (2023–24 positive-only rate: 61.1–62.4)."
+                "Completions over attempts, read from the record's pass result. Counted as a gain of a yard or more it read about three points low (2023–24 positive-only rate: 61.1–62.4); the zero-or-fewer row is the gap."
         ),
         CalibrationTarget(
             id: "sackRate", label: "sack rate per dropback", low: 6.1, high: 7.2,

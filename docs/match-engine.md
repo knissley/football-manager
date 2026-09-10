@@ -412,7 +412,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | passing yards | 221.7-248.1 | 2023-24 | — | S1 | yes | Gross: yards on completions, sacks not deducted, which is what the harness sums. |
 | rushing yards | 94.7-110.4 | 2023-24 | — | S1 | yes | Designed runs only, as the harness counts them; the league's figure adds scrambles and kneels. |
 | yards per carry | 3.9-4.6 | 2023-24 | — | S1 | yes | Designed runs only. |
-| completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts. The harness still counts a completion only when it gains, so it reads about three points low; the gap is the zero-or-fewer row (2023–24 positive-only rate: 61.1–62.4). |
+| completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts, read from the record's pass result. Counted as a gain of a yard or more it read about three points low (2023–24 positive-only rate: 61.1–62.4); the zero-or-fewer row is the gap. |
 | sack rate per dropback | 6.1-7.2 | 2023-24 | — | S1 | yes | — |
 | interception rate | 1.9-2.6 | 2023-24 | — | S1 | yes | Per pass attempt. |
 | third down conversion | 36.7-41.7 | 2023-24 | — | S1 | yes | — |
@@ -552,11 +552,12 @@ offence commits about 6% more pre-snap fouls than a home one, not a fifth more; 
 for it on a fifth of fourth downs, not an eighth. Every one of those was a band written
 from memory, and every one of them read `ok` against an engine that was wrong.
 
-Three harness measurements do not yet match the source's definition, and the notes column
-says so rather than bending the band to the measurement: completion percentage counts only
-completions that gained (the zero-or-fewer row is the gap), net punt spots a touchback at
+Two harness measurements do not yet match the source's definition, and the notes column
+says so rather than bending the band to the measurement: net punt spots a touchback at
 the goal line, and yards per play leaves scramble yards out of the numerator. Those are
-harness fixes, not retunes, and they move measured values, so they are not made here.
+harness fixes, not retunes, and they move measured values, so they are not made here. A
+third was fixed the same way: completion percentage counted only completions that gained
+until the record could say a pass was caught, and it reads `Outcome.passResult` now.
 
 Home win rate and the home scoring edge are printed **without** a target. In 2023–24 the
 home side won 53–56% of decided games and outscored the visitor by two to three points,

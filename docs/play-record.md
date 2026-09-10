@@ -3,10 +3,10 @@
 **Status: built.** `PlayRecord` and the types around it live in `FMCore`, the engine
 fills them on every snap, and `Tools/playsize` measures the footprint this doc quotes.
 Two caveats a reader needs: the record is not yet versioned and the play concept is
-stored by reference rather than by value (#33), and several facts the doc implies are
-derivable are not on the record yet — whether a pass was completed and where the points
-came from (#22), and where a kick was fielded (#58). Who was on the field is on the
-record ([below](#who-was-on-the-field)).
+stored by reference rather than by value (#33), and one fact the doc implies is derivable
+is not on the record yet — where a kick was fielded (#58). Who was on the field, whether
+a pass was completed and the points a play scored are on the record
+([below](#who-was-on-the-field)).
 
 The highest-stakes artifact in the project. Everything downstream is a query over it
 ([ADR-0007](adr/0007-event-stream-contract.md)), and it gets designed before the engine
@@ -97,10 +97,27 @@ Outcome
   yards         Int16
   endedIn       .tackle .outOfBounds .touchdown .incomplete .interception
                 .fumbleLost .fumbleRecovered .touchback .safety .firstDown
+  passResult    .complete .incomplete .intercepted   on a pass, a two-point pass
+                                                     or a spike; nil otherwise
   participants  [Participation]    (player, role, result)
   penalties     [PenaltyRecord]    including declined ones, and both branches
   clockRunoff   UInt16
+  pointsScored  UInt8              what this play put on the board
+  scoring       Scoring?           what kind of score, which says who scored it
 ```
+
+**A completion is a fact, not an inference.** `PlayEnding` cannot say a pass was caught:
+a ball caught for a loss ends `.tackled` exactly as a run does. `passResult` says it
+(2025 rulebook, 8-1-3), `PlayRecord.isCompletion` reads it, and the harness's completion
+row reads that rather than counting the passes that gained — which is how it read three
+points low while showing green (S14 in the [audit](audit-is-this-football.md)).
+
+**The points are on the play.** The game writes `pointsScored` and `scoring` once the
+rules have read the outcome and before the record is appended, so a scoreboard is the
+stream summed and never the rules run a second time; `scoring` says who — a touchdown,
+field goal or try pays the side that had the ball, a safety or a defensive touchdown the
+side that did not. Both are the rules' verdict on the play, not the resolver's, and the
+game overwrites whatever a resolver wrote there.
 
 ### `DecisionPoint` is the causal chain
 

@@ -369,19 +369,21 @@ None of the three is banded: a number nobody asserts is a note, not a target.
 
 ## Where the harness measures something else
 
-Three rows measure a definition of their own rather than the source's, and the difference
+Two rows measure a definition of their own rather than the source's, and the difference
 is written into the row's note rather than corrected by moving the band. They are listed
 here so nobody reads a gap as an engine finding:
 
-- `row:completionPercentage` — the harness counts a completion only when it gained, so the
-  row reads about three points low. That is S14 in the
-  [audit](../audit-is-this-football.md), closed by
-  [#22](https://github.com/knissley/football-manager/issues/22) and
-  [#42](https://github.com/knissley/football-manager/issues/42).
 - `row:netPunt` — the harness spots a punt touchback at the goal line rather than the 20,
   so its net reads high on touchbacks. A harness fix, not a retune.
 - `row:yardsPerPlay` and `row:rushingYards` — designed runs only, scrambles excluded, which
   is not how the league counts either.
+
+A third used to be here. `row:completionPercentage` counted a completion only when it
+gained, so it read about three points low while showing green — S14 in the
+[audit](../audit-is-this-football.md). The record carries `Outcome.passResult` now and the
+row reads it ([#22](https://github.com/knissley/football-manager/issues/22)); the rows
+still on the older inference — `row:yardsPerCompletion`'s denominator and the catch
+leaders — are [#42](https://github.com/knissley/football-manager/issues/42)'s.
 
 ## Adding or moving a row
 

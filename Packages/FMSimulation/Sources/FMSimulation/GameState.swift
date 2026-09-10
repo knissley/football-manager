@@ -269,6 +269,12 @@ extension GameSimulator {
                 advancement = rules.advance(from: before, outcome: outcome)
             }
 
+            // The points go on the play before it is written, so the board is the
+            // stream summed. Whatever a resolver put there is overwritten: what a play
+            // scored is the rules' verdict on it, not the resolver's.
+            effective.pointsScored = UInt8(clamping: advancement.points)
+            effective.scoring = advancement.points != 0 ? advancement.scoring : nil
+
             record(
                 effective, calls: calls, decisions: decisions, onField: onField,
                 situation: before)

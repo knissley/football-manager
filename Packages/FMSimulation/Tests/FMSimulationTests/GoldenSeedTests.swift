@@ -58,6 +58,8 @@ struct GoldenSeedTests {
             sum.mix(play.outcome.yards)
             sum.mix(play.outcome.clockRunoff)
             sum.mix(play.outcome.finalSpot ?? 200)
+            sum.mix(play.outcome.passResult?.rawValue ?? 200)
+            sum.mix(play.outcome.pointsScored)
             for entry in play.onField { sum.mix(entry) }
             for participant in play.outcome.participants {
                 sum.mix(participant.player.rawValue)
@@ -112,9 +114,14 @@ struct GoldenSeedTests {
             // is drawn by the simulator immediately before the snap is resolved, where
             // the resolver used to draw it, so every stream is spent in the same order —
             // and `Tools/gamelog` prints the same game before and after.
-            (UInt64(1), UInt64(17_223_483_701_319_831_608)),
-            (UInt64(5), UInt64(4_265_818_114_416_681_660)),
-            (UInt64(12), UInt64(12_047_314_371_920_317_166)),
+            //
+            // And by the record again: `Outcome.passResult` and `Outcome.pointsScored`
+            // are mixed in from here on. A resolver writes the first and the game the
+            // second, neither reads either, and no play produced anything different;
+            // `Tools/gamelog` prints the same game before and after.
+            (UInt64(1), UInt64(1_252_149_500_615_403_092)),
+            (UInt64(5), UInt64(16_605_019_685_199_582_898)),
+            (UInt64(12), UInt64(6_766_036_471_287_456_912)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

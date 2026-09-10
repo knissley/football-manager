@@ -166,7 +166,8 @@ season is what checks one. A band is evidence about a rate and never about a rul
 
 30. The scoreboard is the scoring plays in the stream, summed, and never a number kept
     beside it. `[2025 · 11-1-2]` — `test:scoreMatchesTheStream`,
-    `test:scoreboardMatchesTheStream`, `test:pointsMatchScoring`, `test:scoreboardArithmetic`
+    `test:scoreboardMatchesTheStream`, `test:pointsSitOnScoringPlays`,
+    `test:pointsMatchScoring`, `test:scoreboardArithmetic`
 31. A field goal is three points, and after one the team scored upon receives the kickoff.
     `[2025 · 11-1-2-b, 11-4-6]` — `test:fieldGoal`,
     `test:afterAFieldGoalTheTeamScoredUponReceives`
@@ -480,10 +481,9 @@ what every one of them was derived from is in
 ## What the harness cannot check yet
 
 112. A completion is a completion whether it gained a yard, none, or lost one. The record
-     cannot say a pass was caught, so the harness infers one from positive yards and reads
-     several points low while showing green. — **not yet enforced**,
-     [#22](https://github.com/knissley/football-manager/issues/22) and
-     [#42](https://github.com/knissley/football-manager/issues/42); S14 in the
+     says a pass was caught, and the harness reads that rather than inferring it from
+     positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
+     `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
 113. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`

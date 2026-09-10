@@ -586,7 +586,7 @@ the score standing, until [C9 · #48](https://github.com/knissley/football-manag
 enforces it on the try or the kickoff (14-2-3) and re-tries after a live-ball foul on a
 try.
 
-## S14 — The completion-percentage row is a false pass — **open**
+## S14 — The completion-percentage row is a false pass — **fixed**
 
 `PlayEnding` cannot express a completed pass: a catch for a loss ends `.tackled`, exactly
 like a run. The harness therefore counts a completion as `yards > 0 || touchdown`, so every
@@ -605,10 +605,11 @@ the issue: across every package, test suite and tool the only occurrences of
 `pointsScored` are its declaration, its default of `0`, and the assignment of that
 default.
 
-Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22), which makes a
-completion a fact in the record, and
-[E2 · #42](https://github.com/knissley/football-manager/issues/42), which makes the harness
-read that fact instead of inferring one.
+Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22): a
+completion is a fact in the record (`Outcome.passResult`) and the row reads it, and the
+points are written onto the play by the game so the scoreboard is the stream summed. The
+rows still on the older inference — yards per completion's denominator and the catch
+leaders — are [E2 · #42](https://github.com/knissley/football-manager/issues/42)'s.
 
 ## S15 — A flag on a try is recorded and never enforced — **fixed**
 
@@ -632,10 +633,10 @@ extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
 ## Where this leaves the engine
 
-**Fifteen findings: fourteen fixed, one open.** S1 through S8 are the original pass and
-are fixed. S9 through S15 were added by the September 2026 external audit; the seven
-rules-layer findings among them were fixed by wave 1 of the backlog, and S14 — the
-harness row, not the engine — is the one still open. The backlog in
+**Fifteen findings: fifteen fixed.** S1 through S8 are the original pass and are fixed.
+S9 through S15 were added by the September 2026 external audit; the seven rules-layer
+findings among them were fixed by wave 1 of the backlog, and S14 — the harness row, not
+the engine — by wave 2's record track. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
@@ -660,7 +661,7 @@ foul on a try), both open.
 | S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | fixed | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32), [A10 · #56](https://github.com/knissley/football-manager/issues/56) |
 | S13 Live-ball fouls are enforced from the previous spot | fixed | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
-| S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
+| S14 The completion-percentage row is a false pass | fixed | [B2 · #22](https://github.com/knissley/football-manager/issues/22) |
 | S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
 
 These fifteen are not the whole backlog. The engine findings that did not earn a section of
@@ -684,10 +685,10 @@ comfortably outside them.
 | first downs per team-game | 17.9 | — | 18.5–22 | Follows from the first two. |
 | three-and-out rate | 18.8% | — | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that *punt* count here. |
 
-Fourteen of the fifteen headline calibration rows land on seed 7 and third-down conversion
-is the one that does not — but one of the fourteen is not a pass at all. Completion
-percentage sits inside its 61.0–68.0 band only because the harness cannot see a completion
-that gained nothing (S14). Thirteen rows land honestly.
+Fourteen of the fifteen headline calibration rows landed on seed 7 when this was written
+and third-down conversion was the one that did not — but one of the fourteen was not a
+pass at all. Completion percentage sat inside its band only because the harness could not
+see a completion that gained nothing (S14); it reads the record's pass result now.
 
 **The engine-wide retune is the next piece of work**, and its brief is that one sentence:
 the calibration bands were established against a defence that never substituted and a

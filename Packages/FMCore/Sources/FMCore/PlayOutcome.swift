@@ -369,6 +369,17 @@ public struct PenaltyRecord: Sendable, Hashable, Codable {
     }
 }
 
+/// How a forward pass ended, as a pass (2025 rulebook, 8-1-3).
+///
+/// `PlayEnding` cannot say it: a ball caught for a loss ends `.tackled` exactly as a
+/// run does, so a completion could only be inferred from the yards, and the harness
+/// counted a pass caught for nothing as an incompletion for as long as it did.
+public enum PassResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    case complete = 0
+    case incomplete = 1
+    case intercepted = 2
+}
+
 /// What the play produced.
 public struct Outcome: Sendable, Hashable, Codable {
 
@@ -377,6 +388,10 @@ public struct Outcome: Sendable, Hashable, Codable {
     /// loss.
     public var yards: Int16
     public var endedIn: PlayEnding
+    /// How the pass ended, on a play that was one — a pass attempt, a two-point pass,
+    /// a spike — and `nil` on every other play. A sack and a scramble are dropbacks,
+    /// not attempts, and carry nothing here.
+    public var passResult: PassResult?
     public var participants: [Participation]
     public var penalties: [PenaltyRecord]
     /// Where the ball came to rest, measured from the **snapping team's** opponent
@@ -389,26 +404,39 @@ public struct Outcome: Sendable, Hashable, Codable {
     public var finalSpot: UInt8?
     /// Seconds taken off the clock, live action and play clock together.
     public var clockRunoff: UInt16
+    /// The points this play put on the board, and what kind of score they were.
+    ///
+    /// Written by the game once the rules have read the outcome, before the record is
+    /// appended, so that a scoreboard is the stream summed and never the rules run a
+    /// second time. `scoring` says who: a touchdown, field goal or try pays the side
+    /// that had the ball, a safety or a defensive touchdown the side that did not. Zero
+    /// and `nil` on a play that scored nothing — a resolver has no business writing
+    /// either, and the game overwrites whatever it did.
     public var pointsScored: UInt8
+    public var scoring: Scoring?
 
     public init(
         kind: PlayKind,
         yards: Int16,
         endedIn: PlayEnding,
+        passResult: PassResult? = nil,
         participants: [Participation] = [],
         penalties: [PenaltyRecord] = [],
         finalSpot: UInt8? = nil,
         clockRunoff: UInt16 = 0,
-        pointsScored: UInt8 = 0
+        pointsScored: UInt8 = 0,
+        scoring: Scoring? = nil
     ) {
         self.finalSpot = finalSpot
         self.kind = kind
         self.yards = yards
         self.endedIn = endedIn
+        self.passResult = passResult
         self.participants = participants
         self.penalties = penalties
         self.clockRunoff = clockRunoff
         self.pointsScored = pointsScored
+        self.scoring = scoring
     }
 
     public func participant(at slot: PlayerSlot) -> Participation? {
@@ -533,6 +561,11 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
 
     public func decisions(ofKind kind: DecisionKind) -> [DecisionPoint] {
         decisions.filter { $0.kind == kind }
+    }
+
+    /// Whether a forward pass was caught by the passing team, however far it went.
+    public var isCompletion: Bool {
+        outcome.passResult == .complete
     }
 
     /// Whether the play gained enough for a new set of downs.
