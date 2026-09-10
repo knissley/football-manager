@@ -578,6 +578,52 @@ public enum RulesScenarios {
         }
     }
 
+    // MARK: Fouls during a down
+
+    /// A foul during a down, on a play that is run and ends in bounds, in a window of
+    /// `quarter` where the clock is running into the snap. The flag flies on the play
+    /// rather than before it, which is the difference 4-4-e turns on.
+    ///
+    /// The offence gains nothing on the flagged snap, so the non-offending side always
+    /// prefers the yardage and the foul is accepted; the down before it is an ordinary
+    /// plod, so the clock is running into the snap the flag comes on.
+    static func flagDuringADown(
+        _ foul: Foul, quarter: UInt8 = 4, window: ClosedRange<UInt16>
+    ) -> ScriptedGame {
+        ScriptedGame { snap in
+            guard snap.isScrimmage, snap.quarter == quarter, window.contains(snap.clock),
+                snap.clockIsRunning, snap.down != .fourth,
+                let previous = snap.previous, previous.outcome.penalties.isEmpty,
+                previous.situation.possession == snap.possession
+            else { return snap.neutral }
+            return snap.rush(0, foulBy: foul)
+        }
+    }
+
+    /// The second snap of the game — the first with the clock running into it, since the
+    /// opening kickoff leaves it dead until the snap — draws a defensive holding on a run
+    /// stopped for no gain. The first period has neither a two-minute warning nor a late
+    /// window, so nothing but 4-3-2-e decides how the clock restarts.
+    static var defensiveHoldingOnAPlayEndingInBounds: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 2 ? snap.rush(0, foulBy: .defensiveHolding) : plod(snap)
+        }
+    }
+
+    /// The same foul in the fourth quarter with between three and five minutes left, so
+    /// that the play is dead inside the window 4-3-2-e-2 names and well outside the
+    /// two-minute warning.
+    static var defensiveHoldingInsideFiveMinutesOfTheFourthQuarter: ScriptedGame {
+        flagDuringADown(.defensiveHolding, window: 200...290)
+    }
+
+    /// An offensive foul during a fourth-quarter down with between six and ten minutes
+    /// left: outside every window, and outside 4-3-2-e-3, which reaches only a foul that
+    /// stops the clock before a snap.
+    static var offensiveHoldingInTheFourthQuarterOutsideFiveMinutes: ScriptedGame {
+        flagDuringADown(.offensiveHolding, window: 400...600)
+    }
+
     // MARK: The play clock
 
     /// The offence lets the play clock run out on a third-quarter snap with the game
@@ -687,6 +733,35 @@ public enum RulesScenarios {
     /// offered the runoff is the trailing one.
     static var injuryInsideTwoMinutesAgainstATrailingDefense: ScriptedGame {
         injuryInsideTwoMinutes(by: 7, outOfTimeouts: true, opening: leadBySeven)
+    }
+
+    /// The fourth quarter's last forty seconds, with the offence leading by seven and a
+    /// defender hurt on a play stretched to end at 0:30 with the clock running. The
+    /// defence has spent its second-half timeouts earlier in the quarter, so the injury
+    /// timeout is an excess one charged against it (4-5-4-b) and the offence, leading,
+    /// has nothing to gain from the thirty seconds that remain.
+    static var injuryToADefenderInTheLastFortySeconds: ScriptedGame {
+        ScriptedGame(
+            caller: defenseBurnsItsTimeouts,
+            injury: { snap, outcome in
+                // The stretched play is the one longer than a plod.
+                snap.quarter == 4 && snap.isScrimmage && outcome.kind == .rush
+                    && outcome.endedIn == .tackled && outcome.clockRunoff > 6 ? .defense : nil
+            }
+        ) { snap in
+            if let staged = leadBySeven(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4, snap.clock <= 150 else {
+                return snap.neutral
+            }
+            guard snap.differential == 7 else { return .interception(to: 50) }
+            guard snap.clock < 120, snap.down != .fourth, let huddle = snap.huddle else {
+                return snap.neutral
+            }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            let target = 30
+            guard snapped > target, snapped - target <= 130 else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - target))
+        }
     }
 
     // MARK: The kickoff that opens a half

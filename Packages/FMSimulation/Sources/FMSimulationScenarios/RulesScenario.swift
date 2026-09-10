@@ -101,6 +101,13 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case neutralZoneInfractionOnATrailingOffense = "neutral-zone-infraction-on-a-trailing-offense"
     case trailingByAPickSix = "trailing-by-a-pick-six"
 
+    // Fouls during a down
+    case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
+    case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
+        "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
+    case offensiveHoldingInTheFourthQuarterOutsideFiveMinutes =
+        "offensive-holding-in-the-fourth-quarter-outside-five-minutes"
+
     // The play clock
     case delayOfGameOnARunningClock = "delay-of-game-on-a-running-clock"
     case delayOfGameAfterATurnoverOnDowns = "delay-of-game-after-a-turnover-on-downs"
@@ -119,6 +126,7 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "injury-inside-two-minutes-with-no-timeouts-left"
     case injuryInsideTwoMinutesAgainstATrailingDefense =
         "injury-inside-two-minutes-against-a-trailing-defense"
+    case injuryToADefenderInTheLastFortySeconds = "injury-to-a-defender-in-the-last-forty-seconds"
 
     // The kickoff that opens a half
     case secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf =
@@ -251,6 +259,13 @@ extension RulesScenario {
             return RulesScenarios.neutralZoneInfractionOnATrailingOffense
         case .trailingByAPickSix: return RulesScenarios.trailingByAPickSix
 
+        case .defensiveHoldingOnAPlayEndingInBounds:
+            return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
+        case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter
+        case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
+            return RulesScenarios.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes
+
         case .delayOfGameOnARunningClock: return RulesScenarios.delayOfGameOnARunningClock
         case .delayOfGameAfterATurnoverOnDowns:
             return RulesScenarios.delayOfGameAfterATurnoverOnDowns
@@ -269,6 +284,8 @@ extension RulesScenario {
             return RulesScenarios.injuryInsideTwoMinutesWithNoTimeoutsLeft
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return RulesScenarios.injuryInsideTwoMinutesAgainstATrailingDefense
+        case .injuryToADefenderInTheLastFortySeconds:
+            return RulesScenarios.injuryToADefenderInTheLastFortySeconds
 
         case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
             return RulesScenarios.injuryRunoffEndsTheFirstHalf(kick: .kickoffTouchback)
@@ -543,6 +560,19 @@ extension RulesScenario {
             return [
                 "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap"
             ]
+        case .defensiveHoldingOnAPlayEndingInBounds:
+            return [
+                "football · Rule 4-4-e, 4-3-2-e · an accepted foul during a down that ends in bounds stops the clock at the end of it, and the clock restarts on the ready as though the flag had never flown"
+            ]
+        case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half an accepted foul during a down has the clock start on the snap"
+            ]
+        case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
+            return [
+                "football · Rule 4-3-2-e-3, 4-4-e · e-3 reaches only an offensive foul that stops the clock before a snap, so an offensive foul during a fourth-quarter down outside every window restarts the clock on the ready"
+            ]
+
         case .trailingByAPickSix:
             return [
                 "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap",
@@ -582,6 +612,10 @@ extension RulesScenario {
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return [
                 "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap"
+            ]
+        case .injuryToADefenderInTheLastFortySeconds:
+            return [
+                "football · Rule 4-7-3, 4-5-4-b · in the last forty seconds an excess timeout for an injured defender with the clock running ends the half when the defence has no timeouts left and the offence, leading, elects to end it"
             ]
 
         case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
