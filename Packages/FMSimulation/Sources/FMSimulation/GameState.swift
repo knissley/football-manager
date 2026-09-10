@@ -614,19 +614,22 @@ extension GameSimulator {
             }
             clock = next
 
-            // Halftime and the first overtime period both restart with a kickoff and
-            // fresh timeouts: three for a half, two for regular-season overtime
-            // (16-1-3-e), three for postseason overtime (16-1-4-g). Later overtime
-            // periods do not come through here.
-            let startsHalf = next.quarter == (rules.quarters / 2) + 1
-            let startsOvertime = next.quarter == rules.quarters + 1
-            if startsHalf || startsOvertime {
+            // Halftime and the first overtime period both restart with a kickoff, and
+            // which periods those are is `Rules.periodResumesWithKickoff` — one
+            // predicate, because the printer in Tools/gamelog ends a drive on the same
+            // two boundaries and a second copy of the answer is how the two come to
+            // disagree. Later overtime periods do not come through here.
+            if rules.periodResumesWithKickoff(quarter: next.quarter) {
+                // Which of the two it is decides the possession and the timeouts: three
+                // for a half, two for regular-season overtime (16-1-3-e), three for
+                // postseason overtime (16-1-4-g).
+                let startsOvertime = next.quarter > rules.quarters
                 let timeouts =
                     startsOvertime && !setup.isPostseason
                     ? rules.regularSeasonOvertimeTimeouts : rules.timeoutsPerHalf
                 homeTimeouts = timeouts
                 awayTimeouts = timeouts
-                possession = startsHalf ? secondHalfReceiver : possession
+                possession = startsOvertime ? possession : secondHalfReceiver
                 ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
                 down = .first
                 distance = rules.yardsToGain

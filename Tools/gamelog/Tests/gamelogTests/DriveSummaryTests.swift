@@ -47,13 +47,18 @@ struct DriveSummaryTests {
     ///
     /// Every period before it at its own length — `quarterLength` in regulation and
     /// `overtimeLength(isPostseason:)` after it, the lengths `GameClock.advancingPeriod`
-    /// hands out — plus the clock this period has spent by the time the play was snapped,
-    /// plus the play. Computed from `Rules` and the record rather than from the tool, so
-    /// that the two have to agree.
+    /// hands out — plus the clock this period had spent by the reading `play` carries,
+    /// plus the play itself. All but the last term is derived from `Rules` and the record
+    /// alone, which is what makes it a check on the tool rather than a copy of it.
     ///
-    /// The interval before a snap is nowhere in a `PlayRecord`, so the play's own seconds
-    /// are all that can be added to the reading it carries; the game cannot have run past
-    /// the end of its last period either way.
+    /// **The last term is not independent.** The interval before a snap is nowhere in a
+    /// `PlayRecord`, so neither the tool nor this can say when the final play of a game
+    /// actually ended; both take the reading plus the play's own seconds, clamped to the
+    /// end of the period, and this expectation is *pinned* to that approximation on
+    /// purpose — a game that ends on a score has to be measured the same way on both
+    /// sides or the sum can never balance. It is worth six seconds here. What the test
+    /// is for survives either definition: the bug it was written against had these two
+    /// games' drives summing to 5257 and 5207 against a little over 4500.
     private func clockPlayed(through play: PlayRecord, rules: Rules, isPostseason: Bool) -> Int {
         func length(ofPeriod period: UInt8) -> Int {
             period <= rules.quarters

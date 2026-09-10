@@ -70,6 +70,27 @@ struct RulesTests {
         #expect(rules.opensHalf(quarter: 11))
     }
 
+    /// The boundary set the engine and the tools share: `GameState.startNextPeriod`
+    /// restarts possession and the spot by it, and `Tools/gamelog` ends a drive by it.
+    /// Both read this rather than restating it, so this is where it is checked.
+    @Test(
+        "Only the second half and the first overtime period are put back in play with a kick",
+        .tags(.unit))
+    func periodsThatResumeWithAKickoff() {
+        let secondHalf = rules.quarters / 2 + 1
+        let overtime = rules.quarters + 1
+        #expect(rules.periodResumesWithKickoff(quarter: secondHalf))
+        #expect(rules.periodResumesWithKickoff(quarter: overtime))
+        // Every other period through a fourth postseason overtime, the first included:
+        // a period inside a half only changes ends (4-2-3), a further postseason
+        // overtime period carries on from the same spot (16-1-4-d), and nothing is
+        // resumed at the start of a first period at all.
+        for quarter in UInt8(1)...(rules.quarters + 4)
+        where quarter != secondHalf && quarter != overtime {
+            #expect(rules.periodResumesWithKickoff(quarter: quarter) == false, "period \(quarter)")
+        }
+    }
+
     @Test("Overtime length and ties depend on the stage", .tags(.unit))
     func overtime() {
         #expect(rules.overtimeLength(isPostseason: false) == 600)

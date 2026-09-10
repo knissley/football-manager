@@ -499,15 +499,16 @@ struct Broadcast {
         // it. The scoreboard goes with it, because a quarter's score is the thing a
         // reader checks against the game they think they just watched.
         if situation.quarter != quarter {
-            // Two period boundaries end a drive, and they are the two the engine restarts
-            // with a kickoff (`GameState.startNextPeriod`): the second half, and the
-            // first period of overtime. A quarter boundary does not — teams change ends
-            // and play on — and neither does a postseason overtime period that ends
-            // undecided, which resumes with the ball where it was and the same side in
-            // possession (16-1-4-d), so a drive can run through one.
-            let startsHalf = situation.quarter == rules.quarters / 2 + 1
-            let startsOvertime = situation.quarter == rules.quarters + 1
-            if closesDrive || startsHalf || startsOvertime { closeDrive(after: play) }
+            // Two period boundaries end a drive, and they are the two that put the ball
+            // back in play with a kick — asked of `Rules` rather than restated here, so
+            // that the engine restarts possession on exactly the boundaries the drive
+            // chart ends a drive on. A quarter boundary is not one: teams change ends and
+            // play on (4-2-3). Nor is a postseason overtime period that ends undecided,
+            // which carries on with the ball where it was and the same side in possession
+            // (16-1-4-d), so a drive can run through one.
+            if closesDrive || rules.periodResumesWithKickoff(quarter: situation.quarter) {
+                closeDrive(after: play)
+            }
             let ending = quarter
             let label =
                 ending == rules.quarters / 2
@@ -614,17 +615,19 @@ struct Broadcast {
     /// still on the clock: a field goal on the first snap of a second overtime period
     /// was credited fifteen minutes of possession.
     ///
-    /// A drive that ended in a score ended when the ball crossed the line. The stream
-    /// says when the play was snapped and how long it took, so that is what this is:
-    /// short by the interval before the snap, which a `PlayRecord` does not carry and
-    /// nothing here can recover, and never past the end of the period.
+    /// A drive that ended in a score ended when the ball crossed the line. What the
+    /// record carries is the clock as it stood *before* the interval to the snap was
+    /// burned — the reading at the end of the play before it — and how long the play
+    /// itself took. So this is that reading plus the play: short by the pre-snap
+    /// interval, which is nowhere in the stream and nothing here can recover, and never
+    /// past the end of the period.
     private func endOfGame(on last: PlayRecord) -> Int {
         let periodEnd = elapsed(quarter: last.situation.quarter, remaining: 0)
         let advancement = advancement(for: last)
         guard advancement.scoring != nil, advancement.points != 0 else { return periodEnd }
-        let atTheSnap = elapsed(
+        let lastReading = elapsed(
             quarter: last.situation.quarter, remaining: last.situation.clockRemaining)
-        return min(periodEnd, atTheSnap + Int(last.outcome.clockRunoff))
+        return min(periodEnd, lastReading + Int(last.outcome.clockRunoff))
     }
 
     /// How the drive ended, in the words a drive chart uses.
