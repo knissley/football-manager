@@ -31,8 +31,8 @@ football.
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
-engine. The audit doc's own closing section predates the external audit and overstates
-what is fixed; the tracker is current.
+engine. The audit doc is current as of issue I2: it carries all fifteen findings with a
+status table and links every open one to its issue.
 
 The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024
 values until issue D1 lands.
