@@ -37,3 +37,16 @@ options keep coming back.
 
 **Commit messages and PR descriptions.** The rationale exists but isn't findable. Nobody
 greps six months of history before making a design call.
+
+## Amendment 2026-09-09 — the body is what is immutable
+
+The decision above says ADRs are immutable once accepted. In practice one was not:
+[ADR-0003](0003-deterministic-seeded-simulation.md) grew a whole section after acceptance,
+recording how the determinism guarantee actually got broken — a thing the original could
+not have known and that would have been lost if the only options were to rewrite the body
+or to write a reversal of a decision nobody wanted reversed.
+
+The rule is therefore narrower than this ADR states it, and [README.md](README.md) carries
+the current wording: the **body** of an accepted ADR is immutable, a dated `Amendment`
+section may be appended, and a reversal is still a new ADR that supersedes the old one.
+This ADR's body is left as it was written, which is the rule demonstrating itself.

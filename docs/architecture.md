@@ -134,7 +134,9 @@ architectural. In `FMSimulation`'s hot loop:
 - Buffers sized once and reused. No `Array` growth inside a play.
 - Trajectory capture is opt-in per game.
 
-A benchmark test guards the budget and fails CI on regression.
+*Intent, not yet built:* a benchmark test guards the budget and fails CI on regression.
+CI exists ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) but has no
+benchmark step, so nothing measures the budget today.
 
 ## Persistence
 
@@ -175,6 +177,9 @@ rules never fire.
 
 ## Tooling
 
-- `Tools/simharness` — headless CLI, sims N seasons, emits calibration JSON.
-- `swift-format` with the repo config, enforced in CI.
-- CI runs packages on Linux (which mechanically enforces rule 1) and the app on macOS.
+- `Tools/simharness` — headless CLI, sims N games and prints the calibration table.
+- `swift-format` with the repo config, enforced in CI as `swift format lint --strict`
+  (without `--strict` the linter reports findings and exits 0).
+- CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the packages on
+  Linux — which mechanically enforces rule 1 — on both x86_64 and arm64. The macOS leg
+  for the app target lands with the app target.

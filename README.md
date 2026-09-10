@@ -13,8 +13,13 @@ names, no licensing entanglements, infinite worlds.
 
 ## Status
 
-Pre-alpha. The repo currently holds design docs and tooling config; no Swift
-code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships when.
+Pre-alpha, late in milestone M1. Four packages build and test — `FMRandom`, `FMCore`,
+`FMGeneration`, `FMSimulation` — with three command-line tools: `playsize`, `worldgen`
+and `simharness`. There is no app target, no SwiftUI and no SwiftData yet; that is M4.
+World generation and a crude game engine work behind the real `PlayRecord` contract, and
+the per-play numbers land, but the rules layer does not yet finish a game correctly — the
+fixes are an issue backlog. See [`CLAUDE.md`](CLAUDE.md) for the current state and
+[`docs/roadmap.md`](docs/roadmap.md) for what ships when.
 
 ## Docs
 
@@ -45,11 +50,53 @@ code has landed yet. See [`docs/roadmap.md`](docs/roadmap.md) for what ships whe
 Read [`CLAUDE.md`](CLAUDE.md) first — it covers conventions, the layering rules
 that matter most, and how to run things.
 
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and every pull
+request, inside the official `swift:6.2` image, on **x86_64 and arm64** — the golden
+tests have to agree on both, because a stored game is re-simulated from its seed and
+floating-point drift between architectures would corrupt saved history
+([ADR-0003](docs/adr/0003-deterministic-seeded-simulation.md)).
+
+The `test` job gates a merge. It runs everything the *before you push* list in
+[`CLAUDE.md`](CLAUDE.md) asks for, and two checks beyond it — the sim lint and a
+`worldgen` build, both marked below:
+
+```
+swift format lint --strict --recursive --parallel Packages/ Tools/
+./scripts/lint-sim.sh                        # beyond the push list
+swift test --package-path Packages/FMRandom
+swift test -c release --package-path Packages/FMRandom
+swift test --package-path Packages/FMCore
+swift test --package-path Packages/FMGeneration
+swift test --package-path Packages/FMSimulation
+swift run --package-path Tools/playsize
+swift build --package-path Tools/worldgen    # beyond the push list
+```
+
+Note the `--strict` on the format step: without it `swift format lint` reports findings
+and still exits 0, so the check could never fail.
+
+The `harness` job is **reporting, not gating**. It runs `simharness --games 400 --seed 7`
+on each architecture, uploads the full output as a job artifact, and writes the
+calibration table into the job summary. Rows marked `OFF` do not fail the job; making a
+row gating is a per-row decision taken in a retune issue.
+
+Branch protection is a repo setting the owner has to enable. The checks to require are
+named at the top of the workflow file:
+
+```
+test (ubuntu-24.04)
+test (ubuntu-24.04-arm)
+```
+
 ## Requirements
 
 - Xcode 16+ / iOS 18+ (SwiftData, Swift 6 concurrency)
 - macOS for building the app target; the domain and simulation packages build
   and test on any Swift 6 toolchain
 
-On Linux (CI, or a Claude Code web container) install a toolchain with
-`./scripts/install-swift.sh`. It needs network access to `download.swift.org`.
+On Linux, CI uses the official `swift:6.2` image. In a Claude Code web container, or on
+a runner that cannot pull that image, install a toolchain with
+`./scripts/install-swift.sh` — it picks the x86_64 or aarch64 build to match the machine,
+and needs network access to `download.swift.org`.

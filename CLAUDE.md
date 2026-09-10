@@ -207,7 +207,7 @@ wave order and rebase.
 
 - Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
 - Before you push: all four suites green, `swift test -c release` for FMRandom,
-  `swift format lint` clean, `playsize` builds.
+  `swift format lint --strict` clean, `playsize` builds.
 - Goldens regenerated in the same commit as the behaviour change, with the change
   described. Never to make a red test pass.
 - No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after;
@@ -236,7 +236,12 @@ cd Tools/worldgen && swift run worldgen --help            # inspect generated co
 cd Tools/simharness && swift run simharness --games 400 --seed 7
                                                           # the calibration harness. Weather
                                                           # and rare-event rows need --games 1000
-swift format lint --recursive --parallel Packages/ Tools/ # run before committing
+swift format lint --strict --recursive --parallel Packages/ Tools/
+                                                          # run before committing. Without
+                                                          # --strict the linter prints its
+                                                          # findings and still exits 0, so a
+                                                          # script that trusts the exit code
+                                                          # passes while CI fails
 swift format --in-place --recursive --parallel Packages/ Tools/
 scripts/lint-sim.sh                                       # banned primitives, no Foundation;
                                                           # see docs/tools.md
