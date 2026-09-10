@@ -333,4 +333,53 @@ struct LeagueGeneratorTests {
                 "seed \(seed): \(team.identity.fullName) says its city twice")
         }
     }
+
+    /// Two nicknames that reduce to one word are two teams with one name, whatever the
+    /// spelling. Nothing in today's pools reduces to another entry, and the ledger keys
+    /// on the stem so that a pool which grows a singular beside its plural cannot hand
+    /// out both.
+    @Test(
+        "contract: no two teams share a nickname stem", arguments: Array(UInt64(1)...12))
+    func nicknameStemsAreDistinct(seed: UInt64) {
+        guard let world = generate(seed: seed) else {
+            Issue.record("seed \(seed) did not generate")
+            return
+        }
+        let stems = world.teams.map { TeamGenerator.stem(ofNickname: $0.identity.nickname) }
+        #expect(Set(stems).count == stems.count, "seed \(seed) repeats a nickname stem")
+    }
+
+    /// The rule the nickname draw applies, on its own. An echo is a shared word in
+    /// either direction; a shared *idea* is not one, and the last row says so rather
+    /// than leaving the gap for someone to find in a standings table.
+    @Test(
+        "unit: a nickname echoes its city when either name carries the other's word",
+        arguments: [
+            ("Coyotes", "Coyote", true),
+            ("Frostbite", "Frost", true),
+            ("Timberwolves", "Timber", true),
+            ("Elk", "Elkhart", true),
+            ("Pumas", "Kettle", false),
+            ("Surge", "Big Sur", false),
+            ("Blizzard", "Winter", false),
+        ])
+    func nicknameEchoes(nickname: String, city: String, isEcho: Bool) {
+        #expect(TeamGenerator.echoesCity(nickname, stem: city) == isEcho)
+    }
+
+    /// Crude on purpose: the stem is a key for comparing two names, not grammar. "Foxes"
+    /// reducing to "foxe" is the honest shape of that, and it is written down here so a
+    /// later reader does not mistake it for a bug.
+    @Test(
+        "unit: a nickname's stem is its name without a plural ending",
+        arguments: [
+            ("Coyotes", "coyote"),
+            ("Elk", "elk"),
+            ("Foxes", "foxe"),
+            ("Dust Devils", "dust devil"),
+            ("Nor'easters", "nor'easter"),
+        ])
+    func nicknameStems(nickname: String, stem: String) {
+        #expect(TeamGenerator.stem(ofNickname: nickname) == stem)
+    }
 }

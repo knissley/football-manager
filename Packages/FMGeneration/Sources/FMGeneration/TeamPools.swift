@@ -3,6 +3,12 @@ import FMCore
 /// A generated city: a name, a region, and the market and weather that follow from it.
 public struct GeneratedCity: Sendable, Hashable, Codable {
     public let name: String
+    /// The part of the name before its suffix — "Saltflat" in "Saltflat Ridge", and the
+    /// whole of a bare name. Carried rather than parsed back out of `name` later: the
+    /// generator drew it, and the two pools share words ("Harbor" is a stem in the east
+    /// and a suffix everywhere), so parsing it back is guesswork. A team's nickname is
+    /// checked against this so a club does not say its own city twice.
+    public let stem: String
     public let region: Region
     public let market: MarketSize
     public let climate: Climate
