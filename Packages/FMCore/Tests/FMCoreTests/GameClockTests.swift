@@ -149,6 +149,62 @@ struct ClockStoppageTests {
         #expect(behavior(.outOfBounds, quarter: 4, clock: 301) == .stopsUntilReadyForPlay)
     }
 
+    /// Regular-season overtime is timed as the fourth quarter (16-1-3-e), the
+    /// five-minute out-of-bounds window included.
+    @Test(
+        "football · Rule 16-1-3-e, 4-3-2-a · regular-season overtime carries the fourth period's five-minute window: out of bounds inside it stops the clock until the snap",
+        .tags(.football)
+    )
+    func outOfBoundsInRegularSeasonOvertime() {
+        #expect(behavior(.outOfBounds, quarter: 5, clock: 300) == .stopsUntilSnap)
+        #expect(behavior(.outOfBounds, quarter: 5, clock: 90) == .stopsUntilSnap)
+        #expect(behavior(.outOfBounds, quarter: 5, clock: 301) == .stopsUntilReadyForPlay)
+    }
+
+    /// 4-3-2-e-3 names its periods — the fourth, and regular-season overtime — and what
+    /// 16-1-4-h lends postseason overtime is a half's closing rules, which for a foul are
+    /// the windows of e-1 and e-2. So in postseason overtime the offence's foul before
+    /// the snap starts the clock on the snap inside a second period's two minutes and a
+    /// fourth period's five, and nowhere else.
+    @Test(
+        "football · Rule 4-3-2-e, 16-1-4-h · after an offensive foul before the snap the clock starts on the snap anywhere in the fourth period or regular-season overtime (e-3), and in postseason overtime only inside the windows a second or a fourth overtime period is lent (e-1, e-2)",
+        .tags(.football)
+    )
+    func offensiveFoulBeforeTheSnapInPostseasonOvertime() {
+        func startsOnTheSnap(quarter: UInt8, clock: UInt16, postseason: Bool = true) -> Bool {
+            rules.clockStartsOnTheSnapAfterFoul(
+                byOffense: true, quarter: quarter, isPostseason: postseason, clockRemaining: clock)
+        }
+        #expect(
+            startsOnTheSnap(quarter: 4, clock: 600, postseason: false),
+            "the fourth period, anywhere in it")
+        #expect(
+            startsOnTheSnap(quarter: 5, clock: 400, postseason: false),
+            "regular-season overtime, anywhere in it")
+        #expect(
+            startsOnTheSnap(quarter: 5, clock: 400) == false,
+            "a first postseason overtime period is a first period")
+        #expect(startsOnTheSnap(quarter: 5, clock: 250) == false, "and has no five-minute window")
+        #expect(
+            startsOnTheSnap(quarter: 6, clock: 400) == false,
+            "a second overtime period, outside two minutes")
+        #expect(
+            startsOnTheSnap(quarter: 6, clock: 250) == false,
+            "the first half's window is two minutes, not five")
+        #expect(
+            startsOnTheSnap(quarter: 6, clock: 100),
+            "inside two minutes of a second overtime period (e-1)")
+        #expect(
+            startsOnTheSnap(quarter: 7, clock: 250) == false,
+            "a third overtime period is a third period")
+        #expect(
+            startsOnTheSnap(quarter: 8, clock: 400) == false,
+            "a fourth overtime period, outside five minutes")
+        #expect(
+            startsOnTheSnap(quarter: 8, clock: 250),
+            "inside five minutes of a fourth overtime period (e-2)")
+    }
+
     /// The clock runs while the chains move. A first down is not a stoppage, and
     /// treating it as one would make every drive a two-minute drill.
     @Test("Gaining a first down does not stop the clock", .tags(.unit))
@@ -223,16 +279,31 @@ struct TenSecondRunoffTests {
         #expect(carriesRunoff(.encroachment, byOffense: false) == false)
     }
 
-    /// Postseason overtime reads its periods as halves for timing (16-1-4-h), which the
-    /// engine does not model: `Rules.hasFourthPeriodTiming` answers no for every
-    /// postseason overtime period, so no runoff applies there. Pinned so that the
-    /// answer changes on purpose, with A11 (#74), rather than by accident.
+    /// Rewritten for A11 (#74) from a pin that said postseason overtime timing was not
+    /// modelled. It is: 16-1-4-h pairs postseason overtime periods into halves, a second
+    /// period ending as the first half does and a fourth as the fourth period does, so
+    /// the warning of either half (4-7-1) is in the second and the fourth and the runoff
+    /// follows it there; a first or a third period has neither.
     @Test(
-        "pin · no runoff in postseason overtime, because postseason overtime timing (16-1-4-h) is not modelled pending #74",
-        .tags(.pin)
+        "football · Rule 16-1-4-h, 4-7-1 Item 1 · in postseason overtime the runoff applies inside two minutes of a second and of a fourth overtime period, and never in a first or a third",
+        .tags(.football)
     )
-    func postseasonOvertimeRunoffIsNotModelled() {
-        #expect(carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false)
+    func postseasonOvertimeRunoff() {
+        #expect(
+            carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false,
+            "a first overtime period ends as a first period does")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 6, clock: 40, postseason: true),
+            "a second overtime period ends as the first half does")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 6, clock: 120, postseason: true) == false,
+            "at the warning the clock is stopped")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 7, clock: 40, postseason: true) == false,
+            "a third overtime period ends as a third period does")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 8, clock: 40, postseason: true),
+            "a fourth overtime period ends as the fourth period does")
     }
 }
 
@@ -311,6 +382,27 @@ struct GameClockTests {
         #expect(clock.twoMinuteWarningTaken)
     }
 
+    /// Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
+    /// (16-1-3-e), so the warning (3-41) is in it: at 2:00 between downs the clock
+    /// stops, and a down under way finishes.
+    @Test(
+        "football · Rule 3-41, 16-1-3-e · a regular-season overtime period has a two-minute warning: the clock stops at 2:00 between downs, and a down under way when it passes 2:00 finishes",
+        .tags(.football)
+    )
+    func warningInRegularSeasonOvertime() {
+        var between = GameClock(quarter: 5, secondsRemaining: 128)
+        let inTheHuddle = between.run(
+            GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules)
+        #expect(inTheHuddle, "the warning is taken in the huddle")
+        #expect(between.secondsRemaining == 114, "the huddle was cut at 2:00; the play ran six")
+
+        var during = GameClock(quarter: 5, secondsRemaining: 128)
+        let asTheDownEnds = during.run(
+            GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules)
+        #expect(asTheDownEnds, "the warning is taken as the down ends")
+        #expect(during.secondsRemaining == 108, "the down finished")
+    }
+
     @Test("The warning is taken once per half, not once per play", .tags(.unit))
     func warningTakenOnce() {
         var clock = GameClock(quarter: 2, secondsRemaining: 130)
@@ -350,16 +442,22 @@ struct GameClockTests {
         #expect(thirdQuarter.advancingPeriod(rules: rules)?.twoMinuteWarningTaken == true)
     }
 
+    /// Rewritten for A11 (#74): this asserted that the overtime period had no
+    /// two-minute warning, which is wrong football — fourth-period timing rules apply in
+    /// regular-season overtime (16-1-3-e), the warning among them (3-41). The period
+    /// opens with the warning fresh, as a half does.
     @Test("Periods advance to a full quarter, then to overtime", .tags(.unit))
     func periods() {
         let first = GameClock(quarter: 1, secondsRemaining: 0)
         #expect(first.advancingPeriod(rules: rules)?.secondsRemaining == 900)
 
-        let fourth = GameClock(quarter: 4, secondsRemaining: 0)
+        let fourth = GameClock(quarter: 4, secondsRemaining: 0, twoMinuteWarningTaken: true)
         let overtime = fourth.advancingPeriod(rules: rules)
         #expect(overtime?.quarter == 5)
         #expect(overtime?.secondsRemaining == 600)
-        #expect(overtime?.twoMinuteWarningTaken == true, "overtime has no two-minute warning")
+        #expect(
+            overtime?.twoMinuteWarningTaken == false,
+            "the overtime period opens with its warning still to come")
 
         let postseason = fourth.advancingPeriod(rules: rules, isPostseason: true)
         #expect(postseason?.secondsRemaining == 900)

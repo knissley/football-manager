@@ -60,6 +60,18 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case kickoffFairCaught = "kickoff-fair-caught"
     case playEndingJustBeforeTheTwoMinuteWarning = "play-ending-just-before-the-two-minute-warning"
     case playRunningPastTheTwoMinuteWarning = "play-running-past-the-two-minute-warning"
+    case playEndingJustBeforeTheTwoMinuteWarningOfOvertime =
+        "play-ending-just-before-the-two-minute-warning-of-overtime"
+    case playRunningPastTheTwoMinuteWarningOfOvertime =
+        "play-running-past-the-two-minute-warning-of-overtime"
+    case playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod =
+        "play-ending-at-two-minutes-of-a-first-postseason-overtime-period"
+    case playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod =
+        "play-ending-just-before-the-two-minute-warning-of-a-second-postseason-overtime-period"
+    case runnerOutOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriod =
+        "runner-out-of-bounds-inside-five-minutes-of-a-second-postseason-overtime-period"
+    case runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod =
+        "runner-out-of-bounds-inside-five-minutes-of-a-fourth-postseason-overtime-period"
 
     // Fouls before the snap late in a half
     case falseStartInsideTwoMinutes = "false-start-inside-two-minutes"
@@ -67,6 +79,11 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case falseStartInTheFourthQuarterOutsideTwoMinutes =
         "false-start-in-the-fourth-quarter-outside-two-minutes"
     case falseStartInsideTwoMinutesOfOvertime = "false-start-inside-two-minutes-of-overtime"
+    case falseStartInOvertimeOutsideTwoMinutes = "false-start-in-overtime-outside-two-minutes"
+    case falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod =
+        "false-start-inside-two-minutes-of-a-second-postseason-overtime-period"
+    case falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes =
+        "false-start-in-a-first-postseason-overtime-period-outside-two-minutes"
     case falseStartWithTheClockStopped = "false-start-with-the-clock-stopped"
     case falseStartAgainstATrailingDefense = "false-start-against-a-trailing-defense"
     case falseStartAtTwelveSecondsWithATimeout = "false-start-at-twelve-seconds-with-a-timeout"
@@ -149,6 +166,20 @@ extension RulesScenario {
             return RulesScenarios.playStretchedToEnd(quarter: 4, at: 121)
         case .playRunningPastTheTwoMinuteWarning:
             return RulesScenarios.playStretchedToEnd(quarter: 2, at: 117)
+        case .playEndingJustBeforeTheTwoMinuteWarningOfOvertime:
+            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121)
+        case .playRunningPastTheTwoMinuteWarningOfOvertime:
+            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 117)
+        case .playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod:
+            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121, postseasonDecidedIn: 6)
+        case .playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod:
+            return RulesScenarios.playStretchedToEnd(quarter: 6, at: 121, postseasonDecidedIn: 7)
+        case .runnerOutOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriod:
+            return RulesScenarios.runnerOutOfBounds(
+                quarter: 6, window: 226...300, postseasonDecidedIn: 7)
+        case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
+            return RulesScenarios.runnerOutOfBounds(
+                quarter: 8, window: 226...300, postseasonDecidedIn: 9)
 
         case .falseStartInsideTwoMinutes: return RulesScenarios.falseStartInsideTwoMinutes
         case .falseStartInTheThirdQuarter: return RulesScenarios.falseStartInTheThirdQuarter
@@ -156,6 +187,12 @@ extension RulesScenario {
             return RulesScenarios.falseStartInTheFourthQuarterOutsideTwoMinutes
         case .falseStartInsideTwoMinutesOfOvertime:
             return RulesScenarios.falseStartInsideTwoMinutesOfOvertime
+        case .falseStartInOvertimeOutsideTwoMinutes:
+            return RulesScenarios.falseStartInOvertimeOutsideTwoMinutes
+        case .falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod:
+            return RulesScenarios.falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod
+        case .falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes:
+            return RulesScenarios.falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes
         case .falseStartWithTheClockStopped: return RulesScenarios.falseStartWithTheClockStopped
         case .falseStartAgainstATrailingDefense:
             return RulesScenarios.falseStartAgainstATrailingDefense
@@ -334,6 +371,30 @@ extension RulesScenario {
             return [
                 "football · Rule 3-41 · a down under way when the clock runs past 2:00 finishes, and the clock is dead after it"
             ]
+        case .playEndingJustBeforeTheTwoMinuteWarningOfOvertime:
+            return [
+                "football · Rule 3-41, 16-1-3-e · the two-minute warning stops a running clock at exactly 2:00 of a regular-season overtime period, and the snap restarts it"
+            ]
+        case .playRunningPastTheTwoMinuteWarningOfOvertime:
+            return [
+                "football · Rule 3-41, 16-1-3-e · a down under way when the clock runs past 2:00 of a regular-season overtime period finishes, and the clock is dead after it"
+            ]
+        case .playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-h, 3-41 · a first postseason overtime period is timed as a first period: the clock runs through 2:00 with nothing to stop it"
+            ]
+        case .playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-h, 3-41 · a second postseason overtime period ends as the first half does: the warning stops a running clock at exactly 2:00, and the snap restarts it"
+            ]
+        case .runnerOutOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-h, 4-3-2-a · a second postseason overtime period carries the first half's two-minute window, so a runner out of bounds inside its last five minutes but outside two stops the clock only until the ball is ready"
+            ]
+        case .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-h, 4-3-2-a · a fourth postseason overtime period carries the fourth period's five-minute window, so a runner out of bounds inside its last five minutes stops the clock until the snap"
+            ]
 
         case .falseStartInsideTwoMinutes:
             return [
@@ -350,6 +411,18 @@ extension RulesScenario {
         case .falseStartInsideTwoMinutesOfOvertime:
             return [
                 "football · Rule 16-1-3-e, 4-7-1 Item 1 · inside two minutes of regular-season overtime a false start with the clock running carries the runoff, and the clock restarts on the ready"
+            ]
+        case .falseStartInOvertimeOutsideTwoMinutes:
+            return [
+                "football · Rule 4-3-2-e-3, 16-1-3-e · an offensive foul before the snap in regular-season overtime, outside every window, costs the huddle and nothing else, and the clock then starts on the snap"
+            ]
+        case .falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-h, 4-7-1 Item 1 · inside two minutes of a second postseason overtime period a false start with the clock running carries the runoff, and the clock restarts on the ready"
+            ]
+        case .falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes:
+            return [
+                "football · Rule 4-3-2-e-3, 16-1-4-h · an offensive foul before the snap in a first postseason overtime period, outside every window, restarts the clock on the ready as though the flag had never flown, because 4-3-2-e-3 names the fourth period and regular-season overtime only"
             ]
         case .falseStartWithTheClockStopped:
             return [

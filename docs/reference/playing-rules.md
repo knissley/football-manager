@@ -372,11 +372,12 @@ below are what it is held to.
 - **16-1-3-d** — The period is never extended, not for a second team that has not possessed
   and not for a possession still running. Level at the end is a tie. —
   `test:regularSeasonOvertimeExpiringLevelIsATie`, `test:ties`
-- **16-1-3-e** — Two timeouts each; fourth-quarter timing rules otherwise apply. —
-  `test:overtimeTimeoutsAreTwo`,
-  `test:falseStartInsideTwoMinutesOfOvertimeCostsTenSeconds`; the two-minute warning that
-  follows from it is not yet enforced,
-  [#74](https://github.com/knissley/football-manager/issues/74)
+- **16-1-3-e** — Two timeouts each; fourth-quarter timing rules otherwise apply, the
+  two-minute warning among them. — `test:overtimeTimeoutsAreTwo`,
+  `test:falseStartInsideTwoMinutesOfOvertimeCostsTenSeconds`,
+  `test:warningInRegularSeasonOvertime`, `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`,
+  `test:downUnderWayAtTwoMinutesOfOvertimeFinishes`, `test:outOfBoundsInRegularSeasonOvertime`,
+  `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`
 
 **Postseason** — 15-minute periods, as many as it takes.
 
@@ -386,9 +387,16 @@ below are what it is held to.
   unfinished, means another period. — `test:postseasonPlaysASixthPeriod`
 - **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Three timeouts per half, two-minute
   intermissions between periods, and a fresh coin toss after the fourth. — not modelled
-- **16-1-4-h** — Postseason overtime timing. — not yet enforced,
-  [#74](https://github.com/knissley/football-manager/issues/74);
-  `test:postseasonOvertimeRunoffIsNotModelled` pins the exclusion
+- **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
+  half does and a fourth as the fourth period does, so the warning, the out-of-bounds
+  windows and the runoff belong to those two and a first or third overtime period has
+  none of them. — `test:firstPostseasonOvertimePeriodHasNoWarning`,
+  `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`,
+  `test:falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriodCostsTenSeconds`,
+  `test:outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady`,
+  `test:outOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriodWaitsForTheSnap`,
+  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
+  `test:postseasonOvertimeRunoff`
 - **16-1-5-b** — Possession is gained by catching, intercepting or recovering a loose ball,
   so a defence that takes the ball away has had its possession. —
   `test:overtimeDefensiveScoreEndsIt`

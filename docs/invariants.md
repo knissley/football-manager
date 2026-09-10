@@ -77,12 +77,28 @@ season is what checks one. A band is evidence about a rate and never about a rul
 13. The clock only ever runs down within a period. `[2025 · 4-1-1]` —
     `test:clockIsMonotonic`, `test:clockFloor`
 14. A regular-season overtime period has a two-minute warning, because fourth-period timing
-    rules apply to it. `[2025 · 3-41, 16-1-3-e]` — **not yet enforced**,
-    [#74](https://github.com/knissley/football-manager/issues/74)
-15. Postseason overtime timing is one decision, read the same way by the runoff, the late
-    restart windows and the warning alike. `[2025 · 16-1-4]` — **not yet enforced**,
-    [#74](https://github.com/knissley/football-manager/issues/74);
-    `test:postseasonOvertimeRunoffIsNotModelled` pins the exclusion meanwhile
+    rules apply to it: the clock stops at 2:00 between downs, a down under way finishes,
+    the five-minute out-of-bounds window is in it, and the offence's foul before the snap
+    starts the clock on the snap there as it does in the fourth period.
+    `[2025 · 3-41, 16-1-3-e, 4-3-2-a, 4-3-2-e-3]` — `test:warningInRegularSeasonOvertime`,
+    `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`,
+    `test:downUnderWayAtTwoMinutesOfOvertimeFinishes`,
+    `test:outOfBoundsInRegularSeasonOvertime`,
+    `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`
+15. Postseason overtime pairs its periods into halves for timing, and every clock rule reads
+    the pairing the same way: a second overtime period ends as the first half does — the
+    warning, the two-minute out-of-bounds window and the runoff — and a fourth as the fourth
+    period does, with its five-minute window; a first or a third has neither warning nor
+    window. The offence's foul before the snap starts the clock on the snap only inside
+    those windows, because 4-3-2-e-3 names the fourth period and regular-season overtime.
+    `[2025 · 16-1-4-h, 3-41, 4-3-2-a, 4-3-2-e, 4-7-1]` —
+    `test:firstPostseasonOvertimePeriodHasNoWarning`,
+    `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`,
+    `test:falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriodCostsTenSeconds`,
+    `test:outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady`,
+    `test:outOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriodWaitsForTheSnap`,
+    `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
+    `test:postseasonOvertimeRunoff`, `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`
 
 ## The try
 

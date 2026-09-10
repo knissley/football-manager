@@ -67,6 +67,35 @@ struct RulesConformanceTests {
         return (found.index, found.play, huddle)
     }
 
+    /// Whether a postseason game reached `period`: the football fact a scenario about a
+    /// later overtime period rests on before it can say anything about that period's
+    /// clock.
+    private func reachedPeriod(_ period: UInt8, in trace: Trace) -> Bool {
+        let reached = trace.plays.contains { $0.situation.quarter == period }
+        #expect(
+            reached,
+            "a postseason game level at the end of a period plays another (16-1-4-d); this one was meant to reach period \(period)"
+        )
+        return reached
+    }
+
+    /// The play a clock walk stretched to end at a particular second of `quarter`: the
+    /// first run in it longer than a plod.
+    private func stretchedPlay(
+        in trace: Trace, quarter: UInt8
+    ) -> (index: Int, play: PlayRecord)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == quarter && $0.outcome.clockRunoff > 6
+                    && $0.outcome.kind == .rush
+            })
+        else {
+            Issue.record("the walk never stretched a play in quarter \(quarter)")
+            return nil
+        }
+        return found
+    }
+
     /// Whether the game reached overtime: the football fact every overtime scenario
     /// needs first, asserted rather than assumed.
     private func reachedOvertime(_ trace: Trace) -> Bool {
@@ -767,6 +796,164 @@ struct RulesConformanceTests {
             "the snap at 1:57 costs only the play's own six seconds")
     }
 
+    /// Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
+    /// (16-1-3-e), and the warning is the first of the fourth quarter's timing rules
+    /// (3-41): until this landed the overtime clock ran through 2:00.
+    @Test(
+        "football · Rule 3-41, 16-1-3-e · the two-minute warning stops a running clock at exactly 2:00 of a regular-season overtime period, and the snap restarts it",
+        .tags(.football)
+    )
+    func twoMinuteWarningStopsAtTwoMinutesOfOvertime() {
+        let trace = RulesScenario.playEndingJustBeforeTheTwoMinuteWarningOfOvertime.run()
+        guard reachedOvertime(trace), let stretched = stretchedPlay(in: trace, quarter: 5) else {
+            return
+        }
+        trace.expectPlay(
+            stretched.index + 1, quarter: 5, clock: 121, clockRunning: true,
+            "the play ended at 2:01 of overtime with the clock running")
+        guard let next = trace[stretched.index + 1] else { return }
+        trace.expectPlay(
+            stretched.index + 2, quarter: 5, clock: 120 - next.outcome.clockRunoff,
+            "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
+    }
+
+    @Test(
+        "football · Rule 3-41, 16-1-3-e · a down under way when the clock runs past 2:00 of a regular-season overtime period finishes, and the clock is dead after it",
+        .tags(.football)
+    )
+    func downUnderWayAtTwoMinutesOfOvertimeFinishes() {
+        let trace = RulesScenario.playRunningPastTheTwoMinuteWarningOfOvertime.run()
+        guard reachedOvertime(trace), let stretched = stretchedPlay(in: trace, quarter: 5) else {
+            return
+        }
+        trace.expectPlay(
+            stretched.index + 1, quarter: 5, clock: 117, clockRunning: false,
+            "the down finished at 1:57 of overtime, and the clock is dead from there until the snap"
+        )
+        trace.expectPlay(
+            stretched.index + 2, quarter: 5, clock: 117 - 6,
+            "the snap at 1:57 costs only the play's own six seconds")
+    }
+
+    /// Postseason overtime pairs its periods into halves, and a half's closing rules
+    /// belong to the second period of the pair (16-1-4-h): a first overtime period is a
+    /// first period, and the warning (3-41) is not in it.
+    @Test(
+        "football · Rule 16-1-4-h, 3-41 · a first postseason overtime period is timed as a first period: the clock runs through 2:00 with nothing to stop it",
+        .tags(.football)
+    )
+    func firstPostseasonOvertimePeriodHasNoWarning() {
+        let trace = RulesScenario.playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod.run()
+        guard reachedPeriod(5, in: trace), let stretched = stretchedPlay(in: trace, quarter: 5)
+        else { return }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's tempo")
+            return
+        }
+        trace.expectPlay(
+            stretched.index + 1, quarter: 5, clock: 121, clockRunning: true,
+            "the play ended at 2:01 with the clock running")
+        guard let next = trace[stretched.index + 1] else { return }
+        trace.expectPlay(
+            stretched.index + 2, quarter: 5, clock: 121 - huddle - next.outcome.clockRunoff,
+            "no warning: the whole huddle came off the clock, and then the play")
+    }
+
+    @Test(
+        "football · Rule 16-1-4-h, 3-41 · a second postseason overtime period ends as the first half does: the warning stops a running clock at exactly 2:00, and the snap restarts it",
+        .tags(.football)
+    )
+    func secondPostseasonOvertimePeriodHasTheFirstHalfsWarning() {
+        let trace = RulesScenario
+            .playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod.run()
+        guard reachedPeriod(6, in: trace), let stretched = stretchedPlay(in: trace, quarter: 6)
+        else { return }
+        trace.expectPlay(
+            stretched.index + 1, quarter: 6, clock: 121, clockRunning: true,
+            "the play ended at 2:01 of the second overtime period with the clock running")
+        guard let next = trace[stretched.index + 1] else { return }
+        trace.expectPlay(
+            stretched.index + 2, quarter: 6, clock: 120 - next.outcome.clockRunoff,
+            "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
+    }
+
+    /// The first runner out of bounds in `quarter`, with the offence's measured tempo.
+    private func outOfBounds(
+        in trace: Trace, quarter: UInt8
+    ) -> (index: Int, play: PlayRecord, huddle: UInt16)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == quarter && $0.outcome.endedIn == .outOfBounds
+            })
+        else {
+            Issue.record("the script never sent a runner out of bounds in quarter \(quarter)")
+            return nil
+        }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's tempo")
+            return nil
+        }
+        return (found.index, found.play, huddle)
+    }
+
+    /// The out-of-bounds windows are asymmetric, two minutes in the first half and five
+    /// in the second (4-3-2-a), and 16-1-4-h gives a second postseason overtime period
+    /// the first half's: inside its last five minutes but outside two, the clock
+    /// restarts on the ready-for-play signal.
+    @Test(
+        "football · Rule 16-1-4-h, 4-3-2-a · a second postseason overtime period carries the first half's two-minute window, so a runner out of bounds inside its last five minutes but outside two stops the clock only until the ball is ready",
+        .tags(.football)
+    )
+    func outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady() {
+        let trace = RulesScenario
+            .runnerOutOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriod.run()
+        guard reachedPeriod(6, in: trace), let out = outOfBounds(in: trace, quarter: 6) else {
+            return
+        }
+        let before = out.play.situation
+        #expect(
+            before.clockRemaining <= 300 && before.clockRemaining - out.huddle - 6 > 120,
+            "the scenario meant the runner out inside five minutes and outside two")
+        trace.expectPlay(
+            out.index + 1, quarter: 6, clock: before.clockRemaining - out.huddle - 6,
+            clockRunning: true,
+            "the huddle and the play came off, and the clock restarts on the ready: it runs into the next snap"
+        )
+        guard let next = trace[out.index + 1], let after = trace[out.index + 2] else {
+            Issue.record("no play after the one that followed the runner out of bounds")
+            return
+        }
+        #expect(
+            after.situation.clockRemaining < next.situation.clockRemaining - 6,
+            "the next huddle came off the clock as well as the play")
+    }
+
+    /// The other half of the same asymmetry: a fourth postseason overtime period ends
+    /// as the fourth period does, with the five-minute window, so inside it the clock
+    /// waits for the snap.
+    @Test(
+        "football · Rule 16-1-4-h, 4-3-2-a · a fourth postseason overtime period carries the fourth period's five-minute window, so a runner out of bounds inside its last five minutes stops the clock until the snap",
+        .tags(.football)
+    )
+    func outOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriodWaitsForTheSnap() {
+        let trace = RulesScenario
+            .runnerOutOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriod.run()
+        guard reachedPeriod(8, in: trace), let out = outOfBounds(in: trace, quarter: 8) else {
+            return
+        }
+        let before = out.play.situation
+        #expect(
+            before.clockRemaining <= 300, "the scenario meant the runner out inside five minutes")
+        trace.expectPlay(
+            out.index + 1, quarter: 8, clock: before.clockRemaining - out.huddle - 6,
+            clockRunning: false,
+            "the huddle and the play came off, and the clock is dead until the snap")
+        guard let next = trace[out.index + 1] else { return }
+        trace.expectPlay(
+            out.index + 2, quarter: 8, clock: next.situation.clockRemaining - 6,
+            "the next snap costs only the play's own six seconds")
+    }
+
     // MARK: The ten-second runoff
 
     /// Inside two minutes with the clock running, a false start costs the offence ten
@@ -863,6 +1050,84 @@ struct RulesConformanceTests {
         trace.expectPlay(
             flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
             "the huddle, then ten seconds, and the clock restarts on the ready")
+    }
+
+    /// Fourth-period timing applies in regular-season overtime (16-1-3-e), so the
+    /// offence's foul before the snap has the clock start on the snap there (4-3-2-e-3)
+    /// as it does in the fourth quarter — outside every window, where nothing else
+    /// would.
+    @Test(
+        "football · Rule 4-3-2-e-3, 16-1-3-e · an offensive foul before the snap in regular-season overtime, outside every window, costs the huddle and nothing else, and the clock then starts on the snap",
+        .tags(.football)
+    )
+    func offensiveFoulInOvertimeStartsTheClockOnTheSnap() {
+        let trace = RulesScenario.falseStartInOvertimeOutsideTwoMinutes.run()
+        guard reachedOvertime(trace), let flag = flag(in: trace, quarter: 5) else { return }
+        let before = flag.play.situation
+        #expect(
+            Int(before.clockRemaining) - Int(flag.huddle) > 300,
+            "the scenario meant the flag to fly outside every window")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
+            "five yards, same down, no runoff outside two minutes")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: false,
+            "the huddle and nothing else, and the clock waits for the snap")
+    }
+
+    /// A second postseason overtime period ends as the first half does (16-1-4-h), and
+    /// after the first half's warning the runoff applies (4-7-1).
+    @Test(
+        "football · Rule 16-1-4-h, 4-7-1 Item 1 · inside two minutes of a second postseason overtime period a false start with the clock running carries the runoff, and the clock restarts on the ready",
+        .tags(.football)
+    )
+    func falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriodCostsTenSeconds() {
+        let trace = RulesScenario.falseStartInsideTwoMinutesOfASecondPostseasonOvertimePeriod
+            .run()
+        guard reachedPeriod(6, in: trace), let flag = flag(in: trace, quarter: 6) else { return }
+        let before = flag.play.situation
+        #expect(
+            before.clockRemaining < 120, "the scenario meant the flag to fly inside two minutes")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
+            "five yards, same down")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
+            "the huddle, then ten seconds, and the clock restarts on the ready")
+    }
+
+    /// 4-3-2-e-3 names its periods: the fourth, and regular-season overtime. What
+    /// 16-1-4-h lends postseason overtime is a half's closing rules, and a first
+    /// overtime period is a first period with none, so the offence's flag there
+    /// restarts the clock as any foul does outside the late windows (4-3-2-e).
+    @Test(
+        "football · Rule 4-3-2-e-3, 16-1-4-h · an offensive foul before the snap in a first postseason overtime period, outside every window, restarts the clock on the ready as though the flag had never flown, because 4-3-2-e-3 names the fourth period and regular-season overtime only",
+        .tags(.football)
+    )
+    func offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady() {
+        let trace = RulesScenario.falseStartInAFirstPostseasonOvertimePeriodOutsideTwoMinutes
+            .run()
+        guard reachedPeriod(5, in: trace), let flag = flag(in: trace, quarter: 5) else { return }
+        let before = flag.play.situation
+        #expect(
+            Int(before.clockRemaining) - Int(flag.huddle) > 300,
+            "the scenario meant the flag to fly outside every window")
+        #expect(
+            trace.clockRunning(into: flag.index) == true,
+            "the scenario meant the clock to be running when the flag flew")
+        trace.expectPlay(
+            flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
+            "five yards, same down")
+        trace.expectPlay(
+            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: true,
+            "the huddle and nothing else, and the clock restarts on the ready as though the flag had never flown"
+        )
     }
 
     /// The runoff needs a running clock. After an incompletion the clock is stopped, so
