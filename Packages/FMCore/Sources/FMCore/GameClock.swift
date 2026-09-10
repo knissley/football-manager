@@ -9,6 +9,21 @@ public enum ClockBehavior: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case stopsUntilSnap = 2
 
     public var stopsClock: Bool { self != .keepsRunning }
+
+    /// Of two reasons the same clock is stopped, the one that starts it again last.
+    ///
+    /// One down can carry more than one: a pass falls incomplete *and* a flag flies on
+    /// it, so 4-4-f and 4-4-e both stop the clock and 4-3-2 and 4-3-2-e both have
+    /// something to say about starting it. Nothing a foul does can start a clock the
+    /// play's own ending has already held to the snap, so the later restart is the one
+    /// the offence gets.
+    public static func later(_ one: ClockBehavior, _ other: ClockBehavior) -> ClockBehavior {
+        if one == .stopsUntilSnap || other == .stopsUntilSnap { return .stopsUntilSnap }
+        if one == .stopsUntilReadyForPlay || other == .stopsUntilReadyForPlay {
+            return .stopsUntilReadyForPlay
+        }
+        return .keepsRunning
+    }
 }
 
 extension Rules {
@@ -32,7 +47,9 @@ extension Rules {
     /// This reads the ending alone, and the ending alone cannot tell a fourth-down stop
     /// from a first-down tackle: both end `.tackled`. A change of possession stops the
     /// clock whatever the ending (4-4-i), and the overload that takes it is what the
-    /// game state consults.
+    /// game state consults. Nor can the ending tell whether a flag flew on the down,
+    /// which stops the clock too (4-4-e): the game state reads the play's accepted fouls
+    /// beside this, and takes whichever restart is `ClockBehavior.later`.
     public func clockBehavior(
         after ending: PlayEnding, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> ClockBehavior {
@@ -111,18 +128,28 @@ extension Rules {
     /// and a postseason overtime period is not among them. A clock that was stopped at
     /// the flag waits for the snap either way.
     ///
+    /// **e-3 is about a foul between downs, and `stoppedTheClockBeforeTheSnap` is what
+    /// says so.** The article reaches an offensive foul committed once the officials have
+    /// marked the ball ready, killing a clock that had not yet reached its snap: the false
+    /// start, the delay of game, the flag that flies with the ball dead. A foul *during* a
+    /// down stops the clock as that down ends instead (4-4-e), which is not before a snap,
+    /// so e-3's words do not reach it and the fourth quarter restarts it on the ready like
+    /// any other period. One predicate answers both, because they are the same article and
+    /// a second copy of it is how the two paths come to disagree.
+    ///
     /// The runoff's restart (4-3-2-g) and the offence's choice after a defensive foul
     /// inside two minutes (4-7-1 Item 2) are specific rules that prescribe otherwise
     /// (e-5), and are decided before this is asked.
     public func clockStartsOnTheSnapAfterFoul(
-        byOffense: Bool, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
+        byOffense: Bool, stoppedTheClockBeforeTheSnap: Bool, quarter: UInt8, isPostseason: Bool,
+        clockRemaining: UInt16
     ) -> Bool {
         if isInLateClockWindow(
             quarter: quarter, isPostseason: isPostseason, clockRemaining: clockRemaining)
         {
             return true
         }
-        return byOffense
+        return byOffense && stoppedTheClockBeforeTheSnap
             && isFourthPeriodOrRegularSeasonOvertime(quarter: quarter, isPostseason: isPostseason)
     }
 

@@ -42,6 +42,10 @@ Which rules must be true of a game, and what checks each, is
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
   `test:warningInPostseasonOvertime`; that it was taken is on the record of the first snap
   after it — `test:warningIsOnTheRecord`
+- **3-42** — A T-formation quarterback is a player aligned a yard or less behind the
+  snapper. It is the definition 8-2-1 Item 3 spends on the spike, and it is an alignment,
+  not a grip: hands under centre are one way to satisfy it, not the test. — not modelled:
+  the engine has no quarterback alignment, so nothing it simulates can fail the condition
 
 ## Rule 4 — Game timing
 
@@ -84,11 +88,21 @@ Which rules must be true of a game, and what checks each, is
   `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
-- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
-  the flag had never flown, except on the snap after the first half's two-minute warning,
-  inside the last five minutes of the second half, and after an offensive foul that stops
-  the clock before the snap anywhere in the fourth period or regular-season overtime. In
-  postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
+- **4-3-2-e** — Where either side's flag has stopped the clock, between downs or at the end
+  of one, the clock starts again once the penalty is settled exactly where it would have
+  started had no flag been thrown. The article covers a declined penalty as well as an
+  enforced one; the engine reads the accepted branch only, and a foul the non-offending
+  side turns down leaves the clock as the play's ending left it. —
+  `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — Its three exceptions, in which the clock
+  waits for the snap: a flag past the first half's warning (e-1); a flag in the closing
+  five minutes of the second half (e-2); and, during the fourth period or regular-season
+  overtime, an offensive foul committed once the officials have marked the ball ready,
+  killing a clock that had not yet reached its snap (e-3). **Inference, not text:** e-3
+  therefore reaches only a flag between downs, since a flag during a down does not stop a
+  clock before a snap — 4-4-e stops that clock as the down ends — so a fourth-quarter
+  holding call on a run restarts on the ready like any other period's.
+  In postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
   names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
   the flag, with the interval before it charged to a running clock — the clock where the
   ball is dead, as for a runner out of bounds. —
@@ -96,15 +110,22 @@ Which rules must be true of a game, and what checks each, is
   `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
   `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,
   `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
-  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`
+  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
+  `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
+  `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 - **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
   `test:falseStartInsideTwoMinutesCostsTenSeconds`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
 - **4-4-a** — A free kick down stops the clock. — `test:returnedKickoffAdvancesTheClock`
 - **4-4-c** — A runner going out of bounds stops it. — `test:outOfBoundsLate`
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
-- **4-4-e** — A foul stops it. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
-- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`
+- **4-4-e** — A flag thrown at any point in a down stops it, and it stops as that down
+  ends. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`
+- **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,
+  stops it there and then: this is the flag before the snap, and it is why no play time is
+  charged for one. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
 - **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
   `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`
 - **4-4-i** — A change of possession stops it. — `test:changeOfPossessionStops`,
@@ -292,6 +313,19 @@ below are what it is held to.
   either way. So an interception is a catch but it is not a completion, which is what
   decides whether a foul before it is inside 8-6-1-d. —
   `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
+- **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
+  intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
+  motion and puts the ball straight into the ground. 3-42 makes that any player aligned a
+  yard or less behind the snapper, so the article is wider than hands under centre. The pass
+  is incomplete, so 4-4-f stops the clock and 4-3-2 holds it to the next snap. The article
+  is about the throw and says nothing about the seconds before the snap: a clock running
+  into a spike keeps running until the ball is snapped. —
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+  `test:spikeAtFiveSecondsIsFollowedByTheNextDown`
+- **8-2-1 Item 4** — A passer who has held the ball for tactical reasons may not then throw
+  it into the ground in front of him, pressure or no pressure. — not modelled: the resolver
+  draws a spike as a called play and never as a late decision by a passer already holding
+  the ball
 - **8-3-1** — An ineligible player downfield on a pass: five yards from the previous spot. —
   `test:enforcementFamilies`
 - **8-4-4** — Illegal contact: five yards and an automatic first down. —

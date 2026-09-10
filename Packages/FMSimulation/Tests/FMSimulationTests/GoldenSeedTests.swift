@@ -141,6 +141,15 @@ struct GoldenSeedTests {
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
             //
+            // And moved again by the enforcement stoppage, by the engine. A flag on a down
+            // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
+            // clock starts again on the ready-for-play signal, or on the snap inside the
+            // late windows (4-3-2-e). Every accepted foul on a down that ended in bounds
+            // therefore costs the offence one ready-for-play interval less than before, and
+            // one inside the last five minutes of a half costs it none at all, so every
+            // clock reading after the first such flag in each of the three games moves and
+            // the play that fills each period changes with it.
+            //
             // The play clock and the record changes met in a merge, and the constants
             // below are the union: the play clock's games, hashed with the record's
             // schema version, concept, presence, pass result and points mixed in. Neither
@@ -157,9 +166,16 @@ struct GoldenSeedTests {
             // spent at the same moments and the clock runs as it did, and `Tools/gamelog`
             // prints the same plays before and after, with the dead ball now written
             // above them and a kick's gross and return beside it.
-            (UInt64(1), UInt64(8_919_978_172_682_440_492)),
-            (UInt64(5), UInt64(821_425_871_124_722_529)),
-            (UInt64(12), UInt64(12_677_538_457_427_071_264)),
+            //
+            // The enforcement stoppage and those dead-ball decision points then met in a
+            // merge of their own, and the constants below are again the union: the
+            // enforcement stoppage's games, hashed with the dead-ball decision points
+            // mixed in. Neither side's constants could survive it, for the same reason as
+            // before — each was computed without the other's mechanism — so all three are
+            // regenerated here from the merged tree.
+            (UInt64(1), UInt64(5_095_708_524_204_018_338)),
+            (UInt64(5), UInt64(12_636_836_632_572_896_539)),
+            (UInt64(12), UInt64(7_002_894_031_168_806_763)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
