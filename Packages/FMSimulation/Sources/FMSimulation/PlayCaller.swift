@@ -323,8 +323,11 @@ public enum PuntPlan: Sendable, Hashable, CaseIterable {
     /// The call, given where the ball is — `ballOn` is yards from the receiving team's
     /// goal — and what this punter's touch is worth today.
     public static func chosen(from ballOn: UInt8, touch: Double) -> PuntPlan {
-        // Outside the opponent's 45 a full-distance punt cannot reach the end zone, so
-        // there is nothing to aim at and nothing to give up by hitting it.
+        // Inside the opponent's 45 the end zone is in range, so the punt is aimed.
+        // Outside it, the yards are worth more than the risk and he simply hits it —
+        // which is not quite the same as saying he cannot reach the end zone: a strong
+        // leg from the opponent's 48 can still overkick it into a touchback, and does,
+        // about three times in a hundred punts.
         guard ballOn <= 45 else { return .maximumDistance }
         if ballOn >= 35, touch >= coffinCornerTouch { return .coffinCorner }
         return .pooch
