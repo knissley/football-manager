@@ -15,14 +15,20 @@ struct PenaltyEnforcementTests {
             possession: TeamID(1))
     }
 
-    private func penalty(_ foul: Foul, yards: UInt8? = nil) -> PenaltyRecord {
+    private func penalty(
+        _ foul: Foul, yards: UInt8? = nil, enforcementSpot: UInt8? = nil,
+        byTeam team: TeamID = TeamID(1)
+    ) -> PenaltyRecord {
         PenaltyRecord(
-            foul: foul, offender: PlayerSlot(3), offendingTeam: TeamID(1),
-            yards: yards ?? foul.yards, wasAccepted: false)
+            foul: foul, offender: PlayerSlot(3), offendingTeam: team,
+            yards: yards ?? foul.yards, wasAccepted: false, enforcementSpot: enforcementSpot)
     }
 
-    private func outcome(_ yards: Int16, _ ending: PlayEnding = .tackled) -> Outcome {
-        Outcome(kind: .rush, yards: yards, endedIn: ending)
+    private func outcome(
+        _ yards: Int16, _ ending: PlayEnding = .tackled, kind: PlayKind = .rush,
+        finalSpot: UInt8? = nil
+    ) -> Outcome {
+        Outcome(kind: kind, yards: yards, endedIn: ending, finalSpot: finalSpot)
     }
 
     /// The classic bug this exists to prevent: a declined penalty that still moves the
@@ -162,18 +168,292 @@ struct PenaltyEnforcementTests {
 
     /// Deep interference is the highest-variance call in the sport because it is
     /// enforced from the spot rather than at a fixed yardage.
-    @Test("A spot foul is enforced at its measured distance")
+    ///
+    /// Rewritten for A6 (#18): the spot used to travel in the `yards` field as a
+    /// walk-off distance; it is the record's `enforcementSpot` now, in the snapping
+    /// team's frame, and `yards` is the distance walked off.
+    @Test(
+        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference is a first down at the spot of the foul"
+    )
     func spotFouls() {
         #expect(Foul.defensivePassInterference.isSpotFoul)
+        #expect(Foul.defensivePassInterference.enforcement == .spotOfFoul)
 
         let decision = rules.enforce(
-            penalty(.defensivePassInterference, yards: 38),
+            penalty(.defensivePassInterference, yards: 38, enforcementSpot: 22),
             on: situation(down: .second, distance: 10, ballOn: 60),
             outcome: outcome(0, .incomplete), offendingTeamHadBall: false)
 
         #expect(decision.accepted)
         #expect(decision.advancement.ballOn == 22)
         #expect(decision.advancement.down == .first)
+        #expect(decision.penalty.yards == 38, "the distance walked off")
+    }
+
+    // MARK: - Where a foul is enforced from (A6, #18)
+
+    /// The three families, from the 2025 rulebook's Rule 14 and Rule 8 Section 6:
+    /// fouls enforced from the previous spot, fouls enforced from the spot of the foul,
+    /// and fouls enforced from the dead-ball spot with the play's gain counting.
+    @Test(
+        "football · Rule 14-3-4, 14-3-6, 8-6-1, 8-6-1-b, 8-6-1-d, 12-3-1 · every foul is enforced from the previous spot, the spot of the foul, or the succeeding spot"
+    )
+    func enforcementFamilies() {
+        let previous: [Foul] = [
+            .falseStart, .offside, .delayOfGame, .offensiveHolding, .illegalUseOfHands,
+            .ineligibleReceiverDownfield, .offensivePassInterference, .defensiveHolding,
+            .illegalContact,
+        ]
+        let spot: [Foul] = [
+            .defensivePassInterference, .illegalBlockInTheBack, .illegalBlindsideBlock, .lowBlock,
+        ]
+        let succeeding: [Foul] = [
+            .facemask, .unnecessaryRoughness, .horseCollarTackle, .illegalUseOfHelmet,
+            .roughingThePasser, .unsportsmanlikeConduct, .taunting,
+        ]
+        for foul in previous { #expect(foul.enforcement == .previousSpot, "\(foul)") }
+        for foul in spot { #expect(foul.enforcement == .spotOfFoul, "\(foul)") }
+        for foul in succeeding { #expect(foul.enforcement == .succeedingSpot, "\(foul)") }
+        #expect(
+            Foul.allCases.filter(\.isSpotFoul)
+                == Foul.allCases.filter { $0.enforcement == .spotOfFoul },
+            "interference is no longer the only spot foul")
+    }
+
+    /// A run with a foul by the defence during it is enforced from the basic spot,
+    /// which is the dead-ball spot when possession did not change (14-3-5-a, 14-3-6);
+    /// the gain counts, then fifteen more, and a first down (12-2-15).
+    @Test(
+        "football · Rule 12-2-15, 14-3-5-a, 14-3-6 · a facemask at the end of a 20-yard run on first and ten is first and ten 35 yards on"
+    )
+    func facemaskAtTheEndOfARun() {
+        let decision = rules.enforce(
+            penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 60),
+            outcome: outcome(20), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.penalty.awardedFirstDown)
+        #expect(decision.advancement.ballOn == 25)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 10)
+        #expect(decision.advancement.possessionChanged == false)
+    }
+
+    /// A pass play ends at the catch; a personal foul by the defence before the
+    /// completion is enforced from the previous spot or the dead-ball spot, whichever
+    /// is better for the offence (8-6-1, 8-6-1-d), with the automatic first down
+    /// (12-2-11).
+    @Test(
+        "football · Rule 12-2-11, 8-6-1-d · roughing the passer on a 6-yard completion on third and ten is first and ten 21 yards on"
+    )
+    func roughingOnACompletion() {
+        let decision = rules.enforce(
+            penalty(.roughingThePasser), on: situation(down: .third, distance: 10, ballOn: 60),
+            outcome: outcome(6, kind: .pass), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 39)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 10)
+    }
+
+    @Test(
+        "football · Rule 12-2-11, 8-6-1 · roughing the passer on an incompletion is 15 from the previous spot and a first down"
+    )
+    func roughingOnAnIncompletion() {
+        let decision = rules.enforce(
+            penalty(.roughingThePasser), on: situation(down: .third, distance: 10, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 45)
+        #expect(decision.advancement.down == .first)
+    }
+
+    /// The basic spot is behind the line, so the defence's foul is enforced from the
+    /// previous spot (14-3-6, the exception for the defence).
+    @Test(
+        "football · Rule 14-3-6 · a defensive contact foul on a play that lost yards is enforced from the previous spot"
+    )
+    func contactFoulOnALoss() {
+        let decision = rules.enforce(
+            penalty(.roughingThePasser), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(-6, kind: .sack), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 45)
+        #expect(decision.advancement.down == .first)
+    }
+
+    @Test(
+        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot"
+    )
+    func interferenceDownfield() {
+        let decision = rules.enforce(
+            penalty(.defensivePassInterference, yards: 30, enforcementSpot: 30),
+            on: situation(down: .second, distance: 10, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 30)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 10)
+    }
+
+    @Test(
+        "football · Rule 8-5-4 · offensive pass interference is ten from the previous spot, and the down is replayed"
+    )
+    func offensiveInterference() {
+        let decision = rules.enforce(
+            penalty(.offensivePassInterference),
+            on: situation(down: .second, distance: 10, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 70)
+        #expect(decision.advancement.down == .second)
+        #expect(decision.advancement.distance == 20)
+    }
+
+    /// The offence fouls behind the basic spot — the run went on past the block — so
+    /// enforcement is from the spot of the foul (14-3-6), and the down is replayed.
+    @Test(
+        "football · Rule 12-1-3-b, 14-3-6 · an illegal block in the back 8 yards into a 30-yard run puts the ball 10 yards behind the foul, and the down is replayed"
+    )
+    func blockInTheBackDuringARun() {
+        let decision = rules.enforce(
+            penalty(.illegalBlockInTheBack, enforcementSpot: 52),
+            on: situation(down: .first, distance: 10, ballOn: 60),
+            outcome: outcome(30), offendingTeamHadBall: true)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 62)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 12)
+    }
+
+    /// Fouls by the offence behind the line of scrimmage are enforced from the previous
+    /// spot (14-3-6, exception 1).
+    @Test(
+        "football · Rule 14-3-6 · an offensive block in the back behind the line is enforced from the previous spot"
+    )
+    func blockInTheBackBehindTheLine() {
+        let decision = rules.enforce(
+            penalty(.illegalBlockInTheBack, enforcementSpot: 63),
+            on: situation(down: .first, distance: 10, ballOn: 60),
+            outcome: outcome(7), offendingTeamHadBall: true)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 70)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 20)
+    }
+
+    @Test(
+        "football · Rule 12-1-3, 14-3-6 · offensive holding on a gain is ten from the previous spot, and the down is replayed"
+    )
+    func holdingOnAGain() {
+        let decision = rules.enforce(
+            penalty(.offensiveHolding), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(12), offendingTeamHadBall: true)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 70)
+        #expect(decision.advancement.down == .second)
+        #expect(decision.advancement.distance == 18)
+    }
+
+    /// A foul by the team scored upon during a touchdown is enforced on the try
+    /// (14-2-3), which the engine does not model yet (C9): the score stands, and the
+    /// flag is recorded declined until then.
+    @Test("football · Rule 14-2-3 · a defensive foul on a touchdown play leaves the score standing")
+    func defensiveFoulOnATouchdown() {
+        let decision = rules.enforce(
+            penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 20),
+            outcome: outcome(20, .touchdown), offendingTeamHadBall: false)
+        #expect(decision.accepted == false, "recorded declined until C9 enforces it on the try")
+        #expect(decision.advancement.scoring == .touchdown)
+        #expect(decision.advancement.requiresTry)
+    }
+
+    /// The frame rule: enforcement is computed in the frame of the team that will snap
+    /// next. A personal foul by the offence during a play on which it loses the ball
+    /// leaves the defence in possession, enforced from the dead-ball spot (14-4-3-b).
+    @Test(
+        "football · Rule 12-2-15, 14-4-3-b · a facemask by the former offence on an interception return is 15 from the dead-ball spot in the returning team's frame, first down"
+    )
+    func facemaskByTheFormerOffenseOnAReturn() {
+        // Intercepted and returned to the 75 in the throwing team's frame: the
+        // interceptors have it 25 from the goal they attack.
+        let decision = rules.enforce(
+            penalty(.facemask), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(0, .intercepted, kind: .pass, finalSpot: 75),
+            offendingTeamHadBall: true)
+        #expect(decision.accepted)
+        #expect(decision.advancement.possessionChanged, "the returning team keeps the ball")
+        #expect(decision.advancement.ballOn == 10, "the 25, and fifteen more")
+        #expect(decision.advancement.down == .first)
+    }
+
+    @Test(
+        "football · Rule 12-1-3-b, 14-3-6 · a block in the back by the returning team during a punt return is enforced from the spot of the foul in its frame"
+    )
+    func blockInTheBackOnAReturn() {
+        // Punted from the 60; fielded and brought out to the receivers' own 30, with the
+        // block at their own 20. Both spots are in the kicking team's frame, as the
+        // resolver reports them, which is the same number as the receivers' own yard line.
+        let decision = rules.enforce(
+            penalty(.illegalBlockInTheBack, enforcementSpot: 20, byTeam: TeamID(2)),
+            on: situation(down: .fourth, distance: 8, ballOn: 60),
+            outcome: outcome(0, .tackled, kind: .punt, finalSpot: 30),
+            offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.possessionChanged, "the receivers keep the ball")
+        #expect(decision.advancement.ballOn == 90, "their own 20, and ten back: their own 10")
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 10)
+    }
+
+    @Test(
+        "football · Rule 8-5-4, 8-6-1-b · interference in the end zone is first and goal at the 1")
+    func interferenceInTheEndZone() {
+        let decision = rules.enforce(
+            penalty(.defensivePassInterference, yards: 30, enforcementSpot: 0),
+            on: situation(down: .second, distance: 10, ballOn: 30),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 1)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 1)
+    }
+
+    /// Half the distance is measured from the spot of enforcement (14-2-1), which for a
+    /// contact foul at the end of a run is the end of the run.
+    @Test(
+        "football · Rule 14-2-1, 12-2-15 · half the distance is measured from the enforcement spot: a facemask at the 6 after a run gives the 3"
+    )
+    func halfTheDistanceFromTheEnforcementSpot() {
+        let decision = rules.enforce(
+            penalty(.facemask), on: situation(down: .first, distance: 10, ballOn: 26),
+            outcome: outcome(20), offendingTeamHadBall: false)
+        #expect(decision.accepted)
+        #expect(decision.advancement.ballOn == 3)
+        #expect(decision.advancement.down == .first)
+        #expect(decision.advancement.distance == 3, "first and goal")
+    }
+
+    /// A dead-ball conduct foul by the defence after the play: fifteen from the
+    /// succeeding spot and an automatic first down (12-3-1); by the offence, fifteen
+    /// back and the down stands.
+    @Test(
+        "football · Rule 12-3-1 · unsportsmanlike conduct after the play is fifteen from the succeeding spot, an automatic first down when by the defence"
+    )
+    func conductFoulAfterThePlay() {
+        let byDefence = rules.enforce(
+            penalty(.unsportsmanlikeConduct), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(3), offendingTeamHadBall: false)
+        #expect(byDefence.accepted)
+        #expect(byDefence.advancement.ballOn == 42)
+        #expect(byDefence.advancement.down == .first)
+
+        let byOffence = rules.enforce(
+            penalty(.unsportsmanlikeConduct), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(3), offendingTeamHadBall: true)
+        #expect(byOffence.accepted)
+        #expect(byOffence.advancement.ballOn == 72)
+        #expect(byOffence.advancement.down == .third)
+        #expect(byOffence.advancement.distance == 20)
     }
 
     /// Whichever branch is taken, the result has to be a legal down at a legal spot.
