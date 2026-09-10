@@ -27,6 +27,7 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case touchdownTryKickoff = "touchdown-try-kickoff"
     case fieldGoalThenKickoff = "field-goal-then-kickoff"
     case kickoffReturnTouchdown = "kickoff-return-touchdown"
+    case twoPointTryIntercepted = "two-point-try-intercepted"
 
     // A touchdown on the last play of a period
     case lastPlayTouchdownDownSeven = "last-play-touchdown-down-seven"
@@ -170,6 +171,7 @@ extension RulesScenario {
         case .touchdownTryKickoff: return RulesScenarios.touchdownTryKickoff
         case .fieldGoalThenKickoff: return RulesScenarios.fieldGoalThenKickoff
         case .kickoffReturnTouchdown: return RulesScenarios.kickoffReturnTouchdown
+        case .twoPointTryIntercepted: return RulesScenarios.twoPointTryIntercepted
 
         case .lastPlayTouchdownDownSeven: return RulesScenarios.lastPlayTouchdownDownSeven
         case .lastPlayTouchdownDownSix: return RulesScenarios.lastPlayTouchdownDownSix
@@ -351,6 +353,10 @@ extension RulesScenario {
         case .kickoffReturnTouchdown:
             return [
                 "football · Rule 11-3-1, 11-3-4 · a kickoff returned for a touchdown gets its try, and the returning team then kicks off"
+            ]
+        case .twoPointTryIntercepted:
+            return [
+                "football · Rule 11-3-2-e, 11-3-4 · a two-point try the defence intercepts scores nothing, and the side that scored the touchdown still kicks off"
             ]
 
         case .lastPlayTouchdownDownSeven:

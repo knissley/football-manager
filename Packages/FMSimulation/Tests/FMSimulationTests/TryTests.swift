@@ -118,6 +118,45 @@ struct TryTests {
         trace.expectScore(scorer, 8)
     }
 
+    // MARK: - A two-point try the defence takes away
+
+    /// A two-point try the defence intercepts is still the try, and the whole of the
+    /// try: it is one scrimmage down (11-3-1), the whistle closes it out whether or not
+    /// anybody scored on it (11-3-2-e), and the side that was on defence for it receives
+    /// the free kick that follows (11-3-4). So nothing is scored, nothing is replayed, and the ball does
+    /// not change hands for the kickoff however far the interceptor carried it — the
+    /// side that scored the touchdown kicks off, exactly as it would have after a
+    /// conversion or an incompletion.
+    ///
+    /// Driven through the crude resolver rather than scripted, because the defect this
+    /// was written for is the resolver's: it labelled the pick an ordinary pass, and the
+    /// rules layer, which reads the kind, then walked the ordinary scrimmage path and
+    /// handed the ball to the interceptors for the kickoff.
+    @Test(
+        "football · Rule 11-3-1, 11-3-2-e, 11-3-4 · a two-point try that is intercepted is still the try, and the side that defended it receives the kickoff",
+        .tags(.football)
+    )
+    func aTwoPointTryThatIsInterceptedIsStillTheTry() {
+        let rules = Rules.standard
+        let resolutions = TestWorld.resolved(.twoPointConversion, count: 2_000)
+        let picks = resolutions.filter { $0.outcome.endedIn == .intercepted }
+        #expect(
+            picks.count >= 20,
+            "\(picks.count) intercepted two-point tries in \(resolutions.count): too few to assert on"
+        )
+
+        for pick in picks {
+            let advancement = rules.advance(from: pick.situation, outcome: pick.outcome)
+            #expect(advancement.points == 0, "an intercepted try scored something")
+            #expect(advancement.scoring == nil, "an intercepted try was a scoring play")
+            #expect(
+                advancement.possessionChanged == false,
+                "the interceptors were given the ball for the kickoff")
+            #expect(advancement.requiresKickoff, "no kickoff was owed after the try")
+            #expect(advancement.requiresTry == false, "the try was replayed")
+        }
+    }
+
     /// The point of a rule that can be satisfied: sometimes it is, and sometimes it is
     /// not. A conversion rate of zero and one of a hundred are equally wrong.
     @Test("Conversions are sometimes made and sometimes missed", .tags(.unit))

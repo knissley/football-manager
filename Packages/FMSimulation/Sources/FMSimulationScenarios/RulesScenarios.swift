@@ -129,6 +129,18 @@ public enum RulesScenarios {
         ScriptedGame { snap in snap.index == 0 ? .kickoffReturnTouchdown : plod(snap) }
     }
 
+    /// The side that has the ball first scores on its first snap, goes for two, and the
+    /// defence intercepts the conversion and carries it out to midfield.
+    ///
+    /// Only the opening try is dictated. Nobody scores again, so no later try is called.
+    static var twoPointTryIntercepted: ScriptedGame {
+        ScriptedGame(caller: ScriptedCaller(twoPointDecision: { _ in true })) { snap in
+            if snap.index == 1 { return snap.touchdown() }
+            if snap.index == 2, snap.isTry { return .twoPointIntercepted(returnedTo: 50) }
+            return plod(snap)
+        }
+    }
+
     // MARK: A touchdown on the last play of a period
 
     static func lastPlayTouchdown(
