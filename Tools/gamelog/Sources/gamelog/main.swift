@@ -499,16 +499,15 @@ struct Broadcast {
         // it. The scoreboard goes with it, because a quarter's score is the thing a
         // reader checks against the game they think they just watched.
         if situation.quarter != quarter {
-            // Two period boundaries end a drive, and they are the two that put the ball
+            // Two period boundaries end a drive, and they are the two the engine puts
             // back in play with a kick — asked of `Rules` rather than restated here, so
-            // that the engine restarts possession on exactly the boundaries the drive
-            // chart ends a drive on. A quarter boundary is not one: teams change ends and
-            // play on (4-2-3). Nor is a postseason overtime period that ends undecided,
-            // which carries on with the ball where it was and the same side in possession
-            // (16-1-4-d), so a drive can run through one.
-            if closesDrive || rules.periodResumesWithKickoff(quarter: situation.quarter) {
-                closeDrive(after: play)
-            }
+            // that the drive chart ends a drive on exactly the boundaries the engine
+            // restarts possession on. A quarter boundary is not one: the teams change
+            // ends and play on (4-2-3). Nor, as the engine plays it, is any overtime
+            // period boundary at all, so a drive can run through one; what the book makes
+            // of a third overtime period is on the predicate, and is #86's.
+            let restarts = rules.periodResumesWithKickoffAsModelled(quarter: situation.quarter)
+            if closesDrive || restarts { closeDrive(after: play) }
             let ending = quarter
             let label =
                 ending == rules.quarters / 2

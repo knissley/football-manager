@@ -238,26 +238,35 @@ extension Rules {
         return quarter == 1 || quarter == quarters / 2 + 1
     }
 
-    /// Whether play at the start of `quarter` is put back in play with a free kick,
-    /// rather than carrying on from where the period before it left the ball.
+    /// The period boundaries **the engine** puts back in play with a free kick, rather
+    /// than carrying on from where the period before left the ball.
     ///
-    /// Two boundaries in a game do. The second half: the toss article names the
-    /// first-half kickoff and gives the second half's first choice to the captain who
-    /// lost the pregame toss (4-2-2). And the first period of overtime, which opens like
-    /// a half — a toss, a kickoff, and each side owed its opportunity to possess, of
-    /// which a kickoff is the receivers' (16-1-3-a, 16-1-5-c). Nothing else does: at the
-    /// end of the first and third periods the teams change goals and possession, the
-    /// down, the ball and the line to gain are unchanged (4-2-3), and a postseason
-    /// overtime period that ends undecided is followed by another that carries on from
-    /// the same spot (16-1-4-d).
+    /// Two of them. The second half: the toss article names the first-half kickoff and
+    /// gives the second half's first choice to the captain who lost the pregame toss
+    /// (4-2-2). And the first period of overtime, which opens like a half, each side owed
+    /// its opportunity to possess, of which a kickoff is the receivers' (16-1-3-a,
+    /// 16-1-5-c). A period inside a half is not one: the teams change goals and
+    /// possession, the down, the ball and the line to gain are unchanged (4-2-3), which
+    /// 16-1-4-f carries into the ends of a first and a third overtime period. Nor is the
+    /// game's opening kick, because nothing is resumed at the start of a first period, so
+    /// the answer there is `false`.
     ///
-    /// The game's opening free kick is not one of these — nothing is resumed at the
-    /// start of a first period — so the answer there is `false`.
+    /// **The book has a third, and the engine does not model it.** 16-1-4-e gives the
+    /// beginning of a *third* overtime period the first choice of 4-2-2's privileges to
+    /// the captain who lost the toss before overtime, and 16-1-4-i tosses again after the
+    /// fourth, so a third postseason overtime period is put back in play with a kick and
+    /// by the same reading so is a fifth — which is what `opensHalf` computes and this
+    /// does not. The engine restarts only the first, and 16-1-4-d then reads as another
+    /// period beginning with play continuing.
+    /// [#86](https://github.com/knissley/football-manager/issues/86) owns that boundary;
+    /// until it lands this answers `false` there, pinned by
+    /// `aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`.
     ///
     /// One predicate, because two layers ask this and a second copy of the answer is how
     /// they come to disagree: `GameState.startNextPeriod` restarts possession, the spot
-    /// and the timeouts by it, and `Tools/gamelog` ends a drive by it.
-    public func periodResumesWithKickoff(quarter: UInt8) -> Bool {
+    /// and the timeouts by it, and `Tools/gamelog` ends a drive by it. `AsModelled` is in
+    /// the name so that neither call site reads as a claim about the sport.
+    public func periodResumesWithKickoffAsModelled(quarter: UInt8) -> Bool {
         quarter == quarters / 2 + 1 || quarter == quarters + 1
     }
 
