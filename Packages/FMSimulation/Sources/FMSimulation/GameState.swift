@@ -432,10 +432,30 @@ extension GameSimulator {
             // and the window is judged where the play *before* ended, up to a huddle and
             // a play early, and the clock restarts on the ready where the book has it
             // wait for the snap.
-            let behavior = rules.clockBehavior(
+            var behavior = rules.clockBehavior(
                 after: outcome.endedIn, possessionChanged: advancement.possessionChanged,
                 quarter: clock.quarter, isPostseason: setup.isPostseason,
                 clockRemaining: clock.secondsRemaining)
+
+            // A flag on the down stops the clock at the end of it (4-4-e), and the
+            // enforcement is not free: the clock is dead through it and starts again as
+            // though the foul had not occurred (4-3-2-e) — on the ready-for-play signal,
+            // since it was running — or on the snap inside the windows e-1 and e-2 name.
+            // One predicate decides that restart for a foul during a down and for one
+            // before the snap, and it is told which this is, because e-3 reaches only a
+            // foul that stopped the clock *before* a snap. Whichever restart is later
+            // wins: a tackle in bounds with a flag on it is a stopped clock, and an
+            // incompletion with a flag on it still waits for the snap.
+            if let penalty = outcome.penalties.first, penalty.wasAccepted {
+                let restart: ClockBehavior =
+                    rules.clockStartsOnTheSnapAfterFoul(
+                        byOffense: penalty.offendingTeam == possession,
+                        stoppedTheClockBeforeTheSnap: false, quarter: clock.quarter,
+                        isPostseason: setup.isPostseason, clockRemaining: clock.secondsRemaining)
+                    ? .stopsUntilSnap : .stopsUntilReadyForPlay
+                behavior = ClockBehavior.later(behavior, restart)
+            }
+
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
 
             // The play clock for the next snap: forty from the end of this play
@@ -452,7 +472,8 @@ extension GameSimulator {
         }
 
         /// The clock after a flag before the snap. No play happened, so no play time is
-        /// charged; the huddle is, if the clock was running into it (4-4-e). Then the
+        /// charged; the huddle is, if the clock was running into it, and the flag stops
+        /// the clock the moment it flies, the ball being dead already (4-4-g). Then the
         /// runoff, where it applies (4-7-1), and how the clock restarts (4-3-2-e).
         private mutating func runClockForDeadBallFoul(
             _ outcome: Outcome, choices: DeadBallChoices?, tempo: Tempo
@@ -482,7 +503,8 @@ extension GameSimulator {
             // foul had not occurred (4-3-2-e).
             let restart: ClockBehavior =
                 rules.clockStartsOnTheSnapAfterFoul(
-                    byOffense: byOffense, quarter: clock.quarter, isPostseason: setup.isPostseason,
+                    byOffense: byOffense, stoppedTheClockBeforeTheSnap: true,
+                    quarter: clock.quarter, isPostseason: setup.isPostseason,
                     clockRemaining: clock.secondsRemaining)
                 ? .stopsUntilSnap : .stopsUntilReadyForPlay
 
@@ -538,7 +560,7 @@ extension GameSimulator {
                 elect(.playedOn)
             }
 
-            // No runoff. A dead-ball foul stops the clock (4-4-e): one that was stopped
+            // No runoff. A dead-ball foul stops the clock (4-4-g): one that was stopped
             // at the flag waits for the snap. One that was running restarts on the ready
             // signal after a defensive foul inside two minutes unless the offence
             // chooses the snap, with the play clock reset to forty (4-7-1 Item 2);

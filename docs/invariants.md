@@ -256,11 +256,22 @@ season is what checks one. A band is evidence about a rate and never about a rul
 46. A down under way when the clock runs past 2:00 finishes, and the clock is dead after it.
     `[2025 · 3-41]` — `test:warningDuringADown`, `test:downUnderWayAtTwoMinutesFinishes`,
     `test:twoMinuteWarningDetection`
-47. Outside the late-game windows a foul restarts the clock as though the flag had never
-    flown. `[2025 · 4-4-e, 4-3-2-e]` — `test:falseStartInTheThirdQuarterCostsNoTime`
+47. A foul stops the clock, and where it stops it depends on when it flew: a foul during a
+    down stops the clock at the end of that down (4-4-e), and one with the ball already
+    dead stops it as it flies (4-4-g). Enforcement is not free either way. Outside the
+    late-game windows the clock then restarts as though the flag had never flown — on the
+    ready-for-play signal, if it was running — and inside the window after the first half's
+    warning or the last five minutes of the second it waits for the snap.
+    `[2025 · 4-4-e, 4-4-g, 4-3-2-e, 4-3-2-e-1, 4-3-2-e-2]` —
+    `test:falseStartInTheThirdQuarterCostsNoTime`,
+    `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
+    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`
 48. An offensive foul that stops the clock before the snap anywhere in the fourth period
-    restarts it on the snap. `[2025 · 4-3-2-e-3]` —
-    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`
+    restarts it on the snap, and e-3 reaches no further than that: an offensive foul during
+    a fourth-quarter down stops the clock at the end of the down rather than before a snap,
+    so it restarts on the ready like any other period's. `[2025 · 4-3-2-e-3, 4-4-e]` —
+    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
+    `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 49. A foul before the snap charges no play time, because no play happened.
     `[2025 · 4-4-e]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
@@ -314,7 +325,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`,
     `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`,
     `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft`,
-    `test:lastFortySeconds`, `test:conservingActs`; the election is the offence's, a
+    `test:lastFortySeconds`, `test:conservingActs`; the article's second clause, an excess
+    timeout for an injured defender, ends the half on the same terms (4-5-4-b) —
+    `test:injuryToADefenderInTheLastFortySecondsEndsTheHalf`; the election is the offence's, a
     `PlayCaller` decision written into the play's decision log; **modelling**: the
     defence's option to spend a timeout in lieu of the clock starting (4-7-1 Item 2) is
     not modelled — a defence with a timeout keeps the half alive by having one, and spends

@@ -83,11 +83,20 @@ Which rules must be true of a game, and what checks each, is
   `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
-- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
-  the flag had never flown, except on the snap after the first half's two-minute warning,
-  inside the last five minutes of the second half, and after an offensive foul that stops
-  the clock before the snap anywhere in the fourth period or regular-season overtime. In
-  postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
+- **4-3-2-e** — Where either side's flag has stopped the clock, between downs or at the end
+  of one, the clock starts again once the penalty is settled exactly where it would have
+  started had no flag been thrown. The article covers a declined penalty as well as an
+  enforced one; the engine reads the accepted branch only, and a foul the non-offending
+  side turns down leaves the clock as the play's ending left it. —
+  `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — Its three exceptions, in which the clock
+  waits for the snap: a flag past the first half's warning (e-1); a flag in the closing
+  five minutes of the second half (e-2); and, during the fourth period or regular-season
+  overtime, an offensive foul committed once the officials have marked the ball ready,
+  killing a clock that had not yet reached its snap (e-3). e-3 is thus about a flag between
+  downs. A flag during a down is left to 4-4-e, which stops that clock as the down ends,
+  so a fourth-quarter holding call on a run restarts on the ready like any other period's.
+  In postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
   names its own periods and does not reach it. The windows of e-1 and e-2 are judged at
   the flag, with the interval before it charged to a running clock — the clock where the
   ball is dead, as for a runner out of bounds. —
@@ -95,14 +104,20 @@ Which rules must be true of a game, and what checks each, is
   `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
   `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,
   `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
-  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`
+  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
+  `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
+  `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 - **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
   `test:falseStartInsideTwoMinutesCostsTenSeconds`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
 - **4-4-a** — A free kick down stops the clock. — `test:returnedKickoffAdvancesTheClock`
 - **4-4-c** — A runner going out of bounds stops it. — `test:outOfBoundsLate`
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
-- **4-4-e** — A foul stops it. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
+- **4-4-e** — A flag thrown at any point in a down stops it, and it stops as that down
+  ends. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+- **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,
+  stops it there and then: this is the flag before the snap, and it is why no play time is
+  charged for one. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
 - **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`
 - **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
   `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`

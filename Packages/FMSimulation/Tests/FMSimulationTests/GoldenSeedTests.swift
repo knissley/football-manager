@@ -115,9 +115,18 @@ struct GoldenSeedTests {
             // the whole play clock rather than the huddle, and a huddle after a runoff or a
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
-            (UInt64(1), UInt64(10_997_765_792_780_390_008)),
-            (UInt64(5), UInt64(6_618_904_821_654_125_080)),
-            (UInt64(12), UInt64(502_004_049_860_331_307)),
+            //
+            // And moved again by the enforcement stoppage, by the engine. A flag on a down
+            // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
+            // clock starts again on the ready-for-play signal, or on the snap inside the
+            // late windows (4-3-2-e). Every accepted foul on a down that ended in bounds
+            // therefore costs the offence one ready-for-play interval less than before, and
+            // one inside the last five minutes of a half costs it none at all, so every
+            // clock reading after the first such flag in each of the three games moves and
+            // the play that fills each period changes with it.
+            (UInt64(1), UInt64(3_228_280_682_941_640_215)),
+            (UInt64(5), UInt64(15_076_564_979_158_950_925)),
+            (UInt64(12), UInt64(18_163_643_042_424_798_824)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

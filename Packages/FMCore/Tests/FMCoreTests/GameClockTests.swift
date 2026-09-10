@@ -292,7 +292,8 @@ struct ClockStoppageTests {
 
     private func startsOnTheSnap(quarter: UInt8, clock: UInt16, postseason: Bool = true) -> Bool {
         rules.clockStartsOnTheSnapAfterFoul(
-            byOffense: true, quarter: quarter, isPostseason: postseason, clockRemaining: clock)
+            byOffense: true, stoppedTheClockBeforeTheSnap: true, quarter: quarter,
+            isPostseason: postseason, clockRemaining: clock)
     }
 
     /// 4-3-2-e-3 names its periods — the fourth, and regular-season overtime — and a
