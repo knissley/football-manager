@@ -265,10 +265,11 @@ struct FranchiseSetTests {
     /// identically named clubs ran under differently named leagues.
     ///
     /// Twelve seeds rather than two, because the pool holds a handful of names and two
-    /// seeds landing on one of them proves nothing — seeds 7 and 11 both drew "Premier
-    /// Gridiron League" before this was fixed. The second assertion is what says the
-    /// name is written rather than drawn: nothing the curated source produces may be a
-    /// line of the pool.
+    /// seeds landing on one of them proves nothing — on `main` at `19bffa6`, seeds 7 and
+    /// 11, the two the backlog's harness rule names, drew the same one of the five, so a
+    /// two-seed test would have passed while the bug was there. The second assertion is
+    /// what says the name is written rather than drawn: nothing the curated source
+    /// produces may be a line of the pool.
     ///
     /// The randomiser keeps its draw, asserted in `LeagueGeneratorTests`.
     @Test("contract: every seed opens in the same curated league, by name", .tags(.contract))
