@@ -219,8 +219,9 @@ wave order and rebase.
   `swift format lint --strict` clean, `playsize` builds.
 - Goldens regenerated in the same commit as the behaviour change, with the change
   described. Never to make a red test pass.
-- No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after;
-  paste the rows that moved into the PR body with one line on why.
+- No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after,
+  once per seed, or paste the output of `scripts/harness-reach.sh` showing the change
+  cannot reach it; paste the rows that moved into the PR body with one line on why.
 - The PR body names the issue it closes, what was measured versus assumed, and the
   harness rows before and after. No model identifiers in commit or PR text beyond the
   attribution trailer the tooling appends.

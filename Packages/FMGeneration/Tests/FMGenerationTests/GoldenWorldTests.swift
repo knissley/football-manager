@@ -16,41 +16,15 @@ import Testing
 /// teams, every roster and its draft history, the strength each team was drawn at, the
 /// draft pipeline and the rivalries. A determinism bug in any stage of `WorldGenerator`
 /// fails here, and a change in the *order* the stages draw in fails here too.
+///
+/// The checksum itself is `WorldChecksum` in `FMGeneration`, not a private copy in this
+/// file, because `simharness` prints the same number in its header: the goldens pin the
+/// function and the harness reports it, so `scripts/harness-reach.sh` can compare two
+/// branches' worlds and mean by it exactly what this test means (#72). It is FNV-1a and
+/// deliberately not `Hasher`, whose per-process seed would make it unable to detect the
+/// drift it exists to detect.
 @Suite("Golden world")
 struct GoldenWorldTests {
-
-    /// FNV-1a rather than `Hasher`, whose seed is randomised per process — using it here
-    /// would make this test unable to detect the thing it exists to detect.
-    private struct Checksum {
-        private(set) var value: UInt64 = 0xcbf2_9ce4_8422_2325
-
-        mutating func mix(bits: UInt64) {
-            for shift in stride(from: 0, through: 56, by: 8) {
-                value ^= UInt64((bits >> UInt64(shift)) & 0xff)
-                value = value &* 0x100_0000_01b3
-            }
-        }
-
-        mutating func mix(_ number: some BinaryInteger) {
-            mix(bits: UInt64(bitPattern: Int64(number)))
-        }
-
-        mutating func mix(_ text: String) {
-            for byte in text.utf8 {
-                value ^= UInt64(byte)
-                value = value &* 0x100_0000_01b3
-            }
-        }
-
-        /// Strength is a `Double`, and the value that matters is the one the roster
-        /// generator saw — so it is mixed by its exact bit pattern, not by a rounding of
-        /// it. A world drawn a thousandth of a point differently is a different world.
-        /// Via `mix(bits:)` rather than the integer overload, which would trap on a bit
-        /// pattern with the sign bit set.
-        mutating func mix(_ value: Double) {
-            mix(bits: value.bitPattern)
-        }
-    }
 
     private func worldChecksum(seed: UInt64) -> UInt64 {
         guard
@@ -61,93 +35,7 @@ struct GoldenWorldTests {
             Issue.record("seed \(seed) did not produce a world")
             return 0
         }
-
-        var sum = Checksum()
-        sum.mix(world.league.id.rawValue)
-        sum.mix(world.league.name)
-        sum.mix(world.teams.count)
-        sum.mix(world.colleges.count)
-
-        for conference in world.league.conferences {
-            sum.mix(conference.id.rawValue)
-            sum.mix(conference.name)
-            for division in conference.divisions {
-                sum.mix(division.id.rawValue)
-                sum.mix(division.name)
-                for team in division.teams { sum.mix(team.rawValue) }
-            }
-        }
-
-        // `world.teams` is ordered by identifier, so this walk is stable.
-        for team in world.teams {
-            sum.mix(team.id.rawValue)
-            sum.mix(team.identity.fullName)
-            sum.mix(team.identity.abbreviation)
-            sum.mix(team.stadium.name)
-            sum.mix(team.stadium.noise)
-            sum.mix(team.region.rawValue)
-            sum.mix(world.strength(of: team.id).offset)
-
-            let identity = world.identity(of: team.id)
-            sum.mix(identity?.played.offense.passLean ?? -1)
-            sum.mix(identity?.builtFor.offense.passLean ?? -1)
-
-            for player in world.roster(of: team.id) {
-                sum.mix(player.id.rawValue)
-                sum.mix(player.position.rawValue)
-                sum.mix(player.overall)
-                sum.mix(player.birthSeason)
-                sum.mix(player.name.family)
-                sum.mix(player.college.name)
-                sum.mix(player.physical.weightPounds)
-                for key in RatingKey.allCases {
-                    sum.mix(player.ratings[key] ?? 255)
-                }
-                // Draft history is drawn from a substream keyed on the player's
-                // identifier, so nothing above would move if it started drawing from the
-                // wrong stream, or stopped being drawn at all. It is mixed here for the
-                // same reason the depth chart is: a stage the checksum does not read is a
-                // stage the golden cannot speak for.
-                sum.mix(player.firstSeason)
-                sum.mix(player.draft?.season ?? 0)
-                sum.mix(player.draft?.round ?? 0)
-                sum.mix(player.draft?.pick ?? 0)
-                sum.mix(player.draft?.overallPick ?? 0)
-                // Scheme fit is the value that was actually wrong: it is a rounded weighted
-                // average, and the weighting used to be summed in hash order.
-                sum.mix(player.schemeFit(team.scheme))
-            }
-
-            // The depth chart is a projection over the roster, so it is checksummed
-            // separately: a chart that stopped agreeing with the overalls would not move
-            // any of the numbers above.
-            let chart = world.depthChart(of: team.id)
-            for position in Position.allCases {
-                for id in chart[position] { sum.mix(id.rawValue) }
-            }
-        }
-
-        for generated in world.draftPipeline {
-            sum.mix(generated.draftClass.season)
-            sum.mix(generated.draftClass.prospects.count)
-            for player in generated.players {
-                sum.mix(player.id.rawValue)
-                sum.mix(player.overall)
-                sum.mix(player.hidden.ceiling)
-            }
-        }
-
-        for rivalry in world.rivalries {
-            sum.mix(rivalry.pair.lower.rawValue)
-            sum.mix(rivalry.pair.higher.rawValue)
-            sum.mix(rivalry.origin.rawValue)
-            for event in rivalry.history {
-                sum.mix(event.season)
-                sum.mix(event.kind.rawValue)
-            }
-        }
-
-        return sum.value
+        return WorldChecksum.of(world)
     }
 
     /// Regenerating these to make a red test pass is forbidden. If generation changed on
@@ -156,14 +44,29 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process",
         arguments: [
-            (UInt64(1), UInt64(13_144_663_695_502_856_191)),
+            (UInt64(1), UInt64(14_214_372_360_801_669_875)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
             // have no bitter pair in them and did not move, which is the evidence that the
             // ceiling reaches nothing but the pairs it is aimed at.
-            (UInt64(5), UInt64(11_952_833_784_916_613_111)),
-            (UInt64(7), UInt64(7_479_154_857_784_000_233)),
+            //
+            // All three moved again in #72, when the checksum stopped being private to
+            // this file: it now covers what the engine reads and this file did not — the
+            // stadium beyond its name and noise, both schemes in full rather than their
+            // pass lean, secondary positions, the hidden attributes, traits and status —
+            // and terminates each string so two adjacent fields cannot slide.
+            //
+            // And once more in review of #72, which found two ways the checksum still
+            // called two different leagues one league: it read the rosters but not
+            // `world.players`, the map the engine is actually handed, and it concatenated
+            // variable-length groups without their lengths, so a depth chart repartitioned
+            // over the same men was invisible. Both are now covered, both had moved the
+            // harness by hundreds of lines in the reviewer's repro. Wider
+            // coverage, not different generation: no world changed, and the run before
+            // and after is byte-identical.
+            (UInt64(5), UInt64(739_023_233_666_568_453)),
+            (UInt64(7), UInt64(16_728_311_166_745_480_593)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

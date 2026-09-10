@@ -22,6 +22,7 @@ var games = 40
 var seed: UInt64 = 2030
 var rulebookOption: Int?
 var timing = true
+var worldChecksumOnly = false
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
@@ -37,6 +38,7 @@ while let argument = arguments.next() {
         }
         rulebookOption = season
     case "--no-timing": timing = false
+    case "--world-checksum-only": worldChecksumOnly = true
     case "--targets-markdown":
         print(CalibrationTarget.markdownTable())
         exit(0)
@@ -53,6 +55,11 @@ while let argument = arguments.next() {
                                    \(engineRulebookSeason) targets
               --no-timing          leave out the Budget block at the end, so two runs of
                                    the same binary at the same seed are byte-identical
+              --world-checksum-only
+                                   generate the world for the seed, print its checksum
+                                   line and exit without simulating. What
+                                   scripts/harness-reach.sh asks two branches, to decide
+                                   whether a change can reach this run at all
               --targets-markdown   print the calibration table for docs/match-engine.md
             """)
         exit(0)
@@ -140,19 +147,24 @@ func header() {
 // four hundred meetings between two identical clubs and no row that depends on one team
 // being better than another meant anything.
 //
-// No draft pipeline and no rivalries: neither reaches a snap, and generating them would
-// double the work before the first kickoff.
-let generated = WorldGenerator.generate(
-    seed: seed, shape: .standard, season: 2030, parts: .teamsAndRosters, collegeCount: 80)
-
+// What it is built from — no draft pipeline, no rivalries, a smaller college pool — is
+// HarnessWorld's, so the harness's tests can build the same world and the checksum below
+// is provably taken over the one the games are played in.
 let world: WorldGenerator.GeneratedWorld
-switch generated {
+switch HarnessWorld.generate(seed: seed) {
 case .failure(let error):
     print("could not generate a league:")
     for explanation in error.explanations { print("  - \(explanation)") }
     exit(1)
 case .success(let value):
     world = value
+}
+
+// Nothing below this line runs under --world-checksum-only: the question it answers is
+// which league this seed builds, and that is settled the moment the world exists.
+if worldChecksumOnly {
+    print(HarnessWorld.checksumLine(for: world))
+    exit(0)
 }
 
 let players = world.players
@@ -231,6 +243,13 @@ let offsets = world.teams.map { world.strength(of: $0.id).offset }
 print(
     "  \(world.teams.count) teams, strength offset "
         + "\(oneDecimal(offsets.min() ?? 0)) to \(oneDecimal(offsets.max() ?? 0))")
+// The world this run was played in, as one number, from the same function GoldenWorldTests
+// pins. It follows from the seed alone, so it is byte-identical between two runs (#52);
+// two *branches* printing the same number generated the same league, which is what
+// scripts/harness-reach.sh needs to know before it says a change cannot reach these rows.
+print(
+    "  " + HarnessWorld.checksumLine(for: world)
+        + "  (no target: it names the league, it does not grade it)")
 print("")
 print("  Rulebook")
 print(
