@@ -330,7 +330,6 @@ tree while this doc was written; the rest are the audit's findings, taken on its
   other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
   #41, #46.
 - There is no ten-second runoff. #32.
-- The team that gave up a safety does not kick off. #16.
 - The clock does not stop on a change of possession. #17.
 - Live-ball fouls are enforced from the wrong spot. #18.
 

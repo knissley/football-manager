@@ -482,7 +482,7 @@ who won. The end-of-regulation matrix (down seven, six, eight, two, one, level, 
 and the second- and first-quarter cases are scenarios in `RulesConformanceTests`, each
 asserting the try's period and clock.
 
-## S11 — The team that scored the safety kicks off — **open**
+## S11 — The team that scored the safety kicks off — **fixed**
 
 `Rules.advance` returns `possessionChanged: true` for a safety at `Advancement.swift:158`.
 Under the engine's convention the possessing team kicks, so the team that just *scored*
@@ -496,6 +496,11 @@ Two tests cover it and neither catches it: `AdvancementTests.safety` asserts
 
 Reproduces as the issue describes. Closed by
 [A3 · #16](https://github.com/knissley/football-manager/issues/16).
+
+**Fixed by A3 (#16), in the wave 1 PR.** The safety branch of `Rules.advance` no longer
+flips possession: the team scored upon keeps the ball to free-kick from its own 20
+(2025 rulebook, 11-5-2, 6-1-1-b) and the kick changes hands as every kickoff does. Both
+tests are rewritten to assert the kicker and the spot.
 
 ## S12 — The clock runs through a change of possession, and there is no runoff — **open**
 
@@ -595,7 +600,7 @@ table is a snapshot.
 | S8 The simulation is not deterministic | fixed | — |
 | S9 There is no overtime in the regular season | fixed | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
 | S10 A touchdown at the end of a half gets no try | fixed | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
-| S11 The team that scored the safety kicks off | **open** | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
+| S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
 | S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
 | S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
