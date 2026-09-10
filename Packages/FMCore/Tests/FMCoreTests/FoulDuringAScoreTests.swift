@@ -33,13 +33,20 @@ struct FoulDuringAScoreTests {
     /// Rule 12 Section 2 is the personal fouls and 12-3-1 the unsportsmanlike ones, and
     /// 14-2-3 turns on exactly that distinction: those are the fouls carried to the free
     /// kick when the opponent kicks a field goal, and the rest are not.
+    ///
+    /// Which side of the line a foul falls on is the article's own answer and not the
+    /// section heading it is printed under. 12-2-12 prints two fouls and two penalties:
+    /// its first marks roughing the kicker a personal foul in as many words, and its
+    /// second says of running into the kicker that it is not one. So the two halves of a
+    /// single article go different ways here, and the second belongs with the fouls
+    /// 14-2-3 leaves behind.
     @Test(
-        "football · Rule 12-2, 12-3-1 · the personal and unsportsmanlike fouls are the ones the book carries to a succeeding spot",
+        "football · Rule 12-2, 12-2-12, 12-3-1 · the personal and unsportsmanlike fouls are the ones the book carries to a succeeding spot",
         .tags(.football))
     func personalFoulsAreNamedByTheBook() {
         for foul in [
             Foul.chopBlock, .illegalBlindsideBlock, .unnecessaryRoughness, .illegalUseOfHelmet,
-            .roughingThePasser, .roughingTheKicker, .runningIntoTheKicker, .tripping, .facemask,
+            .roughingThePasser, .roughingTheKicker, .tripping, .facemask,
             .horseCollarTackle, .lowBlock, .unsportsmanlikeConduct, .taunting,
         ] {
             #expect(foul.isPersonalOrUnsportsmanlike, "\(foul) is in Rule 12 Section 2 or 12-3")
@@ -48,7 +55,7 @@ struct FoulDuringAScoreTests {
             Foul.offensiveHolding, .defensiveHolding, .illegalContact, .illegalUseOfHands,
             .illegalBlockInTheBack, .falseStart, .offside, .delayOfGame,
             .defensivePassInterference, .offensivePassInterference, .illegalTouching,
-            .ineligibleReceiverDownfield,
+            .ineligibleReceiverDownfield, .runningIntoTheKicker,
         ] {
             #expect(!foul.isPersonalOrUnsportsmanlike, "\(foul) is not one of those")
         }

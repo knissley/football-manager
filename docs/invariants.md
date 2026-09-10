@@ -399,7 +399,8 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:roughingOnAMadeFieldGoalMovesTheFreeKick`,
     `test:aPersonalFoulDuringASafetyMovesTheFreeKick`, `test:aFoulDuringATouchdownGoesOnTheTry`,
     `test:defensiveFoulOnATouchdown`, `test:roughingOnAMadeFieldGoalMovesTheKickoff`,
-    `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:personalFoulsAreNamedByTheBook`
+    `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:personalFoulsAreNamedByTheBook`,
+    `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
     An offensive foul during a *successful try* repeats the try, and a defensive one
     leaves the point and is enforced on the succeeding free kick.
     `[2025 · 11-3-3 Item 3-a, 11-3-3 Item 4-a]` —

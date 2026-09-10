@@ -2143,6 +2143,37 @@ struct RulesConformanceTests {
             "first and goal at the 5, fifteen on from the 20")
     }
 
+    /// The same foul on the kick that went over. 12-2-12's second penalty marks running
+    /// into the kicker as *not* a personal foul, so 14-2-3 has nowhere to carry it: the
+    /// offended team's only alternative to the three points is giving them back and
+    /// replaying the down, which nobody does for five yards. So it is declined, and the
+    /// free kick that follows is taken from where a free kick is taken from.
+    @Test(
+        "football · Rule 12-2-12 Item 2, 14-2-3 · running into the kicker on a made field goal is declined and the free kick is not moved",
+        .tags(.football)
+    )
+    func runningIntoTheKickerOnAMadeFieldGoalIsDeclined() {
+        let trace = RulesScenario.runningIntoTheKickerOnAMadeFieldGoal.run()
+        guard let kick = trace.first(where: { $0.outcome.kind == .fieldGoal }) else {
+            Issue.record("the script never attempted the field goal")
+            return
+        }
+        let kicker = kick.play.situation.possession
+        trace.expectPlay(kick.index, kind: .fieldGoal, endedIn: .fieldGoalGood)
+        trace.expectScore(kicker, 3, "the points stand")
+        #expect(
+            kick.play.outcome.penalties.first?.foul == .runningIntoTheKicker,
+            "the script's flag is the five-yard half of the article")
+        #expect(
+            kick.play.outcome.penalties.first?.wasAccepted == false,
+            "five yards is not worth three points, and there is nowhere else to put it")
+        // The kicking team kicks off from its own 35, which is 65 from the goal line it
+        // is kicking toward. Five yards on would be 60.
+        trace.expectPlay(
+            kick.index + 1, kind: .kickoff, possession: kicker, ballOn: 65,
+            "the free kick is from the 35, unmoved")
+    }
+
     /// And the five-yard half of 12-2-12's article, which 6-2-3 spells out: running into
     /// the kicker is not a personal foul's fifteen and does not carry a first down, so the
     /// offence takes five yards and kicks again.

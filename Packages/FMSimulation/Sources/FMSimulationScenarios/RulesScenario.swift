@@ -138,6 +138,8 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case onsideKickRecovered = "onside-kick-recovered"
     case roughingTheKickerOnAMadeFieldGoal = "roughing-the-kicker-on-a-made-field-goal"
     case roughingTheKickerOnAMissedFieldGoal = "roughing-the-kicker-on-a-missed-field-goal"
+    case runningIntoTheKickerOnAMadeFieldGoal =
+        "running-into-the-kicker-on-a-made-field-goal"
     case runningIntoTheKickerOnAMissedFieldGoal =
         "running-into-the-kicker-on-a-missed-field-goal"
     case holdingOnASuccessfulTry = "holding-on-a-successful-try"
@@ -295,6 +297,8 @@ extension RulesScenario {
             return RulesScenarios.kickerFoul(.roughingTheKicker, good: true)
         case .roughingTheKickerOnAMissedFieldGoal:
             return RulesScenarios.kickerFoul(.roughingTheKicker, good: false)
+        case .runningIntoTheKickerOnAMadeFieldGoal:
+            return RulesScenarios.kickerFoul(.runningIntoTheKicker, good: true)
         case .runningIntoTheKickerOnAMissedFieldGoal:
             return RulesScenarios.kickerFoul(.runningIntoTheKicker, good: false)
         case .holdingOnASuccessfulTry: return RulesScenarios.holdingOnASuccessfulTry
@@ -650,6 +654,10 @@ extension RulesScenario {
         case .roughingTheKickerOnAMissedFieldGoal:
             return [
                 "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down"
+            ]
+        case .runningIntoTheKickerOnAMadeFieldGoal:
+            return [
+                "football · Rule 12-2-12 Item 2, 14-2-3 · running into the kicker on a made field goal is declined and the free kick is not moved"
             ]
         case .runningIntoTheKickerOnAMissedFieldGoal:
             return [
