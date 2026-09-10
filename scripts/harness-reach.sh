@@ -40,8 +40,10 @@
 #
 # `Packages/FMGeneration` is deliberately *not* in the list, because it is the whole
 # point: generation reaches the harness only through the world it builds, and the checksum
-# covers every part a `GeneratedWorld` stores — the players map the engine is handed
-# included, and every variable-length group with its length. The exception is
+# covers every part a `GeneratedWorld` stores that can reach a snap — the players map the
+# engine is handed included, and every variable-length group with its length. What it
+# leaves out is named in its own doc comment and is cosmetic: the college pool beyond its
+# size, a club's colours, the boundary between its city and nickname. The exception is
 # `WeatherGenerator.swift`, which the harness calls directly for every game: the weather is
 # drawn per game from the stadium, the week and a seed, so a change there reaches a snap
 # without changing anything a world stores, and no checksum of a world could notice. Its

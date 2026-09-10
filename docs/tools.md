@@ -168,12 +168,14 @@ simharness — 400 games, seed 7
 ```
 
 It is `WorldChecksum` in `FMGeneration` — the same function `GoldenWorldTests` pins to a
-checked-in constant, covering every part a generated world stores: every team and stadium,
-every roster and depth chart, the map of players the engine is handed, the schemes, the
-strength offsets, and the draft pipeline and rivalries when a world has them. Every
-variable-length group carries its length, so a depth chart repartitioned over the same men
-is a different number. The doc comment on the type lists what it reads and what it
-does not. The number here is not
+checked-in constant, covering every part a generated world stores that can reach a snap:
+every team and stadium, every roster and depth chart, the map of players the engine is
+handed, the schemes, the strength offsets, and the draft pipeline and rivalries when a
+world has them. Every variable-length group carries its length, so a depth chart
+repartitioned over the same men is a different number. The doc comment on the type lists
+what it reads and what it does not — the college pool by its size alone, a team's colours
+not at all, and its name only as city-and-nickname joined, none of which is handed to
+`GameSetup`. The number here is not
 the golden's constant, because the harness generates a smaller world without the optional
 parts, but it is the same function over it — which is what makes two *branches'* numbers
 comparable.
@@ -405,9 +407,11 @@ It says `skip` only when both of these hold:
 
 `FMGeneration`'s sources are deliberately absent from that first list. Generation reaches
 the harness only through the world it builds, and the checksum covers every part a
-`GeneratedWorld` stores — including `world.players`, the map the engine is handed, and the
-length of every variable-length group — so a generator change that moves nothing the
-harness plays is exactly the case this tool exists to wave through. What it cannot speak
+`GeneratedWorld` stores that can reach a snap — including `world.players`, the map the
+engine is handed, and the length of every variable-length group — so a generator change
+that moves nothing the harness plays is exactly the case this tool exists to wave through.
+The parts it leaves out are the ones no snap reads: the college pool beyond its size, a
+club's colours, and the boundary between its city and its nickname. What it cannot speak
 for is anything the world does not store: the weather drawn per game is why
 `WeatherGenerator.swift` and that package's manifest are watched by name. Nor can it speak
 for the toolchain — it compares two builds made minutes apart on one machine, which is the

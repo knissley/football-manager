@@ -21,7 +21,7 @@ import FMCore
 ///
 /// ## What it covers
 ///
-/// Every stored part of a `GeneratedWorld`:
+/// Every part a `GeneratedWorld` stores that can reach a snap:
 ///
 /// - The seed and the season the world was generated for.
 /// - The league: its identifier and name, and every conference and division by
@@ -49,13 +49,26 @@ import FMCore
 ///
 /// ## What it does not cover
 ///
-/// Nothing a `GeneratedWorld` stores — but plenty that reaches a snap beside it. The
-/// rules in force, the weather drawn for a particular game (a pure function of the
-/// stadium, the week and a seed, so a change to `WeatherGenerator` moves a game without
-/// moving this number), the play caller and the resolver are all supplied by the caller
-/// alongside the world. That is why `scripts/harness-reach.sh` reads the engine's source
-/// trees, and `WeatherGenerator.swift` with them, as well as this checksum before it will
-/// say a change cannot reach the harness.
+/// Three things a world stores, each of them cosmetic or already covered elsewhere. None
+/// of them is handed to `GameSetup`, so none is a hole a change could reach the harness
+/// through — but the list is here rather than implied, because the value of this number
+/// is exactly that its coverage is written down.
+///
+/// - `colleges` contributes its count and nothing else. The pool reaches a snap only
+///   through the men drawn from it, and each player's own college is mixed in full, name
+///   and profile both.
+/// - `TeamIdentity.colors`. A scoreboard reads them; no snap does.
+/// - `TeamIdentity` is mixed as `fullName` and `abbreviation`, and `fullName` is the city
+///   and the nickname joined — so a rename that moved the boundary between them and
+///   nothing else would not move this number. What plays is the club, not its name.
+///
+/// And, of course, everything that is not in the world at all but reaches a snap beside
+/// it: the rules in force, the weather drawn for a particular game (a pure function of
+/// the stadium, the week and a seed, so a change to `WeatherGenerator` moves a game
+/// without moving this number), the play caller and the resolver. That is why
+/// `scripts/harness-reach.sh` reads the engine's source trees, and
+/// `WeatherGenerator.swift` with them, as well as this checksum before it will say a
+/// change cannot reach the harness.
 public struct WorldChecksum: Sendable, Hashable {
 
     /// The FNV-1a 64-bit offset basis and prime.
