@@ -688,14 +688,14 @@ struct RulesConformanceTests {
     /// The half does not end until the try has been played; the third quarter then
     /// opens with a kickoff and a full clock.
     @Test(
-        "football · Rule 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try before the half ends"
+        "football · Rule 4-8-2-c, 11-3-1 · a touchdown as the second quarter expires gets its try, and the second half then opens with a kickoff"
     )
     func touchdownAsTheSecondQuarterExpires() {
         let trace = RulesScenarios.touchdownAsSecondQuarterExpires.run()
         guard let touchdown = touchdown(in: trace, quarter: 2) else { return }
         trace.expectPlay(
             touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
-            "the try is played before the half ends")
+            "the try is played")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 3, clock: 900,
             "and the second half then opens with a kickoff")
@@ -1192,15 +1192,19 @@ struct RulesConformanceTests {
         return spike
     }
 
-    /// A spike is an incomplete pass, and an incomplete pass stops the clock until the
-    /// snap: the next play's huddle costs nothing.
+    /// An incomplete pass stops the clock until the snap: the next play's huddle costs
+    /// nothing. The incompletion here is the baseline caller's spike, which the scenario
+    /// scripts to fall incomplete; that it does is a precondition, not the claim.
     @Test(
-        "football · Rule 4-4-f, 4-3-2 · a spike is an incomplete pass, and it stops the clock until the snap"
+        "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap"
     )
     func spikeStopsTheClock() {
         let trace = RulesScenarios.trailingByAPickSix.run(with: BaselineCaller())
         guard let spike = spike(in: trace) else { return }
-        trace.expectPlay(spike.index, endedIn: .incomplete, "a spike is an incompletion")
+        guard spike.play.outcome.endedIn == .incomplete else {
+            Issue.record("the scenario meant the spike to fall incomplete")
+            return
+        }
         trace.expectPlay(
             spike.index + 1, clockRunning: false, "and the clock is dead until the snap")
         guard let next = trace[spike.index + 1], trace[spike.index + 2] != nil else { return }
