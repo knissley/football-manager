@@ -108,12 +108,34 @@ public struct GameResult: Sendable {
 /// how a game is played.
 public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendable {
 
+    /// Who, if anyone, was hurt on a play: the play as recorded, the context it was
+    /// played in, and the play's own random stream.
+    ///
+    /// An injury is drawn from the play's participants rather than by the resolver, so
+    /// that the model survives the resolver being replaced. It is a seam here for one
+    /// reason: a rules scenario has to be able to *dictate* an injury — the injury
+    /// timeout after the two-minute warning is a clock rule (2025 rulebook, 4-5-4), and
+    /// a rule nobody can script is a rule nobody can watch.
+    public typealias InjuryDraw =
+        @Sendable (PlayRecord, PlayContext, inout SplittableRandom) ->
+        InjuryEvent?
+
     public let resolver: Resolver
     public let caller: Caller
+    public let injuries: InjuryDraw
 
-    public init(resolver: Resolver, caller: Caller) {
+    /// The engine's own injury draw, from the play's participants (`Injuries`), which
+    /// every game takes unless a scenario says otherwise.
+    public static var drawnInjuries: InjuryDraw {
+        { play, context, random in Injuries.drawn(on: play, context: context, random: &random) }
+    }
+
+    public init(
+        resolver: Resolver, caller: Caller, injuries: @escaping InjuryDraw = Self.drawnInjuries
+    ) {
         self.resolver = resolver
         self.caller = caller
+        self.injuries = injuries
     }
 
     /// A hard ceiling on snaps, so a resolver bug that never advances the ball fails
@@ -229,9 +251,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
 
         // Injuries are drawn from who was involved, after the play is recorded, so the
         // event can point at the snap it happened on.
-        if let play = state.plays.last,
-            let injury = Injuries.drawn(on: play, context: context, random: &random)
-        {
+        if let play = state.plays.last, let injury = injuries(play, context, &random) {
             state.injuries.append(injury)
             if injury.leavesTheGame { state.hurt.insert(injury.player) }
         }

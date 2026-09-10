@@ -339,6 +339,37 @@ struct GameSimulatorTests {
         }
     }
 
+    /// Which play clock a snap was taken against is a rule (2025 rulebook, 4-6), and
+    /// the rules layer writes it into every play so that a reader never infers it from
+    /// the play before. Only a delay of game records an expired one, because that is
+    /// what a delay of game is (4-6-1, 4-6-4).
+    @Test(
+        "contract · every play records the play clock it was taken against, and only a delay of game records an expired one",
+        .tags(.contract)
+    )
+    func everySnapRecordsItsPlayClock() {
+        let rules = Rules.standard
+        let lengths: Set<UInt8> = [rules.playClock, rules.playClockAfterStoppage, 30]
+        for seed in UInt64(1)...6 {
+            for play in TestWorld.game(seed: seed).plays {
+                let readings = play.decisions.compactMap(\.playClockReading)
+                #expect(
+                    readings.count == 1,
+                    "play \(play.index) at seed \(seed) records \(readings.count)")
+                guard let reading = readings.first else { continue }
+                #expect(lengths.contains(reading.seconds), "play \(play.index) at seed \(seed)")
+                #expect(reading.remaining < reading.seconds, "play \(play.index) at seed \(seed)")
+                let delay =
+                    play.outcome.kind == .penaltyOnly
+                    && play.outcome.penalties.first?.foul == .delayOfGame
+                #expect(
+                    (reading.remaining == 0) == delay,
+                    "play \(play.index) at seed \(seed): an expired play clock is a delay of game and nothing else is"
+                )
+            }
+        }
+    }
+
     /// A resolver that returns a rush when a kickoff was called is lying in exactly the
     /// way a fabricated causal chain would. The kind has to match the call.
     @Test("Every outcome's kind matches the play that was called", .tags(.contract))

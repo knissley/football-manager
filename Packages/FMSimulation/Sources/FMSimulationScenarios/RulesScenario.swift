@@ -91,6 +91,25 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case neutralZoneInfractionOnATrailingOffense = "neutral-zone-infraction-on-a-trailing-offense"
     case trailingByAPickSix = "trailing-by-a-pick-six"
 
+    // The play clock
+    case delayOfGameOnARunningClock = "delay-of-game-on-a-running-clock"
+    case delayOfGameAfterATurnoverOnDowns = "delay-of-game-after-a-turnover-on-downs"
+
+    // The last forty seconds of a half
+    case neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading =
+        "neutral-zone-infraction-in-the-last-forty-seconds-with-the-offense-leading"
+    case neutralZoneInfractionInTheLastFortySecondsLevel =
+        "neutral-zone-infraction-in-the-last-forty-seconds-level"
+    case neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft =
+        "neutral-zone-infraction-in-the-last-forty-seconds-with-a-defensive-timeout-left"
+
+    // An injury after the two-minute warning
+    case injuryInsideTwoMinutesWithATimeoutLeft = "injury-inside-two-minutes-with-a-timeout-left"
+    case injuryInsideTwoMinutesWithNoTimeoutsLeft =
+        "injury-inside-two-minutes-with-no-timeouts-left"
+    case injuryInsideTwoMinutesAgainstATrailingDefense =
+        "injury-inside-two-minutes-against-a-trailing-defense"
+
     // Tries, kicks and enforcement
     case falseStartOnATry = "false-start-on-a-try"
     case missedFieldGoalFromTheTen = "missed-field-goal-from-the-ten"
@@ -203,6 +222,25 @@ extension RulesScenario {
         case .neutralZoneInfractionOnATrailingOffense:
             return RulesScenarios.neutralZoneInfractionOnATrailingOffense
         case .trailingByAPickSix: return RulesScenarios.trailingByAPickSix
+
+        case .delayOfGameOnARunningClock: return RulesScenarios.delayOfGameOnARunningClock
+        case .delayOfGameAfterATurnoverOnDowns:
+            return RulesScenarios.delayOfGameAfterATurnoverOnDowns
+
+        case .neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading:
+            return RulesScenarios.neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading
+        case .neutralZoneInfractionInTheLastFortySecondsLevel:
+            return RulesScenarios.neutralZoneInfractionInTheLastFortySecondsLevel
+        case .neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft:
+            return RulesScenarios
+                .neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft
+
+        case .injuryInsideTwoMinutesWithATimeoutLeft:
+            return RulesScenarios.injuryInsideTwoMinutesWithATimeoutLeft
+        case .injuryInsideTwoMinutesWithNoTimeoutsLeft:
+            return RulesScenarios.injuryInsideTwoMinutesWithNoTimeoutsLeft
+        case .injuryInsideTwoMinutesAgainstATrailingDefense:
+            return RulesScenarios.injuryInsideTwoMinutesAgainstATrailingDefense
 
         case .falseStartOnATry: return RulesScenarios.falseStartOnATry
         case .missedFieldGoalFromTheTen: return RulesScenarios.missedFieldGoal(from: 10)
@@ -448,6 +486,41 @@ extension RulesScenario {
             return [
                 "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap",
                 "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)",
+            ]
+
+        case .delayOfGameOnARunningClock:
+            return [
+                "football · Rule 4-6-1, 4-6-4, 14-4-1 · a delay of game when the 40-second play clock expires with the ball not snapped: five yards, the down replayed, and the whole play clock gone from a running game clock"
+            ]
+        case .delayOfGameAfterATurnoverOnDowns:
+            return [
+                "football · Rule 4-6-2-a, 4-6-4 · after a change of possession the play clock is 25 seconds, and letting it expire with the game clock stopped is a delay of game that costs no time"
+            ]
+
+        case .neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading:
+            return [
+                "football · Rule 4-7-3 · in the last forty seconds a defensive foul that conserves time ends the half when the defence has no timeouts left and the offence, leading, elects to end it"
+            ]
+        case .neutralZoneInfractionInTheLastFortySecondsLevel:
+            return [
+                "football · Rule 4-7-3, 4-7-1 Item 2 · in the last forty seconds a defensive foul that conserves time does not end the half when the offence, level, would rather play on, and the clock then waits for the snap"
+            ]
+        case .neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft:
+            return [
+                "football · Rule 4-7-3 · in the last forty seconds a defensive foul that conserves time does not end the half while the defence has a timeout left"
+            ]
+
+        case .injuryInsideTwoMinutesWithATimeoutLeft:
+            return [
+                "football · Rule 4-5-4-a, 4-5-3 · after the two-minute warning an injury to a player of the team in possession costs it a charged timeout, and the clock waits for the snap"
+            ]
+        case .injuryInsideTwoMinutesWithNoTimeoutsLeft:
+            return [
+                "football · Rule 4-5-4-b, 4-5-4 Note 3 · after the two-minute warning an injury to a player of the team in possession, with no timeouts left, is an excess timeout: the defence has ten seconds run off, and the clock starts on the ready"
+            ]
+        case .injuryInsideTwoMinutesAgainstATrailingDefense:
+            return [
+                "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap"
             ]
 
         case .falseStartOnATry:
