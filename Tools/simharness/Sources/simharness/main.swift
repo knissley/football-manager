@@ -903,6 +903,79 @@ report(
     "twoPointConversion",
     twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
 
+// Where punters put the ball, which from plus territory is the whole of a punter's value:
+// a scrimmage kick that reaches the end zone untouched is a touchback (2025 rulebook,
+// 11-6-2-c) and comes out to the 20 (9-5-1 Note a), while one that stops short of it is
+// the receivers' ball where it stopped (9-4-4). No target on any of these rows: nothing in
+// docs/reference/calibration-sources.md bands them, and a sourced band belongs to E2 (#42).
+// Their net is measured with a touchback spotted at the 20, which is *not* how the
+// `netPunt` row above measures it — that one spots it at the goal line, a harness bug
+// recorded in calibration-sources.md — so the two are not comparable by construction.
+print("")
+print("  Punting   (no target: unsourced, a band belongs to #42)")
+let puntPlays = allPlays.filter { $0.outcome.kind == .punt }
+let plusTerritoryPunts = puntPlays.filter { $0.situation.ballOn <= 45 }
+
+/// Where the receiving team took over, as its own yard line, or `nil` when it never did.
+func receiversStart(_ play: PlayRecord) -> Int? {
+    switch play.outcome.endedIn {
+    case .touchback: return 20
+    case .downed, .outOfBounds, .fairCatch, .tackled: return Int(play.outcome.finalSpot ?? 20)
+    default: return nil
+    }
+}
+
+func shareOfTouchbacks(_ plays: [PlayRecord]) -> String {
+    guard !plays.isEmpty else { return "—" }
+    let touchbacks = plays.filter { $0.outcome.endedIn == .touchback }.count
+    return oneDecimal(Double(touchbacks) / Double(plays.count) * 100) + "%"
+}
+
+func averageTakeover(_ plays: [PlayRecord]) -> String {
+    let spots = plays.compactMap(receiversStart)
+    guard !spots.isEmpty else { return "—" }
+    return "own " + oneDecimal(Double(spots.reduce(0, +)) / Double(spots.count))
+}
+
+print(
+    "    \(pad("touchbacks, from inside their 45", 34))\(shareOfTouchbacks(plusTerritoryPunts))"
+        + "   \(plusTerritoryPunts.count) punts")
+print(
+    "    \(pad("drive start after those punts", 34))\(averageTakeover(plusTerritoryPunts))")
+print("    \(pad("touchbacks, all punts", 34))\(shareOfTouchbacks(puntPlays))")
+
+// Net punting by the punter's touch, which is the row that says whether the rating
+// decides anything at all. Tiers are terciles of the punts actually kicked rather than
+// fixed rating bands, so a league whose punters are all alike still splits into three.
+let byTouch: [(play: PlayRecord, touch: Int)] = puntPlays.compactMap { play in
+    guard let kicker = play.outcome.participants.first(where: { $0.role == .kicker }),
+        let touch = players[kicker.player]?.ratings[.puntAccuracy]
+    else { return nil }
+    return (play, Int(touch))
+}
+let touchLadder = byTouch.map(\.touch).sorted()
+if touchLadder.count >= 3 {
+    let lower = touchLadder[touchLadder.count / 3]
+    let upper = touchLadder[touchLadder.count * 2 / 3]
+    func net(_ plays: [PlayRecord]) -> String {
+        let nets = plays.compactMap { play -> Int? in
+            guard let start = receiversStart(play) else { return nil }
+            return Int(play.situation.ballOn) - start
+        }
+        guard !nets.isEmpty else { return "—" }
+        return oneDecimal(Double(nets.reduce(0, +)) / Double(nets.count))
+    }
+    let bottom = byTouch.filter { $0.touch < lower }.map(\.play)
+    let middle = byTouch.filter { $0.touch >= lower && $0.touch < upper }.map(\.play)
+    let top = byTouch.filter { $0.touch >= upper }.map(\.play)
+    print("    net punt by the punter's touch   (a touchback spotted at the 20)")
+    print(
+        "      \(pad("touch under \(lower)", 32))\(net(bottom))   \(bottom.count) punts")
+    print(
+        "      \(pad("touch \(lower) to \(upper - 1)", 32))\(net(middle))   \(middle.count) punts")
+    print("      \(pad("touch \(upper) and up", 32))\(net(top))   \(top.count) punts")
+}
+
 print("")
 print("  Kicking")
 let kickoffCount = kickoffEndings.values.reduce(0, +)

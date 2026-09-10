@@ -223,6 +223,15 @@ the crude resolver today, and so are kickoff and punt returns, fair catches, tou
 and muffs — the harness prints the return rates. *Designed, not built:* returns as
 pursuit geometry (M5), and blocked kicks.
 
+A punt separates **intent** from **execution**. `PuntPlan` is the call: hit it as far as
+it goes from outside the opponent's 45, aim a pooch between the 5 and the 10 from inside
+it, or aim the corner inside the 5 when the punter has the touch to be trusted with it.
+The punter's `puntPower` bounds what he can reach and his `puntAccuracy` is the scatter
+around the target, with the long half of that scatter growing with his leg — so a strong
+leg with poor hands overkicks a pooch into the end zone and a modest leg with good hands
+drops it on the 8. A touchback (11-6-2-c, spotted on the 20 by 9-5-1 Note a) is what a
+miss looks like rather than what happens whenever a team punts from plus territory.
+
 Kick distance and accuracy from ratings, wind, and precipitation; returns resolve as
 pursuit geometry like any other play. Blocks and muffs are low-probability branches and
 worth keeping — they're memorable.

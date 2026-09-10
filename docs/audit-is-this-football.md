@@ -813,7 +813,9 @@ argument for watching a game.
   description: `isPassingDown` includes second and 8 and third and 4, and the caller never
   runs on them. ([#37](https://github.com/knissley/football-manager/issues/37))
 - **C11** — a punt is always hit at full distance, so from inside the opponent's 45 it is a
-  touchback 78 to 86% of the time and no punter's touch decides anything.
+  touchback 78 to 86% of the time and no punter's touch decides anything — **fixed.** The
+  caller asks for a pooch or the corner from there, the punter's accuracy is the scatter
+  around it, and a touchback is a miss.
   ([#26](https://github.com/knissley/football-manager/issues/26))
 - **C12** — a team up eight kneels once at 1:52 with the defence holding timeouts, then
   runs two ordinary plays and kicks a field goal. Too early to kneel, and a team that has

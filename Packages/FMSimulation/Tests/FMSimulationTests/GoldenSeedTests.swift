@@ -133,9 +133,18 @@ struct GoldenSeedTests {
             // a carrier who beat everybody chasing him draws his ending like anybody
             // else instead of being written out of bounds. One extra draw on a broken-
             // tackle sequence moves every stream after it.
-            (UInt64(1), UInt64(8_903_623_953_114_220_083)),
-            (UInt64(5), UInt64(11_529_662_471_576_959_285)),
-            (UInt64(12), UInt64(18_344_936_371_843_316_633)),
+            //
+            // And moved by the punt. A punt from inside the opponent's 45 is now aimed —
+            // a pooch between the 5 and the 10, or the corner inside the 5 for a punter
+            // with the touch to be trusted with it — and the punter's accuracy is the
+            // scatter around that target rather than a modifier on whether the returner
+            // fields it. A touchback is a miss now (11-6-2-c, 9-5-1 Note a) rather than
+            // what happened whenever a team punted from plus territory, so drives after
+            // one start much nearer their own goal, and an aimed punt spends two draws
+            // where a struck one spends one.
+            (UInt64(1), UInt64(9_940_974_686_661_438_037)),
+            (UInt64(5), UInt64(18_409_754_143_122_552_883)),
+            (UInt64(12), UInt64(12_973_742_013_181_616_236)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

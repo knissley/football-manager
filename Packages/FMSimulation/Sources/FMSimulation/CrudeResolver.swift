@@ -852,10 +852,6 @@ public struct CrudeResolver: PlayResolver {
         _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let power =
-            42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60) * 0.25
-        let distance = Int(power) + Int(random.next(upperBound: 14)) - 7
-        let landing = Int(situation.ballOn) - distance
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
         var decisions: [DecisionPoint] = []
 
@@ -871,6 +867,37 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
+        // Accuracy is what turns distance into field position: the punter who can place
+        // it inside the ten is worth more than the one who simply hits it a long way.
+        let placement = rating(.puntAccuracy, SlotLayout.specialist, personnel, context)
+        // How far he can hit it at all. This bounds the intent rather than being it: a
+        // weak leg from his own end nets short whatever anybody asked for.
+        let reach =
+            42.0 + (rating(.puntPower, SlotLayout.specialist, personnel, context) - 60)
+            * 0.25
+        let plan = PuntPlan.chosen(from: situation.ballOn, touch: placement)
+        let landing: Int
+        if let band = plan.aimedAt {
+            let target = band.lowerBound + Int(random.next(upperBound: UInt64(band.count)))
+            // The scatter around the target is his touch, and it is not symmetric: the
+            // long half of it grows with his leg. That is why a strong leg with poor
+            // hands is the man who overkicks a pooch into the end zone and a modest leg
+            // with good hands is the one who drops it on the 8.
+            let short = max(2, Int(14 - (placement - 40) * 0.20))
+            let long = max(1, short + Int((reach - 68) * 0.12))
+            let miss = Int(random.next(upperBound: UInt64(short + long + 1))) - long
+            // Aiming does not lengthen a leg: he still cannot place it beyond what he can
+            // hit, which is what makes a pooch from midfield a different play from a
+            // pooch from the opponent's 40.
+            landing = max(target + miss, Int(situation.ballOn) - Int(reach) - 7)
+        } else {
+            let struck = Int(reach) + Int(random.next(upperBound: 14)) - 7
+            landing = Int(situation.ballOn) - struck
+        }
+
+        // A touchback is now a *miss*: the scatter carried the ball into the end zone
+        // (11-6-2-c) and the receivers snap at their 20 (9-5-1 Note a). It used to be
+        // what happened whenever the punter was asked to kick from plus territory.
         if landing <= 0 {
             return (
                 Outcome(
@@ -880,9 +907,6 @@ public struct CrudeResolver: PlayResolver {
             )
         }
 
-        // Accuracy is what turns distance into field position: the punter who can place
-        // it inside the ten is worth more than the one who simply hits it a long way.
-        let placement = rating(.puntAccuracy, SlotLayout.specialist, personnel, context)
         let pinned = landing <= 12
 
         // What the man back there does with it. Close to his own goal he lets it go and

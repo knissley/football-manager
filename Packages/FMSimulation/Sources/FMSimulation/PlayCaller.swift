@@ -260,6 +260,55 @@ extension PlayCaller {
     }
 }
 
+/// What a punt is *for*, decided before anybody kicks it.
+///
+/// Intent and execution are two things and the engine had only the second: every punt was
+/// struck at full distance, so from inside the opponent's 45 the ball reached the end
+/// zone, 11-6-2-c made it a touchback and 9-5-1 Note (a) handed the receivers the 20 —
+/// four times in five, from the one part of the field where a punter is paid for his
+/// touch rather than his leg.
+///
+/// It lives with the play caller because it is a call rather than a physical fact, and it
+/// is a pure decision rather than a `PlayCaller` method because `Calls` is the only
+/// channel from a caller to a resolver and it is stored by value in every `PlayRecord`
+/// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)). A real caller at M6
+/// chooses a punt concept the way it chooses any other design.
+public enum PuntPlan: Sendable, Hashable, CaseIterable {
+
+    /// Nothing to aim at. The goal line is further away than the punter can reach, so
+    /// every yard he hits it is a yard of field position.
+    case maximumDistance
+    /// Land it short of the goal line and let the coverage down it.
+    case pooch
+    /// Aim inside the 5. The reward is a ball downed on the doorstep; the risk is the
+    /// touchback that gives twenty of it straight back (9-5-1 Note a).
+    case coffinCorner
+
+    /// Where the ball is meant to come down, as yards from the receiving team's goal
+    /// line, or `nil` when the plan is simply to hit it as far as it will go.
+    public var aimedAt: ClosedRange<Int>? {
+        switch self {
+        case .maximumDistance: return nil
+        case .pooch: return 5...10
+        case .coffinCorner: return 3...5
+        }
+    }
+
+    /// The touch a caller wants to see before it asks for the corner. Below it the corner
+    /// is a touchback with extra steps.
+    public static let coffinCornerTouch = 78.0
+
+    /// The call, given where the ball is — `ballOn` is yards from the receiving team's
+    /// goal — and what this punter's touch is worth today.
+    public static func chosen(from ballOn: UInt8, touch: Double) -> PuntPlan {
+        // Outside the opponent's 45 a full-distance punt cannot reach the end zone, so
+        // there is nothing to aim at and nothing to give up by hitting it.
+        guard ballOn <= 45 else { return .maximumDistance }
+        if ballOn >= 35, touch >= coffinCornerTouch { return .coffinCorner }
+        return .pooch
+    }
+}
+
 /// A caller with no memory, no gameplan and no opinion about the opponent.
 ///
 /// The floor from [play-calling.md](../../../../docs/play-calling.md)'s benchmark: any

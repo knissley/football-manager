@@ -200,6 +200,25 @@ struct PuntingTests {
         #expect(start < 20, "the receivers averaged their own \(start), worse than a touchback")
     }
 
+    /// The call itself, before anybody kicks anything.
+    @Test("A punt from plus territory is aimed, and one from your own end is hit", .tags(.unit))
+    func theCallDependsOnTheField() {
+        // Outside the opponent's 45 there is nothing to aim at.
+        #expect(PuntPlan.chosen(from: 88, touch: 92) == .maximumDistance)
+        #expect(PuntPlan.chosen(from: 60, touch: 92) == .maximumDistance)
+        #expect(PuntPlan.chosen(from: 46, touch: 92) == .maximumDistance)
+
+        // Inside it, the corner if the punter can be trusted with it and a pooch if not.
+        #expect(PuntPlan.chosen(from: 42, touch: 92) == .coffinCorner)
+        #expect(PuntPlan.chosen(from: 42, touch: 60) == .pooch)
+        #expect(PuntPlan.chosen(from: 45, touch: 78) == .coffinCorner)
+        #expect(PuntPlan.chosen(from: 30, touch: 92) == .pooch, "too close for the corner")
+
+        #expect(PuntPlan.maximumDistance.aimedAt == nil)
+        #expect(PuntPlan.pooch.aimedAt == 5...10)
+        #expect(PuntPlan.coffinCorner.aimedAt == 3...5)
+    }
+
     /// The rating has to decide something. A punter who can place it is worth more than
     /// one who can only hit it, and from plus territory that is the whole of his value.
     @Test("A punter's touch decides where the ball comes down", .tags(.unit))
