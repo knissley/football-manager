@@ -9,7 +9,7 @@ private let season = 2030
 @Suite("Personnel lifecycle")
 struct PersonnelLifecycleTests {
 
-    @Test("Career spans differ by role and are internally coherent")
+    @Test("Career spans differ by role and are internally coherent", .tags(.unit))
     func spans() {
         for role in PersonnelRole.allCases {
             let span = CareerSpan.span(for: role)
@@ -21,14 +21,14 @@ struct PersonnelLifecycleTests {
     }
 
     /// A coach's career is a different shape from a player's, not just longer.
-    @Test("Coaches work far later than players")
+    @Test("Coaches work far later than players", .tags(.unit))
     func coachesOutlastPlayers() {
         let coach = CareerSpan.span(for: .headCoach)
         #expect(coach.entryAge.lowerBound > 30)
         #expect(coach.retirementAge.lowerBound > 55)
     }
 
-    @Test("Activity and retirement follow from age")
+    @Test("Activity and retirement follow from age", .tags(.unit))
     func activity() {
         let person = Personnel(
             id: PersonnelID(1), name: PersonName(given: "Ada", family: "Halstead"),
@@ -57,12 +57,12 @@ struct PersonnelGeneratorTests {
             role: role, count: count, season: season, ids: &ids, using: &random)
     }
 
-    @Test("Generation is deterministic")
+    @Test("Generation is deterministic", .tags(.contract))
     func deterministic() {
         #expect(cohort(seed: 77) == cohort(seed: 77))
     }
 
-    @Test("Everyone generated is currently working")
+    @Test("Everyone generated is currently working", .tags(.unit))
     func allActive() {
         for role in PersonnelRole.allCases {
             for person in cohort(role: role, count: 30, seed: 5) {
@@ -76,7 +76,7 @@ struct PersonnelGeneratorTests {
     /// The failure this guards against: generate a profession all at the same
     /// stage and it retires in a single offseason, then again in lockstep a
     /// generation later.
-    @Test("A cohort is spread across its careers")
+    @Test("A cohort is spread across its careers", .tags(.unit))
     func spreadAcrossCareers() {
         let people = cohort(count: 60)
         let experience = people.map { $0.experience(in: season) }
@@ -94,7 +94,7 @@ struct PersonnelGeneratorTests {
         #expect(worst <= people.count / 5, "\(worst) of \(people.count) retire together")
     }
 
-    @Test("Ages are plausible for the role")
+    @Test("Ages are plausible for the role", .tags(.unit))
     func plausibleAges() {
         for role in PersonnelRole.allCases {
             let ages = cohort(role: role, count: 40, seed: 9).map { $0.age(in: season) }
@@ -106,7 +106,7 @@ struct PersonnelGeneratorTests {
         }
     }
 
-    @Test("A newcomer is at the start of their career")
+    @Test("A newcomer is at the start of their career", .tags(.unit))
     func newcomers() {
         var random = SplittableRandom(seed: 13)
         for role in PersonnelRole.allCases {
@@ -118,7 +118,7 @@ struct PersonnelGeneratorTests {
         }
     }
 
-    @Test("Turnover retires the right people and replaces them one for one")
+    @Test("Turnover retires the right people and replaces them one for one", .tags(.unit))
     func turnover() {
         var random = SplittableRandom(seed: 21)
         var ids = IdentifierSequence<PersonnelSubject>()
@@ -141,7 +141,7 @@ struct PersonnelGeneratorTests {
 
     /// The point of the whole thing: run a career out fifty seasons and the
     /// people covering it should not be the people who started it.
-    @Test("A profession turns over across a long career")
+    @Test("A profession turns over across a long career", .tags(.unit))
     func turnsOverAcrossFiftySeasons() {
         var random = SplittableRandom(seed: 31)
         var ids = IdentifierSequence<PersonnelSubject>()
@@ -167,7 +167,7 @@ struct PersonnelGeneratorTests {
             survivors.isEmpty, "\(survivors.count) of the originals still working after 50 years")
     }
 
-    @Test("Nobody works past their retirement age")
+    @Test("Nobody works past their retirement age", .tags(.unit))
     func nobodyOverstays() {
         var random = SplittableRandom(seed: 41)
         var ids = IdentifierSequence<PersonnelSubject>()

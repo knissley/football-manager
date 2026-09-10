@@ -11,7 +11,7 @@ import Testing
 @Suite("Known answers")
 struct KnownAnswerTests {
 
-    @Test("Seed 42 produces its fixed sequence")
+    @Test("Seed 42 produces its fixed sequence", .tags(.unit))
     func seed42() {
         var random = SplittableRandom(seed: 42)
         let expected: [UInt64] = [
@@ -32,7 +32,7 @@ struct KnownAnswerTests {
     /// Seeding xoshiro256** from SplitMix64(0) is the canonical published
     /// example, so this vector also confirms the algorithm itself is right
     /// rather than merely self-consistent.
-    @Test("Seed 0 matches the published xoshiro256** reference")
+    @Test("Seed 0 matches the published xoshiro256** reference", .tags(.unit))
     func seed0() {
         var random = SplittableRandom(seed: 0)
         let expected: [UInt64] = [
@@ -46,7 +46,7 @@ struct KnownAnswerTests {
         }
     }
 
-    @Test("Split streams have fixed first draws")
+    @Test("Split streams have fixed first draws", .tags(.unit))
     func splitVectors() {
         var byLabel7 = SplittableRandom(seed: 42).split(7)
         #expect(byLabel7.next() == 0xd156_fe7b_a6b2_616e)
@@ -62,7 +62,7 @@ struct KnownAnswerTests {
 @Suite("Reproducibility")
 struct ReproducibilityTests {
 
-    @Test("The same seed always produces the same sequence")
+    @Test("The same seed always produces the same sequence", .tags(.contract))
     func sameSeedSameSequence() {
         var a = SplittableRandom(seed: 12345)
         var b = SplittableRandom(seed: 12345)
@@ -71,7 +71,7 @@ struct ReproducibilityTests {
         }
     }
 
-    @Test("Different seeds diverge immediately")
+    @Test("Different seeds diverge immediately", .tags(.unit))
     func differentSeedsDiverge() {
         var a = SplittableRandom(seed: 1)
         var b = SplittableRandom(seed: 2)
@@ -82,14 +82,14 @@ struct ReproducibilityTests {
         #expect(identical == 0)
     }
 
-    @Test("A seed of zero produces a live generator")
+    @Test("A seed of zero produces a live generator", .tags(.unit))
     func zeroSeedIsUsable() {
         var random = SplittableRandom(seed: 0)
         let draws = (0..<20).map { _ in random.next() }
         #expect(Set(draws).count == 20)
     }
 
-    @Test("rootSeed is preserved as the generator advances")
+    @Test("rootSeed is preserved as the generator advances", .tags(.unit))
     func rootSeedStable() {
         var random = SplittableRandom(seed: 99)
         for _ in 0..<500 { _ = random.next() }
@@ -102,7 +102,7 @@ struct SplittingTests {
 
     /// The property the whole replay design leans on: a play's stream does not
     /// depend on what was simulated before it.
-    @Test("Splitting does not depend on how far the parent has advanced")
+    @Test("Splitting does not depend on how far the parent has advanced", .tags(.contract))
     func splitIgnoresAdvancement() {
         let fresh = SplittableRandom(seed: 42)
         var advanced = SplittableRandom(seed: 42)
@@ -115,7 +115,7 @@ struct SplittingTests {
         }
     }
 
-    @Test("Different labels produce different streams")
+    @Test("Different labels produce different streams", .tags(.unit))
     func labelsAreIndependent() {
         let parent = SplittableRandom(seed: 42)
         var firstDraws: Set<UInt64> = []
@@ -126,7 +126,7 @@ struct SplittingTests {
         #expect(firstDraws.count == 256)
     }
 
-    @Test("Paired labels are distinct across a grid")
+    @Test("Paired labels are distinct across a grid", .tags(.unit))
     func pairedLabelsAreIndependent() {
         let parent = SplittableRandom(seed: 7)
         var firstDraws: Set<UInt64> = []
@@ -139,14 +139,14 @@ struct SplittingTests {
         #expect(firstDraws.count == 1024)
     }
 
-    @Test("Children of different parents differ")
+    @Test("Children of different parents differ", .tags(.unit))
     func parentsAreIndependent() {
         var a = SplittableRandom(seed: 1).split(5)
         var b = SplittableRandom(seed: 2).split(5)
         #expect(a.next() != b.next())
     }
 
-    @Test("A child is a full generator that can split again")
+    @Test("A child is a full generator that can split again", .tags(.unit))
     func childrenSplit() {
         let child = SplittableRandom(seed: 42).split(1)
         var grandchildA = child.split(1)

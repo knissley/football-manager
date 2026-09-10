@@ -37,7 +37,7 @@ private func makeContract(
 @Suite("Proration")
 struct ProrationTests {
 
-    @Test("A bonus spreads evenly across a short contract")
+    @Test("A bonus spreads evenly across a short contract", .tags(.unit))
     func evenSpread() {
         let bonus = ProratedBonus(
             amount: .millions(12), firstSeason: seasonZero, overContractYears: 3)
@@ -51,7 +51,7 @@ struct ProrationTests {
     /// The classic trap. A seven-year deal still prorates over five, so the
     /// annual charge is larger than a naive `bonus / years` suggests and the
     /// final two seasons carry none of it.
-    @Test("Proration never exceeds five years")
+    @Test("Proration never exceeds five years", .tags(.unit))
     func fiveYearCap() {
         let bonus = ProratedBonus(
             amount: .millions(35), firstSeason: seasonZero, overContractYears: 7)
@@ -63,7 +63,7 @@ struct ProrationTests {
         #expect(bonus.share(in: seasonZero + 6) == .zero)
     }
 
-    @Test("A one-year deal charges the whole bonus at once")
+    @Test("A one-year deal charges the whole bonus at once", .tags(.unit))
     func singleYear() {
         let bonus = ProratedBonus(
             amount: .millions(5), firstSeason: seasonZero, overContractYears: 1)
@@ -74,7 +74,7 @@ struct ProrationTests {
     /// leaves a remainder; losing it would mean a schedule that does not sum to
     /// the bonus a player was told he received.
     @Test(
-        "Shares always sum to exactly the bonus",
+        "Shares always sum to exactly the bonus", .tags(.unit),
         arguments: [
             (1_000_001, 3), (10_000_000, 3), (7_777_777, 7), (1, 5), (2, 5),
             (999_999_999, 5), (12_345_678, 4), (5, 4), (0, 5), (100, 3),
@@ -86,7 +86,7 @@ struct ProrationTests {
         #expect(summed.dollars == amount, "\(amount) over \(years) years summed to \(summed)")
     }
 
-    @Test("Shares differ by at most a dollar")
+    @Test("Shares differ by at most a dollar", .tags(.unit))
     func sharesAreBalanced() {
         let bonus = ProratedBonus(
             amount: Money(dollars: 10_000_002), firstSeason: seasonZero, overContractYears: 4)
@@ -98,7 +98,7 @@ struct ProrationTests {
         #expect(high - low <= 1)
     }
 
-    @Test("Remaining proration counts this season and later")
+    @Test("Remaining proration counts this season and later", .tags(.unit))
     func remaining() {
         let bonus = ProratedBonus(
             amount: .millions(20), firstSeason: seasonZero, overContractYears: 4)
@@ -112,7 +112,7 @@ struct ProrationTests {
 @Suite("Cap hits")
 struct CapHitTests {
 
-    @Test("A cap hit is base plus roster bonus plus proration plus likely incentives")
+    @Test("A cap hit is base plus roster bonus plus proration plus likely incentives", .tags(.unit))
     func components() {
         let contract = makeContract(
             signingBonus: .millions(10),
@@ -126,21 +126,21 @@ struct CapHitTests {
         #expect(contract.capHit(in: seasonZero + 1) == .millions(10))
     }
 
-    @Test("Unlikely incentives are excluded")
+    @Test("Unlikely incentives are excluded", .tags(.unit))
     func unlikelyIncentivesExcluded() {
         var contract = makeContract(baseSalaries: [.millions(4)])
         contract.years[0].notLikelyToBeEarnedIncentives = .millions(3)
         #expect(contract.capHit(in: seasonZero) == .millions(4))
     }
 
-    @Test("Seasons outside the contract cost nothing")
+    @Test("Seasons outside the contract cost nothing", .tags(.unit))
     func outsideTheTerm() {
         let contract = makeContract(baseSalaries: [.millions(4), .millions(5)])
         #expect(contract.capHit(in: seasonZero - 1) == .zero)
         #expect(contract.capHit(in: seasonZero + 2) == .zero)
     }
 
-    @Test("Cap hits over the term sum to base plus bonus")
+    @Test("Cap hits over the term sum to base plus bonus", .tags(.unit))
     func totalOverTerm() {
         let contract = makeContract(
             signingBonus: .millions(9),
@@ -155,7 +155,7 @@ struct CapHitTests {
 struct DeadMoneyTests {
 
     /// Releasing before a single snap is played accelerates the entire bonus.
-    @Test("Release in year one accelerates the whole bonus")
+    @Test("Release in year one accelerates the whole bonus", .tags(.unit))
     func releaseInYearOne() {
         let contract = makeContract(
             signingBonus: .millions(20),
@@ -166,7 +166,7 @@ struct DeadMoneyTests {
         #expect(dead.followingSeason == .zero)
     }
 
-    @Test("Release mid-contract accelerates only what is unamortised")
+    @Test("Release mid-contract accelerates only what is unamortised", .tags(.unit))
     func releaseMidContract() {
         let contract = makeContract(
             signingBonus: .millions(20),
@@ -176,7 +176,7 @@ struct DeadMoneyTests {
         #expect(contract.deadMoney(releasedBefore: seasonZero + 2).currentSeason == .millions(10))
     }
 
-    @Test("Release in the final year leaves only that year's share")
+    @Test("Release in the final year leaves only that year's share", .tags(.unit))
     func releaseInFinalYear() {
         let contract = makeContract(
             signingBonus: .millions(20),
@@ -185,14 +185,14 @@ struct DeadMoneyTests {
         #expect(contract.deadMoney(releasedBefore: seasonZero + 3).currentSeason == .millions(5))
     }
 
-    @Test("Release after the contract ends costs nothing")
+    @Test("Release after the contract ends costs nothing", .tags(.unit))
     func releaseAfterExpiry() {
         let contract = makeContract(
             signingBonus: .millions(20), baseSalaries: [.millions(1), .millions(5)])
         #expect(contract.deadMoney(releasedBefore: seasonZero + 2).total == .zero)
     }
 
-    @Test("Guaranteed salary still owed adds to dead money")
+    @Test("Guaranteed salary still owed adds to dead money", .tags(.unit))
     func guaranteesCount() {
         let contract = makeContract(
             signingBonus: .millions(12),
@@ -207,7 +207,7 @@ struct DeadMoneyTests {
     /// The designation splits the charge: this year keeps one share, everything
     /// later lands next year. The relief is real but delayed, which is the
     /// tradeoff the rule exists to create.
-    @Test("A post-June-1 release splits across two seasons")
+    @Test("A post-June-1 release splits across two seasons", .tags(.unit))
     func postJune1Split() {
         let contract = makeContract(
             signingBonus: .millions(20),
@@ -219,7 +219,7 @@ struct DeadMoneyTests {
         #expect(dead.total == .millions(15))
     }
 
-    @Test("A post-June-1 release costs the same in total as a standard one")
+    @Test("A post-June-1 release costs the same in total as a standard one", .tags(.unit))
     func postJune1PreservesTotal() {
         let contract = makeContract(
             signingBonus: .millions(30),
@@ -233,7 +233,7 @@ struct DeadMoneyTests {
         }
     }
 
-    @Test("Cap savings can be negative when dead money exceeds the hit")
+    @Test("Cap savings can be negative when dead money exceeds the hit", .tags(.unit))
     func negativeSavings() {
         let contract = makeContract(
             signingBonus: .millions(40),
@@ -245,7 +245,7 @@ struct DeadMoneyTests {
         #expect(contract.capSavings(releasedBefore: seasonZero).isNegative)
     }
 
-    @Test("A post-June-1 designation improves current-season savings")
+    @Test("A post-June-1 designation improves current-season savings", .tags(.unit))
     func postJune1Savings() {
         let contract = makeContract(
             signingBonus: .millions(40),
@@ -260,7 +260,7 @@ struct DeadMoneyTests {
 @Suite("Restructures")
 struct RestructureTests {
 
-    @Test("A restructure lowers this year's hit and raises later ones")
+    @Test("A restructure lowers this year's hit and raises later ones", .tags(.unit))
     func basicRestructure() throws {
         let contract = makeContract(
             signingBonus: .zero,
@@ -277,7 +277,7 @@ struct RestructureTests {
         #expect(restructured.capHit(in: seasonZero + 3) == .millions(14))
     }
 
-    @Test("A restructure moves money without creating or destroying it")
+    @Test("A restructure moves money without creating or destroying it", .tags(.unit))
     func restructurePreservesTotal() throws {
         let contract = makeContract(
             signingBonus: .millions(10),
@@ -292,7 +292,7 @@ struct RestructureTests {
         #expect(before == after)
     }
 
-    @Test("A restructure increases dead money on a later release")
+    @Test("A restructure increases dead money on a later release", .tags(.unit))
     func restructureRaisesDeadMoney() throws {
         let contract = makeContract(
             baseSalaries: [.millions(10), .millions(10), .millions(10)])
@@ -305,7 +305,7 @@ struct RestructureTests {
 
     /// Restructuring a restructured deal is how a team walks into cap hell, and
     /// each conversion must keep its own schedule rather than merging.
-    @Test("Restructuring twice stacks independent proration streams")
+    @Test("Restructuring twice stacks independent proration streams", .tags(.unit))
     func repeatedRestructure() throws {
         let contract = makeContract(
             baseSalaries: [.millions(20), .millions(20), .millions(20), .millions(20)])
@@ -333,7 +333,7 @@ struct RestructureTests {
         #expect(twice.capHit(in: seasonZero + 3) > contract.capHit(in: seasonZero + 3))
     }
 
-    @Test("A restructure in the final year has nowhere to spread")
+    @Test("A restructure in the final year has nowhere to spread", .tags(.unit))
     func restructureInFinalYear() throws {
         let contract = makeContract(baseSalaries: [.millions(10), .millions(10)])
         let restructured = try #require(
@@ -341,7 +341,7 @@ struct RestructureTests {
         #expect(restructured.capHit(in: seasonZero + 1) == .millions(10))
     }
 
-    @Test("Invalid restructures are refused rather than silently clamped")
+    @Test("Invalid restructures are refused rather than silently clamped", .tags(.unit))
     func invalidRestructures() {
         let contract = makeContract(baseSalaries: [.millions(10), .millions(10)])
         #expect(contract.restructured(in: seasonZero, converting: .millions(11)) == nil)
@@ -364,7 +364,7 @@ struct RestructureTests {
     /// "Contract anatomy" (signing bonus is cash up front, prorated), "Dead
     /// money" (`remainingProration + guaranteedSalaryStillOwed`) and
     /// "Restructures".
-    @Test("football · Converted money is counted once in dead money")
+    @Test("football · Converted money is counted once in dead money", .tags(.football))
     func convertedMoneyIsCountedOnce() throws {
         // Three years at 10 apiece, a 9 signing bonus prorating 3 a season, and
         // 4 of year two's base guaranteed before anything is converted.
@@ -407,7 +407,9 @@ struct RestructureTests {
     ///
     /// Source: `football-domain` skill, `references/salary-cap.md`, "Dead money"
     /// — dead money counts guaranteed salary *still owed* — and "Restructures".
-    @Test("football · Converting guaranteed base salary discharges that guarantee in cash")
+    @Test(
+        "football · Converting guaranteed base salary discharges that guarantee in cash",
+        .tags(.football))
     func convertingGuaranteedBaseDischargesTheGuarantee() throws {
         // Year one's 10 is fully guaranteed, as a first year usually is. No
         // signing bonus, so the conversion is the only proration stream.
@@ -435,7 +437,7 @@ struct TradeTests {
 
     /// Proration accelerates onto the team sending the player, which is why a
     /// big signing bonus makes a contract hard to move.
-    @Test("Trading accelerates proration onto the trading team")
+    @Test("Trading accelerates proration onto the trading team", .tags(.unit))
     func acceleration() {
         let contract = makeContract(
             signingBonus: .millions(25),
@@ -446,7 +448,7 @@ struct TradeTests {
         #expect(accelerated.followingSeason == .zero)
     }
 
-    @Test("Guaranteed salary travels with the player rather than accelerating")
+    @Test("Guaranteed salary travels with the player rather than accelerating", .tags(.unit))
     func guaranteesTravel() {
         let contract = makeContract(
             signingBonus: .millions(10),
@@ -466,7 +468,7 @@ struct TradeTests {
     /// Source: `football-domain` skill, `references/salary-cap.md`, "Dead money"
     /// (the post-June-1 split) and "Player movement" (a trade accelerates
     /// proration onto the trading team).
-    @Test("football · A post-June-1 trade splits acceleration across two seasons")
+    @Test("football · A post-June-1 trade splits acceleration across two seasons", .tags(.football))
     func postJune1Trade() {
         // 25 of signing bonus over five years is 5 a season; two are charged by
         // the time of the trade, so 15 is unamortised.
@@ -489,7 +491,7 @@ struct TradeTests {
 @Suite("Team cap position")
 struct CapPositionTests {
 
-    @Test("Space is the adjusted cap less everything committed")
+    @Test("Space is the adjusted cap less everything committed", .tags(.unit))
     func space() {
         let position = SalaryCap.Position(
             season: seasonZero,
@@ -505,7 +507,7 @@ struct CapPositionTests {
         #expect(position.isCompliant)
     }
 
-    @Test("Overcommitment is representable and flagged")
+    @Test("Overcommitment is representable and flagged", .tags(.unit))
     func overCap() {
         let position = SalaryCap.Position(
             season: seasonZero,
@@ -517,7 +519,7 @@ struct CapPositionTests {
         #expect(!position.isCompliant)
     }
 
-    @Test("A position built from contracts sums their hits")
+    @Test("A position built from contracts sums their hits", .tags(.unit))
     func fromContracts() {
         let contracts = [
             makeContract(signingBonus: .millions(10), baseSalaries: [.millions(5), .millions(5)]),
@@ -537,7 +539,7 @@ struct CapPositionTests {
 @Suite("Franchise tag")
 struct FranchiseTagTests {
 
-    @Test("The top-five average wins for a modestly paid player")
+    @Test("The top-five average wins for a modestly paid player", .tags(.unit))
     func averageWins() {
         let value = SalaryCap.franchiseTagValue(
             topSalariesAtPosition: [
@@ -550,7 +552,7 @@ struct FranchiseTagTests {
 
     /// The rules disagree exactly when a team is deciding whether to tag someone
     /// already paid above his position's market.
-    @Test("The 120% floor wins for an already well-paid player")
+    @Test("The 120% floor wins for an already well-paid player", .tags(.unit))
     func oneTwentyWins() {
         let value = SalaryCap.franchiseTagValue(
             topSalariesAtPosition: [
@@ -561,7 +563,7 @@ struct FranchiseTagTests {
         #expect(value == .millions(48))
     }
 
-    @Test("Only the top five salaries count")
+    @Test("Only the top five salaries count", .tags(.unit))
     func onlyTopFive() {
         let value = SalaryCap.franchiseTagValue(
             topSalariesAtPosition: [
@@ -573,7 +575,7 @@ struct FranchiseTagTests {
         #expect(value == .millions(26))
     }
 
-    @Test("Order of the salary list does not matter")
+    @Test("Order of the salary list does not matter", .tags(.unit))
     func orderIndependent() {
         let ascending = SalaryCap.franchiseTagValue(
             topSalariesAtPosition: [.millions(10), .millions(20), .millions(30)],
@@ -586,7 +588,7 @@ struct FranchiseTagTests {
         #expect(ascending == descending)
     }
 
-    @Test("A small league with fewer than five salaries still produces a figure")
+    @Test("A small league with fewer than five salaries still produces a figure", .tags(.unit))
     func shortList() {
         let value = SalaryCap.franchiseTagValue(
             topSalariesAtPosition: [.millions(20), .millions(10)],
@@ -602,7 +604,7 @@ struct FranchiseTagTests {
 @Suite("Money")
 struct MoneyTests {
 
-    @Test("Arithmetic and comparison behave")
+    @Test("Arithmetic and comparison behave", .tags(.unit))
     func arithmetic() {
         #expect(Money.millions(1) + Money.millions(2) == Money.millions(3))
         #expect(Money.millions(5) - Money.millions(8) == Money.millions(-3))
@@ -612,14 +614,14 @@ struct MoneyTests {
         #expect([Money.millions(1), Money.millions(2)].total() == Money.millions(3))
     }
 
-    @Test("Scaling rounds to the nearest dollar")
+    @Test("Scaling rounds to the nearest dollar", .tags(.unit))
     func scaling() {
         #expect(Money(dollars: 100).scaled(by: 1.2) == Money(dollars: 120))
         #expect(Money(dollars: 10).scaled(by: 1.25) == Money(dollars: 13))
         #expect(Money(dollars: 3).scaled(by: 0.5) == Money(dollars: 2))
     }
 
-    @Test("Formatting reads as money without importing Foundation")
+    @Test("Formatting reads as money without importing Foundation", .tags(.unit))
     func formatting() {
         #expect(Money.millions(12.5).description == "$12.500M")
         #expect(Money(dollars: 1_000_000).description == "$1.000M")

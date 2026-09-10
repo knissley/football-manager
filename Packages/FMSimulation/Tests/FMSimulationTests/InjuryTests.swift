@@ -21,7 +21,7 @@ struct InjuryTests {
         }
     }
 
-    @Test("Players get hurt, and most knocks are brief")
+    @Test("Players get hurt, and most knocks are brief", .tags(.unit))
     func injuriesHappen() {
         let all = injuries(1...10).map(\.1)
         #expect(all.isEmpty == false, "ten games and nobody was hurt")
@@ -35,7 +35,7 @@ struct InjuryTests {
 
     /// An injury is located by the play it happened on. The reference names the game,
     /// the game names the week, and nothing has to agree with anything.
-    @Test("Every injury points at a real play in the game it happened in")
+    @Test("Every injury points at a real play in the game it happened in", .tags(.contract))
     func injuriesPointAtRealPlays() {
         for (result, injury) in injuries(1...8) {
             #expect(injury.occurredOn.game == result.game)
@@ -49,7 +49,7 @@ struct InjuryTests {
 
     /// A knock he plays through still belongs in the stream — *he was hurt in the third
     /// and stayed in* is a real thing to be able to say.
-    @Test("Some injuries end a player's game and some do not")
+    @Test("Some injuries end a player's game and some do not", .tags(.unit))
     func someAredPlayedThrough() {
         let all = injuries(1...10).map(\.1)
         #expect(all.contains { $0.leavesTheGame })
@@ -58,7 +58,7 @@ struct InjuryTests {
 
     /// The point of availability: a hurt player stops taking snaps, and next man up
     /// falls out of the depth chart with nothing else changing.
-    @Test("A player forced out takes no further snaps")
+    @Test("A player forced out takes no further snaps", .tags(.contract))
     func hurtPlayersLeaveTheField() {
         for seed in UInt64(1)...8 {
             let result = game(seed: seed)
@@ -76,7 +76,7 @@ struct InjuryTests {
     }
 
     /// Contact is what hurts people. A kneel or a spike should almost never do it.
-    @Test("Injuries happen on contact, not on administrative plays")
+    @Test("Injuries happen on contact, not on administrative plays", .tags(.unit))
     func injuriesFollowContact() {
         var administrative = 0
         var contact = 0
@@ -98,7 +98,7 @@ struct InjuryTests {
     /// Durability and injury resistance are what separate a player who misses a quarter
     /// from one who misses a month. A first pass had the sign backwards and gave the
     /// sturdiest players the longest absences.
-    @Test("Durable players miss less time")
+    @Test("Durable players miss less time", .tags(.unit))
     func durabilityShortensAbsences() {
         func averageAbsence(resistance: UInt8, durability: UInt8) -> Double {
             var random = SplittableRandom(seed: 21)
@@ -158,7 +158,7 @@ struct InjuryTests {
         #expect(fragile > sturdy, "sturdy \(sturdy) missed more than fragile \(fragile)")
     }
 
-    @Test("The same seed produces the same injuries")
+    @Test("The same seed produces the same injuries", .tags(.contract))
     func deterministic() {
         #expect(game(seed: 5).injuries == game(seed: 5).injuries)
     }
@@ -216,7 +216,7 @@ struct NonContactInjuryTests {
 
     /// The case a contact-only model cannot produce: nobody was tackled, and a season
     /// ends anyway.
-    @Test("A receiver can go down on an incompletion")
+    @Test("A receiver can go down on an incompletion", .tags(.unit))
     func happensWithNoContact() {
         let (context, _) = world()
         var random = SplittableRandom(seed: 9)
@@ -234,7 +234,7 @@ struct NonContactInjuryTests {
 
     /// They skew long. There is no walk-it-off branch: an achilles is most of a season
     /// and a hamstring is still weeks.
-    @Test("Non-contact injuries always cost time, and often a lot of it")
+    @Test("Non-contact injuries always cost time, and often a lot of it", .tags(.unit))
     func theyAreSevere() {
         let (context, _) = world()
         var random = SplittableRandom(seed: 11)
@@ -255,7 +255,7 @@ struct NonContactInjuryTests {
     }
 
     /// Linemen in a phone booth do not tear knees coming out of breaks.
-    @Test("Only players moving hard are exposed")
+    @Test("Only players moving hard are exposed", .tags(.unit))
     func onlyExplosiveRolesAreExposed() {
         let (context, _) = world()
         var random = SplittableRandom(seed: 13)
@@ -280,7 +280,7 @@ struct NonContactInjuryTests {
     }
 
     /// A quarterback scrambling is exposed; one standing in the pocket is not.
-    @Test("A scrambling quarterback is exposed and a passing one is not")
+    @Test("A scrambling quarterback is exposed and a passing one is not", .tags(.unit))
     func scramblingExposesTheQuarterback() {
         let (context, _) = world()
         var random = SplittableRandom(seed: 17)
@@ -318,7 +318,7 @@ struct NonContactInjuryTests {
 
     /// The resolver had no way to produce a scramble at all, so `PlayKind.scramble` was a
     /// case nothing could reach and a quarterback could not be hurt running.
-    @Test("Quarterbacks actually scramble")
+    @Test("Quarterbacks actually scramble", .tags(.unit))
     func scramblesHappen() {
         var scrambles: [PlayRecord] = []
         for seed in UInt64(1)...5 {

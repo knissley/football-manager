@@ -27,7 +27,7 @@ private func mean(_ values: [Int]) -> Double {
 @Suite("Roster shape")
 struct RosterShapeTests {
 
-    @Test("The standard roster is 53 with eleven starters a side")
+    @Test("The standard roster is 53 with eleven starters a side", .tags(.unit))
     func standardShape() {
         #expect(RosterShape.standard.rosterSize == 53)
         // Eleven on offence, eleven on defence, plus the three kicking specialists.
@@ -43,7 +43,7 @@ struct RosterShapeTests {
         #expect(defense == 11)
     }
 
-    @Test("Every shape fields exactly five offensive linemen")
+    @Test("Every shape fields exactly five offensive linemen", .tags(.unit))
     func coversTheField() {
         for shape in [RosterShape.standard, RosterShape.minimal] {
             let linemen = shape.requirements
@@ -56,7 +56,7 @@ struct RosterShapeTests {
     /// Twenty-five players: eleven a side plus the three kicking specialists,
     /// with no depth at all. Small enough that a four-team league sims a season
     /// in a blink.
-    @Test("A minimal roster is every starter and nobody else")
+    @Test("A minimal roster is every starter and nobody else", .tags(.unit))
     func minimalShape() {
         #expect(RosterShape.minimal.rosterSize == 25)
         #expect(RosterShape.minimal.starterCount == 25)
@@ -69,13 +69,13 @@ struct RosterShapeTests {
 @Suite("Roster generation")
 struct RosterGeneratorTests {
 
-    @Test("A roster is exactly the size its shape asks for")
+    @Test("A roster is exactly the size its shape asks for", .tags(.unit))
     func size() {
         #expect(makeRoster().count == 53)
         #expect(makeRoster(shape: .minimal).count == 25)
     }
 
-    @Test("Every position requirement is filled exactly")
+    @Test("Every position requirement is filled exactly", .tags(.unit))
     func positionCounts() {
         let roster = makeRoster()
         for requirement in RosterShape.standard.requirements {
@@ -84,12 +84,12 @@ struct RosterGeneratorTests {
         }
     }
 
-    @Test("The same seed produces the same roster")
+    @Test("The same seed produces the same roster", .tags(.contract))
     func deterministic() {
         #expect(makeRoster(seed: 4242) == makeRoster(seed: 4242))
     }
 
-    @Test("Identifiers are unique and allocated in order")
+    @Test("Identifiers are unique and allocated in order", .tags(.contract))
     func identifiers() {
         let roster = makeRoster()
         #expect(Set(roster.map(\.id)).count == roster.count)
@@ -98,7 +98,7 @@ struct RosterGeneratorTests {
 
     /// If a starter is not clearly better than his backup, an injury costs
     /// nothing and depth stops being a decision.
-    @Test("Starters are clearly better than the players behind them")
+    @Test("Starters are clearly better than the players behind them", .tags(.unit))
     func startersOutrankBackups() {
         let roster = makeRoster()
         let starters = RosterGenerator.projectedStarters(from: roster)
@@ -110,7 +110,7 @@ struct RosterGeneratorTests {
         #expect(starterMean > reserveMean + 6, "starters \(starterMean), reserves \(reserveMean)")
     }
 
-    @Test("Projected starters fill each position the right number of times")
+    @Test("Projected starters fill each position the right number of times", .tags(.unit))
     func starterCounts() {
         let starters = RosterGenerator.projectedStarters(from: makeRoster())
         for requirement in RosterShape.standard.requirements where requirement.starters > 0 {
@@ -121,7 +121,7 @@ struct RosterGeneratorTests {
 
     /// A league where every team is the same is a league where roster building
     /// does not matter.
-    @Test("Stronger teams produce stronger rosters")
+    @Test("Stronger teams produce stronger rosters", .tags(.unit))
     func strengthSeparates() {
         let contender = mean(makeRoster(strength: .contender, seed: 7).map { Int($0.overall) })
         let average = mean(makeRoster(strength: .leagueAverage, seed: 7).map { Int($0.overall) })
@@ -134,7 +134,7 @@ struct RosterGeneratorTests {
 
     /// Team quality should show up most in the starting lineup. Everybody's
     /// fifth receiver is roughly the same player.
-    @Test("Team quality lifts starters more than depth")
+    @Test("Team quality lifts starters more than depth", .tags(.unit))
     func strengthConcentratesInStarters() {
         func split(_ strength: RosterGenerator.Strength) -> (starters: Double, reserves: Double) {
             let roster = makeRoster(strength: strength, seed: 11)
@@ -153,7 +153,7 @@ struct RosterGeneratorTests {
         #expect(starterGap > reserveGap, "starters \(starterGap), reserves \(reserveGap)")
     }
 
-    @Test("Ages span a believable range and centre on the prime")
+    @Test("Ages span a believable range and centre on the prime", .tags(.unit))
     func ageDistribution() {
         let roster = makeRoster()
         let ages = roster.map { $0.age(in: season) }
@@ -164,7 +164,7 @@ struct RosterGeneratorTests {
         #expect(ages.contains { $0 >= 31 }, "no veterans")
     }
 
-    @Test("Starters are older than the players developing behind them")
+    @Test("Starters are older than the players developing behind them", .tags(.unit))
     func startersAreOlder() {
         var starterAges: [Int] = []
         var reserveAges: [Int] = []
@@ -178,7 +178,7 @@ struct RosterGeneratorTests {
         #expect(mean(starterAges) > mean(reserveAges))
     }
 
-    @Test("Nobody on a generated roster is above his ceiling")
+    @Test("Nobody on a generated roster is above his ceiling", .tags(.contract))
     func ceilingHolds() {
         for seed in UInt64(1)...20 {
             for player in makeRoster(seed: seed) {
@@ -207,7 +207,7 @@ struct LeagueDistributionTests {
         }
     }
 
-    @Test("A generated league has a believable overall distribution")
+    @Test("A generated league has a believable overall distribution", .tags(.unit))
     func distribution() {
         let players = league().flatMap { $0 }
         #expect(players.count == 32 * 53)
@@ -220,7 +220,7 @@ struct LeagueDistributionTests {
         #expect(variance > 40 && variance < 160, "league variance \(variance)")
     }
 
-    @Test("Elite players are rare and terrible players exist")
+    @Test("Elite players are rare and terrible players exist", .tags(.unit))
     func tails() {
         let players = league().flatMap { $0 }
         let elite = players.filter { $0.overall >= 90 }
@@ -233,7 +233,7 @@ struct LeagueDistributionTests {
         #expect(fringe.count > players.count / 20, "no fringe players at all")
     }
 
-    @Test("Quarterbacks are the most valuable and the most concentrated")
+    @Test("Quarterbacks are the most valuable and the most concentrated", .tags(.unit))
     func quarterbacks() {
         let players = league().flatMap { $0 }
         let starters = players.filter { $0.position == .quarterback }
@@ -244,7 +244,7 @@ struct LeagueDistributionTests {
         #expect(starters.prefix(10).allSatisfy { $0.overall >= 75 })
     }
 
-    @Test("Every team fields a legal roster")
+    @Test("Every team fields a legal roster", .tags(.contract))
     func everyTeamIsLegal() {
         for roster in league() {
             #expect(roster.count == 53)

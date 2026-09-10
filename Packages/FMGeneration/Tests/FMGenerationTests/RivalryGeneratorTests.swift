@@ -27,14 +27,14 @@ struct RivalryGeneratorTests {
         return World(league: generated.league, teams: generated.teams, rivalries: rivalries)
     }
 
-    @Test("The same seed seeds the same grudges")
+    @Test("The same seed seeds the same grudges", .tags(.contract))
     func deterministic() {
         #expect(world()?.rivalries == world()?.rivalries)
     }
 
     /// Everyone in your division is a rivalry by construction: you play them twice a
     /// year and share a bracket.
-    @Test("Every divisional pair is a rivalry")
+    @Test("Every divisional pair is a rivalry", .tags(.contract))
     func divisionalPairsAreCovered() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -52,7 +52,7 @@ struct RivalryGeneratorTests {
         #expect(world.rivalries.contains { $0.origin == .divisional })
     }
 
-    @Test("A rivalry is never stored twice, and never with itself")
+    @Test("A rivalry is never stored twice, and never with itself", .tags(.contract))
     func pairsAreUnique() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -64,7 +64,7 @@ struct RivalryGeneratorTests {
 
     /// Cross-division rivalries have to be earned. The crosstown game is the one that
     /// earns itself by geography.
-    @Test("Extra rivalries exist beyond the divisions, and some are neighbours")
+    @Test("Extra rivalries exist beyond the divisions, and some are neighbours", .tags(.unit))
     func extrasAreSeeded() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -84,7 +84,7 @@ struct RivalryGeneratorTests {
 
     /// A rivalry whose origin is January needs the January game in its log, or the
     /// origin is an assertion with nothing behind it.
-    @Test("An earned origin has the event that earned it")
+    @Test("An earned origin has the event that earned it", .tags(.contract))
     func originsAreEvidenced() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -106,7 +106,7 @@ struct RivalryGeneratorTests {
 
     /// A world is not a blank slate: these teams have been playing each other for
     /// decades before you arrived.
-    @Test("A new world starts with history")
+    @Test("A new world starts with history", .tags(.unit))
     func historyExists() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -116,7 +116,7 @@ struct RivalryGeneratorTests {
         #expect(withHistory.count > world.rivalries.count / 2)
     }
 
-    @Test("Invented history sits in the past, in order")
+    @Test("Invented history sits in the past, in order", .tags(.contract))
     func historyIsInThePast() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -133,7 +133,7 @@ struct RivalryGeneratorTests {
 
     /// A history where every year produced a controversial finish is a highlight reel,
     /// not a history, and every pairing would open as a blood feud.
-    @Test("Most of the invented past is ordinary")
+    @Test("Most of the invented past is ordinary", .tags(.unit))
     func historyIsMostlyOrdinary() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -151,7 +151,7 @@ struct RivalryGeneratorTests {
 
     /// The whole reason history is a log rather than a number: a write-up has to be able
     /// to name what happened.
-    @Test("Every rivalry with history has something citable")
+    @Test("Every rivalry with history has something citable", .tags(.contract))
     func historyIsCitable() {
         guard let world = world(settings: .brief) else {
             Issue.record("generation failed")
@@ -163,7 +163,7 @@ struct RivalryGeneratorTests {
     }
 
     /// Divisional pairs play twice a year, so they have more to argue about.
-    @Test("Divisional rivalries run hotter than the rest")
+    @Test("Divisional rivalries run hotter than the rest", .tags(.unit))
     func divisionalRivalriesAreHotter() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -179,7 +179,7 @@ struct RivalryGeneratorTests {
     }
 
     /// If everything opens bitter, nothing that happens afterwards can raise the stakes.
-    @Test("A new world has a spread of heat, not a league of blood feuds")
+    @Test("A new world has a spread of heat, not a league of blood feuds", .tags(.unit))
     func heatIsSpread() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -196,7 +196,7 @@ struct RivalryGeneratorTests {
     /// Only one pair can have played in a given championship game. History is invented
     /// per pair, so three rivalries independently claimed the same one — which reads as
     /// fabricated the instant anybody looks at two of them together.
-    @Test("At most one title game per season across the whole league")
+    @Test("At most one title game per season across the whole league", .tags(.contract))
     func titleGamesAreUnique() {
         for seed in UInt64(1)...8 {
             guard let world = world(seed: seed) else { continue }
@@ -212,7 +212,7 @@ struct RivalryGeneratorTests {
     /// Four origins exist, so all four should be reachable. Earlier passes allocated the
     /// extras by ranked order, and whichever origin had the most candidates silently
     /// took every slot.
-    @Test("A league seeds every kind of rivalry")
+    @Test("A league seeds every kind of rivalry", .tags(.contract))
     func everyOriginIsRepresented() {
         guard let world = world() else {
             Issue.record("generation failed")
@@ -239,7 +239,7 @@ struct RivalryGeneratorTests {
     /// The heated half of the assertion is the other side of the cap. Stopping one band
     /// short of bitter is not the same as flattening the league, and all sixty of these
     /// worlds open with heated pairs in them.
-    @Test("contract: no world opens bitter, and lived history still gets there")
+    @Test("contract: no world opens bitter, and lived history still gets there", .tags(.contract))
     func bitterIsEarnedNotSeeded() {
         var openedBitter: [UInt64] = []
         var openedWithoutHeat: [UInt64] = []
@@ -288,7 +288,7 @@ struct RivalryGeneratorTests {
         #expect(lived.heat(in: 2034) == .bitter, "four bitter seasons should get there")
     }
 
-    @Test("A smaller league still seeds a coherent set")
+    @Test("A smaller league still seeds a coherent set", .tags(.unit))
     func smallLeagues() {
         guard let world = world(shape: .compact, settings: .brief) else {
             Issue.record("generation failed")

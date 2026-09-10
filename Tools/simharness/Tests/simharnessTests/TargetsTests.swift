@@ -21,7 +21,9 @@ struct TargetsTests {
             .appendingPathComponent("docs/match-engine.md")
     }
 
-    @Test("contract: the calibration table in match-engine.md is the one Targets.swift generates")
+    @Test(
+        "contract: the calibration table in match-engine.md is the one Targets.swift generates",
+        .tags(.contract))
     func documentTableMatchesTargets() throws {
         let document = try String(contentsOf: documentURL, encoding: .utf8)
         let begin = "<!-- calibration-targets:begin -->"
@@ -40,7 +42,9 @@ struct TargetsTests {
         )
     }
 
-    @Test("contract: every target has a unique id, and a sourced band names a season and a source")
+    @Test(
+        "contract: every target has a unique id, and a sourced band names a season and a source",
+        .tags(.contract))
     func everyTargetIsSourcedOrSaysItIsNot() {
         var seen: Set<String> = []
         for target in CalibrationTarget.all {
@@ -63,7 +67,9 @@ struct TargetsTests {
     /// 2024 kickoff season are stale, and under 2024 the 2025 ones are. A row sourced from
     /// 2023–24 that is sensitive to the kickoff would be stale under both, which is why no
     /// such row exists.
-    @Test("contract: rule-sensitive rows are stale under exactly the other rulebook")
+    @Test(
+        "contract: rule-sensitive rows are stale under exactly the other rulebook", .tags(.contract)
+    )
     func staleRowsFollowTheRulebook() {
         let under2025 = CalibrationTarget.stale(under: 2025)
         let under2024 = CalibrationTarget.stale(under: 2024)
@@ -87,7 +93,9 @@ struct TargetsTests {
         #expect(!under2024.isEmpty)
     }
 
-    @Test("unit: a value prints with the row's precision and unit, and a band without the unit")
+    @Test(
+        "unit: a value prints with the row's precision and unit, and a band without the unit",
+        .tags(.unit))
     func formatting() {
         let target = CalibrationTarget(
             id: "t", label: "t", low: 1.25, high: 2, season: .season(2025), source: "s",

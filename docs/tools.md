@@ -1,8 +1,8 @@
 # Tools
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
-`playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh` and
-`scripts/harness-reach.sh`. Nothing here is a plan.
+`playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/harness-reach.sh`
+and `scripts/test-census.sh`. Nothing here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
@@ -344,6 +344,11 @@ Every one of these is a hard-failing step of the `test` job in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
 `Tools/simharness` included, since #9, because nothing else compiles its tests.
 
+Every `@Test` in all five targets carries a kind tag, and
+[`test-census`](#test-census--what-the-suite-asserts) below fails on one that does not.
+What the kinds mean and what the suite currently looks like when you count it are in
+[testing.md](testing.md).
+
 ### The conformance scenarios are a library, not test support
 
 `FMSimulation` ships a second library, **`FMSimulationScenarios`**: the scripted games the
@@ -515,6 +520,75 @@ called the two leagues identical.
 It builds a harness per scenario that reaches one — a few minutes on a warm Linux
 container, longer from cold — so run it when you change the script. CI does not run it, deliberately: the determinism step in the `test` job is the cheap guard
 that runs on every push.
+
+## test-census — what the suite asserts
+
+```bash
+./scripts/test-census.sh
+```
+
+Counts the kind tag on every `@Test` in every test target, per target and per suite, and
+prints the shares. Exits 1 on a test that carries no kind or carries two, naming it as
+`file:line: what is wrong`; exits 2 when it would otherwise have passed by counting
+nothing. It takes under a second — it is a text scan, not a build.
+
+```text
+test census — 717 @Test declarations in 5 targets
+
+  target           football   contract       unit        pin   untagged   total
+  FMRandom          0   0.0%    3   9.1%   30  90.9%    0   0.0%    0   0.0%      33
+  FMCore           28   8.6%   27   8.3%  268  82.7%    1   0.3%    0   0.0%     324
+  FMGeneration      0   0.0%   66  38.2%  107  61.8%    0   0.0%    0   0.0%     173
+  FMSimulation     59  33.7%   50  28.6%   63  36.0%    3   1.7%    0   0.0%     175
+  simharness        0   0.0%    9  75.0%    3  25.0%    0   0.0%    0   0.0%      12
+  all              87  12.1%  155  21.6%  471  65.7%    4   0.6%    0   0.0%     717
+```
+
+The kinds are `.football`, `.contract`, `.unit` and `.pin`, defined in CLAUDE.md under
+*Conventions → Tests* and declared per test target in `TestTags.swift`. What the shares
+mean, and what the first census found, are in [testing.md](testing.md) — that page is
+where a number from this table gets argued with, not this one.
+
+`--list` prints one line per test, `file:line: kind`, which is how you find out what a
+suite is made of without reading it:
+
+```bash
+./scripts/test-census.sh --list | grep FMSimulation | grep football | wc -l
+```
+
+CI runs the census as a hard-failing step of the `test` job on both architectures and
+writes the table into the job summary, so the shares are in front of whoever opens the
+run. It is architecture-independent — it reads source, not behaviour — so the two legs
+print the same table, and that is the cost of not having a third job.
+
+The scan is deliberately literal. A line that *begins* with `@Test` opens an attribute,
+which is then accumulated until its parentheses balance: that is what makes a multi-line
+attribute and a parameterised test count once each. Lines inside a `"""` string and
+inside a `/* */` block are skipped, so prose about a `@Test` does not become one. A
+`@Test` written any other way is meant to be missed here and caught in review — and the
+per-target totals printed above are the check on that, because they have to agree with
+what `swift test` reports it ran.
+
+### Its self-test
+
+```bash
+./scripts/test-census.sh --self-test
+```
+
+The test for the script, in the shape [`lint-sim.sh --self-test`](#the-self-test) uses.
+It censuses [`scripts/test-census-fixtures/`](../scripts/test-census-fixtures) instead of
+the packages: two Swift files that are never compiled and never part of a package, one
+carrying a test of each kind plus every shape the scan has to get right — a multi-line
+attribute, a parameterised test, a tag on the `@Suite` rather than on the test, a struct
+with no `@Suite` at all, and `@Test` written inside a doc comment, inside a block comment
+and inside a multi-line string — and one carrying the four ways a test can fail to say
+what kind it is.
+
+Every test the fixture tree must produce is listed in
+`scripts/test-census-fixtures/expected.txt` as `path:line: kind`, and a difference in
+either direction fails: a shape that quietly stops being counted is caught as loudly as
+one counted twice. So a new shape needs a fixture and an expectation line. It runs in
+under a second, and CI runs it as its own hard-failing step.
 
 ## Formatting
 

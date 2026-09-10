@@ -28,7 +28,8 @@ struct TryTests {
     /// flag that was recorded and never applied stayed invisible. A try that no flag
     /// preceded is snapped from its own yard line; one a flag preceded is not.
     @Test(
-        "football · Rule 11-3-1, 11-3-3 · a try is snapped from its own yard line unless a flag on the try moved it"
+        "football · Rule 11-3-1, 11-3-3 · a try is snapped from its own yard line unless a flag on the try moved it",
+        .tags(.football)
     )
     func triesAreSnappedFromTheRightSpot() {
         let rules = Rules.standard
@@ -69,7 +70,8 @@ struct TryTests {
     /// the kick is that much longer. Fifteen plus five is the 20, and a kick from the 20
     /// is 37 yards by the engine's one field-goal formula.
     @Test(
-        "football · Rule 11-3-3 Item 2, 7-4-2 · a false start on an extra point re-kicks from the 20, a 37-yard try"
+        "football · Rule 11-3-3 Item 2, 7-4-2 · a false start on an extra point re-kicks from the 20, a 37-yard try",
+        .tags(.football)
     )
     func falseStartOnTheKickMovesItBack() {
         let trace = RulesScenario.falseStartOnATry.run()
@@ -91,7 +93,8 @@ struct TryTests {
     /// the try is snapped there. The scoring side is asked again whether to go for two
     /// from the 1, and this one still does.
     @Test(
-        "football · Rule 11-3-3 Item 2, 7-4-5, 14-2-1 · defensive offside on a two-point try snaps the replay from the 1"
+        "football · Rule 11-3-3 Item 2, 7-4-5, 14-2-1 · defensive offside on a two-point try snaps the replay from the 1",
+        .tags(.football)
     )
     func offsideOnTheConversionMovesItIn() {
         let trace = ScriptedGame(caller: ScriptedCaller(twoPointDecision: { _ in true })) { snap in
@@ -117,7 +120,7 @@ struct TryTests {
 
     /// The point of a rule that can be satisfied: sometimes it is, and sometimes it is
     /// not. A conversion rate of zero and one of a hundred are equally wrong.
-    @Test("Conversions are sometimes made and sometimes missed")
+    @Test("Conversions are sometimes made and sometimes missed", .tags(.unit))
     func conversionsGoBothWays() {
         let tries = Self.plays(1...80).filter { $0.outcome.kind == .twoPointConversion }
         #expect(tries.isEmpty == false, "nobody ever went for two")
@@ -128,7 +131,7 @@ struct TryTests {
     /// The scoreboard has to be reconstructible from the stream, because everything above
     /// the engine is a query over it ([ADR-0007]). If the plays say one thing and the
     /// final score says another, one of them is lying.
-    @Test("The score on the board is the sum of the scoring plays")
+    @Test("The score on the board is the sum of the scoring plays", .tags(.contract))
     func scoreboardMatchesTheStream() {
         let rules = Rules.standard
         for seed in UInt64(1)...20 {

@@ -33,7 +33,7 @@ struct DraftHistoryTests {
 
     /// Three quarters is the generation target — the rest arrived undrafted — and it is a
     /// design choice about the world rather than a measured fact about any real league.
-    @Test("contract: about three quarters of a generated league was drafted")
+    @Test("contract: about three quarters of a generated league was drafted", .tags(.contract))
     func draftedShare() {
         for seed in seeds {
             let players = everyone(seed: seed)
@@ -47,7 +47,7 @@ struct DraftHistoryTests {
     /// Undrafted is a way of arriving, not a missing record. Every player knows the
     /// season he first counted against a roster, which is what accrued seasons are
     /// counted from.
-    @Test("contract: an undrafted player still knows the season he arrived")
+    @Test("contract: an undrafted player still knows the season he arrived", .tags(.contract))
     func undraftedStillArrive() {
         for seed in seeds {
             let undrafted = everyone(seed: seed).filter { $0.draft == nil }
@@ -61,7 +61,8 @@ struct DraftHistoryTests {
         }
     }
 
-    @Test("contract: a drafted player's first season is the season he was drafted")
+    @Test(
+        "contract: a drafted player's first season is the season he was drafted", .tags(.contract))
     func draftedFirstSeason() {
         for seed in seeds {
             for player in everyone(seed: seed) {
@@ -74,7 +75,7 @@ struct DraftHistoryTests {
 
     /// A pick that is not on the board is not a pick. Seven rounds of thirty-two, which is
     /// the standard league's draft.
-    @Test("contract: every pick sits on the board it was made from")
+    @Test("contract: every pick sits on the board it was made from", .tags(.contract))
     func picksAreOnTheBoard() {
         let rounds = DraftClassGenerator.ClassShape.standard.rounds
         for seed in seeds {
@@ -100,7 +101,7 @@ struct DraftHistoryTests {
 
     /// Every round is used. A history where nobody was ever a seventh-round pick is a
     /// history with no late bloomers in it.
-    @Test("contract: a generated league contains a player from every round")
+    @Test("contract: a generated league contains a player from every round", .tags(.contract))
     func everyRoundIsRepresented() {
         let rounds = DraftClassGenerator.ClassShape.standard.rounds
         let byRound = Set(everyone(seed: 7).compactMap { $0.draft?.round })
@@ -111,7 +112,7 @@ struct DraftHistoryTests {
 
     /// The league's history is a decade deep, not one draft. A world where every player
     /// entered in the same season has veterans who are somehow all the same age.
-    @Test("contract: draft history goes back more than a decade")
+    @Test("contract: draft history goes back more than a decade", .tags(.contract))
     func historyIsDeep() {
         let seasons = Set(everyone(seed: 7).compactMap { $0.draft?.season })
         #expect(seasons.count >= 10, "only \(seasons.count) draft seasons in the league")
@@ -121,7 +122,7 @@ struct DraftHistoryTests {
     /// The point of hanging the round off the ceiling: the best players in the league are
     /// the ones who went early, so a roster's draft history reads as an explanation of the
     /// roster rather than as decoration next to it.
-    @Test("contract: the better the player, the earlier he went")
+    @Test("contract: the better the player, the earlier he went", .tags(.contract))
     func betterPlayersWentEarlier() {
         let drafted = seeds.flatMap { everyone(seed: $0) }.filter { $0.draft != nil }
         #expect(!drafted.isEmpty)
@@ -144,7 +145,7 @@ struct DraftHistoryTests {
     /// A contending roster is made of players who went earlier than a rebuilding one's.
     /// The round comes off a league-wide band rather than a place in this team's own
     /// order, which is what lets the two differ at all.
-    @Test("contract: a contender's roster went earlier than a rebuilding one's")
+    @Test("contract: a contender's roster went earlier than a rebuilding one's", .tags(.contract))
     func strengthShowsInTheHistory() {
         func meanRound(_ strength: RosterGenerator.Strength) -> Double {
             var random = SplittableRandom(seed: 31)
@@ -174,7 +175,8 @@ struct DraftHistoryTests {
     /// which clamps at twenty-one and piles 15.7% of the league on that exact age — a floor
     /// no entry-age distribution can get under. Issue #67 owns the age model and owns
     /// replacing this fence with a band from a source.
-    @Test("contract: a generated league has rookies, and most of it is not rookies")
+    @Test(
+        "contract: a generated league has rookies, and most of it is not rookies", .tags(.contract))
     func rookiesAreAMinority() {
         for seed in seeds {
             let players = everyone(seed: seed)
@@ -185,7 +187,7 @@ struct DraftHistoryTests {
         }
     }
 
-    @Test("contract: the same seed writes the same draft history")
+    @Test("contract: the same seed writes the same draft history", .tags(.contract))
     func deterministic() {
         let first = everyone(seed: 5).map { $0.draft }
         let second = everyone(seed: 5).map { $0.draft }

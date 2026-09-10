@@ -15,11 +15,16 @@ names, no licensing entanglements, infinite worlds.
 ## Status
 
 Pre-alpha, late in milestone M1. Four packages build and test — `FMRandom`, `FMCore`,
-`FMGeneration`, `FMSimulation` — with three command-line tools: `playsize`, `worldgen`
-and `simharness`. There is no app target, no SwiftUI and no SwiftData yet; that is M4.
-World generation and a crude game engine work behind the real `PlayRecord` contract, and
-the per-play numbers land, but the rules layer does not yet finish a game correctly — the
-fixes are an issue backlog. See [`CLAUDE.md`](CLAUDE.md) for the current state and
+`FMGeneration`, `FMSimulation` — with four command-line tools: `playsize`, `worldgen`,
+`simharness` and `gamelog`. There is no app target, no SwiftUI and no SwiftData yet; that
+is M4. World generation and a crude game engine work behind the real `PlayRecord`
+contract, and the per-play numbers land.
+
+A September 2026 audit found the rules layer did not finish a game correctly — no
+overtime, no try on the last play of a half, the wrong team kicking off after a safety.
+Wave 1 of the backlog fixed those, each with a scenario test written from the 2025
+rulebook; the rest of the findings are still an issue backlog. See
+[`CLAUDE.md`](CLAUDE.md) for the current state, which is the one to trust, and
 [`docs/roadmap.md`](docs/roadmap.md) for what ships when.
 
 ## Docs
@@ -50,6 +55,7 @@ column, since an ADR's own status is the decision's, not the code's.
 | [Weekly loop](docs/weekly-loop.md) | *Provisional* — a UI probe run against the systems design |
 | [Roadmap](docs/roadmap.md) | Milestones M0–M9 with exit criteria |
 | [Tools](docs/tools.md) | Command-line tools for inspecting the engine, with example invocations |
+| [Testing](docs/testing.md) | What each kind of test asserts, and the census of what the suite actually does |
 | [ADRs](docs/adr/) | Architecture decision records |
 
 ## Working on this repo

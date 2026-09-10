@@ -46,7 +46,7 @@ struct EndgameTests {
 
     /// The lead is safe if the clock can be exhausted. Running a play you did not need
     /// to is how a won game becomes a fumble.
-    @Test("A team leading late kneels the game out")
+    @Test("A team leading late kneels the game out", .tags(.unit))
     func kneelsWhenTheClockCanBeBurned() {
         let safe = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
@@ -55,7 +55,7 @@ struct EndgameTests {
 
     /// Kneeling a play too early hands the ball back. Timeouts are exactly what buys the
     /// defence that chance.
-    @Test("Defensive timeouts make the lead unsafe")
+    @Test("Defensive timeouts make the lead unsafe", .tags(.unit))
     func timeoutsPreventKneeling() {
         let withTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 3)
@@ -66,20 +66,20 @@ struct EndgameTests {
         #expect(family(noTimeouts) == .kneel)
     }
 
-    @Test("A team that is behind or level never kneels")
+    @Test("A team that is behind or level never kneels", .tags(.unit))
     func neverKneelsWhenItCannotAfford() {
         #expect(family(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
         #expect(family(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
     }
 
-    @Test("Nobody kneels in the first quarter")
+    @Test("Nobody kneels in the first quarter", .tags(.unit))
     func neverKneelsEarly() {
         #expect(
             family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
     }
 
     /// Kneeling on fourth down is a turnover on downs, not a way to end a game.
-    @Test("Fourth down is not a kneel")
+    @Test("Fourth down is not a kneel", .tags(.unit))
     func neverKneelsOnFourth() {
         #expect(
             family(
@@ -91,14 +91,14 @@ struct EndgameTests {
 
     /// Costs a down and a second. Worth it only when the clock is running and there is
     /// no timeout to spend instead.
-    @Test("A team out of timeouts spikes to stop the clock")
+    @Test("A team out of timeouts spikes to stop the clock", .tags(.unit))
     func spikesWithNoTimeouts() {
         let racing = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
         #expect(family(racing, clockRunning: true) == .spike)
     }
 
-    @Test("A team with a timeout uses it rather than burning a down")
+    @Test("A team with a timeout uses it rather than burning a down", .tags(.unit))
     func doesNotSpikeWithTimeouts() {
         let hasTimeouts = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 2)
@@ -106,14 +106,14 @@ struct EndgameTests {
     }
 
     /// Spiking on a stopped clock wastes a down for nothing.
-    @Test("Nobody spikes when the clock is already stopped")
+    @Test("Nobody spikes when the clock is already stopped", .tags(.unit))
     func doesNotSpikeOnAStoppedClock() {
         let stopped = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
         #expect(family(stopped, clockRunning: false) != .spike)
     }
 
-    @Test("A spike on fourth down is a turnover with extra steps")
+    @Test("A spike on fourth down is a turnover with extra steps", .tags(.unit))
     func neverSpikesOnFourth() {
         let fourth = situation(
             down: .fourth, quarter: 4, clock: 20, differential: -4, offenseTimeouts: 0)
@@ -130,7 +130,7 @@ struct EndgameTests {
             context: context(clockRunning: clockRunning))
     }
 
-    @Test("A trailing offence spends timeouts to keep the clock")
+    @Test("A trailing offence spends timeouts to keep the clock", .tags(.unit))
     func offenceSpendsToSurvive() {
         #expect(callsTimeout(situation(clock: 60, differential: -4), isOffense: true))
         #expect(
@@ -141,7 +141,7 @@ struct EndgameTests {
 
     /// The half nothing does if you only model the team with the ball: the defence
     /// spends timeouts to get it back.
-    @Test("A trailing defence spends timeouts to get the ball back")
+    @Test("A trailing defence spends timeouts to get the ball back", .tags(.unit))
     func defenceSpendsToGetItBack() {
         // `scoreDifferential` is the offence's, so a positive number means the team
         // without the ball is the one behind.
@@ -151,7 +151,7 @@ struct EndgameTests {
             "a defence that is ahead wants the clock to run")
     }
 
-    @Test("Nobody calls a timeout on a stopped clock or in the first quarter")
+    @Test("Nobody calls a timeout on a stopped clock or in the first quarter", .tags(.unit))
     func timeoutsAreNotWasted() {
         #expect(
             callsTimeout(
@@ -170,7 +170,7 @@ struct EndgameTests {
 
     /// Timeouts are spent, and the counts in the stream are what records it — no new
     /// event type, because the next play's situation already carries them.
-    @Test("Timeouts are spent over a game and visible in the stream")
+    @Test("Timeouts are spent over a game and visible in the stream", .tags(.contract))
     func timeoutsAreSpentAndVisible() {
         var everSpent = false
         for seed in UInt64(1)...8 {
@@ -185,7 +185,7 @@ struct EndgameTests {
         #expect(everSpent, "eight games and nobody ever called a timeout")
     }
 
-    @Test("Timeouts never go negative and reset at the half")
+    @Test("Timeouts never go negative and reset at the half", .tags(.contract))
     func timeoutsStayLegal() {
         for seed in UInt64(1)...6 {
             let plays = game(seed: seed).plays
@@ -199,7 +199,7 @@ struct EndgameTests {
     }
 
     /// Games should end in victory formation rather than with a meaningless snap.
-    @Test("Won games get knelt out")
+    @Test("Won games get knelt out", .tags(.unit))
     func gamesEndInVictoryFormation() {
         var kneels = 0
         for seed in UInt64(1)...10 {
@@ -218,7 +218,8 @@ struct EndgameTests {
     /// when trailing; and after a defensive dead-ball foul the offence has the clock
     /// wait for the snap unless it leads.
     @Test(
-        "pin · the baseline runoff decisions: a timeout at 15 seconds or less with one in hand, the defence declines only when trailing, the offence takes the snap start unless it leads (PlayCaller defaults; coaching decisions, not rules)"
+        "pin · the baseline runoff decisions: a timeout at 15 seconds or less with one in hand, the defence declines only when trailing, the offence takes the snap start unless it leads (PlayCaller defaults; coaching decisions, not rules)",
+        .tags(.pin)
     )
     func runoffDecisionDefaults() {
         func at(_ clock: UInt16, differential: Int16 = 0, timeouts: UInt8 = 1) -> Situation {
@@ -289,6 +290,7 @@ struct EndgameTests {
     /// kicks to win; down seven it goes for two to win rather than kick to tie.
     @Test(
         "contract · after a walk-off touchdown the try snapped is the one the caller chose for its situation, at 0:00 of the fourth period (4-8-2)",
+        .tags(.contract),
         arguments: [Int16(6), Int16(7)])
     func walkOffTryIsTheCallerChoice(deficit: Int16) {
         let trace = walkOff(deficit: deficit)

@@ -7,7 +7,7 @@ struct RotationProfileTests {
 
     /// The invariant that makes a season's snap counts add up to a season: a position's
     /// shares sum to roughly how many of that position are on the field at once.
-    @Test("Shares sum to a plausible number on the field")
+    @Test("Shares sum to a plausible number on the field", .tags(.unit))
     func sharesSumToOnFieldCount() {
         let expected: [Position: (Double, Double)] = [
             .quarterback: (0.9, 1.1),
@@ -35,7 +35,7 @@ struct RotationProfileTests {
     /// up, every box score is wrong in a way no single position would reveal — a first
     /// pass fielded 10.7 defenders and the loose range this test originally carried was
     /// what let it through.
-    @Test("Each side of the ball fields eleven players")
+    @Test("Each side of the ball fields eleven players", .tags(.contract))
     func elevenASide() {
         func total(_ side: Side) -> Double {
             Position.allCases.filter { $0.side == side }
@@ -47,7 +47,7 @@ struct RotationProfileTests {
 
     /// The defensive front is four men whether it is two edges and two tackles or a
     /// three-man front with an extra rusher standing up.
-    @Test("The defensive front and the secondary carry their real numbers")
+    @Test("The defensive front and the secondary carry their real numbers", .tags(.unit))
     func defensiveShape() {
         let front =
             RotationProfile.expectedOnField(.edge)
@@ -60,7 +60,7 @@ struct RotationProfileTests {
         #expect(secondary > 4.5 && secondary < 4.9, "secondary: \(secondary)")
     }
 
-    @Test("A starter always plays more than his backup")
+    @Test("A starter always plays more than his backup", .tags(.unit))
     func sharesDescend() {
         for position in Position.allCases {
             let shares = RotationProfile.shares(for: position)
@@ -71,7 +71,7 @@ struct RotationProfileTests {
 
     /// A lineman plays every snap or he is a backup; a defensive line rotates heavily.
     /// Flattening that would put a false story in every box score.
-    @Test("Rotation depth differs by position the way the sport does")
+    @Test("Rotation depth differs by position the way the sport does", .tags(.unit))
     func rotationDepthVaries() {
         #expect(RotationProfile.snapShare(.leftTackle, depth: 0) > 0.95)
         #expect(RotationProfile.snapShare(.leftTackle, depth: 1) < 0.1)
@@ -83,7 +83,7 @@ struct RotationProfileTests {
 
     /// A fourth tight end does not play on offence, and giving him a share would put
     /// statistics on a player who never took the field.
-    @Test("Past the end of the rotation, nobody plays")
+    @Test("Past the end of the rotation, nobody plays", .tags(.unit))
     func beyondTheRotation() {
         #expect(RotationProfile.snapShare(.tightEnd, depth: 3) == 0)
         #expect(RotationProfile.snapShare(.quarterback, depth: 2) == 0)
@@ -104,7 +104,7 @@ struct DepthChartTests {
         ])
     }
 
-    @Test("A chart reports order, starters and depth")
+    @Test("A chart reports order, starters and depth", .tags(.unit))
     func ordering() {
         let chart = chart()
         #expect(chart.starter(at: .quarterback) == PlayerID(1))
@@ -115,7 +115,7 @@ struct DepthChartTests {
         #expect(chart.starter(at: .punter) == nil)
     }
 
-    @Test("Positions come back in a stable order")
+    @Test("Positions come back in a stable order", .tags(.contract))
     func stableOrder() {
         #expect(chart().positions == chart().positions)
         #expect(chart().positions == chart().positions.sorted { $0.rawValue < $1.rawValue })
@@ -123,7 +123,7 @@ struct DepthChartTests {
 
     /// A fourth running back is on the roster and not in the rotation. He should not
     /// collect statistics.
-    @Test("Only players inside the rotation are credited")
+    @Test("Only players inside the rotation are credited", .tags(.unit))
     func rotationIsBounded() {
         let backs = chart().rotation(at: .runningBack)
         #expect(backs.count == 3, "a fourth back should not be in the rotation")
@@ -133,7 +133,7 @@ struct DepthChartTests {
 
     /// Next man up: a starter going down turns his backup into a starter, and that falls
     /// out of the ordering rather than needing a rule.
-    @Test("An injury promotes everyone behind him")
+    @Test("An injury promotes everyone behind him", .tags(.unit))
     func nextManUp() {
         let healthy = chart().rotation(at: .runningBack)
         let injured = chart().rotation(at: .runningBack, unavailable: [PlayerID(10)])
@@ -146,7 +146,7 @@ struct DepthChartTests {
 
     /// The share belongs to the place on the chart, not to the man. Two injuries ahead
     /// of him and the fourth back is carrying the ball.
-    @Test("Shares follow the depth, not the player")
+    @Test("Shares follow the depth, not the player", .tags(.unit))
     func sharesFollowDepth() {
         let depleted = chart().rotation(
             at: .runningBack, unavailable: [PlayerID(10), PlayerID(11)])
@@ -157,7 +157,7 @@ struct DepthChartTests {
 
     /// Injuries do run a position out of bodies. Saying so is better than silently
     /// fielding ten men.
-    @Test("A position with nobody left is reported")
+    @Test("A position with nobody left is reported", .tags(.unit))
     func unmannedPositions() {
         let chart = chart()
         #expect(chart.unmannedPositions().isEmpty)
@@ -167,7 +167,7 @@ struct DepthChartTests {
         #expect(chart.rotation(at: .quarterback, unavailable: [PlayerID(1), PlayerID(2)]).isEmpty)
     }
 
-    @Test("A whole-chart rotation covers every position in a stable order")
+    @Test("A whole-chart rotation covers every position in a stable order", .tags(.contract))
     func wholeChartRotation() {
         let all = chart().rotation()
         #expect(Set(all.map(\.position)).count == 4)

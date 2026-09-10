@@ -9,7 +9,7 @@ struct RatingKeyTests {
     /// storage array or presence bitmap sized to the *number* of keys rather
     /// than the *largest* key aliases one rating onto another. Kicking ratings
     /// sit at 70+ and are where it would first bite.
-    @Test("Every key fits inside the storage bound")
+    @Test("Every key fits inside the storage bound", .tags(.unit))
     func keysFitStorage() {
         for key in RatingKey.allCases {
             #expect(
@@ -19,13 +19,13 @@ struct RatingKeyTests {
         }
     }
 
-    @Test("Raw values are unique")
+    @Test("Raw values are unique", .tags(.unit))
     func rawValuesUnique() {
         let raw = RatingKey.allCases.map(\.rawValue)
         #expect(Set(raw).count == raw.count)
     }
 
-    @Test("Every position carries the general attributes")
+    @Test("Every position carries the general attributes", .tags(.unit))
     func generalApplyEverywhere() {
         for position in Position.allCases {
             let keys = Set(RatingKey.keys(for: position))
@@ -35,7 +35,7 @@ struct RatingKeyTests {
         }
     }
 
-    @Test("No position declares a positional key twice, or repeats a general one")
+    @Test("No position declares a positional key twice, or repeats a general one", .tags(.unit))
     func noDuplicateKeys() {
         for position in Position.allCases {
             let positional = RatingKey.positional(for: position)
@@ -47,7 +47,7 @@ struct RatingKeyTests {
         }
     }
 
-    @Test("Positions carry the attributes their job actually needs")
+    @Test("Positions carry the attributes their job actually needs", .tags(.unit))
     func plausibleAssignments() {
         #expect(RatingKey.keys(for: .quarterback).contains(.throwPower))
         #expect(!RatingKey.keys(for: .quarterback).contains(.manCoverage))
@@ -66,7 +66,7 @@ struct RatingKeyTests {
 @Suite("Ratings storage")
 struct RatingsTests {
 
-    @Test("Values round-trip")
+    @Test("Values round-trip", .tags(.unit))
     func roundTrip() {
         var ratings = Ratings()
         ratings[.speed] = 88
@@ -75,7 +75,7 @@ struct RatingsTests {
         #expect(ratings[.awareness] == 71)
     }
 
-    @Test("Absent is distinct from zero")
+    @Test("Absent is distinct from zero", .tags(.unit))
     func absenceIsNotZero() {
         var ratings = Ratings()
         ratings[.speed] = 0
@@ -87,7 +87,7 @@ struct RatingsTests {
 
     /// High raw values are the aliasing case. Setting a kicking rating must not
     /// disturb a general one that would collide under a 64-wide bitmap.
-    @Test("High-numbered keys do not alias low-numbered ones")
+    @Test("High-numbered keys do not alias low-numbered ones", .tags(.unit))
     func noAliasing() {
         var ratings = Ratings()
         ratings[.kickPower] = 91  // raw 70
@@ -101,7 +101,7 @@ struct RatingsTests {
         #expect(ratings.count == 2)
     }
 
-    @Test("Every key can be stored and read back independently")
+    @Test("Every key can be stored and read back independently", .tags(.unit))
     func allKeysIndependent() {
         var ratings = Ratings()
         for (offset, key) in RatingKey.allCases.enumerated() {
@@ -113,7 +113,7 @@ struct RatingsTests {
         #expect(ratings.count == RatingKey.allCases.count)
     }
 
-    @Test("Values clamp into 0...99 rather than trapping")
+    @Test("Values clamp into 0...99 rather than trapping", .tags(.unit))
     func clamping() {
         var ratings = Ratings()
         ratings[.speed] = 200
@@ -122,7 +122,7 @@ struct RatingsTests {
         #expect(ratings[.strength] == 99)
     }
 
-    @Test("Assigning nil removes a rating")
+    @Test("Assigning nil removes a rating", .tags(.unit))
     func removal() {
         var ratings = Ratings()
         ratings[.speed] = 80
@@ -132,7 +132,7 @@ struct RatingsTests {
         #expect(ratings.count == 0)
     }
 
-    @Test("The fallback accessor avoids force-unwrapping an absent rating")
+    @Test("The fallback accessor avoids force-unwrapping an absent rating", .tags(.unit))
     func fallback() {
         var ratings = Ratings()
         ratings[.speed] = 80
@@ -141,7 +141,7 @@ struct RatingsTests {
         #expect(ratings.value(.manCoverage, or: 50) == 50)
     }
 
-    @Test("Keys are reported in stable order")
+    @Test("Keys are reported in stable order", .tags(.contract))
     func keyOrder() {
         var ratings = Ratings()
         ratings[.kickPower] = 80
@@ -150,7 +150,7 @@ struct RatingsTests {
         #expect(ratings.keys == [.awareness, .speed, .kickPower])
     }
 
-    @Test("Dictionary and literal construction agree")
+    @Test("Dictionary and literal construction agree", .tags(.unit))
     func construction() {
         let fromDictionary = Ratings([.speed: 88, .strength: 70])
         let fromLiteral: Ratings = [.speed: 88, .strength: 70]
@@ -158,7 +158,7 @@ struct RatingsTests {
         #expect(fromLiteral[.speed] == 88)
     }
 
-    @Test("Key-set validation catches missing and surplus ratings")
+    @Test("Key-set validation catches missing and surplus ratings", .tags(.unit))
     func keySetValidation() {
         var complete = Ratings()
         for key in RatingKey.keys(for: .cornerback) {
@@ -176,7 +176,7 @@ struct RatingsTests {
         #expect(!missing.matchesKeys(for: .cornerback))
     }
 
-    @Test("Ratings are value types")
+    @Test("Ratings are value types", .tags(.unit))
     func valueSemantics() {
         var original = Ratings()
         original[.speed] = 80
@@ -186,7 +186,7 @@ struct RatingsTests {
         #expect(copy[.speed] == 90)
     }
 
-    @Test("Equal ratings hash together regardless of insertion order")
+    @Test("Equal ratings hash together regardless of insertion order", .tags(.unit))
     func equality() {
         var a = Ratings()
         a[.speed] = 80
@@ -205,7 +205,7 @@ struct RatingsTests {
 @Suite("Position weights")
 struct PositionWeightsTests {
 
-    @Test("Every weight set sums to one")
+    @Test("Every weight set sums to one", .tags(.unit))
     func weightsSumToOne() {
         for position in Position.allCases {
             let total = PositionWeights.weights(for: position).reduce(0.0) { $0 + $1.1 }
@@ -213,7 +213,7 @@ struct PositionWeightsTests {
         }
     }
 
-    @Test("Weights only reference ratings the position carries")
+    @Test("Weights only reference ratings the position carries", .tags(.unit))
     func weightsReferenceCarriedRatings() {
         for position in Position.allCases {
             let carried = Set(RatingKey.keys(for: position))
@@ -224,7 +224,7 @@ struct PositionWeightsTests {
         }
     }
 
-    @Test("No weight is duplicated or non-positive")
+    @Test("No weight is duplicated or non-positive", .tags(.unit))
     func weightsAreWellFormed() {
         for position in Position.allCases {
             let weights = PositionWeights.weights(for: position)
@@ -233,7 +233,7 @@ struct PositionWeightsTests {
         }
     }
 
-    @Test("A uniform rating produces that overall at every position")
+    @Test("A uniform rating produces that overall at every position", .tags(.unit))
     func uniformRatingsRoundTrip() {
         for position in Position.allCases {
             var ratings = Ratings()
@@ -247,7 +247,7 @@ struct PositionWeightsTests {
         }
     }
 
-    @Test("Overall is driven by the ratings the position values")
+    @Test("Overall is driven by the ratings the position values", .tags(.unit))
     func overallFollowsWeights() {
         var passer = Ratings()
         for key in RatingKey.keys(for: .quarterback) { passer[key] = 60 }

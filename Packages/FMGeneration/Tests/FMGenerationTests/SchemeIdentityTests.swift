@@ -37,7 +37,7 @@ struct SchemeCeilingTests {
 
     /// The point that prompted this: a smashmouth club should not simply roll a
     /// generational passer it would have no idea what to do with.
-    @Test("A run-heavy team invests less in a quarterback than a pass-heavy one")
+    @Test("A run-heavy team invests less in a quarterback than a pass-heavy one", .tags(.unit))
     func quarterbackInvestment() {
         var run = 0.0
         var pass = 0.0
@@ -48,7 +48,7 @@ struct SchemeCeilingTests {
         #expect(pass > run + 3, "run \(run / 25), pass \(pass / 25)")
     }
 
-    @Test("And more in the run game")
+    @Test("And more in the run game", .tags(.unit))
     func runGameInvestment() {
         var runBacks = 0.0
         var passBacks = 0.0
@@ -67,7 +67,7 @@ struct SchemeCeilingTests {
             runGuards > passGuards + 1, "guards: run \(runGuards / 25), pass \(passGuards / 25)")
     }
 
-    @Test("Receivers follow the passing game")
+    @Test("Receivers follow the passing game", .tags(.unit))
     func receiverInvestment() {
         var run = 0.0
         var pass = 0.0
@@ -80,7 +80,7 @@ struct SchemeCeilingTests {
 
     /// Identity should be legible, not crippling. A run-heavy team still has to
     /// be able to employ a decent quarterback.
-    @Test("Identity shifts investment without gutting a position")
+    @Test("Identity shifts investment without gutting a position", .tags(.unit))
     func shiftsAreBounded() {
         for position in Position.allCases {
             for offense in OffensiveScheme.families {
@@ -94,7 +94,7 @@ struct SchemeCeilingTests {
         }
     }
 
-    @Test("Specialists are unaffected by identity")
+    @Test("Specialists are unaffected by identity", .tags(.unit))
     func specialistsUnaffected() {
         for scheme in OffensiveScheme.families {
             let team = TeamScheme(offense: scheme, defense: .pressManBlitz)
@@ -104,7 +104,7 @@ struct SchemeCeilingTests {
         }
     }
 
-    @Test("Defensive identity moves the positions it depends on")
+    @Test("Defensive identity moves the positions it depends on", .tags(.unit))
     func defensiveInvestment() {
         let threeFour = TeamScheme(offense: .westCoast, defense: .threeFourOkie)
         let pressMan = TeamScheme(offense: .westCoast, defense: .pressManBlitz)
@@ -119,7 +119,7 @@ struct SchemeShapeTests {
 
     /// The second effect, and the one that must not become the first: a scheme
     /// changes what kind of player a club acquired, not how good he is.
-    @Test("Players are built to suit the scheme they were acquired for")
+    @Test("Players are built to suit the scheme they were acquired for", .tags(.unit))
     func playersFitTheirScheme() {
         var own = 0.0
         var foreign = 0.0
@@ -131,7 +131,7 @@ struct SchemeShapeTests {
         #expect(own > foreign + 3, "own \(own / 20), foreign \(foreign / 20)")
     }
 
-    @Test("A zone team's linemen suit zone and a gap team's suit gap")
+    @Test("A zone team's linemen suit zone and a gap team's suit gap", .tags(.unit))
     func linemenDiverge() {
         let zoneTeam = TeamScheme(offense: .zoneRun, defense: .fourThreeUnder)
         var zoneInZone = 0.0
@@ -145,7 +145,7 @@ struct SchemeShapeTests {
 
     /// Fit must be a bonus in the right scheme, never free rating points. A
     /// player's base overall is corrected to his target regardless.
-    @Test("Scheme bias changes shape, not quality")
+    @Test("Scheme bias changes shape, not quality", .tags(.contract))
     func biasDoesNotInflateOverall() {
         for scheme in [powerRun, airRaid] {
             var random = SplittableRandom(seed: 41)
@@ -161,7 +161,7 @@ struct SchemeShapeTests {
         }
     }
 
-    @Test("An unschemed roster is still generated correctly")
+    @Test("An unschemed roster is still generated correctly", .tags(.unit))
     func noSchemeIsFine() {
         let players = roster(builtFor: nil)
         #expect(players.count == 53)
@@ -171,7 +171,7 @@ struct SchemeShapeTests {
         }
     }
 
-    @Test("Scheme generation stays deterministic")
+    @Test("Scheme generation stays deterministic", .tags(.contract))
     func deterministic() {
         #expect(roster(builtFor: powerRun, seed: 77) == roster(builtFor: powerRun, seed: 77))
     }
@@ -182,7 +182,7 @@ struct SchemeMismatchTests {
 
     /// A run-heavy club with a gifted young passer is a team that ought to
     /// change. Deliberate, not a generation flaw.
-    @Test("A minority of teams play a scheme their roster does not suit")
+    @Test("A minority of teams play a scheme their roster does not suit", .tags(.unit))
     func mismatchesHappen() {
         var random = SplittableRandom(seed: 5)
         var mismatched = 0
@@ -194,7 +194,7 @@ struct SchemeMismatchTests {
         #expect(rate > 0.08 && rate < 0.17, "mismatch rate \(rate)")
     }
 
-    @Test("A mismatched identity really is two different schemes")
+    @Test("A mismatched identity really is two different schemes", .tags(.unit))
     func mismatchIsGenuine() {
         var random = SplittableRandom(seed: 9)
         for _ in 0..<2000 {
@@ -209,7 +209,7 @@ struct SchemeMismatchTests {
 
     /// The situation from the player's side: your roster suits something other
     /// than what you run, and switching would visibly help.
-    @Test("A mismatched roster fits the scheme it was built for better")
+    @Test("A mismatched roster fits the scheme it was built for better", .tags(.unit))
     func mismatchIsVisible() {
         var built = 0.0
         var played = 0.0

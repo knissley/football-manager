@@ -14,7 +14,7 @@ struct FormTests {
 
     private let players = (1...40).map { PlayerID(UInt64($0)) }
 
-    @Test("A player's day is the same every time the game is replayed")
+    @Test("A player's day is the same every time the game is replayed", .tags(.contract))
     func deterministic() {
         let first = Form.table(for: players, game: GameID(7), seed: 99)
         let second = Form.table(for: players, game: GameID(7), seed: 99)
@@ -23,7 +23,7 @@ struct FormTests {
 
     /// A day belongs to a game. The same player in a different week is a different day,
     /// or form would be a permanent rating rather than a day.
-    @Test("A different game is a different day")
+    @Test("A different game is a different day", .tags(.unit))
     func variesByGame() {
         let week1 = Form.table(for: players, game: GameID(1), seed: 99)
         let week2 = Form.table(for: players, game: GameID(2), seed: 99)
@@ -33,7 +33,7 @@ struct FormTests {
 
     /// Each player's day is drawn from a stream split on his own identifier, so signing
     /// somebody cannot shift a teammate's form.
-    @Test("Adding a player does not disturb anybody else's day")
+    @Test("Adding a player does not disturb anybody else's day", .tags(.contract))
     func independentPerPlayer() {
         let small = Form.table(for: players.prefix(10), game: GameID(3), seed: 4)
         let large = Form.table(for: players, game: GameID(3), seed: 4)
@@ -44,7 +44,7 @@ struct FormTests {
 
     /// Talent has to survive the noise. A spread wide enough to make a seventy play like
     /// a ninety would make ratings meaningless over a season.
-    @Test("Ordinary days stay close to what a player is")
+    @Test("Ordinary days stay close to what a player is", .tags(.unit))
     func spreadIsModest() {
         let table = Form.table(
             for: (1...4_000).map { PlayerID(UInt64($0)) }, game: GameID(1), seed: 12)
@@ -60,7 +60,7 @@ struct FormTests {
 
     /// And the tail has to exist, or a generational player in the right situation can
     /// never chase a number nobody should reach.
-    @Test("Some days are well outside a player's normal range")
+    @Test("Some days are well outside a player's normal range", .tags(.unit))
     func outliersHappen() {
         let table = Form.table(
             for: (1...4_000).map { PlayerID(UInt64($0)) }, game: GameID(1), seed: 12)
@@ -116,7 +116,7 @@ struct SchemeFitInEngineTests {
     /// The gap this closes: the resolver never mentioned a scheme, so a player in a
     /// system built around him performed exactly as he would in one that wasted him.
     /// `SchemeFit` was an elaborate no-op as far as the engine was concerned.
-    @Test("A burner is a vertical receiver and a bad air-raid one")
+    @Test("A burner is a vertical receiver and a bad air-raid one", .tags(.unit))
     func schemeSuitsProfiles() {
         let burner = receiver(
             id: 1,
@@ -142,7 +142,7 @@ struct SchemeFitInEngineTests {
     }
 
     /// And the fit has to reach the engine, not merely exist on the player.
-    @Test("The engine reads the scheme, not just the rating")
+    @Test("The engine reads the scheme, not just the rating", .tags(.unit))
     func schemeReachesTheEngine() {
         let burner = receiver(
             id: 1,
@@ -163,7 +163,7 @@ struct SchemeFitInEngineTests {
 
     /// Fit is worth a few points, not a transformation. It should decide a close
     /// matchup without overturning talent.
-    @Test("Fit moves a player without rewriting him")
+    @Test("Fit moves a player without rewriting him", .tags(.unit))
     func fitIsBounded() {
         let burner = receiver(
             id: 1,
@@ -177,7 +177,7 @@ struct SchemeFitInEngineTests {
         }
     }
 
-    @Test("Form adds to the effective rating")
+    @Test("Form adds to the effective rating", .tags(.unit))
     func formIsApplied() {
         let player = receiver(id: 3, ratings: [.routeRunning: 80, .speed: 80, .catching: 80])
         let scheme = TeamScheme(offense: .airRaid, defense: .nickelMatch)
@@ -188,7 +188,7 @@ struct SchemeFitInEngineTests {
         #expect(abs((goodDay - flat) - 7) < 0.001)
     }
 
-    @Test("An unknown player falls back rather than crashing")
+    @Test("An unknown player falls back rather than crashing", .tags(.unit))
     func missingPlayer() {
         let player = receiver(id: 3, ratings: [.routeRunning: 80])
         let value = context(

@@ -24,7 +24,7 @@ struct TryAndTouchbackTests {
             ballOn: ballOn, possession: TeamID(1))
     }
 
-    @Test("A made extra point is worth one point")
+    @Test("A made extra point is worth one point", .tags(.unit))
     func extraPointIsOnePoint() {
         let advancement = rules.advance(
             from: tryFrom(rules.extraPointSnapYard),
@@ -37,7 +37,7 @@ struct TryAndTouchbackTests {
         #expect(advancement.possessionChanged == false, "the scoring team kicks off")
     }
 
-    @Test("A missed extra point scores nothing and still ends in a kickoff")
+    @Test("A missed extra point scores nothing and still ends in a kickoff", .tags(.unit))
     func missedExtraPoint() {
         let advancement = rules.advance(
             from: tryFrom(rules.extraPointSnapYard),
@@ -48,7 +48,7 @@ struct TryAndTouchbackTests {
         #expect(advancement.requiresKickoff)
     }
 
-    @Test("A converted two-point try is worth two points")
+    @Test("A converted two-point try is worth two points", .tags(.unit))
     func twoPointIsTwoPoints() {
         let advancement = rules.advance(
             from: tryFrom(rules.twoPointSnapYard),
@@ -63,7 +63,7 @@ struct TryAndTouchbackTests {
     /// Every way of failing pays nothing and ends the try. A conversion is a pass, so it
     /// can be intercepted, and that must not hand the defence a first down.
     @Test(
-        "A failed two-point try scores nothing, however it failed",
+        "A failed two-point try scores nothing, however it failed", .tags(.unit),
         arguments: [
             PlayEnding.incomplete, .tackled, .intercepted, .fumbleLost,
         ])
@@ -80,7 +80,7 @@ struct TryAndTouchbackTests {
 
     /// The touchdown itself is still worth six and still owes a try — the fix to the try
     /// must not have moved the thing that was right.
-    @Test("A touchdown is six points and owes a try")
+    @Test("A touchdown is six points and owes a try", .tags(.unit))
     func touchdownUnchanged() {
         let situation = Situation(
             quarter: 1, clockRemaining: 800, down: .second, distance: 4, ballOn: 4,
@@ -96,7 +96,7 @@ struct TryAndTouchbackTests {
     /// A kickoff into the end zone comes out further than a punt into it. Both used the
     /// punt's spot, which quietly cost the receiving team ten yards on every possession
     /// that followed a score.
-    @Test("A kickoff touchback and a punt touchback are spotted differently")
+    @Test("A kickoff touchback and a punt touchback are spotted differently", .tags(.unit))
     func touchbacksDiffer() {
         let situation = Situation(
             quarter: 1, clockRemaining: 900, down: .first, distance: 10,
@@ -116,7 +116,7 @@ struct TryAndTouchbackTests {
     /// A kick that is fielded and run back hands the ball over where the return stopped.
     /// This used to fall through to `advanceDown`, which does not change possession at
     /// all — so a returned kick would have given the ball back to the kicking team.
-    @Test("A returned kick changes hands where the return ended")
+    @Test("A returned kick changes hands where the return ended", .tags(.unit))
     func returnedKickChangesHands() {
         let situation = Situation(
             quarter: 1, clockRemaining: 900, down: .first, distance: 10,
@@ -135,7 +135,7 @@ struct TryAndTouchbackTests {
 
     /// A return taken the distance scores for the team that did not have the ball, and
     /// *they* are the ones who then owe a try.
-    @Test("A kick returned all the way is a touchdown for the returning team")
+    @Test("A kick returned all the way is a touchdown for the returning team", .tags(.unit))
     func kickReturnedForScore() {
         for kind in [PlayKind.kickoff, .punt] {
             let advancement = rules.advance(
@@ -153,7 +153,7 @@ struct TryAndTouchbackTests {
 
     /// The one kick the kicking team means to keep. Recovering it must not flip
     /// possession, which is the entire point of trying it.
-    @Test("An onside kick the kicking team recovers does not change hands")
+    @Test("An onside kick the kicking team recovers does not change hands", .tags(.unit))
     func onsideRecovered() {
         let advancement = rules.advance(
             from: Situation(
@@ -169,7 +169,7 @@ struct TryAndTouchbackTests {
     /// A fair catch and a downed punt are the same rule from two directions, and both
     /// have to flip the frame or the receiving team's field position reads backwards.
     @Test(
-        "A punt fielded or downed hands over at the flipped spot",
+        "A punt fielded or downed hands over at the flipped spot", .tags(.unit),
         arguments: [
             PlayEnding.fairCatch, .downed, .outOfBounds, .tackled,
         ])
@@ -186,7 +186,7 @@ struct TryAndTouchbackTests {
 
     /// The arithmetic a scoreboard is actually made of. A drive chart that adds up is the
     /// cheapest possible check that the scoring rules are the sport's.
-    @Test("A touchdown and the kick are worth seven, and two field goals are six")
+    @Test("A touchdown and the kick are worth seven, and two field goals are six", .tags(.unit))
     func scoreboardArithmetic() {
         let touchdown = rules.advance(
             from: Situation(
