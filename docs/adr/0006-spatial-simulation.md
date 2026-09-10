@@ -73,13 +73,13 @@ The consequence above says the budget "is enforced by a CI benchmark." It is not
 never has been. This is an amendment under the rule in [README.md](README.md) rather than
 an edit to the body, which is left as it was written.
 
-There is **no benchmark target and no CI step that fails on a timing regression**.
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the four suites,
-`FMRandom` again in release, the format lint, `scripts/lint-sim.sh`, `playsize` and a
-`worldgen` build on both x86_64 and arm64, and reports the calibration harness without
-gating on it. Since issue #9, that harness also **reports** milliseconds per game against
-this budget, and CI puts the figure in the job summary — read, never enforced. Nothing
-gates on it.
+There is **no benchmark target and no CI step that fails on a timing regression, and
+nothing gates on the budget**. [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+runs the four suites, `FMRandom` again in release, the format lint,
+`scripts/lint-sim.sh`, `playsize` and a `worldgen` build on both x86_64 and arm64, and
+reports the calibration harness without gating on it. Issue H3 (#9) adds a
+milliseconds-per-game row to `simharness` and puts it in the job summary: a number to
+read, not a gate.
 
 There is also less to measure than the budget describes: the tick loop is M5 work and no
 season loop exists to run in sixty seconds, so what gets timed is a game at the crude

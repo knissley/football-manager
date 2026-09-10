@@ -36,7 +36,8 @@ PlayCaller
 ```
 
 *Designed, not built:* of those five, only the call exists — as `OffensiveCall` and
-`DefensiveCall`, which do carry personnel and tempo. `Gameplan`, `CoordinatorProfile`,
+`DefensiveCall`, which carry tempo and the defensive package; the offence's personnel
+group is on `Situation`, not on the call. `Gameplan`, `CoordinatorProfile`,
 `OpponentModel` and `GameContext` are none of them types; the sections below say what
 each is waiting on. What runs today is a baseline caller that reads the situation and
 nothing else.

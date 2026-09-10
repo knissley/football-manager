@@ -33,8 +33,10 @@ World
 
 *Designed, not built:* `League`, `Conference`, `Division`, `Team` and `Rules` exist and
 are what `LeagueShape` validates. **`World`, `Calendar` and `FreeAgentPool` do not** —
-there is no root object holding a league, no calendar (M3) and no free agency (M7).
-Generation returns a league and its rosters; nothing owns them yet.
+no `World` type in `FMCore` owns one, there is no calendar (M3) and no free agency (M7).
+Generation returns a `WorldGenerator.GeneratedWorld` — seed, season, league, teams,
+colleges, draft pipeline and rivalries — which is what a world is until `FMCore` has a
+type for one.
 
 Structure is data, not hardcoded. A generated world *defaults* to 32 teams in two
 conferences of four divisions, but the generator takes it as configuration so we can
