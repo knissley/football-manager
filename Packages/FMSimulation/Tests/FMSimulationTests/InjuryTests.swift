@@ -109,6 +109,7 @@ struct InjuryTests {
                 id: PlayerID(1), name: PersonName(given: "Test", family: "Back"),
                 birthSeason: 2004,
                 college: College(name: "Fallback State", profile: .midMajor), draft: nil,
+                firstSeason: 2026,
                 position: .runningBack, secondaryPositions: [],
                 physical: PhysicalProfile(
                     heightInches: 71, weightPounds: 215, fortyYardDash: 452, verticalJump: 350,
@@ -175,6 +176,7 @@ struct NonContactInjuryTests {
             id: PlayerID(1), name: PersonName(given: "Test", family: "Receiver"),
             birthSeason: 2004,
             college: College(name: "Fallback State", profile: .midMajor), draft: nil,
+            firstSeason: 2026,
             position: .wideReceiver, secondaryPositions: [],
             physical: PhysicalProfile(
                 heightInches: 73, weightPounds: 200, fortyYardDash: 445, verticalJump: 350,

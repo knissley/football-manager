@@ -96,12 +96,17 @@ public enum RosterGenerator {
     ///
     /// `builtFor` is the scheme the roster suits, which is usually — but
     /// deliberately not always — the scheme the team actually plays.
+    ///
+    /// `board` is the draft these players' histories are written against — seven rounds of
+    /// thirty-two unless the world says otherwise. Roughly three quarters of a roster came
+    /// off it and the rest arrived undrafted; see `DraftHistory`.
     public static func roster(
         shape: RosterShape = .standard,
         strength: Strength = .leagueAverage,
         builtFor scheme: TeamScheme? = nil,
         season: Int,
         colleges: [College],
+        board: DraftHistory.Board = .standard,
         ids: inout IdentifierSequence<PlayerSubject>,
         using random: inout SplittableRandom
     ) -> [Player] {
@@ -129,6 +134,7 @@ public enum RosterGenerator {
                         age: playerAge,
                         season: season,
                         colleges: colleges,
+                        board: board,
                         scheme: scheme,
                         using: &random
                     )

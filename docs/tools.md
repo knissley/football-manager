@@ -52,6 +52,13 @@ swift run worldgen --seed 7 --show league --teams 32
 # The same team from a different world
 swift run worldgen --seed 99 --show roster --team 3
 
+# Does the roster have a past? The DRAFT column carries round, pick and season, or
+# UDFA and the season he signed. Watch for: nobody undrafted, a team of first-round
+# picks, a history only one draft deep, a starter who went in the seventh with a
+# ninety ceiling on every roster. The footer counts how many were drafted — about
+# three quarters league-wide, higher on a contender — and how many are rookies.
+swift run worldgen --seed 7 --show roster --team 3
+
 # Does the world read as a league someone drew, or as output?
 # Watch for: repeated city stems, colliding abbreviations, a "South" division
 # full of cold-weather cities, every stadium a temperate dome.

@@ -98,10 +98,18 @@ public struct PhysicalProfile: Sendable, Hashable, Codable {
     }
 }
 
+/// Where a player was taken, and when.
+///
+/// `nil` on a `Player` means he arrived undrafted, which is a way of getting to a
+/// league rather than a missing record — his `firstSeason` says when he got there.
 public struct DraftInfo: Sendable, Hashable, Codable {
     public let season: Int
+    /// One-based, as the sport counts them: a first-round pick is round 1.
     public let round: UInt8
+    /// One-based within the round.
     public let pick: UInt8
+    /// One-based across the whole draft — pick 33 of a thirty-two-team draft is the
+    /// first pick of the second round.
     public let overallPick: UInt16
 
     public init(season: Int, round: UInt8, pick: UInt8, overallPick: UInt16) {
@@ -140,6 +148,14 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     public let birthSeason: Int
     public let college: College
     public let draft: DraftInfo?
+    /// The season he first counted against a professional roster.
+    ///
+    /// Stored rather than inferred. An undrafted player has no draft season to read it
+    /// off, and the fallback that guessed it from his age — `birthSeason + 22` — made
+    /// every late arrival a veteran the day he signed. A drafted player's first season
+    /// *is* his draft season, so the initialiser takes it from the draft rather than
+    /// carrying two facts that can disagree.
+    public let firstSeason: Int
 
     public let position: Position
     /// Other positions he can fill, for depth chart validity and versatility.
@@ -158,6 +174,7 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
         birthSeason: Int,
         college: College,
         draft: DraftInfo? = nil,
+        firstSeason: Int,
         position: Position,
         secondaryPositions: [Position] = [],
         physical: PhysicalProfile,
@@ -171,6 +188,9 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
         self.birthSeason = birthSeason
         self.college = college
         self.draft = draft
+        // A drafted player cannot have arrived in a season other than the one he was
+        // drafted in, so the draft wins and the pair can never disagree.
+        self.firstSeason = draft?.season ?? firstSeason
         self.position = position
         self.secondaryPositions = secondaryPositions
         self.physical = physical
@@ -185,14 +205,27 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     }
 
     /// Accrued seasons, which drives free agency class and veteran minimums.
+    ///
+    /// Counted from the season he arrived, drafted or not. It used to fall back to
+    /// `season - birthSeason - 22` for anybody without a draft record — which was
+    /// everybody, since no generated player had one — so experience was age with
+    /// twenty-two subtracted from it and a twenty-six-year-old who signed last spring
+    /// was a four-year veteran.
     public func experience(in season: Int) -> Int {
-        guard let draft else { return max(0, season - birthSeason - 22) }
-        return max(0, season - draft.season)
+        max(0, season - firstSeason)
     }
 
-    public var isRookie: Bool {
-        guard let draft else { return false }
-        return draft.season == birthSeason + age(in: draft.season)
+    /// Whether this is his first season in the league.
+    ///
+    /// True of an undrafted rookie as well as a drafted one: he is a rookie because it
+    /// is his first season, not because somebody called his name. For a drafted player
+    /// this is `draft.season == season`, since his first season is his draft season.
+    ///
+    /// Takes the season, which is the whole point. The property it replaces compared
+    /// `draft.season` with `birthSeason + (draft.season - birthSeason)` — an identity —
+    /// so it was true for every drafted player forever and asked nothing.
+    public func isRookie(in season: Int) -> Bool {
+        firstSeason == season
     }
 
     public var overall: UInt8 {
