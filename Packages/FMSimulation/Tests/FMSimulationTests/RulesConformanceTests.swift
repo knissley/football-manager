@@ -598,6 +598,180 @@ struct RulesConformanceTests {
         trace.expectScore(kicked, 2)
     }
 
+    // MARK: Postseason overtime halves
+
+    /// The first play of `period`; for a period put back in play with a free kick, the
+    /// kickoff.
+    private func opening(of period: UInt8, in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard let found = trace.first(where: { $0.situation.quarter == period }) else {
+            Issue.record("the game never reached period \(period)")
+            return nil
+        }
+        return found
+    }
+
+    /// The last play of `period`.
+    private func closing(of period: UInt8, in trace: Trace) -> PlayRecord? {
+        guard let found = trace.plays.last(where: { $0.situation.quarter == period }) else {
+            Issue.record("the game never reached period \(period)")
+            return nil
+        }
+        return found
+    }
+
+    /// The timeouts each side has at a snap, read off the situation whichever side has
+    /// the ball.
+    private func timeouts(at situation: Situation, in trace: Trace) -> (home: UInt8, away: UInt8) {
+        situation.possession == trace.home
+            ? (situation.offenseTimeouts, situation.defenseTimeouts)
+            : (situation.defenseTimeouts, situation.offenseTimeouts)
+    }
+
+    /// The toss before overtime is not drawn: the side that kicks off to open it stands
+    /// for the captain who lost, and 16-1-4-e gives that captain the first choice of
+    /// 4-2-2's privileges at the third period — receive or kick. Receiving, the other
+    /// side kicks off to it from its own 35, and the touchback puts the ball at its 30.
+    @Test(
+        "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
+        .tags(.football)
+    )
+    func thirdPostseasonOvertimePeriodOpensWithAKickoff() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(7, in: trace), let overtimeKick = opening(of: 5, in: trace),
+            let third = opening(of: 7, in: trace)
+        else { return }
+        trace.expectPlay(
+            overtimeKick.index, kind: .kickoff, quarter: 5, clock: 900,
+            "overtime opened with a kickoff, and the side that kicked it stands for the captain who lost the toss"
+        )
+        let tossLoser = overtimeKick.play.situation.possession
+        trace.expectPlay(
+            third.index, kind: .kickoff, possession: trace.opponent(of: tossLoser), quarter: 7,
+            clock: 900, ballOn: 65,
+            "the third period is put back in play with a free kick from the 35, by the side the toss loser elected to receive from"
+        )
+        trace.expectPlay(
+            third.index + 1, possession: tossLoser, quarter: 7, clock: 900, down: .first,
+            distance: 10, ballOn: 70,
+            "and the toss loser has it, first and ten at its 30 after the touchback, with no time gone"
+        )
+    }
+
+    /// The other boundary of the same half: a first overtime period ends as a first or
+    /// third quarter does. The teams change goals and play on from where the ball lay,
+    /// which in a plod is a yard on and a down later — or, on a fourth down, the other
+    /// side's ball where the plod was stopped.
+    @Test(
+        "football · Rule 16-1-4-f, 4-2-3 · at the end of a first postseason overtime period the teams change goals and play on: possession, the down, the ball and the line to gain are unchanged, and no kick is made",
+        .tags(.football)
+    )
+    func secondPostseasonOvertimePeriodCarriesOn() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(6, in: trace), let second = opening(of: 6, in: trace),
+            let last = trace[second.index - 1]
+        else { return }
+        let before = last.situation
+        #expect(
+            last.outcome.kind == .rush && last.outcome.yards == 1 && before.quarter == 5,
+            "the scenario meant the first overtime period to end on a plod")
+        #expect(second.play.outcome.kind != .kickoff, "no kick opens a second overtime period")
+        if before.down == .fourth {
+            trace.expectPlay(
+                second.index, possession: trace.opponent(of: before.possession), quarter: 6,
+                clock: 900, down: .first, distance: 10, ballOn: 100 - (before.ballOn - 1),
+                "the plod fell short on fourth down, so the other side has it where the runner was stopped"
+            )
+        } else {
+            trace.expectPlay(
+                second.index, possession: before.possession, quarter: 6, clock: 900,
+                down: before.down.next, distance: before.distance - 1, ballOn: before.ballOn - 1,
+                "the same side has it, a yard on and a down later, with the line to gain where it was"
+            )
+        }
+    }
+
+    /// Three timeouts in each half, and 16-1-4-e, f and h make a half two overtime
+    /// periods. A side that spent its three in the first two periods has three again as
+    /// the third opens; a side that spent none has three, not six.
+    @Test(
+        "football · Rule 16-1-4-g · each team has three timeouts in each postseason overtime half: a side that spent its three across the first and second overtime periods has three again when the third opens, and a side that spent none still has three",
+        .tags(.football)
+    )
+    func postseasonOvertimeTimeoutsAreThreePerHalf() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriod.run()
+        guard reachedPeriod(7, in: trace), let first = opening(of: 5, in: trace),
+            let closing = closing(of: 6, in: trace), let third = opening(of: 7, in: trace)
+        else { return }
+        let atTheStart = timeouts(at: first.play.situation, in: trace)
+        #expect(atTheStart.home == 3 && atTheStart.away == 3, "three each for the first half")
+        let spent = timeouts(at: closing.situation, in: trace)
+        #expect(spent.home == 0, "the scenario meant the home side to spend its three")
+        #expect(spent.away == 3, "and the away side none")
+        let renewed = timeouts(at: third.play.situation, in: trace)
+        #expect(renewed.home == 3, "three again for the new half")
+        #expect(renewed.away == 3, "three, not six: a half's timeouts do not carry over")
+    }
+
+    /// The privilege is a choice, and the other answer is a kick (4-2-2-a).
+    @Test(
+        "football · Rule 16-1-4-e, 4-2-2-a · the captain with the first choice at a third postseason overtime period may elect to kick off, and then kicks off",
+        .tags(.football)
+    )
+    func tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod() {
+        let trace = RulesScenario.thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff.run()
+        guard reachedPeriod(7, in: trace), let overtimeKick = opening(of: 5, in: trace),
+            let third = opening(of: 7, in: trace)
+        else { return }
+        let tossLoser = overtimeKick.play.situation.possession
+        trace.expectPlay(
+            third.index, kind: .kickoff, possession: tossLoser, quarter: 7, clock: 900,
+            ballOn: 65, "the toss loser elected to kick off, and does")
+    }
+
+    /// The toss after a fourth period starts the pairing over: a fifth period opens as
+    /// the first did, with a kick, and with a half's timeouts.
+    @Test(
+        "football · Rule 16-1-4-i, 16-1-2, 4-2-2, 16-1-4-g · at the end of a fourth postseason overtime period the coin is tossed again, so a fifth is put back in play with a kickoff and each side has three timeouts for the half it opens",
+        .tags(.football)
+    )
+    func fifthPostseasonOvertimePeriodOpensWithAKickoff() {
+        let trace = RulesScenario.fifthPostseasonOvertimePeriod.run()
+        guard reachedPeriod(9, in: trace), let third = opening(of: 7, in: trace),
+            let fourth = opening(of: 8, in: trace), let closing = closing(of: 8, in: trace),
+            let fifth = opening(of: 9, in: trace)
+        else { return }
+        trace.expectPlay(third.index, kind: .kickoff, quarter: 7, clock: 900)
+        #expect(fourth.play.outcome.kind != .kickoff, "no kick opens a fourth overtime period")
+        let spent = timeouts(at: closing.situation, in: trace)
+        #expect(spent.home == 0, "the scenario meant the home side to spend its three")
+        trace.expectPlay(
+            fifth.index, kind: .kickoff, quarter: 9, clock: 900, ballOn: 65,
+            "the toss is followed by a kickoff from the 35")
+        let renewed = timeouts(at: fifth.play.situation, in: trace)
+        #expect(renewed.home == 3 && renewed.away == 3, "three each for the new half")
+    }
+
+    /// Which side kicks off after that toss is not the book's to say and not drawn
+    /// here: the engine keeps the side with the ball at the end of the fourth period as
+    /// the kicker, as it does at the first overtime period, and that side stands for
+    /// the toss loser two periods on.
+    @Test(
+        "pin · the toss before a fifth postseason overtime period (16-1-4-i) is not drawn: as at the first, the side with the ball at the end of the period before kicks off and stands for the captain who lost it",
+        .tags(.pin)
+    )
+    func fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall() {
+        let trace = RulesScenario.fifthPostseasonOvertimePeriod.run()
+        guard reachedPeriod(9, in: trace), let closing = closing(of: 8, in: trace),
+            let fifth = opening(of: 9, in: trace)
+        else { return }
+        let hadTheBall =
+            closing.situation.down == .fourth
+            ? trace.opponent(of: closing.situation.possession) : closing.situation.possession
+        trace.expectPlay(
+            fifth.index, kind: .kickoff, possession: hadTheBall, quarter: 9,
+            "the side with the ball at the end of the fourth overtime period kicks off the fifth")
+    }
+
     // MARK: The clock
 
     /// The fourth-down stop is a change of possession: the clock stops when the play

@@ -51,6 +51,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case overtimeFirstPossessionInterceptionReturned =
         "overtime-first-possession-interception-returned"
     case overtimeOpeningDriveSafety = "overtime-opening-drive-safety"
+    case thirdPostseasonOvertimePeriod = "third-postseason-overtime-period"
+    case thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff =
+        "third-postseason-overtime-period-with-the-toss-loser-kicking-off"
+    case fifthPostseasonOvertimePeriod = "fifth-postseason-overtime-period"
 
     // The clock
     case puntReturnedAndTackled = "punt-returned-and-tackled"
@@ -162,6 +166,10 @@ extension RulesScenario {
         case .overtimeFirstPossessionInterceptionReturned:
             return RulesScenarios.overtimeFirstPossessionInterceptionReturned
         case .overtimeOpeningDriveSafety: return RulesScenarios.overtimeOpeningDriveSafety
+        case .thirdPostseasonOvertimePeriod: return RulesScenarios.thirdPostseasonOvertimePeriod
+        case .thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff:
+            return RulesScenarios.thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff
+        case .fifthPostseasonOvertimePeriod: return RulesScenarios.fifthPostseasonOvertimePeriod
 
         case .puntReturnedAndTackled: return RulesScenarios.puntReturnedAndTackled
         case .fumbleRecoveredByTheOffense: return RulesScenarios.fumbleRecoveredByTheOffense
@@ -357,6 +365,21 @@ extension RulesScenario {
         case .overtimeOpeningDriveSafety:
             return [
                 "football · Rule 16-1-3-a · a safety against the opening overtime drive wins it for the team that kicked off"
+            ]
+        case .thirdPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
+                "football · Rule 16-1-4-f, 4-2-3 · at the end of a first postseason overtime period the teams change goals and play on: possession, the down, the ball and the line to gain are unchanged, and no kick is made",
+                "football · Rule 16-1-4-g · each team has three timeouts in each postseason overtime half: a side that spent its three across the first and second overtime periods has three again when the third opens, and a side that spent none still has three",
+            ]
+        case .thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff:
+            return [
+                "football · Rule 16-1-4-e, 4-2-2-a · the captain with the first choice at a third postseason overtime period may elect to kick off, and then kicks off"
+            ]
+        case .fifthPostseasonOvertimePeriod:
+            return [
+                "football · Rule 16-1-4-i, 16-1-2, 4-2-2, 16-1-4-g · at the end of a fourth postseason overtime period the coin is tossed again, so a fifth is put back in play with a kickoff and each side has three timeouts for the half it opens",
+                "pin · the toss before a fifth postseason overtime period (16-1-4-i) is not drawn: as at the first, the side with the ball at the end of the period before kicks off and stands for the captain who lost it",
             ]
 
         case .puntReturnedAndTackled:

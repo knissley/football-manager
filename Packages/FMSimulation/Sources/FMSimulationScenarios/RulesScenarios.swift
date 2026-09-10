@@ -283,6 +283,65 @@ public enum RulesScenarios {
         }
     }
 
+    // MARK: Postseason overtime halves
+
+    /// The home side of the scenario world at its default seed, for a script in which one
+    /// side does something the other does not.
+    static var home: TeamID { ScenarioWorld.world(seed: 1).teams[0].id }
+
+    /// A scoreless postseason walk to a third overtime period, decided there by a field
+    /// goal on the first fourth down. The home side spends two timeouts in the first
+    /// overtime period and its last in the second; the away side spends none.
+    static var thirdPostseasonOvertimePeriod: ScriptedGame {
+        let home = home
+        return ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                timeoutDecision: { situation, isOffense in
+                    guard isOffense, situation.possession == home else { return false }
+                    switch situation.quarter {
+                    case 5: return situation.offenseTimeouts > 1
+                    case 6: return situation.offenseTimeouts > 0
+                    default: return false
+                    }
+                }),
+            play: plod)
+    }
+
+    /// The same walk, and the captain with the first choice at the third period elects
+    /// to kick off rather than receive.
+    static var thirdPostseasonOvertimePeriodWithTheTossLoserKickingOff: ScriptedGame {
+        ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 7 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                receiveDecision: { $0.quarter != 7 }),
+            play: plod)
+    }
+
+    /// A scoreless postseason walk to a fifth overtime period, decided there. The home
+    /// side spends every timeout it has in every overtime period, so that what it opens
+    /// each half with is the half's own and not a carry-over.
+    static var fifthPostseasonOvertimePeriod: ScriptedGame {
+        let home = home
+        return ScriptedGame(
+            isPostseason: true,
+            caller: ScriptedCaller(
+                offensiveFamily: {
+                    $0.quarter == 9 && $0.down == .fourth ? .fieldGoal : .insideRun
+                },
+                timeoutDecision: { situation, isOffense in
+                    isOffense && situation.possession == home && situation.quarter > 4
+                        && situation.offenseTimeouts > 0
+                }),
+            play: plod)
+    }
+
     // MARK: The clock
 
     static var puntReturnedAndTackled: ScriptedGame {
