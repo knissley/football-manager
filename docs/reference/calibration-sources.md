@@ -335,11 +335,30 @@ the bottom of the real range, spread 3.31 to 3.42, at its top and above, and a f
 share of 0.19 — 0.186 pooled over the eight seeds the test reads, against 0.154 for what
 landed, and outside the band above either way.
 
-**When a first-season player arrives.** They were about a seventh twenty-one, a quarter to a
-third twenty-two, about a third twenty-three and a seventh to a quarter twenty-four;
-`DraftHistory.entryAge` draws 20/45/25/10 across the same four ages, which is a year young.
+**When a first-season player arrives.** A man in his first season has by definition just
+arrived, so his age *is* his entry age and the mix below is the real entry-age distribution
+measured directly. Over the three seasons, of 814 first-season players: 116 were 21
+(0.1425), 227 were 22 (0.2789), 287 were 23 (0.3526), 146 were 24 (0.1794) and 33 were 25
+or older (0.0405), with five under 21 who are in the denominator and in no other column.
+Under the band policy — the span of the three seasons widened by the larger of 5% of their
+mean and twice the standard error of the share a test reads over eight generated leagues,
+about 2,100 first-season men — that is 0.116–0.166 at 21, 0.193–0.355 at 22, 0.321–0.384 at
+23, 0.118–0.264 at 24 and 0.021–0.062 at 25 or older. `DraftHistory.entryAge` draws
+20/45/25/10 across 21 to 24 and cannot produce 25, which is a year young against all five.
 
-None of the three is banded: a number nobody asserts is a note, not a target.
+**How old a whole roster is, age by age.** The same three seasons, 5,215 men: 0.0230 aged
+21, 0.0654 at 22, 0.1147 at 23, 0.1434 at 24 (the mode), 0.1367 at 25, 0.1214 at 26, then
+falling away to 0.0217 at 32 and a thin tail past 38. The first-season rate *within* an age
+falls with it — 0.967 of the 21-year-olds are in their first season, 0.666 of the
+22-year-olds, 0.480, 0.195, 0.041, and essentially none from 26 up.
+
+This last column is why the mix above cannot be read on its own. Nobody in the league can be
+21 and not in his first season, so the share of first-season players who are 21 is the
+league's 21-year-olds divided by its first-season players — fixed by the age histogram
+before the entry draw is consulted at all. The entry draw sets the ratios above 21; the age
+histogram sets that first term, and with it the first-season share.
+
+None of these is banded: a number nobody asserts is a note, not a target.
 
 ## Where the harness measures something else
 

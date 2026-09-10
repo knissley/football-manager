@@ -623,6 +623,100 @@ def rosters(directory):
     low, high = round_out(min(shares) - 0.05 * mean, max(shares) + 0.05 * mean, 3)
     print(f"first-season share band\t{low:.3f}\t{high:.3f}\tseasons {'+'.join(map(str, ROSTER_SEASONS))}")
 
+    print()
+    first_season_ages(directory)
+    print()
+    roster_age_histogram(directory)
+
+
+# How old a first-season player is, and so — because a man in his first season has by
+# definition just arrived — the age anybody enters the league at.
+ENTRY_AGES = [21, 22, 23, 24]
+ENTRY_TAIL = 25
+# Twice the standard error of the share the test reads, which is a share of the
+# first-season players in eight generated leagues: about a sixth of 13,568 men. Smaller
+# than the real sample, so it is the generated measurement that governs the width.
+GENERATED_FIRST_SEASON_MEN = 2_100
+
+
+def first_season_ages(directory):
+    """The age mix of first-season players, per season and pooled, with its bands.
+
+    A first-season player's age *is* his entry age, so this is the real entry-age
+    distribution measured directly. Note the small share who arrive under twenty-one: they
+    are in the denominator, so the shares below do not quite sum to one.
+    """
+    per_age = {age: [] for age in ENTRY_AGES + [ENTRY_TAIL]}
+    pooled = Counter()
+    pooled_men = 0
+    print("season\tfirst-season\t" + "\t".join(str(age) for age in ENTRY_AGES) + f"\t{ENTRY_TAIL}+\tunder 21")
+    for season in ROSTER_SEASONS:
+        men = [row for row in week_one_roster(directory, season) if row["years_exp"] == "0"]
+        ages = [age for age in (roster_age(row, season) for row in men) if age is not None]
+        counts = Counter(ages)
+        pooled += counts
+        pooled_men += len(ages)
+        cells = []
+        for age in ENTRY_AGES:
+            per_age[age].append(counts[age] / len(ages))
+            cells.append(f"{counts[age]}\t{counts[age] / len(ages):.4f}")
+        tail = sum(count for age, count in counts.items() if age >= ENTRY_TAIL)
+        per_age[ENTRY_TAIL].append(tail / len(ages))
+        under = sum(count for age, count in counts.items() if age < ENTRY_AGES[0])
+        print(f"{season}\t{len(ages)}\t" + "\t".join(cells) + f"\t{tail}\t{tail / len(ages):.4f}\t{under}")
+
+    print(f"pooled\t{pooled_men}")
+    for age in ENTRY_AGES + [ENTRY_TAIL]:
+        count = (
+            pooled[age]
+            if age != ENTRY_TAIL
+            else sum(n for a, n in pooled.items() if a >= ENTRY_TAIL)
+        )
+        share = count / pooled_men
+        values = per_age[age]
+        mean = sum(values) / len(values)
+        error = math.sqrt(share * (1 - share) / GENERATED_FIRST_SEASON_MEN)
+        margin = max(0.05 * mean, 2 * error)
+        low, high = round_out(min(values) - margin, max(values) + margin, 3)
+        label = f"{age}" if age != ENTRY_TAIL else f"{age}+"
+        print(
+            f"first-season age {label}\t{count}\t{share:.4f}"
+            f"\tband\t{max(0.0, low):.3f}\t{high:.3f}"
+        )
+
+
+def roster_age_histogram(directory):
+    """How old a whole week-1 roster is, age by age.
+
+    Not a band and nothing asserts it. It is here because the first-season *mix* above
+    cannot be read on its own: a man in his first season is one whose entry age is at least
+    his current age, so what share of first-season players are twenty-one is fixed by how
+    many twenty-one-year-olds a roster holds at all — nobody in the league can be
+    twenty-one and not a rookie. The entry draw sets the rest of the mix; this column sets
+    the first term.
+    """
+    pooled_all = Counter()
+    pooled_first = Counter()
+    total = 0
+    for season in ROSTER_SEASONS:
+        men = week_one_roster(directory, season)
+        for row in men:
+            age = roster_age(row, season)
+            if age is None:
+                continue
+            total += 1
+            pooled_all[age] += 1
+            if row["years_exp"] == "0":
+                pooled_first[age] += 1
+    print("age\tmen\tshare of roster\tfirst-season\tfirst-season rate at that age")
+    for age in sorted(pooled_all):
+        count = pooled_all[age]
+        print(
+            f"{age}\t{count}\t{count / total:.4f}\t{pooled_first[age]}"
+            f"\t{pooled_first[age] / count:.4f}"
+        )
+    print(f"pooled\t{total}")
+
 
 def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--rosters":

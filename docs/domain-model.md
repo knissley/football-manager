@@ -127,6 +127,16 @@ sourced band in
 and a generated league's mean age is 26.3 against 26.0–26.3 in the seasons that band came
 from.
 
+The mean and the spread land; the *shape* does not. A real week-1 roster peaks at 24 and
+falls away to the right, while a mixture of draws around position peaks comes out flatter:
+5.4% of a generated league is 21 against 2.3% real, and the 23-to-25 band holds 30.8%
+against 39.5%. That matters beyond looks, because nobody in the league can be 21 and not in
+his first season, so the fat young end fixes what share of first-season players are 21 —
+0.354 generated against 0.143 real — before `DraftHistory.entryAge` is consulted at all.
+Both histograms are recorded in
+[`reference/calibration-sources.md`](reference/calibration-sources.md#bands-the-harness-cannot-measure);
+nothing asserts either yet.
+
 **Physical** — height, weight, and the athletic testing numbers a scout would see:
 40-yard dash, vertical, broad jump, three-cone, bench. Generated correlated with
 position and with the speed/strength ratings, so the combine tells you something
