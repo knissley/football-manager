@@ -266,16 +266,23 @@ leaders(rushYardsBy, "Rushing yard leaders")
 
 // The question this answers: does rating predict production? If the leaders are
 // ordinary players, ratings are decoration.
-let rushers = sacksBy.compactMap { id, count -> (Int, Int)? in
+//
+// Sorted by overall and then by ID. Overall alone is not a total order: rushers tied on
+// it kept whatever order the dictionary handed over, which is Swift's per-process hash
+// seed, so the split at `count / 2` and both means below moved between runs of the same
+// seed. Iteration order over an unordered collection never reaches output (ADR-0003).
+let rushers = sacksBy.compactMap { id, count -> (overall: Int, sacks: Int, id: UInt64)? in
     guard let player = players[id] else { return nil }
-    return (Int(player.overall), count)
+    return (Int(player.overall), count, id.rawValue)
 }
 if rushers.count > 6 {
-    let sorted = rushers.sorted { $0.0 > $1.0 }
+    let sorted = rushers.sorted {
+        $0.overall != $1.overall ? $0.overall > $1.overall : $0.id < $1.id
+    }
     let topHalf = sorted.prefix(sorted.count / 2)
     let bottomHalf = sorted.suffix(sorted.count / 2)
-    let topRate = Double(topHalf.reduce(0) { $0 + $1.1 }) / Double(topHalf.count)
-    let bottomRate = Double(bottomHalf.reduce(0) { $0 + $1.1 }) / Double(bottomHalf.count)
+    let topRate = Double(topHalf.reduce(0) { $0 + $1.sacks }) / Double(topHalf.count)
+    let bottomRate = Double(bottomHalf.reduce(0) { $0 + $1.sacks }) / Double(bottomHalf.count)
     print("")
     print("  Rating predicts production")
     print("    sacks by the better half of rushers   \(oneDecimal(topRate))")
@@ -519,7 +526,7 @@ for result in results {
 }
 
 let totalPoints = pointsBySource.values.reduce(0, +)
-for (source, value) in pointsBySource.sorted(by: { $0.value > $1.value }) {
+for (source, value) in pointsBySource.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     let share = Double(value) / Double(max(1, totalPoints)) * 100
     print(
         "    \(pad(source, 26))\(pad(oneDecimal(Double(value) / teamGames), 7))\(oneDecimal(share))%"
@@ -536,13 +543,15 @@ for play in scrimmage {
 }
 let snaps = Double(max(1, scrimmage.count))
 print("    offensive personnel")
-for (code, count) in groups.sorted(by: { $0.value > $1.value }).prefix(6) {
+for (code, count) in groups.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }).prefix(6) {
     print(
         "      \(pad(code < 10 ? "0\(code)" : "\(code)", 28))\(oneDecimal(Double(count) / snaps * 100))%"
     )
 }
 print("    defensive package")
-for (package, count) in packages.sorted(by: { $0.value > $1.value }) {
+for (package, count) in packages.sorted(by: {
+    ($0.value, $0.key.rawValue) > ($1.value, $1.key.rawValue)
+}) {
     print("      \(pad("\(package)", 28))\(oneDecimal(Double(count) / snaps * 100))%")
 }
 
@@ -614,7 +623,7 @@ for (label, test, low, high) in [
 print("")
 print("  How drives end")
 let totalDrives = driveEnds.values.reduce(0, +)
-for (end, count) in driveEnds.sorted(by: { $0.value > $1.value }) {
+for (end, count) in driveEnds.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     let share = Double(count) / Double(max(1, totalDrives)) * 100
     print(
         "    \(pad(end, 26))\(pad(oneDecimal(Double(count) / teamGames), 7))\(oneDecimal(share))%")
@@ -651,7 +660,9 @@ for (label, low, high, test) in [
 }
 print("    how the short ones ended")
 let shortTotal = shortDriveEndings.values.reduce(0, +)
-for (label, count) in shortDriveEndings.sorted(by: { $0.value > $1.value }) {
+for (label, count) in shortDriveEndings.sorted(by: {
+    ($0.value, $0.key) > ($1.value, $1.key)
+}) {
     print(
         "      \(pad(label, 24))\(pad(oneDecimal(Double(count) / Double(max(1, shortTotal)) * 100) + "%", 9))\(count)"
     )
@@ -681,7 +692,7 @@ print(
 
 print("")
 print("  Kicking")
-for (ending, count) in kickoffEndings.sorted(by: { $0.value > $1.value }) {
+for (ending, count) in kickoffEndings.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     print(
         "    \(pad("kickoff → \(ending)", 30))"
             + "\(oneDecimal(Double(count) / Double(max(1, kickoffEndings.values.reduce(0, +))) * 100))%"
@@ -749,10 +760,10 @@ let deepGoes = goes.filter { $0.situation.ballOn > 70 }
 var deepByTime: [String: Int] = [:]
 for play in deepGoes { deepByTime["\(SituationClass(play.situation).time)", default: 0] += 1 }
 if !deepGoes.isEmpty {
+    let byTime = deepByTime.sorted { ($0.value, $0.key) > ($1.value, $1.key) }
     print(
         "      \(pad("    deep ones, by time", 24))"
-            + deepByTime.sorted { $0.value > $1.value }.map { "\($0.key) \($0.value)" }.joined(
-                separator: ", "))
+            + byTime.map { "\($0.key) \($0.value)" }.joined(separator: ", "))
 }
 let neutral = goes.filter {
     let classified = SituationClass($0.situation)
@@ -809,7 +820,7 @@ let nonOffensive = returnScores.values.reduce(0, +)
 print(
     "    \(pad("touchdowns not by the offence", 30))\(pad(twoDecimals(Double(nonOffensive) / teamGames), 8))0.15-0.28"
 )
-for (source, count) in returnScores.sorted(by: { $0.value > $1.value }) {
+for (source, count) in returnScores.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {
     print(
         "      \(pad(source, 28))\(pad(twoDecimals(Double(count) / teamGames), 8))\(count) in \(Int(teamGames)) team-games"
     )

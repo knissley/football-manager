@@ -91,6 +91,11 @@ emergent properties. Rows that depend on the *shape* of the yardage distribution
 than its mean are harder, and the spread of team win totals is not measurable at all
 until a schedule exists in M3.
 
+The output is byte-identical across processes for a given seed and game count, so the
+before-and-after comparison every engine fix depends on is a plain `diff`. A line that
+moves between two runs of the same binary at the same seed is a bug in the harness's
+read-out, not noise (#52).
+
 ## Tests
 
 ```bash
