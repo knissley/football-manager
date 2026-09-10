@@ -22,7 +22,8 @@ import Testing
 // never assumed. And a flag before the snap flies when the snap was due: the huddle has
 // elapsed, no play time has, and only then does any runoff come off.
 //
-// Kinds are in the names until the tag helpers land: every test here is `football`.
+// Kinds are in the names until the tag helpers land: every test here is `football`
+// except the one `pin`, which says so.
 
 // MARK: - The scenarios
 
@@ -585,6 +586,11 @@ struct RulesConformanceTests {
 
     /// Down seven, the touchdown as time expires leaves the side down one: a successful
     /// try affects the outcome, so it is played, and the kick sends the game on.
+    ///
+    /// Which period the book records the try in, the reference does not say, so no try
+    /// after a period-ending touchdown is asserted to a quarter or a clock here — only
+    /// that it is played and what follows it. On this tree the try after a first-quarter
+    /// touchdown is recorded in the second quarter at 15:00; noted for A2 (#31).
     @Test(
         "football · Rule 4-8-2-c, 11-3-1, 16-1-3 · a touchdown as the fourth quarter expires, down seven, gets its try, and the kick sends the game to overtime"
     )
@@ -592,8 +598,8 @@ struct RulesConformanceTests {
         let trace = RulesScenarios.lastPlayTouchdownDownSeven.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 4,
-            clock: 0, "the try is played, untimed, in the period the touchdown was scored")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
+            "the try is played")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 5, clock: 600,
             "level after the try, a ten-minute overtime period follows")
@@ -608,8 +614,8 @@ struct RulesConformanceTests {
         let trace = RulesScenarios.lastPlayTouchdownDownSix.run()
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 4,
-            clock: 0, "level after the touchdown, a successful try wins, so it is played")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
+            "level after the touchdown, a successful try wins, so it is played")
         trace.expectLastPlay(touchdown.index + 1, "the successful try ends the game")
         trace.expectWinner(touchdown.scorer)
         trace.expectScore(touchdown.scorer, 7)
@@ -626,7 +632,7 @@ struct RulesConformanceTests {
         guard let touchdown = touchdown(in: trace, quarter: 4) else { return }
         trace.expectPlay(
             touchdown.index + 1, kind: .twoPointConversion, possession: touchdown.scorer,
-            quarter: 4, clock: 0, "a two-point try can level it, so the try is played")
+            "a two-point try can level it, so the try is played")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 5, clock: 600,
             "level after the conversion, overtime follows")
@@ -688,8 +694,8 @@ struct RulesConformanceTests {
         let trace = RulesScenarios.touchdownAsSecondQuarterExpires.run()
         guard let touchdown = touchdown(in: trace, quarter: 2) else { return }
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 2,
-            clock: 0, "the try is played, untimed, before the half ends")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
+            "the try is played before the half ends")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, quarter: 3, clock: 900,
             "and the second half then opens with a kickoff")
@@ -702,9 +708,11 @@ struct RulesConformanceTests {
     func touchdownAsTheFirstQuarterExpires() {
         let trace = RulesScenarios.touchdownAsFirstQuarterExpires.run()
         guard let touchdown = touchdown(in: trace, quarter: 1) else { return }
+        // The period the try is recorded in is not asserted: see the note on the
+        // fourth-quarter scenarios above.
         trace.expectPlay(
-            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer, quarter: 1,
-            clock: 0, "the try is played, untimed, in the period the touchdown was scored")
+            touchdown.index + 1, kind: .extraPoint, possession: touchdown.scorer,
+            "the try is played")
         trace.expectPlay(
             touchdown.index + 2, kind: .kickoff, possession: touchdown.scorer, quarter: 2,
             clock: 900, "the side that scored kicks off to open the second quarter")
@@ -1165,14 +1173,9 @@ struct RulesConformanceTests {
         )
     }
 
-    /// Modelling, not a rule: the reference calls the interval between snaps the
-    /// offence's tempo. A spike is the hurry-up act, so the baseline caller makes it at
-    /// hurry-up tempo, and it costs less of the clock than a huddled snap.
-    @Test(
-        "football · modelling, no article · a spike inside two minutes is called at hurry-up tempo and takes the hurry-up interval"
-    )
-    func spikeInsideTwoMinutesTakesTheHurryUpInterval() {
-        let trace = RulesScenarios.trailingByAPickSix.run(with: BaselineCaller())
+    /// The spike the baseline caller makes inside two minutes, with the clock running
+    /// into it. Filed with A10 (#56).
+    private func spike(in trace: Trace) -> (index: Int, play: PlayRecord)? {
         guard
             let spike = trace.first(where: {
                 $0.situation.quarter == 4 && $0.situation.clockRemaining <= 120
@@ -1180,13 +1183,46 @@ struct RulesConformanceTests {
             })
         else {
             Issue.record("the trailing side never spiked the ball inside two minutes")
-            return
+            return nil
         }
-        #expect(spike.play.calls.offense.tempo == .hurryUp, "a spike is a hurry-up call")
-        guard trace.clockRunning(into: spike.index) == true, let after = trace[spike.index + 1],
-            let huddle = trace.huddle
-        else {
+        guard trace.clockRunning(into: spike.index) == true else {
             Issue.record("the clock was not running into the spike, so it was not a spike")
+            return nil
+        }
+        return spike
+    }
+
+    /// A spike is an incomplete pass, and an incomplete pass stops the clock until the
+    /// snap: the next play's huddle costs nothing.
+    @Test(
+        "football · Rule 4-4-f, 4-3-2 · a spike is an incomplete pass, and it stops the clock until the snap"
+    )
+    func spikeStopsTheClock() {
+        let trace = RulesScenarios.trailingByAPickSix.run(with: BaselineCaller())
+        guard let spike = spike(in: trace) else { return }
+        trace.expectPlay(spike.index, endedIn: .incomplete, "a spike is an incompletion")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false, "and the clock is dead until the snap")
+        guard let next = trace[spike.index + 1], trace[spike.index + 2] != nil else { return }
+        trace.expectPlay(
+            spike.index + 2, clock: next.situation.clockRemaining - next.outcome.clockRunoff,
+            "the snap after the spike costs only its own play time")
+    }
+
+    /// Not a rule: the reference calls the interval between snaps the offence's tempo.
+    /// This pins that `BaselineCaller` calls the spike at hurry-up tempo
+    /// (`PlayCaller.swift:224`) and that a hurry-up snap takes less of the clock than a
+    /// huddled one, because the endgame's arithmetic depends on both and nothing else
+    /// checked either.
+    @Test(
+        "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)"
+    )
+    func spikeIsCalledAtHurryUpTempo() {
+        let trace = RulesScenarios.trailingByAPickSix.run(with: BaselineCaller())
+        guard let spike = spike(in: trace) else { return }
+        #expect(spike.play.calls.offense.tempo == .hurryUp, "a spike is a hurry-up call")
+        guard let after = trace[spike.index + 1], let huddle = trace.huddle else {
+            Issue.record("no play after the spike, or no huddle measured")
             return
         }
         let hurried =
@@ -1195,9 +1231,6 @@ struct RulesConformanceTests {
         #expect(
             hurried < Int(huddle),
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
-        trace.expectPlay(
-            spike.index + 1, clockRunning: false,
-            "the spike is an incompletion, and it stops the clock")
     }
 
     // MARK: Tries and kicks
