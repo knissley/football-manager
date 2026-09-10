@@ -768,10 +768,10 @@ argument for watching a game.
   `DecisionPoint.detail` have a two-directional coverage register — the twelve cases the
   engine cannot reach are named with the issue that closes each, and the suite fails the
   moment one is reached ([#24](https://github.com/knissley/football-manager/issues/24)).
-- **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
-  resolves a slot only through `outcome.participants` and a decoy or a cover man is not
-  credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that
-  asserted the contract passed by luck and is now a pin listing the eight.
+- **B6** landed with B1: a flag names a slot, and every slot resolves through `onField`
+  whether or not the play credited the man, so the eight fouls on uncredited slots — 29 of
+  1104 flags over eighty games — name a player a reader can identify. The pin that listed
+  the eight is the contract again, with no register.
   ([#54](https://github.com/knissley/football-manager/issues/54))
 - **B7** — the record does not carry where a kick was fielded, so gross punt distance, net
   punt distance and return yardage cannot be recovered from a returned kick; nor does it

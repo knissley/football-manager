@@ -181,6 +181,14 @@ nobody twice, nobody after he left hurt, and a team's quarterback snaps summing 
 plays from scrimmage — is `OnFieldTests`, and the harness reads player-snaps per position
 group off it (`snaps.*` in the [calibration table](match-engine.md#calibration)).
 
+**Every flag names a player the record identifies.** A `PenaltyRecord` names the
+offender by slot, and the slot resolves through `onField` whether or not the play
+credited him — a receiver running a decoy route, a rusher who never reached the kicker, a
+blocker on a return. Before presence was on the record the only way to resolve a slot was
+the credits, and one flag in forty named nobody a reader could identify. The contract is
+`PenaltyTests.offendersAreReal`: the offender resolves, he is on the offending team's
+roster, and the slot is on the side of the ball his team was.
+
 ## Identity
 
 A play is addressed by `PlayRef` — `(game, index)` — and nothing is stored for it. The

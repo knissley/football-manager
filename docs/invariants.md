@@ -474,7 +474,9 @@ what every one of them was derived from is in
      `row:snaps.receiver`, `row:snaps.tightEnd`, `row:snaps.offensiveLine`,
      `row:snaps.frontSeven`, `row:snaps.defensiveBack`; the record's half of it is
      `test:everyPlayCarriesTwentyTwoSlots`, `test:creditsAgreeWithTheField`,
-     `test:quarterbackSnapsSumToScrimmagePlays`
+     `test:quarterbackSnapsSumToScrimmagePlays`; and every flag names a player the record
+     identifies, on the offending team and on its side of the ball, whether or not the
+     play credited him — `test:offendersAreReal`
 111. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
 
