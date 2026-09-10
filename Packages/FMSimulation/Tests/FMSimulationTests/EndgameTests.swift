@@ -114,6 +114,92 @@ struct EndgameTests {
                 != .kneel)
     }
 
+    /// A knee is the offence saying the game is over, and the arithmetic behind it is
+    /// all rulebook. A down that ends in bounds leaves the clock running, so the next
+    /// snap has to come inside the forty seconds of the play clock (2025 rulebook,
+    /// 4-6-1) and every second of that is the offence's to spend; a period whose time
+    /// runs out between downs simply ends, because 4-8-1 extends one only while the ball
+    /// is in play and 4-8-2 only for a foul in the down that expired it. A charged
+    /// timeout hands one of those intervals back, since the clock then starts on the
+    /// next snap (4-3-2), and the defence has three of them a half (4-5-1 Item 1).
+    ///
+    /// So: up a score with the ball, count the intervals the defence cannot take away.
+    @Test(
+        "A one-score lead is not knelt out while the defence can still stop the clock",
+        .tags(.unit))
+    func kneelsOnlyWhenTheDefenceCannotStopTheClock() {
+        // First and ten, 1:52, two timeouts left to the defence: two of the intervals
+        // ahead can be taken away and there is far too much clock for the rest.
+        #expect(
+            family(situation(quarter: 4, clock: 112, differential: 8, defenseTimeouts: 2))
+                != .kneel,
+            "up eight at 1:52 against two timeouts is too early")
+        // Fifty seconds, and the defence has nothing left to stop it with.
+        #expect(
+            family(situation(quarter: 4, clock: 50, differential: 8, defenseTimeouts: 0))
+                == .kneel)
+        // And having knelt once, it kneels again: second and eleven with the clock down
+        // by the knee alone, then third and twelve a play clock later.
+        #expect(
+            family(
+                situation(
+                    down: .second, distance: 11, quarter: 4, clock: 48, differential: 8,
+                    defenseTimeouts: 0)) == .kneel)
+        #expect(
+            family(
+                situation(
+                    down: .third, distance: 12, quarter: 4, clock: 9, differential: 8,
+                    defenseTimeouts: 0)) == .kneel)
+    }
+
+    /// A game the leading side has to end. It scores on the opening drive, and in the
+    /// fourth quarter the trailing side hands the ball straight back on every snap it
+    /// takes, so the lead is never in doubt and the only question is what the baseline
+    /// caller does with the clock. Everything the leading side does is its own decision.
+    private func mustBeKnelt() -> Trace {
+        ScriptedGame { snap in
+            if let staged = RulesScenarios.leadBySeven(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            return snap.differential < 0 ? .interception(to: 50) : snap.neutral
+        }
+        .run(with: caller)
+    }
+
+    /// Once a team has decided the game is over, it does not go back to running plays.
+    ///
+    /// The football is the arithmetic quoted above: the intervals a kneel-down sequence
+    /// spends are the play clock's (4-6-1), what the defence can take back is a charged
+    /// timeout's restart on the snap (4-3-2), and what ends it is the period expiring
+    /// between downs with nothing to extend it (4-8-1, 4-8-2). Count those right and the
+    /// decision is monotone by construction: the clock the next snap faces is exactly
+    /// what this knee leaves, so a lead that could be knelt out on first down can still
+    /// be knelt out on second. Count them wrong and the caller kneels twice and then
+    /// runs an ordinary play, which is what a lead gets fumbled away on.
+    @Test(
+        "football · Rules 4-6-1, 4-3-2, 4-8-1, 4-8-2 · a lead knelt out stays knelt out: the play clock and the defence's timeouts decide it, and the period ends between downs",
+        .tags(.football)
+    )
+    func theGameEndsInVictoryFormation() {
+        let trace = mustBeKnelt()
+        guard
+            let first = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .kneel
+            })
+        else {
+            Issue.record("the leading side never took a knee in the fourth quarter")
+            return
+        }
+        let rest = trace.plays[first.index...]
+        #expect(
+            rest.allSatisfy { $0.outcome.kind == .kneel },
+            "after the first knee the leading side ran \(rest.filter { $0.outcome.kind != .kneel }.count) more plays"
+        )
+        #expect(
+            rest.allSatisfy { $0.situation.possession == first.play.situation.possession },
+            "the ball changed hands after the knee")
+        #expect(trace.plays.last?.situation.quarter == 4, "the game did not end in regulation")
+    }
+
     // MARK: - Spiking
 
     /// Costs a down and a second. Worth it only when the clock is running and there is
@@ -239,6 +325,31 @@ struct EndgameTests {
             // Somebody starts the second half with a full complement.
             let secondHalf = plays.first { $0.situation.quarter == 3 }
             #expect(secondHalf?.situation.offenseTimeouts == 3, "timeouts did not reset")
+        }
+    }
+
+    /// The other half of the same promise, over seeded games rather than a script: a
+    /// possession that has started kneeling never produces another kind of snap.
+    @Test(
+        "contract · once the baseline kneels, every later snap of that possession is a kneel",
+        .tags(.contract))
+    func aKneelIsNeverFollowedByALivePlay() {
+        for seed in UInt64(1)...20 {
+            var possession: TeamID?
+            var kneeled = false
+            for play in game(seed: seed).plays {
+                if play.situation.possession != possession {
+                    possession = play.situation.possession
+                    kneeled = false
+                }
+                let isKneel = play.outcome.kind == .kneel
+                if kneeled && !isKneel {
+                    Issue.record(
+                        "seed \(seed), play \(play.index): a \(play.outcome.kind) followed a knee on the same possession"
+                    )
+                }
+                kneeled = kneeled || isKneel
+            }
         }
     }
 
