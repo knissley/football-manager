@@ -179,7 +179,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
 27. Either team can score on a try: a try that ends in a touchdown is two points to whoever
     scored it, and what would be a safety on a try is one point to the opponent.
     `[2025 · 11-3-2-b, 11-3-2-c]` — **not yet enforced**,
-    [#48](https://github.com/knissley/football-manager/issues/48)
+    [#48](https://github.com/knissley/football-manager/issues/48). Until it is, the crude
+    resolver does not put the ball on the ground during a try at all: a fumble it could
+    only resolve as a failed try would be a wrong outcome dressed as a right one.
 28. After the try, the team that was on defence for it receives the kickoff.
     `[2025 · 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`
 29. A kickoff returned for a touchdown gets its try, and the returning team then kicks off.

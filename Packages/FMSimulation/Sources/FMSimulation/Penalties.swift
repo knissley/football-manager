@@ -217,9 +217,9 @@ enum Penalties {
         // Roughly half of what it used to produce left as interference, which now has its
         // own draw at the throw; without the share, moving interference out doubles the
         // defensive-holding rate as a side effect of a change that is not about holding.
-        // Measured over 400 games at seeds 7 and 11: 1.55 and 1.32 calls a game before,
-        // 3.32 and 3.04 without it. Where the rate *should* be is the retune's question
-        // (#49), not this fix's.
+        // Measured over 400 games at seeds 7 and 11: 1.55 and 1.32 calls a game before
+        // interference moved, 3.32 and 3.04 with it moved and this share not applied.
+        // Where the rate *should* be is the retune's question, not this draw's.
         let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * contactShareOfCoverage
         guard random.nextBool(probability: max(0.002, min(0.07, chance))) else { return nil }
 

@@ -687,8 +687,11 @@ public struct CrudeResolver: PlayResolver {
         let intoOwnEndZone = Int(situation.ballOn) - Int(gained) >= 100
 
         // The ball on the ground, before the play is allowed to have been a gain.
-        // A try is left alone, exactly as the conversion pass is: it cannot fumble into
-        // anything but a failed try until #48 enforces what happens on one.
+        // A try is left alone, exactly as the conversion pass is. 11-3-2-b and 11-3-2-c
+        // give the defence its own ways to score on a try, and none of them is enforced
+        // yet, so a try that put the ball on the ground here could only be resolved as a
+        // failed try — which is a wrong outcome dressed as a right one. It does not
+        // fumble at all until the defence's half of the try exists.
         var fumble: (ending: PlayEnding, finalSpot: UInt8)?
         if !reachesEndZone && !intoOwnEndZone && !isTry {
             fumble = looseBall(
