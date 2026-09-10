@@ -69,7 +69,7 @@ to be made before M5 rather than after.
 
 ```
 Situation
-  quarter, clockRemaining, playClock
+  quarter, clockRemaining              the play clock is a decision point, below
   down, distance, ballOn            yards from the opponent's goal line
   possession    TeamID
   scoreDiff     Int16              from the possessing team's view
@@ -124,6 +124,21 @@ DecisionPoint
 .blockResult(blocker, defender, result)   .holeQuality(gap, quality)
 .coverageAssignment(defender, receiver, technique)
 ```
+
+Two more are the rules layer's rather than the resolver's, and name no player:
+
+```
+.playClock(seconds, remaining)     which play clock the snap was taken against (4-6) and
+                                   what it read; zero is an expired one, a delay of game
+.clockElection(election)           a choice one side made about the clock between downs,
+                                   as the referee announces it: the runoff and its
+                                   alternatives (4-7-1), the last forty seconds (4-7-3),
+                                   an injury timeout (4-5-4)
+```
+
+Both exist so that the clock explains itself from the stream — which clock a snap faced,
+why ten seconds came off, why a half ended on a flag — instead of being inferred from two
+consecutive situations.
 
 A crude engine emits a handful of these per play; the spatial engine emits many. **Same
 cases, same meaning** — which is exactly what lets the engine be replaced without touching

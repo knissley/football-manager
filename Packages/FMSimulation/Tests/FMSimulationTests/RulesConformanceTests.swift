@@ -1321,7 +1321,7 @@ struct RulesConformanceTests {
         return reading
     }
 
-    /// Filed as A12 (#76). The forty seconds start when the previous play ends
+    /// The forty seconds start when the previous play ends
     /// (4-6-1), and the game clock was running through them; the ball is not put in
     /// play, so the Back Judge's whistle is the foul (4-6-4), enforced from the
     /// succeeding spot with the down unchanged (14-4-1). In the third quarter the clock
@@ -1388,7 +1388,7 @@ struct RulesConformanceTests {
 
     // MARK: The last forty seconds of a half
 
-    /// Filed as A12 (#76). The defence cannot use a dead-ball foul to run the clock
+    /// The defence cannot use a dead-ball foul to run the clock
     /// out: with the clock running and the defence out of timeouts, the half ends
     /// unless the offence would rather play on, and an offence protecting a lead in the
     /// fourth quarter would not. The flag is the last play of the game.
@@ -1500,7 +1500,7 @@ struct RulesConformanceTests {
         return (index, play, UInt16(max(0, after)))
     }
 
-    /// Filed as A12 (#76). After the two-minute warning the injured player's team is
+    /// After the two-minute warning the injured player's team is
     /// charged a team timeout if it has one (4-5-4-a), and a charged timeout has the
     /// clock start on the snap (4-5-3, 4-4-j). The record says which it was.
     @Test(

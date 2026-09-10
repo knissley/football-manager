@@ -25,12 +25,15 @@ struct CrudeResolverTests {
 
     /// Every slot a decision point names must be a player who was credited. A decision
     /// referencing somebody who was not on the play is a reason attached to nobody.
+    /// The rules layer's points about the clock — the play clock a snap was taken
+    /// against, a choice about the clock between downs — name nobody, and an empty
+    /// slot is how a point says so.
     @Test("Every slot named in a decision is a credited participant", .tags(.contract))
     func decisionsNameRealPlayers() {
         for seed in UInt64(1)...4 {
             for play in game(seed: seed).plays where !play.decisions.isEmpty {
                 let credited = Set(play.outcome.participants.map(\.slot))
-                for decision in play.decisions {
+                for decision in play.decisions where !decision.primary.isNone {
                     #expect(
                         credited.contains(decision.primary),
                         "\(decision.kind) named slot \(decision.primary.rawValue), uncredited")

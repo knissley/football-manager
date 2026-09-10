@@ -517,6 +517,43 @@ struct Broadcast {
         print(line)
 
         for penalty in outcome.penalties { print(flagLine(penalty, on: play)) }
+        // What one side chose about the clock between downs, as the referee announces
+        // it: the runoff and its alternatives, the last forty seconds, an injury
+        // timeout. The record carries it so that a clock that lost ten seconds or a
+        // half that ended on a flag reads as what it was.
+        for election in play.decisions.compactMap(\.clockElectionValue) {
+            print("        clock: \(electionText(election))")
+        }
+    }
+
+    /// A clock election in the referee's words, with the article it comes from.
+    private func electionText(_ election: ClockElection) -> String {
+        switch election {
+        case .runoff:
+            return "ten-second runoff, and the clock starts on the ready (4-7-1)"
+        case .timeoutInsteadOfRunoff:
+            return "the offence takes a timeout instead of the runoff (4-7-1)"
+        case .runoffDeclined:
+            return "the defence declines the runoff and keeps the yardage (4-7-1)"
+        case .clockStartsOnTheSnap:
+            return "the offence has the clock start on the snap (4-7-1 Item 2)"
+        case .clockStartsOnTheReady:
+            return "the clock starts on the ready (4-7-1 Item 2)"
+        case .halfEnded:
+            return "the offence elects to end the half (4-7-3)"
+        case .playedOn:
+            return "the offence elects to play on (4-7-3)"
+        case .injuryTimeoutCharged:
+            return "injury timeout, charged as a team timeout (4-5-4)"
+        case .excessInjuryTimeout:
+            return "excess injury timeout (4-5-4)"
+        case .injuryRunoff:
+            return
+                "excess injury timeout: the defence takes the ten-second runoff, and the clock starts on the ready (4-5-4 Note 3)"
+        case .injuryRunoffDeclined:
+            return
+                "excess injury timeout: the defence declines the runoff, and the clock waits for the snap (4-5-4 Note 3)"
+        }
     }
 
     private mutating func applyScore(_ advancement: Advancement, offense: TeamID) {
@@ -655,7 +692,15 @@ struct Broadcast {
         case .spike:
             text = "spikes it to stop the clock"
         case .penaltyOnly:
-            text = "no play"
+            // A delay of game is the play clock expiring with the ball not snapped
+            // (2025 rulebook, 4-6-1, 4-6-4), and the record says which clock it was.
+            if let reading = play.decisions.compactMap(\.playClockReading).first,
+                reading.remaining == 0
+            {
+                text = "no play — the \(reading.seconds)-second play clock expired"
+            } else {
+                text = "no play"
+            }
         }
 
         // Whether the chains moved is the second thing a reader looks for after the

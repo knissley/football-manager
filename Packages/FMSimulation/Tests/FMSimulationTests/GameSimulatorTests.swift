@@ -349,7 +349,9 @@ struct GameSimulatorTests {
     )
     func everySnapRecordsItsPlayClock() {
         let rules = Rules.standard
-        let lengths: Set<UInt8> = [rules.playClock, rules.playClockAfterStoppage, 30]
+        let lengths: Set<UInt8> = [
+            rules.playClock, rules.playClockAfterStoppage, rules.playClockAfterRunoff,
+        ]
         for seed in UInt64(1)...6 {
             for play in TestWorld.game(seed: seed).plays {
                 let readings = play.decisions.compactMap(\.playClockReading)

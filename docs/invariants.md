@@ -230,13 +230,20 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
 50. Three charged timeouts per team per half, they do not carry over, and they never go
     negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`
-51. The play clock is 40 seconds from the end of the previous play and 25 after an
-    administrative stoppage, and letting it expire is delay of game. `[2025 · 4-6-1, 4-6-2]`
-    — **not yet enforced**,
-    [#76](https://github.com/knissley/football-manager/issues/76):
-    `Rules` holds both numbers, the caller spends tempo against the game clock, and delay
-    of game is drawn as a foul rather than timed. `test:tempoOrdering` pins the tempo
-    model
+51. The play clock is 40 seconds from the end of the previous play and 25 from the whistle
+    after an administrative stoppage — 30 after a runoff, and back to 40 after a defensive
+    act that conserves time — and letting it expire with the ball not snapped is delay of
+    game: five yards from the succeeding spot, the down unchanged, and on a running game
+    clock the whole play clock gone before the whistle.
+    `[2025 · 4-6-1, 4-6-2, 4-6-3, 4-6-4, 14-4-1]` —
+    `test:delayOfGameWhenThePlayClockExpires`,
+    `test:delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock`,
+    `test:playClockValues`, `test:everySnapRecordsItsPlayClock`; **modelling**: the
+    offence's tempo is how much of whatever clock is in force it means to leave itself,
+    and how often it overruns that slack is a draw that halves with every eight seconds
+    of it — the delay-of-game rate is derived from the clock rather than tuned as a flat
+    roll, and `row:penalty.delayOfGame` is what measures it. `test:tempoOrdering` and
+    `test:tempoScalesToTheClock` pin the tempo table
 
 ## The ten-second runoff
 
@@ -266,18 +273,35 @@ season is what checks one. A band is evidence about a rate and never about a rul
     running, is five yards and a runoff. `[2025 · 4-7-2]` — `test:window`
 61. In the last 40 seconds of either half a defensive foul that conserves time ends the
     half, unless the defence has a timeout left or the offence would rather play on.
-    `[2025 · 4-7-3]` — **not yet enforced**,
-    [#76](https://github.com/knissley/football-manager/issues/76); it is named as not modelled in
-    [match-engine.md](match-engine.md#clock-penalties-and-ai)
+    `[2025 · 4-7-3, 4-7-1-a]` —
+    `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`,
+    `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`,
+    `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft`,
+    `test:lastFortySeconds`, `test:conservingActs`; the election is the offence's, a
+    `PlayCaller` decision written into the play's decision log; **modelling**: the
+    defence's option to spend a timeout in lieu of the clock starting (4-7-1 Item 2) is
+    not modelled — a defence with a timeout keeps the half alive by having one, and spends
+    it as any timeout, before the next snap
 62. A replay reversal or a nullified foul after the two-minute warning that leaves the clock
     where a correct ruling would not have stopped it runs ten seconds off, which neither
-    team may decline. `[2025 · 4-7-4]` — **not yet enforced**,
-    [#76](https://github.com/knissley/football-manager/issues/76):
-    there is no replay system and no foul is ever nullified after the fact
-63. An excess timeout for injury against the team in possession carries a runoff at the
-    defence's choice. `[2025 · 4-5-4 Note 3]` — **not yet enforced**,
-    [#76](https://github.com/knissley/football-manager/issues/76):
-    an injury stops nothing in this engine
+    team may decline. `[2025 · 4-7-4]` — **modelling**: excluded until a replay system
+    exists. There is no replay in this engine and no foul is ever nullified after the
+    fact, so nothing can produce that runoff; `test:noRunoffFollowsAReplay` pins that
+    every runoff a game produces, and every clock election the record can carry, is a
+    foul's, the last forty seconds' or an injury timeout's
+63. After the two-minute warning an injury timeout is charged to the injured player's
+    team as a team timeout if it has one, and the clock then waits for the snap; with none
+    left it is an excess timeout, and one against the team in possession that stopped a
+    running clock carries a ten-second runoff at the defence's choice, after which the
+    clock starts on the ready — or, declined, waits for the snap.
+    `[2025 · 4-5-3, 4-5-4-a, 4-5-4-b, 4-5-4 Note 1, 4-5-4 Note 3, 4-5-4 Note 4]` —
+    `test:injuryTimeoutAfterTheWarningIsCharged`,
+    `test:excessInjuryTimeoutAfterTheWarningCarriesTheRunoff`,
+    `test:injuryRunoffDeclinedByATrailingDefense`; the runoff is the defence's choice, a
+    `PlayCaller` decision written into the play's decision log; **modelling**: before the
+    warning an injury changes nothing on the clock (4-5-3), and the five-yard penalty for
+    a second excess timeout in a half (4-5-4 Note 2) and an injury to both sides on one
+    down (4-5-4 Note 5) are not modelled
 
 ## Where a foul is enforced from
 

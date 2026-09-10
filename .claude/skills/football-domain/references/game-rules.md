@@ -56,9 +56,13 @@ game — including the rules the engine does not enforce yet — is `docs/invari
   and in the postseason a second or a fourth overtime period, whose ends are timed as the
   halves' are — never a first or a third. `[2025 · 3-41]`, `[2025 · 16-1-3-e]`,
   `[2025 · 16-1-4-h]`
-- Play clock: 40 seconds from the end of the previous play; 25 seconds after an
-  administrative stoppage — change of possession, charged timeout, two-minute warning, end
-  of a period, penalty enforcement, a free kick. `[2025 · 4-6-1]`, `[2025 · 4-6-2]`
+- Play clock: 40 seconds from the end of the previous play; 25 seconds from the whistle
+  after an administrative stoppage — change of possession, charged timeout, two-minute
+  warning, end of a period, penalty enforcement, a free kick. `[2025 · 4-6-1]`,
+  `[2025 · 4-6-2]` A stoppage resets it: to 25 after a timeout, the warning, a period's end
+  or a penalty enforcement; to 40 after a defensive act that conserves time; to 30 after a
+  runoff. `[2025 · 4-6-3]` Letting it expire with the ball not snapped is delay of game,
+  and the ball stays dead. `[2025 · 4-6-1]`, `[2025 · 4-6-4]`
 - Three charged timeouts per team per half. They do not carry over. `[2025 · 4-5-1]`
 
 ## Clock stoppage
@@ -77,6 +81,9 @@ the second column says what starts it again. `[2025 · 4-4]`, `[2025 · 4-3]`
 | Two-minute warning | Snap — in the second and fourth periods, in regular-season overtime, and in a second or fourth postseason overtime period | `4-4-h`, `3-41`, `16-1-3-e`, `16-1-4-h` · `test:twoMinuteWarningStopsAtTwoMinutes`, `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`, `test:secondPostseasonOvertimePeriodHasTheFirstHalfsWarning`, `test:firstPostseasonOvertimePeriodHasNoWarning` |
 | Runner out of bounds | **Ready for play** — except that it waits for the snap once possession has changed, in the first half's closing two minutes, and in the second half's closing five; overtime carries the window of the half Rule 16 times it as | `4-4-c`, `4-3-2-a`, `16-1-3-e`, `16-1-4-h` · `test:outOfBoundsEarly`, `test:outOfBoundsLate`, `test:outOfBoundsInRegularSeasonOvertime`, `test:outOfBoundsInPostseasonOvertime` |
 | After a 10-second runoff | Ready for play | `4-3-2-g` · `test:falseStartInsideTwoMinutesCostsTenSeconds` |
+| Play clock expired | As any foul before the snap — but the flag flies when the play clock runs out, so a running game clock has lost the whole play clock before it: forty after a play, twenty-five from the whistle after a change of possession | `4-6-1`, `4-6-2`, `4-6-4` · `test:delayOfGameWhenThePlayClockExpires`, `test:delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock` |
+| Defensive act that conserves time in the last 40 seconds of a half | The half ends — unless the defence has a timeout left or the offence would rather play on, in which case as after any defensive foul inside two minutes | `4-7-3` · `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`, `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`, `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft` |
+| Injury timeout after the two-minute warning | Snap, when the injured player's team is charged a team timeout. An excess timeout against the team in possession that stopped a running clock carries a ten-second runoff at the defence's choice and then the ready; declined, the snap. Before the warning, as if it had not occurred | `4-5-3`, `4-5-4-a`, `4-5-4-b`, `4-5-4 Note 1`, `4-5-4 Note 3` · `test:injuryTimeoutAfterTheWarningIsCharged`, `test:excessInjuryTimeoutAfterTheWarningCarriesTheRunoff`, `test:injuryRunoffDeclinedByATrailingDefense` |
 | During the Try | The Try is untimed | `4-3-2-h`, `11-3-1` · `test:touchdownAsTheSecondQuarterExpires` |
 | First down gained | Does not stop the clock | not in `4-4` · `test:firstDownDoesNotStop` |
 
@@ -84,7 +91,9 @@ The out-of-bounds rule is the one most often modeled wrong, and it's exactly the
 that governs whether a two-minute drill works.
 
 Live-play duration of roughly 4–7 seconds is a modelling convention, not a rule; the rest
-of the interval between snaps is the offense's tempo choice against the play clock.
+of the interval between snaps is the offense's tempo choice against the play clock — and
+the play clock in force is a rule the engine counts, so a delay of game is that clock
+expiring rather than a rate drawn beside it.
 
 ## The ten-second runoff
 
@@ -111,11 +120,20 @@ one. In our own words:
   starts on the ready signal unless the offence wants the snap. There is never a runoff
   against the defence. `[2025 · 4-7-1]` Item 2, `[2025 · 4-5-4]` Note 9
 - A half can end on a runoff. `[2025 · 4-5-4]` Note 4
+- **In the last forty seconds of either half the defence cannot buy the end of the half
+  with a foul either**: a defensive act that conserves time with the clock running ends
+  the half, unless the defence has a timeout left or the offence would rather play on —
+  a leading offence takes the whistle, a level or trailing one plays on. The same goes
+  for an excess timeout for an injured defensive player. `[2025 · 4-7-3]`
 - A replay reversal or a nullified foul after the two-minute warning that leaves the clock
   where a correct ruling would not have stopped it also runs ten seconds off; neither team
-  may decline that one, but either may spend a timeout to stop it. `[2025 · 4-7-4]`
-- An excess timeout for injury against the team in possession carries a runoff at the
-  defence's choice. `[2025 · 4-5-4]` Note 3
+  may decline that one, but either may spend a timeout to stop it. `[2025 · 4-7-4]` Not
+  modelled: there is no replay system, and `test:noRunoffFollowsAReplay` pins the
+  exclusion.
+- An excess timeout for injury against the team in possession — after the two-minute
+  warning, when its team has no timeout left to be charged — carries a runoff at the
+  defence's choice, and the clock then starts on the ready with the play clock at 30.
+  `[2025 · 4-5-4]` Note 3
 
 ## Scoring
 
@@ -214,7 +232,7 @@ Common ones, with what the book says they cost.
 | False start | 5 | Enforced before the snap | `7-4-2` · `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `row:penalty.falseStart` |
 | Encroachment | 5 | Pre-snap, defense | `7-4-3` · `test:everyFoulIsCalled` |
 | Offside | 5 | The offense may get a free play | `7-4-5` · `test:offsideOnTheConversionMovesItIn`, `row:penalty.offside` |
-| Delay of game | 5 | Play clock expired, and the other listed delays | `4-6` · `row:penalty.delayOfGame` |
+| Delay of game | 5 | Play clock expired, and the other listed delays; the engine produces the first kind only | `4-6` · `test:delayOfGameWhenThePlayClockExpires`, `row:penalty.delayOfGame` |
 | Illegal formation (offense) | 5 | | `7-5-1` · `row:penalty.illegalFormation` |
 | Illegal motion | 5 | | `7-4-8` · `test:everyFoulIsCalled` |
 | Holding (offense) | 10 | Replay the down | `12-1-3-c` · `test:holdingOnAGain`, `row:penalty.offensiveHolding` |

@@ -250,11 +250,41 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             resolved.outcome, calls: calls, decisions: resolved.decisions, deadBall: deadBall)
 
         // Injuries are drawn from who was involved, after the play is recorded, so the
-        // event can point at the snap it happened on.
+        // event can point at the snap it happened on. The injury timeout it brings is a
+        // clock rule after the two-minute warning (4-5-4), and the choices that rule
+        // puts to the callers are asked here, with the situation as it now stands.
         if let play = state.plays.last, let injury = injuries(play, context, &random) {
             state.injuries.append(injury)
             if injury.leavesTheGame { state.hurt.insert(injury.player) }
+            if let team = team(of: injury.player, on: play, context: context) {
+                let after = state.situation()
+                let classified = SituationClass(after, rules: state.setup.rules)
+                state.applyInjuryTimeout(
+                    injuredTeam: team, on: play,
+                    choices: InjuryChoices(
+                        defenseTakesRunoff: caller.takesRunoff(
+                            forInjuryTimeout: after, classified: classified),
+                        offenseStartsClockOnTheSnap: caller.startsClockOnTheSnap(
+                            afterDefensiveFoul: after, classified: classified),
+                        offenseEndsTheHalf: caller.endsTheHalf(
+                            afterDefensiveTimeConservation: after, classified: classified)))
+            }
         }
+    }
+
+    /// Which team the hurt man plays for: the side of the slot he was credited in, or,
+    /// when a scenario hurt somebody it never credited, the rotation he was drawn from.
+    private func team(of player: PlayerID, on play: PlayRecord, context: PlayContext) -> TeamID? {
+        if let credited = play.outcome.participants.first(where: { $0.player == player }) {
+            return credited.slot.isOffense ? context.offense : context.defense
+        }
+        if context.offenseRotation.contains(where: { $0.player == player }) {
+            return context.offense
+        }
+        if context.defenseRotation.contains(where: { $0.player == player }) {
+            return context.defense
+        }
+        return nil
     }
 
     /// The callers' answers to a flag before the snap, or `nil` when the play was not one.
@@ -262,7 +292,8 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         for outcome: Outcome, in state: State, tempo: Tempo
     ) -> DeadBallChoices? {
         guard outcome.kind == .penaltyOnly else { return nil }
-        let atTheFlag = state.situationAtTheFlag(tempo: tempo)
+        let atTheFlag = state.situationAtTheFlag(
+            tempo: tempo, foul: outcome.penalties.first?.foul)
         let classified = SituationClass(atTheFlag, rules: state.setup.rules)
         return DeadBallChoices(
             offenseTakesTimeout: caller.takesTimeoutInsteadOfRunoff(
@@ -270,7 +301,9 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             defenseDeclinesRunoff: caller.declinesRunoff(
                 situation: atTheFlag, classified: classified),
             offenseStartsClockOnTheSnap: caller.startsClockOnTheSnap(
-                afterDefensiveFoul: atTheFlag, classified: classified))
+                afterDefensiveFoul: atTheFlag, classified: classified),
+            offenseEndsTheHalf: caller.endsTheHalf(
+                afterDefensiveTimeConservation: atTheFlag, classified: classified))
     }
 
     /// A try is a decision, not a formality: down eight late, you go for two.
