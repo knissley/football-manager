@@ -757,19 +757,17 @@ argument for watching a game.
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
-- **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
-  so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
-  snap count is not a query the record can answer.
-  ([#21](https://github.com/knissley/football-manager/issues/21))
+- **B1**, **B4** and **B5** landed with wave 2's record track: who was on the field is
+  twenty-two roster indices on every play
+  ([#21](https://github.com/knissley/football-manager/issues/21)), the weather is on the
+  game's result and no longer on a hundred and fifty situations
+  ([#23](https://github.com/knissley/football-manager/issues/23)), and the enums behind
+  `DecisionPoint.detail` have a two-directional coverage register — the twelve cases the
+  engine cannot reach are named with the issue that closes each, and the suite fails the
+  moment one is reached ([#24](https://github.com/knissley/football-manager/issues/24)).
 - **B3** — the record carries no schema version, and `OffensiveCall.design` points into a
   fake identifier space built from `PlayFamily.rawValue + 1` that will dangle the day a real
   playbook exists. ([#33](https://github.com/knissley/football-manager/issues/33))
-- **B4** — the weather is copied onto every play, about 150 times a game, although it is a
-  fact about the afternoon. ([#23](https://github.com/knissley/football-manager/issues/23))
-- **B5** — nothing fails when a decision-detail case becomes unreachable. The engine
-  produces 3 of 5 `ThrowDecision` cases, 2 of 5 `TackleResult`, 2 of 5 `BlockResult` and 2
-  of 6 `CoverageTechnique`, and the coverage suite does not look at
-  `DecisionPoint.detail`. ([#24](https://github.com/knissley/football-manager/issues/24))
 - **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
   resolves a slot only through `outcome.participants` and a decoy or a cover man is not
   credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that
