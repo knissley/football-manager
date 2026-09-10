@@ -468,7 +468,7 @@ game (16-1-5-c, A.R. 16.2, A.R. 16.4), and each side has two timeouts in a
 regular-season overtime period (16-1-3-e). The engine's overtime scenarios are in
 `RulesConformanceTests`, eleven of them, one per clause. Not yet modelled: the
 two-minute warning in overtime, which the fourth quarter's timing (16-1-3-e) implies
-and `Rules.isEndOfHalf` does not give.
+and `Rules.isEndOfHalf` does not give — [A11 · #74](https://github.com/knissley/football-manager/issues/74).
 
 ## S10 — A touchdown at the end of a half gets no try — **fixed**
 
@@ -542,7 +542,9 @@ with the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2; regular-season ov
 included, 16-1-3-e), the offence's timeout and the defence's decline as `PlayCaller`
 decisions with baseline defaults, and a half that can end on it (4-5-4 Note 4). Article
 3, the defensive foul in the last forty seconds, is not modelled and the `Rules` doc
-comment says so. Twenty clock scenarios in `RulesConformanceTests` cover the three.
+comment says so; neither are the postseason overtime clock cases (16-1-4-h), which are
+[A11 · #74](https://github.com/knissley/football-manager/issues/74) with the overtime
+two-minute warning. Twenty clock scenarios in `RulesConformanceTests` cover the three.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -573,9 +575,13 @@ measured from the enforcement spot (14-2-1). The case table is in
 `PenaltyEnforcementTests`, and the harness prints how often the contact family is
 declined. A live-ball contact foul by the scorer wipes its own score and is enforced
 from the previous spot, which stands in for the spot of the foul the record does not
-carry (14-3-6, 4-8-2-b; the wave 1 review). A foul by the team scored upon, or a
-dead-ball conduct foul by the scorer, is still recorded declined with the score
-standing, until C9 enforces it on the try or the kickoff (14-2-3).
+carry (14-3-6; the wave 1 review). The record also lacks the spot where possession was
+lost, and cannot express a kicking-team kickoff touchdown —
+[B7 · #58](https://github.com/knissley/football-manager/issues/58). A foul by the team
+scored upon, or a dead-ball conduct foul by the scorer, is still recorded declined with
+the score standing, until [C9 · #48](https://github.com/knissley/football-manager/issues/48)
+enforces it on the try or the kickoff (14-2-3) and re-tries after a live-ball foul on a
+try.
 
 ## S14 — The completion-percentage row is a false pass — **open**
 
@@ -628,7 +634,13 @@ are fixed. S9 through S15 were added by the September 2026 external audit; the s
 rules-layer findings among them were fixed by wave 1 of the backlog, and S14 — the
 harness row, not the engine — is the one still open. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
-table is a snapshot.
+table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
+[A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
+two-minute warning and postseason overtime timing),
+[B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
+possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
+[C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a
+foul on a try).
 
 | finding | status | closed by |
 | --- | --- | --- |

@@ -210,13 +210,21 @@ struct TenSecondRunoffTests {
         #expect(
             carriesRunoff(.falseStart, quarter: 5, clock: 40),
             "fourth-quarter timing rules apply in regular-season overtime (16-1-3-e)")
-        #expect(
-            carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false,
-            "not modelled for a postseason period, which the reference does not cover")
         #expect(carriesRunoff(.falseStart, running: false) == false, "with the clock stopped")
         #expect(carriesRunoff(.offside, byOffense: false) == false, "never against the defence")
         #expect(carriesRunoff(.neutralZoneInfraction, byOffense: false) == false)
         #expect(carriesRunoff(.encroachment, byOffense: false) == false)
+    }
+
+    /// Postseason overtime reads its periods as halves for timing (16-1-4-h), which the
+    /// engine does not model: `Rules.hasFourthPeriodTiming` answers no for every
+    /// postseason overtime period, so no runoff applies there. Pinned so that the
+    /// answer changes on purpose, with A11 (#74), rather than by accident.
+    @Test(
+        "pin · no runoff in postseason overtime, because postseason overtime timing (16-1-4-h) is not modelled pending #74"
+    )
+    func postseasonOvertimeRunoffIsNotModelled() {
+        #expect(carriesRunoff(.falseStart, quarter: 5, clock: 40, postseason: true) == false)
     }
 }
 

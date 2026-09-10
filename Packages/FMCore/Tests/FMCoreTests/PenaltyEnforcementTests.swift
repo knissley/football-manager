@@ -367,12 +367,12 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.requiresTry)
     }
 
-    /// A live-ball foul by the scorer wipes its own score: an offensive foul on the
-    /// last play of a half means the score does not count (4-8-2-b), and a foul by the
-    /// offence during its own run is enforced by the three-and-one method (14-3-6).
-    /// The spot of the foul is not in the record, so the previous spot stands in.
+    /// A foul by the offence during its own run is enforced by the three-and-one
+    /// method (14-3-6): behind the basic spot, from the spot of the foul, which the
+    /// record does not carry, so the previous spot stands in — and the touchdown at
+    /// the end of the run does not count, because the play it came on is replayed.
     @Test(
-        "football · Rule 14-3-6, 4-8-2-b · a facemask by the offence during its own touchdown run nullifies the score, enforced from the previous spot"
+        "football · Rule 14-3-6 · a facemask by the offence during its own touchdown run nullifies the score, enforced from the previous spot"
     )
     func offensiveContactFoulOnItsOwnScore() {
         let decision = rules.enforce(

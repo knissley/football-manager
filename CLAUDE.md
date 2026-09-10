@@ -30,8 +30,9 @@ sixty-two tests were green, three of them asserting wrong football. **Wave 1 of 
 backlog fixed those** (S9–S13 and S15 in the audit doc): overtime, the try, the safety
 kickoff, the clock with its runoff, and the enforcement spot each have scenario tests
 written from the 2025 rulebook, and the three wrong tests were rewritten. Still open are
-S14, the completion-percentage row that is a false pass, and what the wave 1 fixes
-deferred to their own issues, which the audit doc's status table links.
+S14 (B2 #22, E2 #42), the overtime two-minute warning and postseason overtime timing
+(#74), two record gaps — the spot where possession was lost, and a kicking-team kickoff
+touchdown — (#58), and the re-try after a foul on a try (#48).
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
