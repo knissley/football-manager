@@ -329,7 +329,6 @@ tree while this doc was written; the rest are the audit's findings, taken on its
   `PlayCaller` protocol extension, not a method on one caller: `BaselineCaller` and every
   other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
   #41, #46.
-- There is no ten-second runoff. #32.
 - Live-ball fouls are enforced from the wrong spot. #18.
 
 The dynamic kickoff is not in the engine at all: `Rules` carries one

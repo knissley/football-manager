@@ -502,7 +502,7 @@ flips possession: the team scored upon keeps the ball to free-kick from its own 
 (2025 rulebook, 11-5-2, 6-1-1-b) and the kick changes hands as every kickoff does. Both
 tests are rewritten to assert the kicker and the spot.
 
-## S12 — The clock runs through a change of possession, and there is no runoff — **open**
+## S12 — The clock runs through a change of possession, and there is no runoff — **fixed**
 
 `Rules.clockBehavior(after:)` reads only the ending. A fourth-down stop and a returned punt
 both end `.tackled`, which `GameClock.swift:39` treats as a live ball, so the team taking
@@ -518,6 +518,18 @@ charges a phantom 6 seconds of play time, because `runClock` substitutes 6 for a
 
 Closed by [A4 · #17](https://github.com/knissley/football-manager/issues/17) and
 [A5 · #32](https://github.com/knissley/football-manager/issues/32).
+
+**Fixed by A4 (#17), A5 (#32) and A10 (#56), in the wave 1 PR.** Any change of
+possession stops the clock until the snap, whatever the ending (2025 rulebook, 4-4-i,
+4-3-2-a-1); a kickoff return costs its seconds and a touchback none (4-3-1); the
+two-minute warning is a stoppage between downs, so a down under way at 2:00 finishes
+(3-41). A flag before the snap charges no play time and the clock restarts as though the
+flag had never flown (4-4-e). The ten-second runoff exists: `Rules.tenSecondRunoff`, with
+the window in `Rules.carriesRunoff` (4-7-1 Item 1, 4-7-2), the offence's timeout and the
+defence's decline as `PlayCaller` decisions with baseline defaults, and a half that can
+end on it (4-5-4 Note 4). Article 3, the defensive foul in the last forty seconds, is
+not modelled and the `Rules` doc comment says so. Fourteen clock scenarios in
+`RulesConformanceTests` cover the three.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **open**
 
@@ -601,7 +613,7 @@ table is a snapshot.
 | S9 There is no overtime in the regular season | fixed | [A1 · #15](https://github.com/knissley/football-manager/issues/15) |
 | S10 A touchdown at the end of a half gets no try | fixed | [A2 · #31](https://github.com/knissley/football-manager/issues/31) |
 | S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
-| S12 The clock runs through a change of possession, and there is no runoff | **open** | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32) |
+| S12 The clock runs through a change of possession, and there is no runoff | fixed | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32), [A10 · #56](https://github.com/knissley/football-manager/issues/56) |
 | S13 Live-ball fouls are enforced from the previous spot | **open** | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
 | S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
 | S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |

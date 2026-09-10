@@ -218,10 +218,10 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         let resolved = resolver.resolve(
             situation: situation, calls: calls, context: context, random: &random)
 
-        // A flag before the snap puts a question to the offence — whether the clock
-        // waits for the snap after the defence's foul — and it is asked here, where the
-        // callers are, with the clock as it reads at the flag. The rules layer then uses
-        // the answer if the foul makes it relevant.
+        // A flag before the snap puts two questions to the callers — a timeout instead
+        // of the runoff, declining the runoff, the clock's restart — and they are asked
+        // here, where the callers are, with the clock as it reads at the flag. The
+        // rules layer then uses whichever of the answers the foul makes relevant.
         let deadBall = deadBallChoices(
             for: resolved.outcome, in: state, tempo: calls.offense.tempo)
         state.apply(
@@ -245,6 +245,10 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         let atTheFlag = state.situationAtTheFlag(tempo: tempo)
         let classified = SituationClass(atTheFlag, rules: state.setup.rules)
         return DeadBallChoices(
+            offenseTakesTimeout: caller.takesTimeoutInsteadOfRunoff(
+                situation: atTheFlag, classified: classified),
+            defenseDeclinesRunoff: caller.declinesRunoff(
+                situation: atTheFlag, classified: classified),
             offenseStartsClockOnTheSnap: caller.startsClockOnTheSnap(
                 afterDefensiveFoul: atTheFlag, classified: classified))
     }

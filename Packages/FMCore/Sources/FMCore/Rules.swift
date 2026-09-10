@@ -30,6 +30,24 @@ public struct Rules: Sendable, Hashable, Codable {
     public var outOfBoundsStopsClockFirstHalf: UInt16
     /// The same rule late in the second half, where the window is longer.
     public var outOfBoundsStopsClockSecondHalf: UInt16
+    /// Seconds run off the game clock when the offence conserves time illegally after
+    /// the two-minute warning of either half with the clock running.
+    ///
+    /// Modelled from the 2025 rulebook, Rule 4 Section 7: a dead-ball foul by the
+    /// offence that stops a running clock carries the runoff on top of its yardage
+    /// (Article 1, Item 1), and so does an illegal substitution (Article 2). The
+    /// offence may spend a charged timeout instead, and the clock then starts on the
+    /// snap; the defence may decline the runoff and keep the yardage; after a runoff the
+    /// clock starts on the ready-for-play signal (4-3-2-g), and a half can end on one
+    /// (4-5-4 Note 4). The same act by the defence never carries a runoff (Article 1,
+    /// Item 2). Which foul carries it is `carriesRunoff`; the decisions are the
+    /// callers'.
+    ///
+    /// **Article 3 is not modelled**: a defensive foul that conserves time in the last
+    /// forty seconds can end the half unless the offence elects to play on, and here
+    /// the offence always elects to play on. Nor is Article 4, the runoff after a replay
+    /// reversal or a nullified foul, because there is no replay.
+    public var tenSecondRunoff: UInt16
 
     // MARK: - Scoring
 
@@ -74,6 +92,7 @@ public struct Rules: Sendable, Hashable, Codable {
         timeoutsPerHalf: UInt8 = 3,
         outOfBoundsStopsClockFirstHalf: UInt16 = 120,
         outOfBoundsStopsClockSecondHalf: UInt16 = 300,
+        tenSecondRunoff: UInt16 = 10,
         touchdown: Int16 = 6,
         extraPoint: Int16 = 1,
         twoPointConversion: Int16 = 2,
@@ -101,6 +120,7 @@ public struct Rules: Sendable, Hashable, Codable {
         self.timeoutsPerHalf = timeoutsPerHalf
         self.outOfBoundsStopsClockFirstHalf = outOfBoundsStopsClockFirstHalf
         self.outOfBoundsStopsClockSecondHalf = outOfBoundsStopsClockSecondHalf
+        self.tenSecondRunoff = tenSecondRunoff
         self.touchdown = touchdown
         self.extraPoint = extraPoint
         self.twoPointConversion = twoPointConversion
@@ -164,5 +184,24 @@ extension Rules {
     /// The quarter a half ends on.
     public func isEndOfHalf(quarter: UInt8) -> Bool {
         quarter == quarters / 2 || quarter == quarters
+    }
+
+    /// Whether a foul before the snap carries the ten-second runoff.
+    ///
+    /// By the offence, after the two-minute warning of either half, with the clock
+    /// running into the flag (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
+    /// defence (4-7-1 Item 2). The clock is read at the flag: at exactly the warning it
+    /// has just stopped, so nothing is running to run off.
+    ///
+    /// Only the dead-ball fouls before the snap are here. Intentional grounding, an
+    /// illegal forward pass and the other live-ball acts in the article are not drawn
+    /// by the engine yet; when they are (C3), they belong in this predicate.
+    public func carriesRunoff(
+        foul: Foul, byOffense: Bool, quarter: UInt8, clockRemaining: UInt16,
+        clockWasRunning: Bool
+    ) -> Bool {
+        guard byOffense, foul.isPreSnap, clockWasRunning else { return false }
+        guard isEndOfHalf(quarter: quarter) else { return false }
+        return clockRemaining < twoMinuteWarning
     }
 }

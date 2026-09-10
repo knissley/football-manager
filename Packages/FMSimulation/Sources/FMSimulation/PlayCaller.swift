@@ -49,6 +49,17 @@ public protocol PlayCaller: Sendable {
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
 
+    /// Whether the offence spends a charged timeout instead of taking the ten-second
+    /// runoff its dead-ball foul has earned (2025 rulebook, 4-7-1 Item 1). The clock
+    /// starts on the snap after the timeout rather than on the ready signal.
+    ///
+    /// `situation.clockRemaining` is the clock at the flag, not at the previous whistle.
+    func takesTimeoutInsteadOfRunoff(situation: Situation, classified: SituationClass) -> Bool
+
+    /// Whether the defence declines the ten-second runoff and keeps the yardage
+    /// (4-7-1 Item 1). A defence that wants the clock stopped does.
+    func declinesRunoff(situation: Situation, classified: SituationClass) -> Bool
+
     /// After a defensive dead-ball foul inside two minutes with the clock running, the
     /// clock starts on the ready signal unless the offence chooses the snap
     /// (4-7-1 Item 2). Whether it does.
@@ -189,8 +200,25 @@ extension PlayCaller {
         return situation.clockRemaining <= 50 && situation.defenseTimeouts == 0
     }
 
-    // The baseline answer to a dead-ball foul's clock decision. A coaching choice, not
-    // a rule; a caller with a gameplan overrides it.
+    // The baseline answers to the runoff's decisions. Coaching choices, not rules;
+    // a caller with a gameplan overrides them.
+
+    /// Take the runoff unless a timeout remains and the clock is at fifteen seconds or
+    /// less, where ten seconds is most of what is left.
+    public func takesTimeoutInsteadOfRunoff(
+        situation: Situation, classified: SituationClass
+    )
+        -> Bool
+    {
+        situation.offenseTimeouts > 0 && situation.clockRemaining <= 15
+    }
+
+    /// Accept the runoff when level or leading; decline it when trailing, because a
+    /// trailing defence wants the clock stopped, not run. `scoreDifferential` is the
+    /// offence's, so a positive number means the defence is behind.
+    public func declinesRunoff(situation: Situation, classified: SituationClass) -> Bool {
+        situation.scoreDifferential > 0
+    }
 
     /// Have the clock wait for the snap unless leading: a trailing or level offence
     /// inside two minutes wants every second.

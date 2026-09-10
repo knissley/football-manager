@@ -4,8 +4,12 @@ import FMRandom
 extension GameSimulator {
 
     /// What the callers chose when a flag flew before the snap (2025 rulebook, 4-7-1).
-    /// Asked before the rules layer knows whether the foul makes it relevant.
+    /// All three are asked; the rules layer reads the ones the foul makes relevant.
     struct DeadBallChoices: Sendable {
+        /// The offence spends a charged timeout rather than take the runoff.
+        var offenseTakesTimeout: Bool
+        /// The defence declines the runoff and keeps the yardage.
+        var defenseDeclinesRunoff: Bool
         /// After a defensive foul inside two minutes, the offence has the clock wait
         /// for the snap rather than start on the ready signal.
         var offenseStartsClockOnTheSnap: Bool
@@ -325,8 +329,8 @@ extension GameSimulator {
         }
 
         /// The clock after a flag before the snap. No play happened, so no play time is
-        /// charged; the huddle is, if the clock was running into it (4-4-e). Then how
-        /// the clock restarts. The ten-second runoff (4-7-1) is A5's, not yet here.
+        /// charged; the huddle is, if the clock was running into it (4-4-e). Then the
+        /// runoff, where it applies (4-7-1), and how the clock restarts.
         private mutating func runClockForDeadBallFoul(
             _ outcome: Outcome, choices: DeadBallChoices?, tempo: Tempo
         ) {
@@ -344,7 +348,33 @@ extension GameSimulator {
             }
             let byOffense = penalty.offendingTeam == possession
 
-            // A dead-ball foul stops the clock and it restarts as though the
+            if rules.carriesRunoff(
+                foul: penalty.foul, byOffense: byOffense, quarter: clock.quarter,
+                clockRemaining: clock.secondsRemaining, clockWasRunning: runningAtTheFlag)
+            {
+                // The offence may spend a timeout instead, and the clock then starts on
+                // the snap (4-7-1 Item 1).
+                let timeouts = possession == setup.home.id ? homeTimeouts : awayTimeouts
+                if choices?.offenseTakesTimeout == true, timeouts > 0 {
+                    spendTimeout(offense: true)
+                    return
+                }
+                // The defence may decline the runoff and keep the yardage; the clock
+                // then restarts as any dead-ball foul's does.
+                if choices?.defenseDeclinesRunoff == true {
+                    previousBehavior = .stopsUntilReadyForPlay
+                    return
+                }
+                // The runoff, between downs; a half can end on it (4-5-4 Note 4). The
+                // clock then starts on the ready-for-play signal (4-3-2-g).
+                _ = clock.run(
+                    GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
+                    rules: rules)
+                previousBehavior = .stopsUntilReadyForPlay
+                return
+            }
+
+            // No runoff. A dead-ball foul stops the clock and it restarts as though the
             // flag had never flown (4-4-e): at the snap if it was stopped, on the ready
             // signal if it was running — unless the foul was the defence's inside two
             // minutes, where the offence may choose the snap instead (4-7-1 Item 2).
