@@ -28,6 +28,15 @@ what happens when a corner is beaten deep. Their probability rises with how badl
 the matchup is going, so they **emerge from the resolution model** rather than
 being drawn beside it.
 
+*When* a foul can be drawn is a rule, not a preference, and the two coverage
+families differ. Defensive holding and illegal contact are restrictions that begin
+at the snap, so they are drawn in the coverage loop, on any receiver, before
+anybody has thrown anything. Interference cannot exist until a forward pass is in
+the air — `[2025 · 8-5-1]`, which also confines the defence's restrictions to the
+window between the throw and the ball being touched — so both kinds are drawn once
+a target has been chosen and only on that matchup. A sack, a scramble and a
+throwaway carry no interference at all.
+
 That second class is what makes a flag explicable: *he held because he was beaten
 in 1.9 seconds*, with the pressure decision point sitting right there in the play
 record. It also means a bad offensive line commits more holds without anyone

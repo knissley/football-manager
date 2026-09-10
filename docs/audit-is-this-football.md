@@ -731,9 +731,11 @@ chase individual rows.
   against a real rate near a third. Anything that reads it as pressure will explain three
   of every four stalled drives the same way.
   ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
-- **Interference is drawn before the throw.** Both kinds are drawn per read in the coverage
-  loop, so in 40 games 4 of 58 defensive interference flags were on sacks and 26 on
-  receivers nobody threw to. Interference requires a pass toward that receiver.
+- **Interference is drawn before the throw** — **fixed.** Both kinds were drawn per read
+  in the coverage loop, so in 40 games 4 of 58 defensive interference flags were on sacks
+  and 26 on receivers nobody threw to. Interference requires a pass toward that receiver
+  (2025 rulebook, 8-5-1), and both kinds are now drawn at the throw on the target's
+  matchup; holding and illegal contact stay in the coverage loop where they belong.
   ([C2 · #38](https://github.com/knissley/football-manager/issues/38))
 - **A blitz rushes four.** Rushers come from `Lineup.front`, which holds four men in
   nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the

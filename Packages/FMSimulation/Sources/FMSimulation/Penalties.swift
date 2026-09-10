@@ -180,46 +180,79 @@ enum Penalties {
         return record(foul, by: [blocker], personnel, context, &random, offense: true)
     }
 
-    /// A defender who has been beaten in coverage.
+    /// A defender who has been beaten in coverage, before anybody has thrown anything.
     ///
-    /// Separation is the input, so interference is drawn against exactly the receivers
-    /// who won — and the deep ones, where the spot foul hurts most.
+    /// Separation is the input, so the flag is drawn against exactly the defenders who
+    /// lost. What it *can* be is limited by when it happens: these are the fouls whose
+    /// restrictions begin at the snap and do not need a pass in the air — grabbing a
+    /// receiver, or getting hands on him past the legal window. Interference is not one
+    /// of them and is drawn at the throw instead (`onTheThrow`), because 8-5-1 says
+    /// interference can only occur when a forward pass is thrown from behind the line.
     static func whenBeatenInCoverage(
-        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
-        lineOfScrimmage: UInt8, personnel: Lineup, context: PlayContext,
+        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int,
+        personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> PenaltyRecord? {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
-        let chance = 0.014 + beatenBy + (62 - discipline) * 0.0009
-        guard random.nextBool(probability: max(0.004, min(0.14, chance))) else { return nil }
+        let chance = 0.010 + beatenBy + (62 - discipline) * 0.0009
+        guard random.nextBool(probability: max(0.003, min(0.11, chance))) else { return nil }
+
+        // Illegal contact is a rare call in the modern game; grabbing is the usual one.
+        let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
+        return record(foul, by: [defender], personnel, context, &random, offense: false)
+    }
+
+    /// Interference, on the matchup the ball was thrown into.
+    ///
+    /// 8-5-1: interference "can only occur when a forward pass is thrown from behind the
+    /// line of scrimmage", the defence's restrictions "apply from the time the ball is
+    /// thrown until the ball is touched", and it is an act that hinders "an eligible
+    /// player's opportunity to catch the ball". So there is exactly one matchup it can be
+    /// drawn on — the target's — and a down with no throw in it has none at all. It used
+    /// to be drawn per read in the coverage loop, before the quarterback had decided
+    /// anything, which put it on sacks and on receivers nobody looked at.
+    ///
+    /// `catchPoint` is where the ball is going, in the offence's frame with zero meaning
+    /// the end zone: the defence's is a spot foul (8-6-1-b) and this is the spot.
+    static func onTheThrow(
+        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
+        catchPoint: Int, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        guard separationCentimetres > 120 else { return nil }
+        let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
+        let beatenBy = Double(separationCentimetres - 120) * 0.0006
+        // Drawn on one matchup a play instead of on every read, so the per-matchup rate
+        // carries what four reads used to.
+        let chance = 0.030 + beatenBy * 2 + (62 - discipline) * 0.0018
+        guard random.nextBool(probability: max(0.006, min(0.22, chance))) else { return nil }
 
         // Sometimes the separation was made with a hand in the chest and the flag goes
-        // the other way. Offensive interference is the third most common foul in the sport
-        // that this engine had never once called.
+        // the other way — 8-5-1's "initiating contact with an opponent by shoving or
+        // pushing off, thus creating separation", which is a foul on the man the ball was
+        // thrown to and on nobody else.
         if random.nextBool(probability: 0.16) {
             return record(
                 .offensivePassInterference, by: [receiver], personnel, context, &random,
                 offense: true)
         }
 
-        // Deep, it is interference and enforced from the spot. Underneath, it is holding
-        // or illegal contact and costs five.
-        // Anything past the sticks is deep enough for the spot foul to be the call. The
-        // spot is measured — the route's depth, give or take — and reported in the
-        // offence's frame, with zero meaning the end zone (8-6-1-b).
-        if routeDepth >= 10 {
-            let depth = max(1, routeDepth + Int(random.next(upperBound: 6)) - 3)
-            let spot = max(0, Int(lineOfScrimmage) - depth)
-            return PenaltyRecord(
-                foul: .defensivePassInterference, offender: defender,
-                offendingTeam: context.defense, yards: UInt8(min(99, depth)),
-                wasAccepted: false, enforcementSpot: UInt8(spot))
+        // Underneath, an act more than one yard beyond the line is still interference,
+        // but the crude engine cannot tell a hook from a hand-fight inside the sticks, so
+        // anything shorter than the line to gain is called as the contact foul it more
+        // often is (8-5-1: acts that are not interference "could be offensive or
+        // defensive holding").
+        guard routeDepth >= 10 else {
+            let foul: Foul =
+                random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
+            return record(foul, by: [defender], personnel, context, &random, offense: false)
         }
-        // Illegal contact is a rare call in the modern game; grabbing is the usual one.
-        let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
-        return record(foul, by: [defender], personnel, context, &random, offense: false)
+        return PenaltyRecord(
+            foul: .defensivePassInterference, offender: defender,
+            offendingTeam: context.defense, yards: Foul.defensivePassInterference.yards,
+            wasAccepted: false, enforcementSpot: UInt8(max(0, min(99, catchPoint))))
     }
 
     /// Contact fouls, drawn where the contact actually happened.

@@ -150,9 +150,17 @@ struct GoldenSeedTests {
             // defensive call names is the substitution the caller actually made rather
             // than the label its preset carried. All three change who is on the field,
             // and the personnel and package draws move the stream on every snap.
-            (UInt64(1), UInt64(1_575_977_047_223_683_702)),
-            (UInt64(5), UInt64(3_696_806_419_858_936_631)),
-            (UInt64(12), UInt64(15_832_361_156_370_514_439)),
+            //
+            // And moved by interference. Both kinds are drawn at the throw, on the
+            // target's matchup, because 8-5-1 says interference can only occur when a
+            // forward pass is thrown from behind the line; the coverage loop keeps the
+            // fouls whose restrictions begin at the snap. A sack, a scramble and a
+            // throwaway carry no interference at all now, a deep flag is enforced from
+            // the catch point rather than from a re-drawn depth, and the draw moved from
+            // four reads a play to one.
+            (UInt64(1), UInt64(13_765_304_909_213_700_783)),
+            (UInt64(5), UInt64(14_804_731_430_467_591_132)),
+            (UInt64(12), UInt64(9_501_220_138_310_594_870)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

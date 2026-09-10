@@ -328,10 +328,11 @@ public struct CrudeResolver: PlayResolver {
                     secondary: receiver, detail: UInt8(index + 1), value: Int16(separation)))
             reads.append((receiver, defender, separation))
 
+            // Only the fouls whose restrictions start at the snap. Interference needs a
+            // forward pass to exist at all (8-5-1), so it waits for the throw.
             if penalty == nil {
                 penalty = Penalties.whenBeatenInCoverage(
                     defender: defender, receiver: receiver, separationCentimetres: separation,
-                    routeDepth: depth.yards, lineOfScrimmage: situation.ballOn,
                     personnel: personnel, context: context, random: &random)
             }
         }
@@ -472,6 +473,18 @@ public struct CrudeResolver: PlayResolver {
                 tick: arrivalTick, kind: .ballArrival,
                 primary: target.receiver, secondary: target.defender,
                 detail: placement.rawValue, value: Int16(target.separation)))
+
+        // The ball is in the air, so interference exists now and did not before (8-5-1),
+        // and it exists on exactly one matchup: the man the pass was thrown to and the
+        // man covering him. The defence's is a spot foul (8-6-1-b) and the spot is where
+        // the ball was going, in the offence's frame with zero meaning the end zone.
+        if penalty == nil {
+            penalty = Penalties.onTheThrow(
+                defender: target.defender, receiver: target.receiver,
+                separationCentimetres: target.separation, routeDepth: depth.yards,
+                catchPoint: Int(situation.ballOn) - depth.yards,
+                personnel: personnel, context: context, random: &random)
+        }
 
         let catchResult = catchOutcome(
             placement: placement, separation: target.separation,
