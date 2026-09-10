@@ -58,6 +58,7 @@ enum TestWorld {
         away awayIndex: Int = 1,
         stadium: Stadium? = nil,
         weather: WeatherState = .clear,
+        rules: Rules = .standard,
         isPostseason: Bool = false
     ) -> GameSetup {
         let world = Self.world(seed: seed)
@@ -72,6 +73,7 @@ enum TestWorld {
             players: world.players,
             stadium: stadium ?? home.stadium,
             weather: weather,
+            rules: rules,
             seed: seed,
             isPostseason: isPostseason)
     }
