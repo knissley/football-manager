@@ -70,7 +70,7 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case coverageAssignment = 9
 }
 
-public enum ThrowDecision: UInt8, Sendable, Hashable, Codable {
+public enum ThrowDecision: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case primary = 0
     case checkdown = 1
     case throwaway = 2
@@ -78,14 +78,14 @@ public enum ThrowDecision: UInt8, Sendable, Hashable, Codable {
     case sack = 4
 }
 
-public enum BallPlacement: UInt8, Sendable, Hashable, Codable {
+public enum BallPlacement: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case onTarget = 0
     case slightlyOff = 1
     case poor = 2
     case uncatchable = 3
 }
 
-public enum CatchResult: UInt8, Sendable, Hashable, Codable {
+public enum CatchResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case caught = 0
     case contestedCatch = 1
     case dropped = 2
@@ -94,7 +94,7 @@ public enum CatchResult: UInt8, Sendable, Hashable, Codable {
     case uncatchable = 5
 }
 
-public enum TackleResult: UInt8, Sendable, Hashable, Codable {
+public enum TackleResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case madeTackle = 0
     case assisted = 1
     case broken = 2
@@ -102,7 +102,7 @@ public enum TackleResult: UInt8, Sendable, Hashable, Codable {
     case forcedFumble = 4
 }
 
-public enum BlockResult: UInt8, Sendable, Hashable, Codable {
+public enum BlockResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case won = 0
     case stalemate = 1
     case lost = 2
@@ -110,7 +110,7 @@ public enum BlockResult: UInt8, Sendable, Hashable, Codable {
     case whiffed = 4
 }
 
-public enum CoverageTechnique: UInt8, Sendable, Hashable, Codable {
+public enum CoverageTechnique: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case press = 0
     case offMan = 1
     case zoneFlat = 2

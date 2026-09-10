@@ -204,4 +204,84 @@ struct VocabularyCoverageTests {
                 "\(role) is credited now — take it out of the register (was: \(reason))")
         }
     }
+
+    // MARK: - The detail behind a decision point
+
+    /// The enums behind `DecisionPoint.detail`, which are the cases play-record.md says
+    /// the spatial engine must emit with the same meaning — so a case the crude engine
+    /// cannot reach is a case nothing downstream has ever seen. Each register names the
+    /// cases the engine cannot produce today and the issue that will make them reachable,
+    /// and each test reads both directions: an unregistered case never seen fails, and a
+    /// registered case that turns up fails too, so the register cannot rot.
+    static let unreachableThrowDecisions: [ThrowDecision: String] = [:]
+    static let unreachableCatchResults: [CatchResult: String] = [:]
+    static let unreachableTackleResults: [TackleResult: String] = [:]
+    static let unreachableBlockResults: [BlockResult: String] = [:]
+    static let unreachableCoverageTechniques: [CoverageTechnique: String] = [:]
+    static let unreachableBallPlacements: [BallPlacement: String] = [:]
+
+    /// Every value of one detail enum the sample's decision points carry, read through
+    /// the typed accessor so a byte belonging to another kind is never reinterpreted.
+    private static func details<Detail: Hashable>(
+        _ read: (DecisionPoint) -> Detail?
+    ) -> Set<Detail> {
+        Set(plays().flatMap(\.decisions).compactMap(read))
+    }
+
+    private func checkRegister<Detail: Hashable & CaseIterable>(
+        _ name: String, seen: Set<Detail>, register: [Detail: String]
+    ) {
+        for detail in Detail.allCases where register[detail] == nil {
+            #expect(seen.contains(detail), "no decision in ninety games carried \(name).\(detail)")
+        }
+        for (detail, reason) in register {
+            #expect(
+                !seen.contains(detail),
+                "\(name).\(detail) is produced now — take it out of the register (was: \(reason))")
+        }
+    }
+
+    @Test("Every throw decision is reached, and the register says which are not", .tags(.contract))
+    func everyThrowDecisionIsReachable() {
+        checkRegister(
+            "ThrowDecision", seen: Self.details(\.throwDecisionValue),
+            register: Self.unreachableThrowDecisions)
+    }
+
+    @Test("Every catch result is reached, and the register says which are not", .tags(.contract))
+    func everyCatchResultIsReachable() {
+        checkRegister(
+            "CatchResult", seen: Self.details(\.catchResult),
+            register: Self.unreachableCatchResults)
+    }
+
+    @Test("Every tackle result is reached, and the register says which are not", .tags(.contract))
+    func everyTackleResultIsReachable() {
+        checkRegister(
+            "TackleResult", seen: Self.details(\.tackleResult),
+            register: Self.unreachableTackleResults)
+    }
+
+    @Test("Every block result is reached, and the register says which are not", .tags(.contract))
+    func everyBlockResultIsReachable() {
+        checkRegister(
+            "BlockResult", seen: Self.details(\.blockResultValue),
+            register: Self.unreachableBlockResults)
+    }
+
+    @Test(
+        "Every coverage technique is reached, and the register says which are not",
+        .tags(.contract))
+    func everyCoverageTechniqueIsReachable() {
+        checkRegister(
+            "CoverageTechnique", seen: Self.details(\.coverageTechnique),
+            register: Self.unreachableCoverageTechniques)
+    }
+
+    @Test("Every ball placement is reached, and the register says which are not", .tags(.contract))
+    func everyBallPlacementIsReachable() {
+        checkRegister(
+            "BallPlacement", seen: Self.details(\.ballPlacement),
+            register: Self.unreachableBallPlacements)
+    }
 }
