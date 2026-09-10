@@ -221,9 +221,17 @@ season is what checks one. A band is evidence about a rate and never about a rul
     recovers. `[2025 · 4-4-i, 4-3-2-a-1]` — `test:changeOfPossessionStops`,
     `test:turnoverOnDownsStopsTheClock`, `test:puntReturnedAndTackledStopsTheClock`,
     `test:fumbleRecoveredByTheDefenseStopsTheClock`
-40. An incomplete pass stops the clock until the snap, a spike included.
-    `[2025 · 4-4-f, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
-    `test:deadBallStops`; the caller's own habit — a spike at hurry-up tempo — is pinned by
+40. An incomplete pass stops the clock until the snap, a spike included. A quarterback
+    who throws the ball into the ground straight off the snap stops it legally, so a spike
+    costs the second the snap and the throw take and no more: the next down is snapped on
+    the clock the spike left, whatever that clock reads, and a spike inside ten seconds
+    does not end the period. What is charged *before* the spike is a separate question the
+    clock rules answer separately — nothing had stopped the clock, so the seconds the
+    offence spends reaching the line come off it.
+    `[2025 · 4-4-f, 8-2-1 Item 3, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
+    `test:deadBallStops`, `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+    `test:spikeAtFiveSecondsIsFollowedByTheNextDown`; the caller's own habit — a spike at
+    hurry-up tempo — is pinned by
     `test:spikeIsCalledAtHurryUpTempo`, which is a modelling convention and not a rule
 41. A ball dead on or behind a goal line stops the clock until the snap, so a kickoff
     touchback consumes no time. `[2025 · 4-4-d, 4-3-1]` — `test:touchbackConsumesNoTime`

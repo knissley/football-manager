@@ -118,7 +118,8 @@ Which rules must be true of a game, and what checks each, is
 - **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,
   stops it there and then: this is the flag before the snap, and it is why no play time is
   charged for one. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
-- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`
+- **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
+  `test:spikeCostsItsOwnSecondAndStopsTheClock`
 - **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
   `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`
 - **4-4-i** — A change of possession stops it. — `test:changeOfPossessionStops`,
@@ -300,6 +301,17 @@ below are what it is held to.
 
 ## Rule 8 — Forward pass
 
+- **8-2-1 Item 3** — A quarterback under centre may stop the clock without fouling for
+  intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
+  motion and puts the ball straight into the ground. The pass is incomplete, so 4-4-f stops
+  the clock and 4-3-2 holds it to the next snap. The article is about the throw and says
+  nothing about the seconds before the snap: a clock running into a spike keeps running
+  until the ball is snapped. — `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+  `test:spikeAtFiveSecondsIsFollowedByTheNextDown`
+- **8-2-1 Item 4** — A passer who has held the ball for tactical reasons may not then throw
+  it into the ground in front of him, pressure or no pressure. — not modelled: the resolver
+  draws a spike as a called play and never as a late decision by a passer already holding
+  the ball
 - **8-3-1** — An ineligible player downfield on a pass: five yards from the previous spot. —
   `test:enforcementFamilies`
 - **8-4-4** — Illegal contact: five yards and an automatic first down. —

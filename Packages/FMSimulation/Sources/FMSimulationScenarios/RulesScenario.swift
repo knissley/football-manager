@@ -108,6 +108,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case offensiveHoldingInTheFourthQuarterOutsideFiveMinutes =
         "offensive-holding-in-the-fourth-quarter-outside-five-minutes"
 
+    // The spike
+    case spikeSnappedAtTwentySeconds = "spike-snapped-at-twenty-seconds"
+    case spikeSnappedAtFiveSecondsOnThirdDown = "spike-snapped-at-five-seconds-on-third-down"
+
     // The play clock
     case delayOfGameOnARunningClock = "delay-of-game-on-a-running-clock"
     case delayOfGameAfterATurnoverOnDowns = "delay-of-game-after-a-turnover-on-downs"
@@ -265,6 +269,9 @@ extension RulesScenario {
             return RulesScenarios.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter
         case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
             return RulesScenarios.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes
+
+        case .spikeSnappedAtTwentySeconds: return RulesScenarios.spikeSnapped(at: 20)
+        case .spikeSnappedAtFiveSecondsOnThirdDown: return RulesScenarios.spikeSnapped(at: 5)
 
         case .delayOfGameOnARunningClock: return RulesScenarios.delayOfGameOnARunningClock
         case .delayOfGameAfterATurnoverOnDowns:
@@ -577,6 +584,15 @@ extension RulesScenario {
             return [
                 "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap",
                 "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)",
+            ]
+
+        case .spikeSnappedAtTwentySeconds:
+            return [
+                "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left"
+            ]
+        case .spikeSnappedAtFiveSecondsOnThirdDown:
+            return [
+                "football · Rule 4-4-f, 8-2-1 Item 3 · a third-down spike snapped with five seconds left does not end the period: the fourth down is snapped a second later"
             ]
 
         case .delayOfGameOnARunningClock:

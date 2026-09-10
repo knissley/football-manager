@@ -1716,6 +1716,87 @@ struct RulesConformanceTests {
             "the injury timeout ended the game on that play")
     }
 
+    // MARK: The spike
+
+    /// The scenario's spike and the clock it was snapped on.
+    ///
+    /// A play's recorded situation is the clock at the previous whistle, and the offence's
+    /// interval between downs is charged at the snap when the clock is running, so the
+    /// clock the spike is *snapped* on is the recorded one less that interval — measured
+    /// from the game, never assumed. The two facts a reader of a play-by-play must hold
+    /// together to read a spike at all.
+    private func spikeSnappedOn(
+        _ trace: Trace, expecting seconds: UInt16
+    ) -> (index: Int, play: PlayRecord, snappedOn: UInt16)? {
+        guard
+            let spike = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .spike
+            })
+        else {
+            Issue.record("the scenario never spiked the ball")
+            return nil
+        }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return nil
+        }
+        guard trace.clockRunning(into: spike.index) == true else {
+            Issue.record("the clock was not running into the spike, so there was nothing to stop")
+            return nil
+        }
+        let snappedOn = spike.play.situation.clockRemaining - huddle
+        guard snappedOn == seconds else {
+            Issue.record(
+                "the scenario meant the spike snapped with \(seconds) left; it was snapped with \(snappedOn)"
+            )
+            return nil
+        }
+        return (spike.index, spike.play, snappedOn)
+    }
+
+    /// A quarterback who takes the snap and throws the ball straight into the ground stops
+    /// the clock legally (8-2-1 Item 3): the pass is incomplete, and an incomplete pass
+    /// stops the clock until the snap (4-4-f, 4-3-2). So the down after a spike is snapped
+    /// on the clock the spike left — one second later, that being what the spike itself
+    /// takes — and none of the offence's interval between downs is charged to it.
+    ///
+    /// What is charged *before* the spike is a different question with a different answer:
+    /// the clock was running from the play before, nothing had stopped it, and the seconds
+    /// the offence spends getting to the line come off it.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left",
+        .tags(.football)
+    )
+    func spikeCostsItsOwnSecondAndStopsTheClock() {
+        let trace = RulesScenario.spikeSnappedAtTwentySeconds.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 20) else { return }
+        #expect(spike.play.outcome.endedIn == .incomplete, "a spike is an incomplete forward pass")
+        #expect(
+            spike.play.outcome.clockRunoff == 1,
+            "the snap and the throw into the ground are one second of game clock")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 19,
+            "the down after the spike is snapped on the clock the spike left")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false, "and the clock is dead until that snap")
+    }
+
+    /// A spike on third down inside ten seconds is an ordinary call, and the down after it
+    /// is an ordinary down: the clock the spike stopped is the clock the fourth down is
+    /// snapped on, and the period does not end on it.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3 · a third-down spike snapped with five seconds left does not end the period: the fourth down is snapped a second later",
+        .tags(.football)
+    )
+    func spikeAtFiveSecondsIsFollowedByTheNextDown() {
+        let trace = RulesScenario.spikeSnappedAtFiveSecondsOnThirdDown.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 5) else { return }
+        #expect(spike.play.situation.down == .third, "the scenario meant a third-down spike")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 4, down: .fourth,
+            "the fourth down is played, one second after the spike was snapped")
+    }
+
     // MARK: The kickoff that opens a half
 
     /// The play that ended the first half between downs: the one somebody was hurt on,

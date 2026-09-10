@@ -624,6 +624,41 @@ public enum RulesScenarios {
         flagDuringADown(.offensiveHolding, window: 400...600)
     }
 
+    // MARK: The spike
+
+    /// A fourth quarter played at hurry-up throughout, in which one second-down play is
+    /// stretched so that the third-down snap after it — the spike — is taken with exactly
+    /// `seconds` on the clock, with the clock running into it.
+    ///
+    /// Every snap is a hurry-up snap so that the offence's interval between downs is one
+    /// number the trace can measure, and the spike's snap can be placed on the clock: a
+    /// play recorded at `clock` on a running clock is snapped at `clock` less that
+    /// interval. Nothing here says the offence is out of timeouts, which is *why* a real
+    /// offence spikes rather than anything the clock rules turn on; the scripted caller
+    /// never asks for one.
+    static func spikeSnapped(at seconds: UInt16) -> ScriptedGame {
+        let caller = ScriptedCaller(
+            offensiveFamily: { situation in
+                situation.quarter == 4 && situation.down == .third
+                    && situation.clockRemaining <= seconds + 12 ? .spike : .insideRun
+            },
+            offensiveTempo: { _ in .hurryUp })
+        return ScriptedGame(caller: caller) { snap in
+            // Below the warning, and not at it: a stretched play that ran the clock past
+            // 2:00 would be stopped there (3-41, 4-4-h) and the spike would be snapped on
+            // a clock that was already dead, which is a different scenario.
+            guard snap.isScrimmage, snap.quarter == 4, snap.clock < 118, snap.down == .second,
+                snap.clockIsRunning, snap.family != .spike, let huddle = snap.huddle
+            else { return snap.neutral }
+            // Stretch this play so that it ends `huddle` seconds above the spike's snap:
+            // the next snap then comes with exactly `seconds` left.
+            let snapped = Int(snap.clock) - Int(huddle)
+            let ends = Int(seconds) + Int(huddle)
+            guard snapped > ends, snapped - ends <= 130 else { return snap.neutral }
+            return .rush(1, seconds: UInt16(snapped - ends))
+        }
+    }
+
     // MARK: The play clock
 
     /// The offence lets the play clock run out on a third-quarter snap with the game
