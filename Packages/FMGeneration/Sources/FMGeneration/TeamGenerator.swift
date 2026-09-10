@@ -257,16 +257,22 @@ public enum TeamGenerator {
     /// and Tallow Bend — so a league that draws a city beside one of those four can field
     /// Vermillion Flats next to Vermillion Heights.
     ///
-    /// Nothing ships in that state, but the reason is narrower than "past thirty-two".
-    /// `FranchiseSet.initial` is thirty-two lines and a career is played at thirty-two,
-    /// so on the *curated* source only a shape past thirty-two draws a city at all. The
-    /// other two sources draw at every size — `.randomised` draws all of them, and a
-    /// short `.set` has the rest of its league drawn around its own lines, seven of eight
-    /// in the tests' minimal world — so a curated line the pools cannot read the suffix
-    /// off can be stuttered there at any size. Neither of those ships either. The stutter
-    /// is the same class of fault [#4](https://github.com/knissley/football-manager/issues/4)
-    /// found in the randomiser, deferred with it to the pre-release revisit of
-    /// generation ([M8](../../../../docs/roadmap.md)).
+    /// Nothing ships in that state, and the reason is regional rather than a headcount.
+    /// `FranchiseSet.initial` holds eight clubs per region, and `LeagueGenerator` tops a
+    /// region up from the pools only when the shape asks it for more than it has — so on
+    /// the *curated* source a city is drawn when some region is asked for more than
+    /// eight. What a region is asked for is the divisions that land on it × `conferences`
+    /// × `teamsPerDivision`, so with the four-team divisions a career is played in it
+    /// means past thirty-two — but with wider divisions it happens below it. Measured:
+    /// two conferences of two five-team divisions is a twenty-team league and draws four
+    /// cities, and two of three is a thirty-team league and draws six, one of which lands
+    /// beside a curated city it can stutter with. The other two sources draw at every size — `.randomised`
+    /// draws all of them, and a short `.set` has the rest of its league drawn around its
+    /// own lines, seven of eight in the tests' minimal world. None of those ships. The
+    /// stutter is the same class of fault
+    /// [#4](https://github.com/knissley/football-manager/issues/4) found in the
+    /// randomiser, deferred with it to the pre-release revisit of generation
+    /// ([M8](../../../../docs/roadmap.md)).
     static func stem(ofCity city: String) -> String {
         let words = city.split(separator: " ").map(String.init)
         guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {

@@ -44,12 +44,12 @@ Options: `--seed <n>` `--teams <n>` `--team <n>` `--season <n>` `--show <mode>`
 colours and grounds, down to which of them have roofs. The league's own name is curated
 with them, so the header line of `--show teams` reads the same at every seed too
 ([#82](https://github.com/knissley/football-manager/issues/82)); under
-`--franchises random` it is drawn from the pools with everything else. What the seed still moves is
-everything a career is played with: rosters, strengths, schemes, the draft pipeline
-and the rivalries. `--franchises random` is the old pool draw, kept as a last resort
-behind the flag and deliberately not refined before M8; it is the only way to see two
-seeds name two different leagues. A league larger than thirty-two — `--teams 64` — is
-the curated set finished from the pools.
+`--franchises random` it is drawn from the pools with everything else. What the seed
+still moves is everything a career is played with: rosters, strengths, schemes, the
+draft pipeline and the rivalries. `--franchises random` is the old pool draw, kept as a
+last resort behind the flag and deliberately not refined before M8; it is the only way
+to see two seeds name two different leagues. A league larger than thirty-two —
+`--teams 64` — is the curated set finished from the pools.
 
 `--teams` is rounded down to the nearest legal shape — two conferences of divisions of
 four — so it is really a multiple of eight, and the header prints what was built. The

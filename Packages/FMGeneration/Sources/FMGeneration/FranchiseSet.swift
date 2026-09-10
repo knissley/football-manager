@@ -113,7 +113,10 @@ public enum FranchiseSource: Sendable, Hashable {
 
     /// `FranchiseSet.initial` — the thirty-two below.
     case curated
-    /// A curated set of the caller's own. The same path as `.curated`, different data.
+    /// A curated set of the caller's own. The same path as `.curated`, different data —
+    /// and the same league name, because the path is what decides whether the name is
+    /// drawn; a caller wanting its own renames `League.name`, which is editable like
+    /// every other name in the world.
     case set([Franchise])
     /// Drawn from the pools in `TeamPools`, ledger and all.
     case randomised

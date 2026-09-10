@@ -281,7 +281,11 @@ struct FranchiseSetTests {
         #expect(
             names.count == 1, "the curated league's name moved with the seed: \(names.sorted())")
         #expect(names == [FranchiseSet.leagueName], "the league is not the one the table names")
-        for name in names {
+        // Sorted, never walked in the set's own order: a red run has to record the same
+        // issues in the same order in every process, or the failure is unreadable
+        // (rule 2), which is the reason `stadiumFeatureWordsAreUsedOnce` keys its lookup
+        // the way it does.
+        for name in names.sorted() {
             #expect(
                 StructurePools.leagueNames.contains(name) == false,
                 "\(name) is a pool draw, not a name the curated table wrote down")
