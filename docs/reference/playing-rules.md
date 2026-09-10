@@ -418,10 +418,21 @@ below are what it is held to.
 - **16-1-4-d** — Level at the end of a period, or a second team's initial possession
   unfinished, means another period. — `test:postseasonPlaysASixthPeriod`
 - **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Three timeouts per half, two-minute
-  intermissions between periods, and a fresh coin toss after the fourth. — not modelled,
-  except that the toss after a fourth overtime period is read as restarting the pairing
-  16-1-4-h describes, so a fifth period is timed as a first: a reading, pinned by
+  intermissions between periods, and a fresh coin toss after the fourth. 16-1-4-e also
+  gives the beginning of the **third** overtime period the first choice of 4-2-2's two
+  privileges to the captain who lost the toss before overtime, so a third period is put
+  back in play with a free kick, as is a fifth after the toss of 16-1-4-i. — not
+  modelled: the engine restarts only the first overtime period and plays on from the same
+  spot at every later boundary, which is
+  [#86](https://github.com/knissley/football-manager/issues/86)'s and is pinned by
+  `test:aThirdPostseasonOvertimePeriodIsNotRestartedWithAKick`. Not modelled either is the
+  toss itself, though the one after a fourth overtime period is read as restarting the
+  pairing 16-1-4-h describes, so a fifth period is timed as a first: a reading, pinned by
   `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`
+- **16-1-4-f** — The teams change goals at the end of the first and third overtime
+  periods, under 4-2-3: possession, the down, the ball and the line to gain are
+  unchanged. — `test:periodResumesWithKickoffAsModelledAnswers`; the change of ends
+  itself is not modelled, for the reason 4-2-3 gives
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
   half does and a fourth as the fourth period does, so the warning, the out-of-bounds
   windows and the runoff belong to those two and a first or third overtime period has

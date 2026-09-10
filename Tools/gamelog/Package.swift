@@ -20,6 +20,11 @@ let package = Package(
                 .product(name: "FMSimulationScenarios", package: "FMSimulation"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
-        )
+        ),
+        .testTarget(
+            name: "gamelogTests",
+            dependencies: ["gamelog"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
     ]
 )

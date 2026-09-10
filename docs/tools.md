@@ -284,6 +284,19 @@ boundaries and the period boundaries are folded out of the emitted plays using t
 `Rules` arithmetic the state machine used. The tool ends by comparing its own total
 against the score the engine reported, and says so loudly if they disagree.
 
+A drive summary reads `── NRW drive: 4 plays, 34 yards, 1:52 — touchdown`: snaps from
+scrimmage, net yards, the clock the drive had the ball, and how it ended. A drive that ran
+out of period rather than out of downs is named by the break it ran into — `end of half`,
+`end of regulation`, or `end of game`. Overtime is where that is easy to get wrong, and
+#87 is where it was: a postseason period that ends undecided is **not** a break, because
+the next one begins with the ball where it was and the same side in possession (16-1-4-d),
+so a drive runs straight through it and is printed once, when it really ends. The last
+drive of a game runs to 0:00, because in regulation the clock is the only thing that ends
+a game — a kick that wins it at 0:03 does not, the horn does. The exception is again
+overtime, where a score ends the game where it stands: a walk-off drive is charged to the
+play that won it, and since no `PlayRecord` carries the interval before a snap, that one
+line is short by that interval and by nothing else.
+
 **Read one game end to end before and after any engine change.** This is the recipe:
 
 ```bash
@@ -388,6 +401,7 @@ swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
 swift test --package-path Packages/FMSimulation      # ~45s; the engine's own suite
 swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
+swift test --package-path Tools/gamelog             # what a drive summary says about the clock
 
 # Integer maths must agree between debug and release
 swift test -c release --package-path Packages/FMRandom
@@ -395,9 +409,10 @@ swift test -c release --package-path Packages/FMRandom
 
 Every one of these is a hard-failing step of the `test` job in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
-`Tools/simharness` included, since #9, because nothing else compiles its tests.
+`Tools/simharness` since #9 and `Tools/gamelog` since #87, because nothing else compiles
+either tool's tests, or in gamelog's case the tool itself.
 
-Every `@Test` in all five targets carries a kind tag, and
+Every `@Test` in all six targets carries a kind tag, and
 [`test-census`](#test-census--what-the-suite-asserts) below fails on one that does not.
 What the kinds mean and what the suite currently looks like when you count it are in
 [testing.md](testing.md).
