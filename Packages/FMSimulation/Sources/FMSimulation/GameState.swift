@@ -13,6 +13,25 @@ extension GameSimulator {
         /// After a defensive foul inside two minutes, the offence has the clock wait
         /// for the snap rather than start on the ready signal.
         var offenseStartsClockOnTheSnap: Bool
+        /// In the last forty seconds, after a defensive foul that conserves time with
+        /// the defence out of timeouts, the offence ends the half rather than play on
+        /// (4-7-3).
+        var offenseEndsTheHalf: Bool
+    }
+
+    /// What the callers chose about an injury timeout after the two-minute warning
+    /// (2025 rulebook, 4-5-4). All three are asked; the rules layer reads the ones the
+    /// injury makes relevant.
+    struct InjuryChoices: Sendable {
+        /// For an excess timeout against the team in possession, the defence has ten
+        /// seconds run off (Note 3).
+        var defenseTakesRunoff: Bool
+        /// For an excess timeout against the defence, the offence has the clock wait
+        /// for the snap rather than start on the ready (Note 1).
+        var offenseStartsClockOnTheSnap: Bool
+        /// For an excess timeout against the defence in the last forty seconds, the
+        /// offence ends the half rather than play on (4-7-3).
+        var offenseEndsTheHalf: Bool
     }
 
     /// The game as it stands, and every rule about how it moves.
@@ -51,6 +70,12 @@ extension GameSimulator {
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
         var previousBehavior: ClockBehavior = .stopsUntilSnap
+        /// The play clock the next snap is taken against (2025 rulebook, 4-6): forty
+        /// from the end of an ordinary play, twenty-five from the whistle after an
+        /// administrative stoppage, thirty after a runoff, forty on the ready after a
+        /// defensive act that conserves time. Set by whatever stopped the clock, read
+        /// by the resolver to know when it has expired, and written into every record.
+        var playClock: PlayClock
         /// Who is on the field for this snap. The offence declares by substituting and
         /// the defence answers, so these are set in that order before the snap and are
         /// part of the situation both callers and the resolver read.
@@ -88,6 +113,8 @@ extension GameSimulator {
             clock = .start(setup.rules)
             homeTimeouts = setup.rules.timeoutsPerHalf
             awayTimeouts = setup.rules.timeoutsPerHalf
+            // The opening kickoff is a free kick, put in play on the whistle (4-6-2).
+            playClock = setup.rules.playClockAfterAnAdministrativeStoppage
 
             // The away team receives to open. A coin toss is a real event and belongs in
             // the stream when there is a stream to put it in; hard-coding it here keeps
@@ -143,8 +170,13 @@ extension GameSimulator {
                 // that left it running and after a stoppage that ends on the
                 // ready-for-play signal, false only when it waits for the snap.
                 clockIsRunning: previousBehavior != .stopsUntilSnap,
+                playClock: playClock,
                 form: form,
                 rules: setup.rules)
+        }
+
+        func timeouts(of team: TeamID) -> UInt8 {
+            team == setup.home.id ? homeTimeouts : awayTimeouts
         }
 
         /// Spend a timeout, which stops the clock until the snap.
@@ -154,7 +186,13 @@ extension GameSimulator {
         /// with a minute forty left* is a query over the stream rather than a new event
         /// type ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)).
         mutating func spendTimeout(offense: Bool) {
-            let team = offense ? possession : defending
+            spendTimeout(of: offense ? possession : defending)
+        }
+
+        /// The same, charged to `team`, which an injury timeout is (4-5-4-a). A charged
+        /// timeout is an administrative stoppage, so the play clock is the short one
+        /// (4-6-2-b).
+        mutating func spendTimeout(of team: TeamID) {
             if team == setup.home.id {
                 guard homeTimeouts > 0 else { return }
                 homeTimeouts -= 1
@@ -163,6 +201,14 @@ extension GameSimulator {
                 awayTimeouts -= 1
             }
             previousBehavior = .stopsUntilSnap
+            playClock = setup.rules.playClockAfterAnAdministrativeStoppage
+        }
+
+        /// Note a choice one side made about the clock on the play just recorded, so
+        /// that the stream explains the clock rather than leaving it to be inferred.
+        private mutating func elect(_ election: ClockElection) {
+            guard !plays.isEmpty else { return }
+            plays[plays.count - 1].decisions.append(.clockElection(election))
         }
 
         /// Choose the try, and put the ball where it is snapped from.
@@ -185,29 +231,34 @@ extension GameSimulator {
             distance = max(1, ballOn)
         }
 
-        /// The situation as it reads when a flag flies before the snap: the huddle has
-        /// elapsed if the clock was running into it, and nothing else has.
-        func situationAtTheFlag(tempo: Tempo) -> Situation {
+        /// The situation as it reads when a flag flies before the snap: the interval
+        /// before the flag has elapsed if the clock was running into it, and nothing
+        /// else has.
+        func situationAtTheFlag(tempo: Tempo, foul: Foul?) -> Situation {
             var probe = clock
             _ = probe.run(
-                huddleBeforeTheFlag(tempo: tempo), rules: setup.rules,
+                huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: setup.rules,
                 isPostseason: setup.isPostseason)
             var atTheFlag = situation()
             atTheFlag.clockRemaining = probe.secondsRemaining
             return atTheFlag
         }
 
-        /// The clock spent before a flag before the snap: the offence's tempo, when the
-        /// clock ran into the interval, and nothing during a kickoff or a try, where the
-        /// clock is dead.
-        private func huddleBeforeTheFlag(tempo: Tempo) -> GameClock.Elapsed {
+        /// The clock spent before a flag before the snap, when the clock ran into the
+        /// interval. For a delay of game it is the whole play clock: the flag *is* the
+        /// play clock expiring (4-6-1, 4-6-4). For any other foul it is the offence's
+        /// tempo, since the flag flies when the snap was due. Nothing during a kickoff
+        /// or a try, where the clock is dead.
+        private func huddleBeforeTheFlag(tempo: Tempo, foul: Foul?) -> GameClock.Elapsed {
             guard !pendingKickoff && !pendingTry else {
                 return GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
             }
+            let snapAfter =
+                foul == .delayOfGame ? playClock.expiresAfter : playClock.intendedSnap(at: tempo)
             return GameClock.Elapsed(
                 duringPlay: 0,
                 beforeSnap: GameClock.elapsed(
-                    playDuration: 0, tempo: tempo, previousBehavior: previousBehavior
+                    playDuration: 0, snapAfter: snapAfter, previousBehavior: previousBehavior
                 ).beforeSnap)
         }
 
@@ -275,13 +326,25 @@ extension GameSimulator {
         private mutating func record(
             _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint], situation: Situation
         ) {
+            // The play clock this snap was taken against (4-6), and what it read: the
+            // tempo's intended snap, or zero when it expired and the flag is the foul
+            // (4-6-4). The rules layer writes it because which clock was in force is a
+            // rule, and a reader should not have to infer it from the play before.
+            let expired =
+                outcome.kind == .penaltyOnly && outcome.penalties.first?.foul == .delayOfGame
+            var explained = decisions
+            explained.append(
+                .playClock(
+                    seconds: playClock.seconds,
+                    remaining: expired
+                        ? 0 : playClock.remainingAtIntendedSnap(at: calls.offense.tempo)))
             plays.append(
                 PlayRecord(
                     game: setup.game,
                     index: UInt16(plays.count),
                     situation: situation,
                     calls: calls,
-                    decisions: decisions,
+                    decisions: explained,
                     outcome: outcome))
         }
 
@@ -312,8 +375,10 @@ extension GameSimulator {
 
             let elapsed: GameClock.Elapsed
             if pendingTry {
-                // The try is untimed (11-3-1).
+                // The try is untimed (11-3-1), and the kickoff after it is put in play
+                // on the whistle (4-6-2-g).
                 elapsed = GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
+                playClock = rules.playClockAfterAnAdministrativeStoppage
             } else if pendingKickoff {
                 // The clock on a free kick starts when the ball is legally touched in
                 // the field of play (4-3-1), so a return costs its seconds, and nothing
@@ -331,16 +396,34 @@ extension GameSimulator {
                     duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
                 _ = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
                 previousBehavior = .stopsUntilSnap
+                // A kick that changed hands is an administrative stoppage (4-6-2-a);
+                // one the kickers kept is a play that ended, and the forty runs from it.
+                playClock =
+                    advancement.possessionChanged
+                    ? rules.playClockAfterAnAdministrativeStoppage : rules.playClockAfterAPlay
                 return
             } else {
                 elapsed = GameClock.elapsed(
                     playDuration: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6,
                     tempo: tempo,
+                    playClock: playClock,
                     previousBehavior: previousBehavior)
             }
 
             let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
+
+            // The play clock for the next snap: forty from the end of this play
+            // (4-6-1), unless this play brought an administrative stoppage — a change
+            // of possession, a score and the free kick it owes, the two-minute warning,
+            // the end of a period, an enforced penalty — after which it is twenty-five
+            // from the whistle (4-6-2). A touchdown's try is snapped against the forty:
+            // a score is not among the stoppages the article lists.
+            let stoppage =
+                advancement.possessionChanged || advancement.requiresKickoff || warningTaken
+                || clock.isExpired || outcome.penalties.first?.wasAccepted == true
+            playClock =
+                stoppage ? rules.playClockAfterAnAdministrativeStoppage : rules.playClockAfterAPlay
         }
 
         /// The clock after a flag before the snap. No play happened, so no play time is
@@ -351,12 +434,18 @@ extension GameSimulator {
         ) {
             let rules = setup.rules
             let clockWasRunning = previousBehavior != .stopsUntilSnap
+            let foul = outcome.penalties.first?.foul
             let warningTaken = clock.run(
-                huddleBeforeTheFlag(tempo: tempo), rules: rules, isPostseason: setup.isPostseason)
+                huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: rules,
+                isPostseason: setup.isPostseason)
             // The clock at the flag is running only if it was running into the interval
             // and nothing stopped it on the way — the two-minute warning, or the end of
             // the period.
             let runningAtTheFlag = clockWasRunning && !warningTaken && !clock.isExpired
+            // A penalty enforcement is an administrative stoppage, so unless a rule below
+            // resets the play clock otherwise, the next snap is against the short one
+            // (4-6-2-e).
+            playClock = rules.playClockAfterAnAdministrativeStoppage
 
             guard let penalty = outcome.penalties.first else {
                 previousBehavior = runningAtTheFlag ? .stopsUntilReadyForPlay : .stopsUntilSnap
@@ -379,31 +468,56 @@ extension GameSimulator {
             {
                 // The offence may spend a timeout instead, and the clock then starts on
                 // the snap (4-7-1 Item 1).
-                let timeouts = possession == setup.home.id ? homeTimeouts : awayTimeouts
-                if choices?.offenseTakesTimeout == true, timeouts > 0 {
+                if choices?.offenseTakesTimeout == true, timeouts(of: possession) > 0 {
                     spendTimeout(offense: true)
+                    elect(.timeoutInsteadOfRunoff)
                     return
                 }
                 // The defence may decline the runoff and keep the yardage; the clock
                 // then restarts as any dead-ball foul's does, which inside two minutes
-                // is on the snap (4-3-2-e-1, 4-3-2-e-2).
+                // is on the snap (4-3-2-e-1, 4-3-2-e-2), against the short play clock.
                 if choices?.defenseDeclinesRunoff == true {
                     previousBehavior = restart
+                    elect(.runoffDeclined)
                     return
                 }
                 // The runoff, between downs; a half can end on it (4-5-4 Note 4). The
-                // clock then starts on the ready-for-play signal (4-3-2-g).
+                // clock then starts on the ready-for-play signal (4-3-2-g), with the
+                // play clock reset to thirty (4-7-1 Item 1).
                 _ = clock.run(
                     GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
                     rules: rules, isPostseason: setup.isPostseason)
                 previousBehavior = .stopsUntilReadyForPlay
+                playClock = rules.playClockAfterARunoff
+                elect(.runoff)
                 return
+            }
+
+            // A defensive act that conserves time in the last forty seconds of a half
+            // ends the half (4-7-3), unless the defence has a timeout left or the
+            // offence would rather play on — in which case the clock's restart is the
+            // offence's choice, as below.
+            if !byOffense,
+                rules.conservesTime(foul: penalty.foul, clockWasRunning: runningAtTheFlag),
+                rules.isInTheLastFortySeconds(
+                    quarter: clock.quarter, isPostseason: setup.isPostseason,
+                    clockRemaining: clock.secondsRemaining),
+                timeouts(of: defending) == 0
+            {
+                if choices?.offenseEndsTheHalf == true {
+                    clock.secondsRemaining = 0
+                    previousBehavior = .stopsUntilSnap
+                    elect(.halfEnded)
+                    return
+                }
+                elect(.playedOn)
             }
 
             // No runoff. A dead-ball foul stops the clock (4-4-e): one that was stopped
             // at the flag waits for the snap. One that was running restarts on the ready
             // signal after a defensive foul inside two minutes unless the offence
-            // chooses the snap (4-7-1 Item 2); otherwise as 4-3-2-e says.
+            // chooses the snap, with the play clock reset to forty (4-7-1 Item 2);
+            // otherwise as 4-3-2-e says.
             guard runningAtTheFlag else {
                 previousBehavior = .stopsUntilSnap
                 return
@@ -412,12 +526,121 @@ extension GameSimulator {
                 quarter: clock.quarter, isPostseason: setup.isPostseason,
                 clockRemaining: clock.secondsRemaining)
             if !byOffense, insideTwoMinutes {
-                previousBehavior =
-                    choices?.offenseStartsClockOnTheSnap == true
-                    ? .stopsUntilSnap : .stopsUntilReadyForPlay
+                let onTheSnap = choices?.offenseStartsClockOnTheSnap == true
+                previousBehavior = onTheSnap ? .stopsUntilSnap : .stopsUntilReadyForPlay
+                playClock = rules.playClockAfterADefensiveConservation
+                elect(onTheSnap ? .clockStartsOnTheSnap : .clockStartsOnTheReady)
                 return
             }
             previousBehavior = restart
+        }
+
+        // MARK: - An injury after the two-minute warning
+
+        /// An injury timeout after the two-minute warning of a half (2025 rulebook,
+        /// 4-5-4). Before the warning an injury timeout changes nothing here: the clock
+        /// starts as if it had not occurred (4-5-3).
+        ///
+        /// The injured player's team is charged a team timeout if it has one (4-5-4-a);
+        /// otherwise the Referee calls an excess timeout (4-5-4-b), which is where the
+        /// clock rules are. Against the team in possession, if the timeout stopped a
+        /// running clock or delayed its restart on the ready, the defence may have ten
+        /// seconds run off, after which the clock starts on the ready with the play
+        /// clock at thirty (Note 3) — a half can end on it (Note 4) — or decline it, in
+        /// which case the clock starts on the ready unless the opponent, which is the
+        /// defence, chooses the snap (Note 1); a defence that declined wants the clock
+        /// stopped, so it chooses the snap. Against the defence, the play clock resets
+        /// to forty and the clock starts on the ready unless the offence chooses the
+        /// snap (Note 1); in the last forty seconds with the clock running the half ends
+        /// unless the offence would rather play on (4-7-3). A foul on the play stopped
+        /// the clock first, so no runoff follows it (Notes 6 and 7). There is never a
+        /// runoff against the defence (Note 9).
+        ///
+        /// Not modelled: the five-yard penalty for a second excess timeout in a half
+        /// (Note 2), and an injury to both sides at once (Note 5).
+        mutating func applyInjuryTimeout(
+            injuredTeam: TeamID, on play: PlayRecord, choices: InjuryChoices
+        ) {
+            let rules = setup.rules
+            guard !isOver, !pendingTry, !clock.isExpired, clock.quarter == play.situation.quarter,
+                clock.twoMinuteWarningTaken
+            else { return }
+            // No timeout is charged when the injury came of a foul by an opponent, or
+            // during a down with a change of possession, a score or a try (4-5-4-a,
+            // 4-5-4-b); the clock is dead after every one of those anyway.
+            let opponentFouled = play.outcome.penalties.contains { $0.offendingTeam != injuredTeam }
+            let scored: Bool
+            switch play.outcome.endedIn {
+            case .touchdown, .safety, .fieldGoalGood: scored = true
+            default: scored = false
+            }
+            let changedHands = possession != play.situation.possession
+            let wasATry =
+                play.outcome.kind == .extraPoint || play.outcome.kind == .twoPointConversion
+            guard !opponentFouled, !scored, !changedHands, !wasATry else { return }
+
+            if timeouts(of: injuredTeam) > 0 {
+                spendTimeout(of: injuredTeam)
+                elect(.injuryTimeoutCharged)
+                return
+            }
+
+            // An excess timeout. It touches the clock only when it stopped a running
+            // clock or delayed a restart on the ready, and a foul on the play had not
+            // already stopped it.
+            let stoppedARunningClock =
+                previousBehavior != .stopsUntilSnap && play.outcome.penalties.isEmpty
+            guard stoppedARunningClock else {
+                elect(.excessInjuryTimeout)
+                return
+            }
+
+            if injuredTeam == possession {
+                if choices.defenseTakesRunoff {
+                    _ = clock.run(
+                        GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
+                        rules: rules, isPostseason: setup.isPostseason)
+                    previousBehavior = .stopsUntilReadyForPlay
+                    playClock = rules.playClockAfterARunoff
+                    elect(.injuryRunoff)
+                    endThePeriodIfExpired()
+                    return
+                }
+                previousBehavior = .stopsUntilSnap
+                elect(.injuryRunoffDeclined)
+                return
+            }
+
+            elect(.excessInjuryTimeout)
+            if rules.isInTheLastFortySeconds(
+                quarter: clock.quarter, isPostseason: setup.isPostseason,
+                clockRemaining: clock.secondsRemaining)
+            {
+                if choices.offenseEndsTheHalf {
+                    clock.secondsRemaining = 0
+                    previousBehavior = .stopsUntilSnap
+                    playClock = rules.playClockAfterAnAdministrativeStoppage
+                    elect(.halfEnded)
+                    endThePeriodIfExpired()
+                    return
+                }
+                elect(.playedOn)
+            }
+            previousBehavior =
+                choices.offenseStartsClockOnTheSnap ? .stopsUntilSnap : .stopsUntilReadyForPlay
+            playClock = rules.playClockAfterADefensiveConservation
+            elect(
+                choices.offenseStartsClockOnTheSnap ? .clockStartsOnTheSnap : .clockStartsOnTheReady
+            )
+        }
+
+        /// A period that a runoff between downs has exhausted ends as it would have at
+        /// the end of a play: the next period, or the game.
+        private mutating func endThePeriodIfExpired() {
+            guard clock.isExpired else { return }
+            checkForEnd(
+                Advancement(ballOn: ballOn, down: down, distance: distance), wasKickoff: false,
+                replayed: true)
         }
 
         private mutating func reposition(_ advancement: Advancement, replayed: Bool) {
@@ -594,7 +817,8 @@ extension GameSimulator {
             }
 
             // Postseason: another period, and play simply continues — no kickoff, the
-            // ball where it was (16-1-4-d).
+            // ball where it was (16-1-4-d). The end of a period is an administrative
+            // stoppage (4-6-2-d).
             guard let next = clock.advancingPeriod(rules: rules, isPostseason: setup.isPostseason)
             else {
                 isOver = true
@@ -602,6 +826,7 @@ extension GameSimulator {
             }
             clock = next
             previousBehavior = .stopsUntilSnap
+            playClock = rules.playClockAfterAnAdministrativeStoppage
         }
 
         /// The next period of regulation, or the first period of overtime.
@@ -638,6 +863,9 @@ extension GameSimulator {
                 if startsOvertime { overtimePossessions = 0 }
             }
             previousBehavior = .stopsUntilSnap
+            // The end of a period is an administrative stoppage (4-6-2-d), and so is the
+            // free kick that opens a half (4-6-2-g).
+            playClock = rules.playClockAfterAnAdministrativeStoppage
         }
 
         func result() -> GameResult {

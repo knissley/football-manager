@@ -105,6 +105,17 @@ struct GoldenSeedTests {
             // slightly better one — and a game between two rosters of different players is
             // a different game.
             //
+            // And moved by the play clock, this time by the engine. Every play now records
+            // the play clock it was snapped against (2025 rulebook, 4-6) as a decision
+            // point, and the checksum mixes every decision point, so every checksum moves
+            // for that reason alone. The football moved less: a delay of game is now the
+            // play clock expiring — drawn against the slack the tempo leaves on the clock
+            // in force rather than at a flat rate — so a snap on the twenty-five after a
+            // change of possession is a little likelier to be one, a flag that flies costs
+            // the whole play clock rather than the huddle, and a huddle after a runoff or a
+            // penalty enforcement is charged against the thirty or the twenty-five it was
+            // really taken against.
+            //
             // And moved again when every player came to carry every key — by the world,
             // and by what the engine reads of it. Nothing in `FMSimulation` changed, but a
             // rating a position does not train is now present and low rather than absent,
@@ -116,9 +127,13 @@ struct GoldenSeedTests {
             // was a number in the sixties or seventies that is now in the twenties or
             // thirties, so a game between the same men is a different game. The men
             // themselves did not move: every trained rating is byte-identical.
-            (UInt64(1), UInt64(2_833_865_463_239_310_610)),
-            (UInt64(5), UInt64(4_758_698_847_398_613_816)),
-            (UInt64(12), UInt64(15_068_482_040_124_649_792)),
+            //
+            // The constants below are the two changes together, regenerated on the merged
+            // tree: the play clock on every play and the untrained keys on every man, and
+            // neither alone reproduces them.
+            (UInt64(1), UInt64(16_815_793_213_609_793_558)),
+            (UInt64(5), UInt64(10_683_324_404_538_678_061)),
+            (UInt64(12), UInt64(5_655_356_735_475_438_523)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

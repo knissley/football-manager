@@ -437,6 +437,128 @@ struct TenSecondRunoffTests {
     }
 }
 
+@Suite("The last forty seconds")
+struct LastFortySecondsTests {
+
+    private let rules = Rules.standard
+
+    /// The article names forty seconds, in the periods that end a half, and a half
+    /// already over cannot be ended by a foul.
+    @Test(
+        "football · Rule 4-7-3, 16-1-3-e, 16-1-4-h · the last forty seconds of a half are the closing forty of a second or fourth period, of regular-season overtime, and of a second or fourth postseason overtime period, with time still on the clock",
+        .tags(.football)
+    )
+    func lastFortySeconds() {
+        func inside(_ clock: UInt16, quarter: UInt8 = 4, postseason: Bool = false) -> Bool {
+            rules.isInTheLastFortySeconds(
+                quarter: quarter, isPostseason: postseason, clockRemaining: clock)
+        }
+        #expect(inside(40))
+        #expect(inside(1))
+        #expect(inside(41) == false, "forty-one seconds is not the last forty")
+        #expect(inside(0) == false, "a half already over cannot be ended by a foul")
+        #expect(inside(30, quarter: 2))
+        #expect(inside(30, quarter: 1) == false)
+        #expect(inside(30, quarter: 3) == false)
+        #expect(
+            inside(30, quarter: 5),
+            "regular-season overtime is timed as the fourth period (16-1-3-e)")
+        #expect(
+            inside(30, quarter: 5, postseason: true) == false,
+            "a first postseason overtime period ends as a first period does")
+        #expect(inside(30, quarter: 6, postseason: true))
+        #expect(inside(30, quarter: 7, postseason: true) == false)
+        #expect(inside(30, quarter: 8, postseason: true))
+    }
+
+    @Test(
+        "football · Rule 4-7-1-a · the acts before the snap that conserve time are a dead-ball foul by either side that stops a running clock",
+        .tags(.football)
+    )
+    func conservingActs() {
+        #expect(rules.conservesTime(foul: .falseStart, clockWasRunning: true))
+        #expect(rules.conservesTime(foul: .neutralZoneInfraction, clockWasRunning: true))
+        #expect(rules.conservesTime(foul: .encroachment, clockWasRunning: true))
+        #expect(rules.conservesTime(foul: .delayOfGame, clockWasRunning: true))
+        #expect(
+            rules.conservesTime(foul: .falseStart, clockWasRunning: false) == false,
+            "a stopped clock has nothing to conserve")
+        #expect(
+            rules.conservesTime(foul: .offensiveHolding, clockWasRunning: true) == false,
+            "a live-ball foul is not an act between downs")
+    }
+}
+
+@Suite("The play clock")
+struct PlayClockTests {
+
+    private let rules = Rules.standard
+
+    @Test(
+        "football · Rule 4-6-1, 4-6-2, 4-7-1 Item 1, 4-6-3-b · the play clock is 40 from the end of a play, 25 from the whistle after an administrative stoppage, 30 from the ready after a runoff, and 40 from the ready after a defensive act that conserves time",
+        .tags(.football)
+    )
+    func playClockValues() {
+        #expect(rules.playClockAfterAPlay == PlayClock(seconds: 40, startsOnTheReady: false))
+        #expect(
+            rules.playClockAfterAnAdministrativeStoppage
+                == PlayClock(seconds: 25, startsOnTheReady: true))
+        #expect(rules.playClockAfterARunoff == PlayClock(seconds: 30, startsOnTheReady: true))
+        #expect(
+            rules.playClockAfterADefensiveConservation
+                == PlayClock(seconds: 40, startsOnTheReady: true))
+    }
+
+    /// Not a rule: the tempo table is written against the forty, and the engine scales
+    /// its slack to a shorter clock rather than carrying a second table. This pins that
+    /// choice so that it changes on purpose.
+    @Test(
+        "pin · a tempo keeps the same share of slack on a shorter play clock, never less than a second, because the tempo table is written against the forty and the engine scales it rather than carrying a second table (a modelling choice, not a rule)",
+        .tags(.pin))
+    func tempoScalesToTheClock() {
+        let forty = rules.playClockAfterAPlay
+        for tempo in Tempo.allCases {
+            #expect(
+                forty.intendedSnap(at: tempo) == tempo.secondsBetweenSnaps,
+                "\(tempo) on the reference clock is its own interval")
+            #expect(forty.remainingAtIntendedSnap(at: tempo) == UInt8(tempo.slack))
+        }
+        let twentyFive = rules.playClockAfterAnAdministrativeStoppage
+        #expect(
+            twentyFive.expiresAfter == 25 + GameClock.readyForPlayDelay,
+            "a clock on the whistle starts after the spot")
+        #expect(twentyFive.remainingAtIntendedSnap(at: .bleedClock) == 1)
+        #expect(twentyFive.remainingAtIntendedSnap(at: .normal) == 6)
+        #expect(twentyFive.remainingAtIntendedSnap(at: .hurryUp) == 20)
+        let readings = Tempo.allCases.map { twentyFive.remainingAtIntendedSnap(at: $0) }
+        #expect(readings == readings.sorted(by: >), "faster tempos leave more of the clock")
+        let thirty = rules.playClockAfterARunoff
+        #expect(thirty.intendedSnap(at: .normal) == GameClock.readyForPlayDelay + 30 - 7)
+    }
+
+    /// The game clock charge follows from where the snap comes in the interval.
+    @Test(
+        "A play clock on the whistle charges a game clock restarting on the ready from the whistle",
+        .tags(.unit))
+    func chargeFollowsTheClockInForce() {
+        let onTheReady = GameClock.elapsed(
+            playDuration: 6, tempo: .normal,
+            playClock: rules.playClockAfterAnAdministrativeStoppage,
+            previousBehavior: .stopsUntilReadyForPlay)
+        #expect(
+            onTheReady.beforeSnap == 25 - 6, "twenty-five on the whistle, snapped with six left")
+        let running = GameClock.elapsed(
+            playDuration: 6, tempo: .normal, playClock: rules.playClockAfterAPlay,
+            previousBehavior: .keepsRunning)
+        #expect(running.beforeSnap == 31)
+        let expired = GameClock.elapsed(
+            playDuration: 0, snapAfter: rules.playClockAfterAPlay.expiresAfter,
+            previousBehavior: .keepsRunning)
+        #expect(
+            expired.beforeSnap == 40, "a delay of game on a running clock costs the whole forty")
+    }
+}
+
 @Suite("Running the clock")
 struct GameClockTests {
 
@@ -446,18 +568,21 @@ struct GameClockTests {
     /// after an incompletion the huddle is free, after a tackle in bounds it is not.
     @Test("The pre-snap interval only costs the clock when the clock was running", .tags(.unit))
     func elapsedDependsOnThePreviousStoppage() {
+        let afterAPlay = rules.playClockAfterAPlay
         let afterIncompletion = GameClock.elapsed(
-            playDuration: 6, tempo: .hurryUp, previousBehavior: .stopsUntilSnap)
+            playDuration: 6, tempo: .hurryUp, playClock: afterAPlay,
+            previousBehavior: .stopsUntilSnap)
         #expect(afterIncompletion.beforeSnap == 0)
         #expect(afterIncompletion.total == 6)
 
         let afterTackle = GameClock.elapsed(
-            playDuration: 6, tempo: .normal, previousBehavior: .keepsRunning)
+            playDuration: 6, tempo: .normal, playClock: afterAPlay, previousBehavior: .keepsRunning)
         #expect(afterTackle.beforeSnap == Tempo.normal.secondsBetweenSnaps)
         #expect(afterTackle.total == 6 + Tempo.normal.secondsBetweenSnaps)
 
         let afterOutOfBounds = GameClock.elapsed(
-            playDuration: 6, tempo: .normal, previousBehavior: .stopsUntilReadyForPlay)
+            playDuration: 6, tempo: .normal, playClock: afterAPlay,
+            previousBehavior: .stopsUntilReadyForPlay)
         #expect(afterOutOfBounds.beforeSnap < afterTackle.beforeSnap)
         #expect(afterOutOfBounds.beforeSnap > 0)
     }
@@ -649,7 +774,8 @@ struct GameClockTests {
 
             while !clock.isExpired && snaps < 40 {
                 let elapsed = GameClock.elapsed(
-                    playDuration: 6, tempo: .hurryUp, previousBehavior: previous)
+                    playDuration: 6, tempo: .hurryUp, playClock: rules.playClockAfterAPlay,
+                    previousBehavior: previous)
                 _ = clock.run(elapsed, rules: rules, isPostseason: false)
                 snaps += 1
                 previous =
