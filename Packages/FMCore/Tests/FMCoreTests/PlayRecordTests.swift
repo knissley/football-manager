@@ -246,7 +246,7 @@ struct PlayOutcomeTests {
         #expect(PlayEnding.tackled.isTurnover == false)
 
         // What the clock does is a rules question, not a property of the ending: see
-        // `Rules.clockBehavior(after:quarter:clockRemaining:)`. Out of bounds is the
+        // `Rules.clockBehavior(after:quarter:isPostseason:clockRemaining:)`. Out of bounds is the
         // case that proves it — it stops the clock until the snap only late in a half.
         #expect(PlayEnding.incomplete.isTurnover == false)
         #expect(PlayEnding.intercepted.isTurnover)

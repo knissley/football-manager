@@ -34,10 +34,40 @@ struct RulesTests {
     @Test("Halves and periods follow the quarter count", .tags(.unit))
     func structure() {
         #expect(rules.halfLength == 1_800)
-        #expect(rules.isEndOfHalf(quarter: 2))
-        #expect(rules.isEndOfHalf(quarter: 4))
-        #expect(rules.isEndOfHalf(quarter: 1) == false)
-        #expect(rules.isEndOfHalf(quarter: 3) == false)
+        #expect(rules.isEndOfHalf(quarter: 2, isPostseason: false))
+        #expect(rules.isEndOfHalf(quarter: 4, isPostseason: false))
+        #expect(rules.isEndOfHalf(quarter: 1, isPostseason: false) == false)
+        #expect(rules.isEndOfHalf(quarter: 3, isPostseason: false) == false)
+
+        #expect(rules.periodTiming(quarter: 1, isPostseason: false) == .firstOrThird)
+        #expect(rules.periodTiming(quarter: 2, isPostseason: false) == .second)
+        #expect(rules.periodTiming(quarter: 3, isPostseason: false) == .firstOrThird)
+        #expect(rules.periodTiming(quarter: 4, isPostseason: false) == .fourth)
+
+        #expect(rules.opensHalf(quarter: 1))
+        #expect(rules.opensHalf(quarter: 2) == false)
+        #expect(rules.opensHalf(quarter: 3))
+        #expect(rules.opensHalf(quarter: 4) == false)
+        #expect(rules.opensHalf(quarter: 5), "the overtime period opens a half of its own")
+    }
+
+    /// 16-1-4-h names the second and the fourth overtime period and no later one, and
+    /// 16-1-4-i tosses the coin again at the end of the fourth, as at the end of
+    /// regulation. The engine reads that toss as restarting the pairing, so a fifth
+    /// overtime period is timed as a first and a sixth as a second. No game has reached
+    /// a third overtime period; this pins the reading so it changes on purpose.
+    @Test(
+        "pin · a fifth postseason overtime period is timed as a first and a sixth as a second, because the engine reads the new toss after a fourth (16-1-4-i) as restarting the pairing 16-1-4-h describes — a reading, since the book names only the second and the fourth",
+        .tags(.pin)
+    )
+    func postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing() {
+        #expect(rules.periodTiming(quarter: 9, isPostseason: true) == .firstOrThird)
+        #expect(rules.periodTiming(quarter: 10, isPostseason: true) == .second)
+        #expect(rules.periodTiming(quarter: 11, isPostseason: true) == .firstOrThird)
+        #expect(rules.periodTiming(quarter: 12, isPostseason: true) == .fourth)
+        #expect(rules.opensHalf(quarter: 9))
+        #expect(rules.opensHalf(quarter: 10) == false)
+        #expect(rules.opensHalf(quarter: 11))
     }
 
     @Test("Overtime length and ties depend on the stage", .tags(.unit))
@@ -66,9 +96,10 @@ struct ClockStoppageTests {
     private let rules = Rules.standard
 
     private func behavior(
-        _ ending: PlayEnding, quarter: UInt8 = 1, clock: UInt16 = 600
+        _ ending: PlayEnding, quarter: UInt8 = 1, clock: UInt16 = 600, postseason: Bool = false
     ) -> ClockBehavior {
-        rules.clockBehavior(after: ending, quarter: quarter, clockRemaining: clock)
+        rules.clockBehavior(
+            after: ending, quarter: quarter, isPostseason: postseason, clockRemaining: clock)
     }
 
     @Test("Dead-ball endings stop the clock until the snap", .tags(.unit))
@@ -110,13 +141,15 @@ struct ClockStoppageTests {
         for ending in PlayEnding.allCases {
             #expect(
                 rules.clockBehavior(
-                    after: ending, possessionChanged: true, quarter: 1, clockRemaining: 600)
+                    after: ending, possessionChanged: true, quarter: 1, isPostseason: false,
+                    clockRemaining: 600)
                     == .stopsUntilSnap,
                 "\(ending)")
         }
         #expect(
             rules.clockBehavior(
-                after: .tackled, possessionChanged: false, quarter: 1, clockRemaining: 600)
+                after: .tackled, possessionChanged: false, quarter: 1, isPostseason: false,
+                clockRemaining: 600)
                 == .keepsRunning,
             "without a change of possession the ending decides")
     }
@@ -159,6 +192,38 @@ struct ClockStoppageTests {
         #expect(behavior(.outOfBounds, quarter: 5, clock: 300) == .stopsUntilSnap)
         #expect(behavior(.outOfBounds, quarter: 5, clock: 90) == .stopsUntilSnap)
         #expect(behavior(.outOfBounds, quarter: 5, clock: 301) == .stopsUntilReadyForPlay)
+    }
+
+    /// Postseason overtime pairs its periods into halves (16-1-4-h), so the
+    /// out-of-bounds windows follow the halves: two minutes at the end of a second
+    /// overtime period, five at the end of a fourth, and none in a first or a third.
+    @Test(
+        "football · Rule 16-1-4-h, 4-3-2-a · in postseason overtime the out-of-bounds window is a second overtime period's last two minutes and a fourth's last five, and a first or third has none",
+        .tags(.football)
+    )
+    func outOfBoundsInPostseasonOvertime() {
+        #expect(
+            behavior(.outOfBounds, quarter: 5, clock: 90, postseason: true)
+                == .stopsUntilReadyForPlay,
+            "a first overtime period is a first period")
+        #expect(behavior(.outOfBounds, quarter: 6, clock: 120, postseason: true) == .stopsUntilSnap)
+        #expect(behavior(.outOfBounds, quarter: 6, clock: 30, postseason: true) == .stopsUntilSnap)
+        #expect(
+            behavior(.outOfBounds, quarter: 6, clock: 121, postseason: true)
+                == .stopsUntilReadyForPlay)
+        #expect(
+            behavior(.outOfBounds, quarter: 6, clock: 250, postseason: true)
+                == .stopsUntilReadyForPlay,
+            "the first half's window is two minutes, not five")
+        #expect(
+            behavior(.outOfBounds, quarter: 7, clock: 90, postseason: true)
+                == .stopsUntilReadyForPlay,
+            "a third overtime period is a third period")
+        #expect(behavior(.outOfBounds, quarter: 8, clock: 300, postseason: true) == .stopsUntilSnap)
+        #expect(behavior(.outOfBounds, quarter: 8, clock: 90, postseason: true) == .stopsUntilSnap)
+        #expect(
+            behavior(.outOfBounds, quarter: 8, clock: 301, postseason: true)
+                == .stopsUntilReadyForPlay)
     }
 
     /// 4-3-2-e-3 names its periods — the fourth, and regular-season overtime — and what
@@ -214,15 +279,17 @@ struct ClockStoppageTests {
 
     @Test("The two-minute warning is detected on the play that crosses it", .tags(.unit))
     func twoMinuteWarningDetection() {
-        #expect(rules.crossesTwoMinuteWarning(quarter: 2, clockBefore: 125, clockAfter: 118))
-        #expect(rules.crossesTwoMinuteWarning(quarter: 4, clockBefore: 121, clockAfter: 120))
+        func crosses(quarter: UInt8, before: UInt16, after: UInt16) -> Bool {
+            rules.crossesTwoMinuteWarning(
+                quarter: quarter, isPostseason: false, clockBefore: before, clockAfter: after)
+        }
+        #expect(crosses(quarter: 2, before: 125, after: 118))
+        #expect(crosses(quarter: 4, before: 121, after: 120))
+        #expect(crosses(quarter: 2, before: 118, after: 110) == false)
         #expect(
-            rules.crossesTwoMinuteWarning(quarter: 2, clockBefore: 118, clockAfter: 110) == false)
-        #expect(
-            rules.crossesTwoMinuteWarning(quarter: 1, clockBefore: 125, clockAfter: 118) == false,
+            crosses(quarter: 1, before: 125, after: 118) == false,
             "there is no warning at the end of the first quarter")
-        #expect(
-            rules.crossesTwoMinuteWarning(quarter: 3, clockBefore: 125, clockAfter: 118) == false)
+        #expect(crosses(quarter: 3, before: 125, after: 118) == false)
     }
 }
 
@@ -344,7 +411,7 @@ struct GameClockTests {
     @Test("Running the clock down never goes below zero", .tags(.unit))
     func clockFloor() {
         var clock = GameClock(quarter: 1, secondsRemaining: 5)
-        _ = clock.run(30, rules: rules)
+        _ = clock.run(30, rules: rules, isPostseason: false)
         #expect(clock.secondsRemaining == 0)
         #expect(clock.isExpired)
     }
@@ -360,7 +427,8 @@ struct GameClockTests {
     )
     func warningBetweenDowns() {
         var clock = GameClock(quarter: 4, secondsRemaining: 128)
-        let taken = clock.run(GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules)
+        let taken = clock.run(
+            GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules, isPostseason: false)
 
         #expect(taken)
         #expect(clock.secondsRemaining == 114, "the huddle was cut at 2:00; the play ran six")
@@ -375,7 +443,8 @@ struct GameClockTests {
     )
     func warningDuringADown() {
         var clock = GameClock(quarter: 4, secondsRemaining: 128)
-        let taken = clock.run(GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules)
+        let taken = clock.run(
+            GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules, isPostseason: false)
 
         #expect(taken, "the warning is taken as the down ends")
         #expect(clock.secondsRemaining == 108, "the down finished")
@@ -392,28 +461,70 @@ struct GameClockTests {
     func warningInRegularSeasonOvertime() {
         var between = GameClock(quarter: 5, secondsRemaining: 128)
         let inTheHuddle = between.run(
-            GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules)
+            GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules, isPostseason: false)
         #expect(inTheHuddle, "the warning is taken in the huddle")
         #expect(between.secondsRemaining == 114, "the huddle was cut at 2:00; the play ran six")
 
         var during = GameClock(quarter: 5, secondsRemaining: 128)
         let asTheDownEnds = during.run(
-            GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules)
+            GameClock.Elapsed(duringPlay: 20, beforeSnap: 0), rules: rules, isPostseason: false)
         #expect(asTheDownEnds, "the warning is taken as the down ends")
         #expect(during.secondsRemaining == 108, "the down finished")
+    }
+
+    /// Postseason overtime pairs its periods into halves: the warning is in a second
+    /// overtime period, as at the end of the first half, and in a fourth, as at the end
+    /// of the fourth period (16-1-4-h), and a first or a third has none. It is taken
+    /// once a half, so it is fresh again when the pair's first period opens.
+    @Test(
+        "football · Rule 16-1-4-h, 3-41 · in postseason overtime the two-minute warning belongs to a second and a fourth overtime period, whose pairs are halves, and a first or third has none",
+        .tags(.football)
+    )
+    func warningInPostseasonOvertime() {
+        func warningAt(quarter: UInt8) -> (taken: Bool, clock: UInt16) {
+            var clock = GameClock(quarter: quarter, secondsRemaining: 128)
+            let taken = clock.run(
+                GameClock.Elapsed(duringPlay: 6, beforeSnap: 20), rules: rules, isPostseason: true)
+            return (taken, clock.secondsRemaining)
+        }
+        let first = warningAt(quarter: 5)
+        #expect(first.taken == false && first.clock == 102, "a first overtime period: none")
+        let second = warningAt(quarter: 6)
+        #expect(second.taken && second.clock == 114, "a second: the first half's warning")
+        let third = warningAt(quarter: 7)
+        #expect(third.taken == false && third.clock == 102, "a third: none")
+        let fourth = warningAt(quarter: 8)
+        #expect(fourth.taken && fourth.clock == 114, "a fourth: the fourth period's warning")
+
+        let regulation = GameClock(quarter: 4, secondsRemaining: 0, twoMinuteWarningTaken: true)
+        let opening = regulation.advancingPeriod(rules: rules, isPostseason: true)
+        #expect(opening?.secondsRemaining == 900)
+        #expect(
+            opening?.twoMinuteWarningTaken == false,
+            "the first overtime period opens a half, so the warning is to come")
+        let pairTaken = GameClock(quarter: 6, secondsRemaining: 0, twoMinuteWarningTaken: true)
+        #expect(
+            pairTaken.advancingPeriod(rules: rules, isPostseason: true)?.twoMinuteWarningTaken
+                == false,
+            "a third overtime period opens the next half")
+        let pairOpen = GameClock(quarter: 7, secondsRemaining: 0, twoMinuteWarningTaken: false)
+        #expect(
+            pairOpen.advancingPeriod(rules: rules, isPostseason: true)?.twoMinuteWarningTaken
+                == false,
+            "a fourth carries its pair's warning, still to come")
     }
 
     @Test("The warning is taken once per half, not once per play", .tags(.unit))
     func warningTakenOnce() {
         var clock = GameClock(quarter: 2, secondsRemaining: 130)
         let firstCrossing = clock.run(
-            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules)
+            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules, isPostseason: false)
         #expect(firstCrossing)
         #expect(clock.secondsRemaining == 120)
 
         // The next play runs through freely.
         let secondCrossing = clock.run(
-            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules)
+            GameClock.Elapsed(duringPlay: 0, beforeSnap: 15), rules: rules, isPostseason: false)
         #expect(secondCrossing == false)
         #expect(clock.secondsRemaining == 105)
     }
@@ -421,12 +532,12 @@ struct GameClockTests {
     @Test("There is no warning at the end of the first or third quarter", .tags(.unit))
     func noWarningMidHalf() {
         var clock = GameClock(quarter: 1, secondsRemaining: 128)
-        let firstQuarter = clock.run(20, rules: rules)
+        let firstQuarter = clock.run(20, rules: rules, isPostseason: false)
         #expect(firstQuarter == false)
         #expect(clock.secondsRemaining == 108)
 
         var third = GameClock(quarter: 3, secondsRemaining: 128)
-        let thirdQuarter = third.run(20, rules: rules)
+        let thirdQuarter = third.run(20, rules: rules, isPostseason: false)
         #expect(thirdQuarter == false)
     }
 
@@ -434,12 +545,14 @@ struct GameClockTests {
     @Test("The warning resets at halftime and not between quarters", .tags(.unit))
     func warningResets() {
         let firstHalf = GameClock(quarter: 2, secondsRemaining: 0, twoMinuteWarningTaken: true)
-        let secondHalf = firstHalf.advancingPeriod(rules: rules)
+        let secondHalf = firstHalf.advancingPeriod(rules: rules, isPostseason: false)
         #expect(secondHalf?.quarter == 3)
         #expect(secondHalf?.twoMinuteWarningTaken == false)
 
         let thirdQuarter = GameClock(quarter: 3, secondsRemaining: 0, twoMinuteWarningTaken: true)
-        #expect(thirdQuarter.advancingPeriod(rules: rules)?.twoMinuteWarningTaken == true)
+        #expect(
+            thirdQuarter.advancingPeriod(rules: rules, isPostseason: false)?.twoMinuteWarningTaken
+                == true)
     }
 
     /// Rewritten for A11 (#74): this asserted that the overtime period had no
@@ -449,10 +562,10 @@ struct GameClockTests {
     @Test("Periods advance to a full quarter, then to overtime", .tags(.unit))
     func periods() {
         let first = GameClock(quarter: 1, secondsRemaining: 0)
-        #expect(first.advancingPeriod(rules: rules)?.secondsRemaining == 900)
+        #expect(first.advancingPeriod(rules: rules, isPostseason: false)?.secondsRemaining == 900)
 
         let fourth = GameClock(quarter: 4, secondsRemaining: 0, twoMinuteWarningTaken: true)
-        let overtime = fourth.advancingPeriod(rules: rules)
+        let overtime = fourth.advancingPeriod(rules: rules, isPostseason: false)
         #expect(overtime?.quarter == 5)
         #expect(overtime?.secondsRemaining == 600)
         #expect(
@@ -474,14 +587,16 @@ struct GameClockTests {
             while !clock.isExpired && snaps < 40 {
                 let elapsed = GameClock.elapsed(
                     playDuration: 6, tempo: .hurryUp, previousBehavior: previous)
-                _ = clock.run(elapsed, rules: rules)
+                _ = clock.run(elapsed, rules: rules, isPostseason: false)
                 snaps += 1
                 previous =
                     alwaysStopping
                     ? rules.clockBehavior(
-                        after: .incomplete, quarter: 4, clockRemaining: clock.secondsRemaining)
+                        after: .incomplete, quarter: 4, isPostseason: false,
+                        clockRemaining: clock.secondsRemaining)
                     : rules.clockBehavior(
-                        after: .tackled, quarter: 4, clockRemaining: clock.secondsRemaining)
+                        after: .tackled, quarter: 4, isPostseason: false,
+                        clockRemaining: clock.secondsRemaining)
             }
             return snaps
         }

@@ -147,6 +147,19 @@ public struct Rules: Sendable, Hashable, Codable {
     public static let standard = Rules()
 }
 
+/// Which of Rule 4's closing rules a period is played under: see
+/// `Rules.periodTiming(quarter:isPostseason:)`.
+public enum PeriodTiming: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// A first or third period: no two-minute warning and no late window.
+    case firstOrThird = 0
+    /// A second period: the first half's warning, its two-minute out-of-bounds window,
+    /// and the runoff after its warning.
+    case second = 1
+    /// A fourth period: the second half's warning, its five-minute window, and the
+    /// runoff after its warning.
+    case fourth = 2
+}
+
 extension Rules {
 
     /// The length of a field goal attempt, in yards.
@@ -186,30 +199,71 @@ extension Rules {
     /// Seconds in a half.
     public var halfLength: UInt16 { UInt16(quarters / 2) * quarterLength }
 
-    /// The quarter a half ends on.
-    public func isEndOfHalf(quarter: UInt8) -> Bool {
-        quarter == quarters / 2 || quarter == quarters
+    /// Which of Rule 4's closing rules `quarter` is played under (2025 rulebook).
+    ///
+    /// The two-minute warning (3-41), the late out-of-bounds windows (4-3-2-a), the
+    /// restart on the snap after a foul inside those windows (4-3-2-e-1, e-2) and the
+    /// ten-second runoff (4-7-1) belong to the last period of a half, and which half
+    /// decides which of them: the first half's window is two minutes and the second's
+    /// five. Regular-season overtime is timed as the fourth period (16-1-3-e).
+    /// Postseason overtime pairs its periods into halves — a second overtime period
+    /// ends as the first half does and a fourth as the fourth period does (16-1-4-h) —
+    /// which leaves a first or a third timed as a first or third quarter, with no
+    /// warning and no window. Past the fourth the pairing repeats: a reading of the new
+    /// coin toss there (16-1-4-i) rather than a sentence in the book, and pinned as one.
+    ///
+    /// Every clock case that asks which stage of a half it is in reads this, so no case
+    /// can read the postseason differently from another. The one timing rule that is
+    /// not a half's closing rule, 4-3-2-e-3, names its own periods and is
+    /// `isFourthPeriodOrRegularSeasonOvertime`.
+    public func periodTiming(quarter: UInt8, isPostseason: Bool) -> PeriodTiming {
+        if quarter <= quarters {
+            if quarter == quarters { return .fourth }
+            return quarter == quarters / 2 ? .second : .firstOrThird
+        }
+        guard isPostseason else { return .fourth }
+        switch (quarter - quarters) % 4 {
+        case 2: return .second
+        case 0: return .fourth
+        default: return .firstOrThird
+        }
     }
 
-    /// Whether `quarter` is played under the fourth period's timing rules: the fourth
-    /// period itself, and regular-season overtime, whose general provisions are the
-    /// fourth quarter's (2025 rulebook, 16-1-3-e). Postseason overtime reads its own
-    /// periods differently (16-1-4-h) and is not modelled here.
-    public func hasFourthPeriodTiming(quarter: UInt8, isPostseason: Bool) -> Bool {
+    /// Whether `quarter` opens a half, so that the two-minute warning is to come again:
+    /// the first and third periods of regulation, the overtime period, and in the
+    /// postseason every odd overtime period, because postseason overtime periods pair
+    /// into halves (16-1-4-g, 16-1-4-h).
+    public func opensHalf(quarter: UInt8) -> Bool {
+        if quarter > quarters { return (quarter - quarters) % 2 == 1 }
+        return quarter == 1 || quarter == quarters / 2 + 1
+    }
+
+    /// The period a half ends on, which is the period with a two-minute warning in it.
+    public func isEndOfHalf(quarter: UInt8, isPostseason: Bool) -> Bool {
+        periodTiming(quarter: quarter, isPostseason: isPostseason) != .firstOrThird
+    }
+
+    /// The periods 4-3-2-e-3 names — the fourth, and regular-season overtime — in which
+    /// an offensive foul that stops the clock before a snap has it start on the snap.
+    /// The article is not one of a half's closing rules, so 16-1-4-h does not carry it
+    /// into postseason overtime, which the article's own words leave out.
+    public func isFourthPeriodOrRegularSeasonOvertime(
+        quarter: UInt8, isPostseason: Bool
+    )
+        -> Bool
+    {
         quarter == quarters || (!isPostseason && quarter > quarters)
     }
 
     /// Whether the clock, read at a flag, is inside the closing two minutes of a half —
-    /// the window of Rule 4 Section 7 — with regular-season overtime carrying the
-    /// fourth period's timing (16-1-3-e). At exactly the warning the clock has just
-    /// stopped, so nothing is running to conserve.
+    /// the window of Rule 4 Section 7 — in a period that ends one: the second, the
+    /// fourth, regular-season overtime (16-1-3-e), or a second or fourth postseason
+    /// overtime period (16-1-4-h). At exactly the warning the clock has just stopped,
+    /// so nothing is running to conserve.
     public func isAfterTheTwoMinuteWarning(
         quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> Bool {
-        guard
-            quarter == quarters / 2
-                || hasFourthPeriodTiming(quarter: quarter, isPostseason: isPostseason)
-        else { return false }
+        guard isEndOfHalf(quarter: quarter, isPostseason: isPostseason) else { return false }
         return clockRemaining < twoMinuteWarning
     }
 
@@ -218,7 +272,8 @@ extension Rules {
     /// By the offence, after the two-minute warning of either half, with the clock
     /// running into the flag (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
     /// defence (4-7-1 Item 2). Regular-season overtime is timed as the fourth quarter
-    /// (16-1-3-e), so its closing two minutes carry the runoff too.
+    /// (16-1-3-e), so its closing two minutes carry the runoff too, and so do a second
+    /// and a fourth postseason overtime period's, which end as the halves do (16-1-4-h).
     ///
     /// Only the dead-ball fouls before the snap are here. Intentional grounding, an
     /// illegal forward pass and the other live-ball acts in the article are not drawn

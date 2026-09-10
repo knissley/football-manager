@@ -98,7 +98,11 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady`,
     `test:outOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriodWaitsForTheSnap`,
     `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
-    `test:postseasonOvertimeRunoff`, `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`
+    `test:postseasonOvertimeRunoff`, `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
+    `test:warningInPostseasonOvertime`, `test:outOfBoundsInPostseasonOvertime`; past the
+    fourth overtime period the pairing repeats, which is a **modelling** reading of the
+    new coin toss there (16-1-4-i) rather than a sentence in the book, and
+    `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing` pins it
 
 ## The try
 

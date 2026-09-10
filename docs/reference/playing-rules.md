@@ -36,8 +36,11 @@ Which rules must be true of a game, and what checks each, is
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
 - **3-41** — The two-minute warning. The down under way when the clock runs past 2:00
-  finishes and the clock is then dead; it belongs to the second and fourth periods only. —
-  `test:warningBetweenDowns`, `test:warningDuringADown`, `test:noWarningMidHalf`
+  finishes and the clock is then dead; it belongs to the second and fourth periods, and to
+  the periods Rule 16 times as them — regular-season overtime (16-1-3-e) and a second or
+  fourth postseason overtime period (16-1-4-h). — `test:warningBetweenDowns`,
+  `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
+  `test:warningInPostseasonOvertime`
 
 ## Rule 4 — Game timing
 
@@ -60,15 +63,22 @@ Which rules must be true of a game, and what checks each, is
   `test:fairCaughtKickoffStartsNoClock`
 - **4-3-2** — Otherwise the clock starts on the snap. — `test:spikeStopsTheClock`
 - **4-3-2-a** — After a runner goes out of bounds it starts on the ready for play, except
-  in the late windows. — `test:outOfBoundsEarly`, `test:outOfBoundsLate`
+  in the late windows: the first half's two minutes and the second's five, which overtime
+  carries as Rule 16 times its periods. — `test:outOfBoundsEarly`, `test:outOfBoundsLate`,
+  `test:outOfBoundsInRegularSeasonOvertime`, `test:outOfBoundsInPostseasonOvertime`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
 - **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — After a foul the clock restarts as though
   the flag had never flown, except on the snap after the first half's two-minute warning,
   inside the last five minutes of the second half, and after an offensive foul that stops
-  the clock before the snap anywhere in the fourth period or regular-season overtime. —
+  the clock before the snap anywhere in the fourth period or regular-season overtime. In
+  postseason overtime e-1 and e-2 follow the halves 16-1-4-h makes of its periods; e-3
+  names its own periods and does not reach it. —
   `test:falseStartInTheThirdQuarterCostsNoTime`,
-  `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`
+  `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
+  `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`,
+  `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
+  `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`
 - **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
   `test:falseStartInsideTwoMinutesCostsTenSeconds`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
@@ -77,7 +87,8 @@ Which rules must be true of a game, and what checks each, is
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
 - **4-4-e** — A foul stops it. — `test:deadBallFoulBeforeTheSnapChargesNoTime`
 - **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`
-- **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`
+- **4-4-h** — The two-minute warning stops it. — `test:twoMinuteWarningStopsAtTwoMinutes`,
+  `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`
 - **4-4-i** — A change of possession stops it. — `test:changeOfPossessionStops`,
   `test:puntReturnedAndTackledStopsTheClock`,
   `test:fumbleRecoveredByTheDefenseStopsTheClock`
@@ -386,7 +397,10 @@ below are what it is held to.
 - **16-1-4-d** — Level at the end of a period, or a second team's initial possession
   unfinished, means another period. — `test:postseasonPlaysASixthPeriod`
 - **16-1-4-e**, **16-1-4-g**, **16-1-4-i** — Three timeouts per half, two-minute
-  intermissions between periods, and a fresh coin toss after the fourth. — not modelled
+  intermissions between periods, and a fresh coin toss after the fourth. — not modelled,
+  except that the toss after a fourth overtime period is read as restarting the pairing
+  16-1-4-h describes, so a fifth period is timed as a first: a reading, pinned by
+  `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first
   half does and a fourth as the fourth period does, so the warning, the out-of-bounds
   windows and the runoff belong to those two and a first or third overtime period has
@@ -396,7 +410,8 @@ below are what it is held to.
   `test:outOfBoundsInsideFiveMinutesOfASecondPostseasonOvertimePeriodRestartsOnTheReady`,
   `test:outOfBoundsInsideFiveMinutesOfAFourthPostseasonOvertimePeriodWaitsForTheSnap`,
   `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
-  `test:postseasonOvertimeRunoff`
+  `test:postseasonOvertimeRunoff`, `test:warningInPostseasonOvertime`,
+  `test:outOfBoundsInPostseasonOvertime`, `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`
 - **16-1-5-b** — Possession is gained by catching, intercepting or recovering a loose ball,
   so a defence that takes the ball away has had its possession. —
   `test:overtimeDefensiveScoreEndsIt`

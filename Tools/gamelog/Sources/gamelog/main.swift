@@ -156,10 +156,19 @@ func minutesAndSeconds(_ seconds: Int) -> String {
     return "\(clamped / 60):\(remainder < 10 ? "0" : "")\(remainder)"
 }
 
+/// The period as a broadcast names it. A postseason game plays as many overtime
+/// periods as it takes (16-1-4-d), and which one it is in matters to the clock — a
+/// second overtime period has the first half's two-minute warning and a first has none
+/// (16-1-4-h) — so they are numbered the way a broadcast numbers them: OT, 2OT, 3OT.
+func periodLabel(quarter: UInt8, rules: Rules) -> String {
+    guard quarter > rules.quarters else { return "Q\(quarter)" }
+    let period = quarter - rules.quarters
+    return period == 1 ? "OT" : "\(period)OT"
+}
+
 /// The clock as a broadcast shows it: which period, and how long is left in it.
 func clockLabel(quarter: UInt8, remaining: UInt16, rules: Rules) -> String {
-    let period = quarter > rules.quarters ? "OT" : "Q\(quarter)"
-    return "\(period) \(minutesAndSeconds(Int(remaining)))"
+    "\(periodLabel(quarter: quarter, rules: rules)) \(minutesAndSeconds(Int(remaining)))"
 }
 
 /// Yards from the opponent's goal line, in the terms the sport talks in.
@@ -464,7 +473,7 @@ struct Broadcast {
             let ending = quarter
             let label =
                 ending == rules.quarters / 2
-                ? "halftime" : "end of \(ending > rules.quarters ? "OT" : "Q\(ending)")"
+                ? "halftime" : "end of \(periodLabel(quarter: ending, rules: rules))"
             print("        " + String(repeating: "═", count: 40))
             print("        \(label) · \(scoreline())")
             print("        " + String(repeating: "═", count: 40))
