@@ -125,7 +125,10 @@ extension GameSimulator {
                 altitudeFeet: setup.stadium.altitudeFeet,
                 weather: setup.weather,
                 offenseIsHome: possession == setup.home.id,
-                clockIsRunning: previousBehavior == .keepsRunning,
+                // "The clock runs into the interval before this snap": true after a play
+                // that left it running and after a stoppage that ends on the
+                // ready-for-play signal, false only when it waits for the snap.
+                clockIsRunning: previousBehavior != .stopsUntilSnap,
                 form: form,
                 rules: setup.rules)
         }
@@ -191,7 +194,7 @@ extension GameSimulator {
 
             record(effective, calls: calls, decisions: decisions, situation: before)
             score(advancement)
-            runClock(effective, tempo: calls.offense.tempo)
+            runClock(effective, advancement: advancement, tempo: calls.offense.tempo)
             let wasKickoff = pendingKickoff
             let replayed = effective.kind == .penaltyOnly
             reposition(advancement, replayed: replayed)
@@ -253,26 +256,32 @@ extension GameSimulator {
             }
         }
 
-        private mutating func runClock(_ outcome: Outcome, tempo: Tempo) {
-            let behavior = setup.rules.clockBehavior(
-                after: outcome.endedIn, quarter: clock.quarter,
-                clockRemaining: clock.secondsRemaining)
+        private mutating func runClock(_ outcome: Outcome, advancement: Advancement, tempo: Tempo) {
+            let rules = setup.rules
+            let behavior = rules.clockBehavior(
+                after: outcome.endedIn, possessionChanged: advancement.possessionChanged,
+                quarter: clock.quarter, clockRemaining: clock.secondsRemaining)
 
-            // A kickoff or a try is untimed for our purposes: the clock is stopped
-            // through the whole sequence.
-            let elapsed: UInt16
-            if pendingKickoff || pendingTry {
-                elapsed = 0
+            let elapsed: GameClock.Elapsed
+            if pendingTry {
+                // The try is untimed (11-3-1).
+                elapsed = GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
+            } else if pendingKickoff {
+                // The clock on a free kick starts when the ball is legally touched in
+                // the field of play (4-3-1), so a return costs its seconds and a
+                // touchback costs none; nothing is charged before the kick, because the
+                // clock is dead after a score.
+                let returned = outcome.endedIn != .touchback && outcome.kind != .penaltyOnly
+                elapsed = GameClock.Elapsed(
+                    duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
             } else {
-                elapsed =
-                    GameClock.elapsed(
-                        playDuration: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6,
-                        tempo: tempo,
-                        previousBehavior: previousBehavior
-                    ).total
+                elapsed = GameClock.elapsed(
+                    playDuration: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6,
+                    tempo: tempo,
+                    previousBehavior: previousBehavior)
             }
 
-            let warningTaken = clock.run(elapsed, rules: setup.rules)
+            let warningTaken = clock.run(elapsed, rules: rules)
             previousBehavior = warningTaken ? .stopsUntilSnap : behavior
         }
 

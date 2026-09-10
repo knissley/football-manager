@@ -39,21 +39,29 @@ enum RulesScenarios {
     }
 
     /// The last snap of `quarter` is a touchdown by the side whose score reads
-    /// `differential`. When the other side has the ball inside the closing minute it
-    /// throws an interception, so the right side always gets the last snap.
+    /// `differential`. When the other side has the ball inside the closing two minutes
+    /// it throws an interception, so the right side always gets the last snap, which it
+    /// takes at its first snap inside the closing minute.
     ///
-    /// The window is a minute because snaps are never more than a play clock apart, so
-    /// no walk down the clock can step over it.
+    /// Two windows, not one. The right side's is a minute because snaps are never more
+    /// than a play clock apart, so no walk down the clock can step over it. The wrong
+    /// side's is wider: a snap on a running clock costs a huddle before the play, so an
+    /// interception thrown inside the last thirty-odd seconds can expire the period
+    /// itself. Inside two minutes the wrong side's first snap after taking the ball
+    /// over is huddle-free — the clock stops on a change of possession — and any later
+    /// snap of its own comes with more than a huddle left, so it always gives the ball
+    /// back with time on the clock.
     static func touchdownAsTimeExpires(
         quarter: UInt8, by differential: Int16
     )
         -> @Sendable (Snap) -> Outcome
     {
         { snap in
-            guard snap.isScrimmage else { return snap.neutral }
-            guard snap.quarter == quarter, snap.clock <= 60 else { return snap.neutral }
-            return snap.differential == differential
-                ? snap.touchdownAsTimeExpires() : .interception(to: 50)
+            guard snap.isScrimmage, snap.quarter == quarter else { return snap.neutral }
+            if snap.differential == differential {
+                return snap.clock <= 60 ? snap.touchdownAsTimeExpires() : snap.neutral
+            }
+            return snap.clock <= 120 ? .interception(to: 50) : snap.neutral
         }
     }
 
