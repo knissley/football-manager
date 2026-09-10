@@ -361,8 +361,8 @@ struct OutOfBoundsTests {
     /// The clock rule that makes the sideline worth reaching, and the same rule read from
     /// the other bench.
     ///
-    /// 2025 rulebook, 4-3-2-a: after a runner goes out of bounds on a play from scrimmage
-    /// the clock restarts on the referee's ready signal — **except** that it starts on the
+    /// 2025 rulebook, 4-3-2-a: a runner going out of bounds on a scrimmage down leaves
+    /// the clock to restart on the referee's ready signal — **except** that it starts on the
     /// snap after the two-minute warning of the first half and inside the last five
     /// minutes of the second. So late in a game the sideline is the only place a trailing
     /// offence's clock stays stopped, and it is the one place a leading offence must not

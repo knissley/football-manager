@@ -203,8 +203,8 @@ enum Penalties {
     /// lost. What it *can* be is limited by when it happens: these are the fouls whose
     /// restrictions begin at the snap and do not need a pass in the air — grabbing a
     /// receiver, or getting hands on him past the legal window. Interference is not one
-    /// of them and is drawn at the throw instead (`onTheThrow`), because 8-5-1 says
-    /// interference can only occur when a forward pass is thrown from behind the line.
+    /// of them and is drawn at the throw instead (`onTheThrow`), because 8-5-1 makes a
+    /// forward pass thrown from behind the line the thing interference needs to exist.
     static func whenBeatenInCoverage(
         defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int,
         personnel: Lineup, context: PlayContext,
@@ -230,11 +230,11 @@ enum Penalties {
 
     /// Interference, on the matchup the ball was thrown into.
     ///
-    /// 8-5-1: interference "can only occur when a forward pass is thrown from behind the
-    /// line of scrimmage", the defence's restrictions "apply from the time the ball is
-    /// thrown until the ball is touched", and it is an act that hinders "an eligible
-    /// player's opportunity to catch the ball". So there is exactly one matchup it can be
-    /// drawn on — the target's — and a down with no throw in it has none at all. It used
+    /// 8-5-1: interference needs a forward pass thrown from behind the line to exist, the
+    /// defence's restrictions run from the throw until the ball is touched, and the foul
+    /// itself is hindering an eligible receiver's chance at the ball. So there is exactly
+    /// one matchup it can be drawn on — the target's — and a down with no throw in it has
+    /// none at all. It used
     /// to be drawn per read in the coverage loop, before the quarterback had decided
     /// anything, which put it on sacks and on receivers nobody looked at.
     ///
@@ -266,8 +266,8 @@ enum Penalties {
                 offense: true)
         }
 
-        // Underneath, an act more than one yard beyond the line is still interference,
-        // but a crude engine cannot tell a hook at eight yards from a hand-fight at one,
+        // Underneath, contact past the first yard downfield is still interference, but a
+        // crude engine cannot tell a hook at eight yards from a hand-fight at one,
         // so a route short of the line to gain draws nothing here: contact on it is the
         // coverage loop's holding or illegal contact, which is what 8-5-1 says the acts
         // that are not interference could be. Calling it here as well counted the same

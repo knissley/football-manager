@@ -85,13 +85,11 @@ struct PenaltyTests {
 
     /// There is no such thing as interference on a play nobody threw.
     ///
-    /// 2025 rulebook, 8-5-1: "Pass interference can only occur when a forward pass is
-    /// thrown from behind the line of scrimmage, regardless of whether the pass is legal
-    /// or illegal, or whether it crosses the line." The article also fixes the window —
-    /// the defence's restrictions run from the time the ball is thrown until it is
-    /// touched — and says what the acts that are *not* interference are instead: "Acts
-    /// that do not occur more than one yard beyond the line of scrimmage are not pass
-    /// interference but could be offensive or defensive holding."
+    /// 2025 rulebook, 8-5-1. Interference of either kind needs a forward pass thrown
+    /// from behind the line to exist at all, legal or not and whether or not it gets
+    /// past the line. The article fixes the window too — the defence's restrictions run
+    /// from the throw until the ball is touched — and says what contact nearer the line
+    /// than a yard is instead, which is holding by one side or the other.
     ///
     /// So a sack, a scramble and a throwaway can carry defensive holding or illegal
     /// contact and cannot carry interference of either kind.
@@ -118,10 +116,10 @@ struct PenaltyTests {
 
     /// And interference is on the man the ball was thrown to.
     ///
-    /// 8-5-1 again: interference is an act that "significantly hinders an eligible
-    /// player's opportunity to catch the ball", and 8-5-4 makes the offence's version an
-    /// illegal block "in the vicinity of the player to whom the pass is thrown". A flag on
-    /// a receiver the quarterback never looked at is a flag with no ball near it.
+    /// 8-5-1 again: interference is hindering an eligible receiver's chance at the ball,
+    /// and 8-5-4's version of the offence's is a block near whoever the pass is going to.
+    /// A flag on a receiver the quarterback never looked at is a flag with no ball near
+    /// it.
     @Test("Interference is on the target's matchup, not on somebody else's", .tags(.contract))
     func interferenceIsOnTheTarget() {
         var checked = 0
