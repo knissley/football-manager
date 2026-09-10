@@ -28,8 +28,8 @@ public enum TeamGenerator {
         /// out one of each.
         public var nicknameStems: Set<String> = []
         /// The word a feature-led ground is named for. Tracked because the collision
-        /// that reads as a duplicate is the *word*: Riverfront Park, Riverfront Field
-        /// and Riverfront Arena are three distinct strings and one ground written down
+        /// that reads as a duplicate is the *word*: Lakeside Park, Lakeside Field
+        /// and Lakeside Arena are three distinct strings and one ground written down
         /// three times.
         ///
         /// There is deliberately no set of whole stadium names beside it. One existed,
@@ -254,12 +254,28 @@ public enum TeamGenerator {
     /// When it is not, this returns the **whole name** and the ledger records that, so
     /// the real stem is never spent and a drawn city may repeat it. Four curated cities
     /// end in a word the pools do not know — Junipero Mesa, Alta Verde, Vermillion Flats
-    /// and Tallow Bend — so a league large enough to draw on top of the curated set can
-    /// field Vermillion Flats beside Vermillion Heights. Nothing ships at that size:
-    /// only a shape past thirty-two teams draws a city at all, and the stutter is the
-    /// same class of fault [#4](https://github.com/knissley/football-manager/issues/4)
-    /// found in the randomiser, deferred with it to the pre-release revisit of
-    /// generation ([M8](../../../../docs/roadmap.md)).
+    /// and Tallow Bend — so a league that draws a city beside one of those four can field
+    /// Vermillion Flats next to Vermillion Heights.
+    ///
+    /// Nothing ships in that state, and the reason is regional rather than a headcount.
+    /// `FranchiseSet.initial` holds eight clubs per region, and `LeagueGenerator` tops a
+    /// region up from the pools only when the shape asks it for more than it has — so on
+    /// the *curated* source a city is drawn when some region is asked for more than
+    /// eight. What a region is asked for is the divisions that land on it × `conferences`
+    /// × `teamsPerDivision`, so with the four-team divisions of a *two-conference* career
+    /// it means past thirty-two — but a wider division or a third conference puts it
+    /// below. Measured at seed 7: two conferences of two five-team divisions is a
+    /// twenty-team league and draws four cities; two of three is thirty teams and draws
+    /// six, one of which lands beside a curated city it can stutter with; and three
+    /// conferences of two four-team divisions is twenty-four teams and draws eight, which
+    /// is a third of the league invented for want of a region's ninth club.
+    ///
+    /// The other two sources draw at every size — `.randomised` draws all of them, and a
+    /// short `.set` has the rest of its league drawn around its own lines, seven of eight
+    /// in the tests' minimal world. None of those ships. The stutter is the same class of
+    /// fault [#4](https://github.com/knissley/football-manager/issues/4) found in the
+    /// randomiser, deferred with it to the pre-release revisit of generation
+    /// ([M8](../../../../docs/roadmap.md)).
     static func stem(ofCity city: String) -> String {
         let words = city.split(separator: " ").map(String.init)
         guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {
@@ -293,8 +309,8 @@ public enum TeamGenerator {
 
         // A feature-led name reads better — most grounds were named for the place or
         // something in it — but the pool is small enough to collide across a league, and
-        // what collides is the word rather than the whole name: Riverfront Park and
-        // Riverfront Field are one ground written down twice however the kinds differ.
+        // what collides is the word rather than the whole name: Lakeside Park and
+        // Lakeside Field are one ground written down twice however the kinds differ.
         // So a feature word is spent once per world. When the draws all land on words
         // already spent, the city-led form takes over — a city name is spent once per
         // world too, in the same ledger, and no city is named for a feature, so it

@@ -87,6 +87,29 @@ struct LeagueGeneratorTests {
         #expect(a.teams.map(\.identity.fullName) != b.teams.map(\.identity.fullName))
     }
 
+    /// The half of [#82](https://github.com/knissley/football-manager/issues/82) that did
+    /// *not* change. The curated source names the league from `FranchiseSet`, because a
+    /// career should open in the same league every time
+    /// ([decision 215](../../../../docs/design-decisions.md)); the randomiser keeps
+    /// drawing the name from `StructurePools`, which stays as unrefined as the rest of
+    /// the pools until the pre-release revisit ([M8](../../../../docs/roadmap.md)).
+    ///
+    /// Twelve seeds, because the pool is small enough that two of them can honestly draw
+    /// the same name: what says the name is still drawn is that every one of them is a
+    /// line of the pool and that the twelve do not agree on one.
+    @Test("contract: the randomiser still draws the league's name per seed", .tags(.contract))
+    func drawnLeagueNamesAreASeededDraw() throws {
+        var names: Set<String> = []
+        for seed in UInt64(1)...12 {
+            let name = try #require(drawn(seed: seed)).league.name
+            #expect(
+                StructurePools.leagueNames.contains(name),
+                "seed \(seed) drew \(name), which is not in the pool")
+            names.insert(name)
+        }
+        #expect(names.count > 1, "twelve seeds of the randomiser drew one league name")
+    }
+
     /// An impossible shape is refused rather than generated around, and the refusal
     /// carries the reasons a player needs.
     @Test("An impossible shape is refused with its reasons", .tags(.unit))
@@ -317,7 +340,7 @@ struct LeagueGeneratorTests {
     }
 
     /// The ledger checked whole stadium names, so a feature word could name three
-    /// grounds in one league — Riverfront Park, Riverfront Field and Riverfront Arena
+    /// grounds in one league — Lakeside Park, Lakeside Field and Lakeside Arena
     /// read as one ground written down three times. Decision 154 fixed exactly this for
     /// city stems and fixed it there only (issue #4).
     ///

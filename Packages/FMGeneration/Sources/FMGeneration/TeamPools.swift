@@ -107,6 +107,16 @@ enum NicknamePools {
 /// No sponsor names: a fictional corporation reads as a joke, and a real one is a mark.
 /// Generated grounds are named for the place or a feature of it, which is what most
 /// stadiums were called before anybody sold the naming rights.
+///
+/// A word here is a word this world invented, on the same rule the curated table is held
+/// to (rule 8,
+/// [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)). "Riverfront"
+/// and "Union" were dropped in
+/// [#82](https://github.com/knissley/football-manager/issues/82): both name real grounds,
+/// and leaving them in the pool left the randomiser able to draw exactly the strings
+/// #69's review had just taken out of the curated table. The pool is otherwise unrefined
+/// until the pre-release revisit of generation ([M8](../../../../docs/roadmap.md)); this
+/// was a mark, not a refinement.
 enum StadiumPools {
 
     static let kinds: [String] = [
@@ -114,8 +124,8 @@ enum StadiumPools {
     ]
 
     static let features: [String] = [
-        "Memorial", "Municipal", "Union", "Liberty", "Harborside", "Riverfront", "Lakeside",
-        "Hillcrest", "Founders", "Centennial", "Cathedral", "Sunset", "Northgate", "Old Mill",
+        "Memorial", "Municipal", "Liberty", "Harborside", "Lakeside", "Hillcrest",
+        "Founders", "Centennial", "Cathedral", "Sunset", "Northgate", "Old Mill",
     ]
 }
 
@@ -157,9 +167,31 @@ enum PalettePools {
 /// Names for the league and its parts.
 enum StructurePools {
 
+    /// Names for a *drawn* league. What a career opens in is `FranchiseSet.leagueName`;
+    /// the difference between that name and these is that it is written down and these
+    /// are drawn ([decision 215](../../../../docs/design-decisions.md)), and nothing else
+    /// — one bar covers all six.
+    ///
+    /// **The bar.** No league of this name in any sport, past or present. No name that
+    /// keeps a real league's own word and swaps the generic one after it, which is the
+    /// near-miss that reads as the real thing. No real league's initials. Nothing
+    /// claiming to be national, federal or united: this world has no nation for a league
+    /// to be named after. Every line was rewritten to meet it in
+    /// [#82](https://github.com/knissley/football-manager/issues/82).
+    ///
+    /// A pool waiting on the pre-release revisit of generation
+    /// ([M8](../../../../docs/roadmap.md)) is allowed to be unrefined — thin, repetitive,
+    /// duller than a hand-written name. It is not allowed to be a mark, whoever draws it
+    /// (rule 8, [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)).
+    /// Holding it is a review and cannot be a test: the list to check against cannot be
+    /// in this repository.
+    ///
+    /// Five lines, and the count is load-bearing: `LeagueGenerator` draws an index into
+    /// them, so keeping it at five is what made the rewrite change the string a drawn
+    /// world is given without changing which slot it drew.
     static let leagueNames: [String] = [
-        "Continental Football League", "United Football League", "Premier Gridiron League",
-        "National Gridiron Association", "Federal Football League",
+        "Grand Gridiron League", "Kindred Football League", "Bellwether Gridiron League",
+        "Autumn Gridiron Association", "Charter Gridiron Association",
     ]
 
     static let conferenceNames: [String] = [

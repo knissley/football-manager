@@ -32,8 +32,13 @@ struct LeagueTests {
                     name: "Conference \(conferenceIndex + 1)", divisions: divisions))
         }
 
+        // The name the shipping world opens in, written out rather than imported:
+        // `FMCore` does not depend on `FMGeneration`, where the table lives. Any fiction
+        // would do here — what may not appear, in a fixture as much as in shipped data,
+        // is a real league's name (rule 8,
+        // [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)).
         return League(
-            id: LeagueID(1), name: "Continental Football League", shape: shape,
+            id: LeagueID(1), name: "Overland Football League", shape: shape,
             conferences: conferences)
     }
 

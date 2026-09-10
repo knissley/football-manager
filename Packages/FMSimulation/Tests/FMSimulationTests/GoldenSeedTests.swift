@@ -18,9 +18,10 @@ import Testing
 /// which is why the number below is written down rather than computed twice.
 /// ([ADR-0003](../../../../docs/adr/0003-deterministic-seeded-simulation.md))
 ///
-/// The game is built by `TestWorld`, which is `WorldGenerator.generate(seed:shape:season:)` —
-/// so this pins the whole path from seed to final whistle, world generation included, and
-/// not merely the engine's half of it.
+/// The game is built by `TestWorld`, which is
+/// `WorldGenerator.generate(seed:shape:franchises:season:)` — so this pins the whole path
+/// from seed to final whistle, world generation included, and not merely the engine's
+/// half of it.
 @Suite("Golden seed")
 struct GoldenSeedTests {
 

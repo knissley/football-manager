@@ -185,8 +185,9 @@ public enum WorldGenerator {
     /// - Parameters:
     ///   - seed: the world seed. Everything below is derived from it and nothing else.
     ///   - shape: the league's structure. Validated before anything is generated.
-    ///   - franchises: which clubs the league is made of. The curated thirty-two by
-    ///     default, which is what makes two seeds two leagues in the same buildings
+    ///   - franchises: which clubs the league is made of, and what the league itself is
+    ///     called. The curated thirty-two by default, which is what makes two seeds two
+    ///     rosters in the same league and the same buildings
     ///     ([decision 215](../../../../docs/design-decisions.md)); `.randomised` is the
     ///     pool draw, kept as a last resort and not refined.
     ///   - season: the season the world starts in.

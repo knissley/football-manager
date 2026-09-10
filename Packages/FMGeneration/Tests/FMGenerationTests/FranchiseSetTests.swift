@@ -42,7 +42,7 @@ struct FranchiseSetTests {
     }
 
     /// The word a ground is named for: everything before the kind it ends with. It is
-    /// what collides — Riverfront Park and Riverfront Field are one ground written down
+    /// what collides — Lakeside Park and Lakeside Field are one ground written down
     /// twice — and the curated table has to obey the same rule the ledger enforces on a
     /// drawn one.
     private func stadiumFeature(_ name: String) -> String {
@@ -255,6 +255,42 @@ struct FranchiseSetTests {
 
         #expect(built.teams.count == 8)
         #expect(Set(built.teams.map(\.identity.city)) == Set(north).union(south))
+    }
+
+    /// The league's own name is part of the same curated identity as the clubs in it
+    /// ([decision 215](../../../../docs/design-decisions.md)): two careers open in the
+    /// same league, not merely in the same buildings. It was a per-seed draw from
+    /// `StructurePools.leagueNames` until
+    /// [#82](https://github.com/knissley/football-manager/issues/82), so two careers in
+    /// identically named clubs ran under differently named leagues.
+    ///
+    /// Twelve seeds rather than two, because the pool holds a handful of names and two
+    /// seeds landing on one of them proves nothing — on `main` at `19bffa6`, seeds 7 and
+    /// 11, the two the backlog's harness rule names, drew the same one of the five, so a
+    /// two-seed test would have passed while the bug was there. The second assertion is
+    /// what says the name is written rather than drawn: nothing the curated source
+    /// produces may be a line of the pool.
+    ///
+    /// The randomiser keeps its draw, asserted in `LeagueGeneratorTests`.
+    @Test("contract: every seed opens in the same curated league, by name", .tags(.contract))
+    func theLeagueIsNamedByTheTable() throws {
+        var names: Set<String> = []
+        for seed in UInt64(1)...12 {
+            names.insert(try #require(league(seed: seed)).league.name)
+        }
+
+        #expect(
+            names.count == 1, "the curated league's name moved with the seed: \(names.sorted())")
+        #expect(names == [FranchiseSet.leagueName], "the league is not the one the table names")
+        // Sorted, never walked in the set's own order: a red run has to record the same
+        // issues in the same order in every process, or the failure is unreadable
+        // (rule 2), which is the reason `stadiumFeatureWordsAreUsedOnce` keys its lookup
+        // the way it does.
+        for name in names.sorted() {
+            #expect(
+                StructurePools.leagueNames.contains(name) == false,
+                "\(name) is a pool draw, not a name the curated table wrote down")
+        }
     }
 
     // MARK: - The randomiser, still behind its option
