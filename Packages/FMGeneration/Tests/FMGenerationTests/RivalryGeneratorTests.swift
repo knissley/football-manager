@@ -224,39 +224,58 @@ struct RivalryGeneratorTests {
             "only these origins were seeded: \(origins.sorted { $0.rawValue < $1.rawValue })")
     }
 
-    /// A new world tops out at heated by design: the seeded past gives texture, and the
-    /// first genuine blood feud should be one the player caused. But `bitter` must be
-    /// reachable, or a whole band of the scale is dead.
+    /// A new world tops out at heated (decision 170): the seeded past gives texture, and
+    /// the first genuine blood feud should be one the player caused. `bitter` still has to
+    /// be reachable through lived history, or a whole band of the scale is dead.
     ///
-    /// **Decision 170 is not enforced by anything.** Nothing in `history(for:)` caps how
-    /// much heat a storied pair can accumulate, so whether a world opens with a blood
-    /// feud is left to the draw. Measured over the first sixty seeds through
-    /// `WorldGenerator.generate` — the path the game ships — seeds 5, 15, 27, 31, 34, 36,
-    /// 37, 48 and 51 open with at least one bitter rivalry: nine worlds in sixty, on
-    /// `main` and on this branch alike (the rivalry substream is untouched by issue #4;
-    /// the two runs agree seed for seed). This test used to pass because seed 13 landed
-    /// in the other eighty-five per cent, and issue #4 changed how many draws league
-    /// generation takes, which moved the sample.
+    /// Sixty seeds through `WorldGenerator.generate` — the path the game ships — rather
+    /// than one world from the helper above. The version of this test that sampled a
+    /// single seed passed because seed 13 landed on the right side of the draw and said
+    /// nothing about whether the design's claim held: over these sixty worlds, nine opened
+    /// with a bitter rivalry — seeds 5, 15, 27, 31, 34, 36, 37, 48 and 51, one bitter pair
+    /// each, peaking at 76.0 intensity against a `bitter` floor of 65
+    /// ([#64](https://github.com/knissley/football-manager/issues/64)).
     ///
-    /// So the expectation stays, recorded as a known issue rather than weakened or
-    /// deleted: it is the design's claim.
-    /// [#64](https://github.com/knissley/football-manager/issues/64) is the issue that
-    /// caps seeded heat, and whoever lands it takes the wrapper off — this test goes red
-    /// for having no issue to record, which is exactly the reminder it should give.
-    @Test("Bitter is out of reach at creation and reachable through lived history")
+    /// The heated half of the assertion is the other side of the cap. Stopping one band
+    /// short of bitter is not the same as flattening the league, and all sixty of these
+    /// worlds open with heated pairs in them.
+    @Test("contract: no world opens bitter, and lived history still gets there")
     func bitterIsEarnedNotSeeded() {
-        guard let world = world() else {
-            Issue.record("generation failed")
-            return
-        }
-        withKnownIssue("decision 170 is not enforced (#64): seeded history can reach bitter") {
-            #expect(
-                world.rivalries.allSatisfy { $0.heat(in: 2030) != .bitter },
-                "a brand-new world should not open with a blood feud")
+        var openedBitter: [UInt64] = []
+        var openedWithoutHeat: [UInt64] = []
+        var divisional: Rivalry?
+
+        for seed in UInt64(1)...60 {
+            // Rivalries without the draft pipeline. The pipeline draws from its own
+            // substream, so it moves no rivalry — measured seed for seed across these
+            // sixty worlds, `.all` and `.rivalries` agreeing exactly — and skipping it is
+            // worth about half the generation.
+            guard
+                let world = try? WorldGenerator.generate(
+                    seed: seed, shape: .standard, season: 2030, parts: .rivalries
+                ).get()
+            else {
+                Issue.record("seed \(seed) did not produce a world")
+                continue
+            }
+
+            let heats = world.rivalries.map { $0.heat(in: 2030) }
+            if heats.contains(.bitter) { openedBitter.append(seed) }
+            if !heats.contains(.heated) { openedWithoutHeat.append(seed) }
+            if divisional == nil {
+                divisional = world.rivalries.first { $0.origin == .divisional }
+            }
         }
 
+        #expect(
+            openedBitter.isEmpty,
+            "these worlds opened with a blood feud nobody caused: \(openedBitter)")
+        #expect(
+            openedWithoutHeat.isEmpty,
+            "these worlds have no heat left in them at all: \(openedWithoutHeat)")
+
         // A few genuinely bad years between two teams gets there.
-        guard var lived = world.rivalries.first(where: { $0.origin == .divisional }) else {
+        guard var lived = divisional else {
             Issue.record("expected a divisional rivalry")
             return
         }
