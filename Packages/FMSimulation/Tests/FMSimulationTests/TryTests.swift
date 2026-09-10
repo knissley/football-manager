@@ -21,21 +21,97 @@ struct TryTests {
         seeds.flatMap { game(seed: $0).plays }
     }
 
-    @Test("Each kind of try is snapped from its own yard line")
+    /// Rewritten for A7 (#19). This used to assert that *every* try is snapped from
+    /// the standard spot, which is wrong football: a flag on the try moves it (2025
+    /// rulebook, 11-3-3), and asserting the standard spot regardless is exactly how a
+    /// flag that was recorded and never applied stayed invisible. A try that no flag
+    /// preceded is snapped from its own yard line; one a flag preceded is not.
+    @Test(
+        "football · Rule 11-3-1, 11-3-3 · a try is snapped from its own yard line unless a flag on the try moved it"
+    )
     func triesAreSnappedFromTheRightSpot() {
         let rules = Rules.standard
-        for play in Self.plays(1...30) {
-            switch play.outcome.kind {
-            case .extraPoint:
-                #expect(play.situation.ballOn == rules.extraPointSnapYard)
-            case .twoPointConversion:
-                #expect(
-                    play.situation.ballOn == rules.twoPointSnapYard,
-                    "a conversion snapped from the \(play.situation.ballOn) needs that many yards")
-            default:
-                break
+        var checked = 0
+        var moved = 0
+        for plays in (UInt64(1)...30).map({ Self.game(seed: $0).plays }) {
+            for (previous, play) in zip(plays, plays.dropFirst()) {
+                let standard: UInt8
+                switch play.outcome.kind {
+                case .extraPoint: standard = rules.extraPointSnapYard
+                case .twoPointConversion: standard = rules.twoPointSnapYard
+                default: continue
+                }
+                let flagOnTheTry =
+                    previous.outcome.kind == .penaltyOnly
+                    && previous.situation.possession == play.situation.possession
+                    && previous.calls.offense == play.calls.offense
+                if flagOnTheTry {
+                    moved += 1
+                    #expect(
+                        play.situation.ballOn != standard,
+                        "a flag on the try left it at the standard spot (play \(play.index))")
+                } else {
+                    checked += 1
+                    #expect(
+                        play.situation.ballOn == standard,
+                        "a try snapped from the \(play.situation.ballOn) (play \(play.index))")
+                }
             }
         }
+        #expect(checked > 0, "no tries to check")
+        #expect(moved > 0, "thirty games and no flag on a try; the second half of this is unarmed")
+    }
+
+    // MARK: - A flag on the try (A7, #19)
+
+    /// A false start on the kick: the try is replayed from five yards further out, and
+    /// the kick is that much longer. Fifteen plus five is the 20, and a kick from the 20
+    /// is 37 yards by the engine's one field-goal formula.
+    @Test(
+        "football · Rule 11-3-3 Item 2, 7-4-2 · a false start on an extra point re-kicks from the 20, a 37-yard try"
+    )
+    func falseStartOnTheKickMovesItBack() {
+        let trace = RulesScenarios.falseStartOnATry.run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectPlay(2, kind: .penaltyOnly, possession: scorer, ballOn: 15, "the flag")
+        trace.expectPlay(
+            3, kind: .extraPoint, possession: scorer, ballOn: 20, "re-kicked from the 20")
+        guard let kick = trace[3] else { return }
+        #expect(
+            Rules.standard.fieldGoalDistance(ballOn: kick.situation.ballOn) == 37,
+            "a 37-yard try")
+        trace.expectScore(scorer, 7)
+    }
+
+    /// Defensive offside on a two-point try: half the distance from the 2 is the 1, and
+    /// the try is snapped there. The scoring side is asked again whether to go for two
+    /// from the 1, and this one still does.
+    @Test(
+        "football · Rule 11-3-3 Item 2, 7-4-5, 14-2-1 · defensive offside on a two-point try snaps the replay from the 1"
+    )
+    func offsideOnTheConversionMovesItIn() {
+        let trace = ScriptedGame(caller: ScriptedCaller(twoPointDecision: { _ in true })) { snap in
+            if snap.index == 1 { return snap.touchdown() }
+            if snap.isTry {
+                let flaggedAlready = snap.previous?.outcome.kind == .penaltyOnly
+                return snap.ballOn == 2 && !flaggedAlready
+                    ? snap.preSnapFoul(.offside) : .twoPoint(converted: true)
+            }
+            return snap.neutral
+        }
+        .run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectPlay(2, kind: .penaltyOnly, possession: scorer, ballOn: 2, "the flag")
+        trace.expectPlay(
+            3, kind: .twoPointConversion, possession: scorer, distance: 1, ballOn: 1,
+            "the conversion is snapped from the 1")
+        trace.expectScore(scorer, 8)
     }
 
     /// The point of a rule that can be satisfied: sometimes it is, and sometimes it is
