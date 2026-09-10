@@ -120,6 +120,9 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case interferenceInTheEndZone = "interference-in-the-end-zone"
     case interferenceInTheEndZoneFromTheOne = "interference-in-the-end-zone-from-the-one"
     case onsideKickRecovered = "onside-kick-recovered"
+    case roughnessByTheDefenseOnAnInterceptionReturn =
+        "roughness-by-the-defense-on-an-interception-return"
+    case kickoffFumbledAndReturnedByTheKickers = "kickoff-fumbled-and-returned-by-the-kickers"
 }
 
 // MARK: - Naming
@@ -252,6 +255,10 @@ extension RulesScenario {
         case .interferenceInTheEndZoneFromTheOne:
             return RulesScenarios.interferenceInTheEndZoneFromTheOne
         case .onsideKickRecovered: return RulesScenarios.onsideKickRecovered
+        case .roughnessByTheDefenseOnAnInterceptionReturn:
+            return RulesScenarios.roughnessByTheDefenseOnAnInterceptionReturn
+        case .kickoffFumbledAndReturnedByTheKickers:
+            return RulesScenarios.kickoffFumbledAndReturnedByTheKickers
         }
     }
 
@@ -560,6 +567,14 @@ extension RulesScenario {
             return [
                 "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap",
                 "football · Rule 6-1-6, 6-1-4-c, 6-1-4-d · an onside kick the kicking team recovers is its ball, first and ten, where it was recovered",
+            ]
+        case .roughnessByTheDefenseOnAnInterceptionReturn:
+            return [
+                "football · Rule 14-3-5-b, 14-4-3-a · a defensive personal foul on an interception return gives the ball back to the offence fifteen yards past the spot where possession was lost, and a first down"
+            ]
+        case .kickoffFumbledAndReturnedByTheKickers:
+            return [
+                "football · Rule 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4 · a kickoff fumbled by the returner and carried in by the kicking team is the kicking team's touchdown, its try, and its kickoff"
             ]
         }
     }

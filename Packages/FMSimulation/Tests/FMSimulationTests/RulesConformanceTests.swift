@@ -1754,4 +1754,58 @@ struct RulesConformanceTests {
             onside.index + 1, kind: .rush, possession: kicker, down: .first, distance: 10,
             ballOn: 53, "the kicking side keeps the ball where it fell on it")
     }
+
+    // MARK: A foul on a takeaway, and a kickoff the kickers carry in
+
+    /// The basic spot for a foul during a run followed by a change of possession is the
+    /// spot where possession was lost (14-3-5-b), and a defensive foul reverts the ball
+    /// to the offence before enforcement (14-4-3-a). The offence snapped from its 30,
+    /// was picked off at its 40, and gets the ball back fifteen past the 40 — at the
+    /// 45 — first and ten. Not fifteen past the 30, which is what enforcing from the
+    /// previous spot gave while the record carried no spot where possession was lost.
+    @Test(
+        "football · Rule 14-3-5-b, 14-4-3-a · a defensive personal foul on an interception return gives the ball back to the offence fifteen yards past the spot where possession was lost, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulOnATakeawayIsEnforcedFromTheSpotPossessionWasLost() {
+        let trace = RulesScenario.roughnessByTheDefenseOnAnInterceptionReturn.run()
+        guard let pick = trace[1] else {
+            Issue.record("the script did not reach the interception")
+            return
+        }
+        #expect(pick.situation.ballOn == 70, "the scenario meant the snap from the own 30")
+        #expect(pick.outcome.possessionLostAt == 60, "picked off at the own 40")
+        trace.expectPlay(1, kind: .pass, endedIn: .intercepted)
+        trace.expectPlay(
+            2, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 45,
+            "the offence's ball, fifteen past where it lost possession, first and ten")
+    }
+
+    /// Any player of either team may recover a fumble and advance it (8-7-3 Item 1), and
+    /// a runner carrying the ball into the opponents' end zone scores (11-2-1) — so a
+    /// kickoff fumbled by the returner and carried in by the kicking team is the kicking
+    /// team's touchdown, its try (11-3-1), and the receivers of that try receive the
+    /// kickoff after it (11-3-4). The record used to read every kickoff touchdown as the
+    /// receivers', so this scored for the wrong side and gave them the try.
+    @Test(
+        "football · Rule 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4 · a kickoff fumbled by the returner and carried in by the kicking team is the kicking team's touchdown, its try, and its kickoff",
+        .tags(.football)
+    )
+    func kickoffFumbledAndCarriedInIsTheKickersTouchdown() {
+        let trace = RulesScenario.kickoffFumbledAndReturnedByTheKickers.run()
+        guard let kicker = trace[0]?.situation.possession else {
+            Issue.record("no opening kickoff")
+            return
+        }
+        let receiver = trace.opponent(of: kicker)
+        trace.expectPlay(0, kind: .kickoff, endedIn: .touchdown)
+        trace.expectPlay(
+            1, kind: .extraPoint, possession: kicker, "the try belongs to the side that scored")
+        trace.expectPlay(2, kind: .kickoff, possession: kicker, "and it kicks off again")
+        trace.expectPlay(3, kind: .rush, possession: receiver, "to the side it took the ball from")
+        trace.expectScore(kicker, 7)
+        trace.expectScore(receiver, 0)
+        #expect(trace[0]?.outcome.pointsScored == 6, "six points on the kickoff's own record")
+        #expect(trace[0]?.outcome.scoring == .touchdown, "paid to the side that had the ball")
+    }
 }

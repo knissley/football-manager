@@ -128,6 +128,18 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// A pass intercepted `depth` yards past the line and returned to `spot` in the
+    /// offence's frame, with a flag on somebody during the return. Where possession was
+    /// lost is on the record, because it is the basic spot for a foul on the return.
+    public func interception(
+        caught depth: UInt8, returnedTo spot: UInt8, foulBy foul: Foul, seconds: UInt16 = 8
+    ) -> Outcome {
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .intercepted, passResult: .intercepted,
+            penalties: [record(foul)], finalSpot: spot,
+            possessionLostAt: UInt8(max(1, Int(ballOn) - Int(depth))), clockRunoff: seconds)
+    }
+
     /// A pass that falls incomplete because a defender interfered, `depth` yards past
     /// the line of scrimmage. Interference is measured rather than fixed, and the
     /// resolver's contract carries the spot in the offence's frame, with zero meaning
@@ -205,6 +217,14 @@ extension Outcome {
 
     public static let kickoffReturnTouchdown = Outcome(
         kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 100, clockRunoff: 14)
+
+    /// A kickoff fielded two yards deep, fumbled by the returner, and carried into the
+    /// receivers' end zone by the kicking team. The resting spot is the receivers' goal
+    /// line — zero in the kicking team's frame — which is how a kickoff touchdown says
+    /// the kickers scored it.
+    public static let kickoffFumbledAndReturnedByTheKickers = Outcome(
+        kind: .kickoff, yards: 0, endedIn: .touchdown, finalSpot: 0, fieldedAt: -2,
+        clockRunoff: 14)
 
     /// Signalled for and fair caught at the returner's own `yard` line.
     public static func kickoffFairCaught(atOwn yard: UInt8, seconds: UInt16 = 4) -> Outcome {

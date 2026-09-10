@@ -692,6 +692,26 @@ public enum RulesScenarios {
         }
     }
 
+    /// The first snap from scrimmage, at the offence's own 30, is picked off ten yards
+    /// downfield — at its 40 — and run back to its 25, and a defender is flagged for
+    /// unnecessary roughness on the way. The ball reverts to the offence before
+    /// enforcement, and the basic spot is where it lost possession, not where it snapped.
+    static var roughnessByTheDefenseOnAnInterceptionReturn: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 1
+                ? snap.interception(caught: 10, returnedTo: 75, foulBy: .unnecessaryRoughness)
+                : plod(snap)
+        }
+    }
+
+    /// The opening kickoff is fielded two yards deep, fumbled, and carried into the end
+    /// zone by the kicking team.
+    static var kickoffFumbledAndReturnedByTheKickers: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 0 ? .kickoffFumbledAndReturnedByTheKickers : plod(snap)
+        }
+    }
+
     /// A pick-six puts one side up seven; the other kicks a field goal, is down four,
     /// and kicks onside. The kicking team falls on it at its own 47.
     static var onsideKickRecovered: ScriptedGame {
