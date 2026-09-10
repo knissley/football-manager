@@ -28,11 +28,16 @@ public struct SituationClass: Sendable, Hashable, Codable {
     public let score: ScoreState
     public let time: TimeState
 
-    public init(_ situation: Situation) {
+    /// - Parameters:
+    ///   - situation: the moment to classify.
+    ///   - rules: the rules in force, which decide where the halves end and where the
+    ///     two-minute threshold sits. The standard rules by default, so that a caller
+    ///     with no variant in hand reads the same vocabulary as one with.
+    public init(_ situation: Situation, rules: Rules = .standard) {
         downAndDistance = DownAndDistanceClass(situation)
         field = situation.fieldZone
         score = ScoreState(differential: situation.scoreDifferential)
-        time = TimeState(situation)
+        time = TimeState(situation, rules: rules)
     }
 }
 
@@ -147,24 +152,35 @@ public enum TimeState: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case twoMinuteGame = 6
     case overtime = 7
 
-    public init(_ situation: Situation) {
-        switch situation.quarter {
-        case 1:
-            self = .opening
-        case 2:
-            self = situation.clockRemaining <= 120 ? .twoMinuteFirstHalf : .middle
-        case 3:
-            self = .thirdQuarter
-        case 4:
-            if situation.clockRemaining <= 120 {
+    /// The buckets are placed by the game's structure rather than by literal period
+    /// numbers: the last period of the first half, the last period of regulation, and
+    /// anything past regulation. `Rules.quarters` and `Rules.twoMinuteWarning` decide
+    /// where those fall, so a two-period variant classifies correctly and a postseason
+    /// sixth period is overtime like the fifth.
+    ///
+    /// The five-minute clock-burn threshold is a modelling convention about when a
+    /// leading team starts playing the clock, not a rule, and stays a literal.
+    public init(_ situation: Situation, rules: Rules = .standard) {
+        let endOfFirstHalf = rules.quarters / 2
+        let endOfRegulation = rules.quarters
+        let twoMinutes = situation.clockRemaining <= rules.twoMinuteWarning
+
+        if situation.quarter > endOfRegulation {
+            self = .overtime
+        } else if situation.quarter == endOfRegulation {
+            if twoMinutes {
                 self = .twoMinuteGame
             } else if situation.clockRemaining <= 300 {
                 self = .clockBurn
             } else {
                 self = .fourthQuarter
             }
-        default:
-            self = .overtime
+        } else if situation.quarter == endOfFirstHalf {
+            self = twoMinutes ? .twoMinuteFirstHalf : .middle
+        } else if situation.quarter < endOfFirstHalf {
+            self = .opening
+        } else {
+            self = .thirdQuarter
         }
     }
 

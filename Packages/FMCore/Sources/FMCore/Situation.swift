@@ -182,8 +182,14 @@ public struct Situation: Sendable, Hashable, Codable {
 
     /// Both halves end with a stoppage at two minutes, and behaviour changes
     /// sharply on either side of it.
-    public var isTwoMinuteDrill: Bool {
-        (quarter == 2 || quarter >= 4) && clockRemaining <= 120
+    ///
+    /// The half boundaries and the threshold are the rules' (`Rules.quarters`,
+    /// `Rules.twoMinuteWarning`), not literals: a two-period variant has its drill at the
+    /// end of its first period. Overtime counts as the end of the game here, as it did
+    /// when the periods were hard-coded.
+    public func isTwoMinuteDrill(rules: Rules = .standard) -> Bool {
+        (quarter == rules.quarters / 2 || quarter >= rules.quarters)
+            && clockRemaining <= rules.twoMinuteWarning
     }
 
     /// A rough situational bucket for tendency tables and AI play calling.
@@ -194,8 +200,11 @@ public struct Situation: Sendable, Hashable, Codable {
     /// Structural validity. Checked at construction sites rather than assumed,
     /// because an impossible situation surfaces as strange behaviour deep in the
     /// engine rather than as an obvious failure.
+    ///
+    /// There is no ceiling on the period: a postseason game plays overtime periods until
+    /// it is decided (`[2025 · 16-1-4]`), so a sixth or a seventh is a real situation.
     public var isValid: Bool {
-        quarter >= 1 && quarter <= 5
+        quarter >= 1
             && ballOn >= 1 && ballOn <= 99
             && distance >= 1
             && offenseTimeouts <= 3 && defenseTimeouts <= 3

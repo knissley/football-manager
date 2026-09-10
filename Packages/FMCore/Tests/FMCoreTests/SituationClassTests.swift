@@ -316,7 +316,9 @@ struct SituationClassTests {
     /// `Rules.quarters` is data, and the classification has to follow it rather than
     /// hard-code 2, 4 and 5. Under a two-period variant the first period is the end of the
     /// first half and the second is the end of the game.
-    @Test("unit · under a two-period variant the first period ends the first half and the second ends the game")
+    @Test(
+        "unit · under a two-period variant the first period ends the first half and the second ends the game"
+    )
     func twoPeriodVariantClassifiesByStructure() {
         let twoPeriods = Rules(quarters: 2)
         func classify(quarter: UInt8, clock: UInt16) -> TimeState {
