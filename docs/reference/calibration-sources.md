@@ -379,6 +379,12 @@ here so nobody reads a gap as an engine finding:
 
 - `row:yardsPerPlay` and `row:rushingYards` — designed runs only, scrambles excluded, which
   is not how the league counts either.
+- `row:grossPunt` — the harness measures a touchback's gross to the goal line. That the
+  source did the same is **assumed, not read from it**: the published figure is a mean over
+  punts and does not say how a touchback entered it. The band is sourced; the measurement
+  convention behind it is our reading, and if the reading is wrong the row is biased by
+  whatever share of punts are touchbacks. Settling it means going back to the source,
+  which is a retune's job and not a fix's.
 
 `row:netPunt` used to be here: the harness spotted a punt touchback at the goal line
 rather than the 20, so its net read high on touchbacks. The record now carries where

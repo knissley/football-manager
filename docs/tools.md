@@ -395,6 +395,23 @@ swift run gamelog --scenario injury-inside-two-minutes-with-no-timeouts-left | g
 
 # The same injury with a timeout in hand: charged, and the clock waits for the snap.
 swift run gamelog --scenario injury-inside-two-minutes-with-a-timeout-left | grep -B3 -A2 "injury timeout"
+
+# The basic spot on a takeaway (14-3-5-b, 14-4-3-a). A run from the offence's own 30 to
+# its 40 with a defender flagged, stripped there, returned to the offence's 25: the ball
+# reverts to the offence and the fifteen comes off the 40, not off the 30 — play 2 is
+# first and ten at the opponents' 45.
+swift run gamelog --scenario roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost | head -15
+
+# The same flag on a pass, which is a different rule (14-4-5, 8-6-1). A foul before the
+# ball is caught is enforced from the previous spot, so the offence keeps it at its own
+# 45 and the interception is wiped out. Read the two side by side: same field position,
+# same foul, two answers, and the difference is what kind of play the foul was during.
+swift run gamelog --scenario roughness-by-the-defense-before-an-interception | head -15
+
+# A kickoff the returner fumbles and the kicking team carries in (8-7-3 Item 1, 11-2-1,
+# 11-3-1, 11-3-4): the kickers' touchdown, the kickers' try, and the kickers kicking off
+# again. The opening kickoff, so the first three lines of play are the whole rule.
+swift run gamelog --scenario kickoff-fumbled-and-returned-by-the-kickers | head -14
 ```
 
 The men are not named in a scenario — a scripted outcome credits nobody, so the log says

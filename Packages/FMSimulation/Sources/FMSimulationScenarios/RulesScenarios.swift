@@ -658,8 +658,15 @@ public enum RulesScenarios {
         }
     }
 
+    /// The offence throws from its own 30 and is picked off at the other side's 3, which
+    /// is where the false start that follows is worth half the distance. The throw is
+    /// called as a throw so that the record's concept is the play it plays.
     static var falseStartAtTheOwnThree: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .interception(to: 3)
             case 2: return snap.preSnapFoul(.falseStart)
@@ -672,8 +679,15 @@ public enum RulesScenarios {
         ScriptedGame { snap in snap.index == 1 ? snap.rush(20, foulBy: .facemask) : plod(snap) }
     }
 
+    /// A run to the opponents' 30, then a throw at the end zone a defender interferes on.
+    /// The throw is called as a deep throw so that the record's concept is the play it
+    /// plays.
     static var interferenceInTheEndZone: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 30 && $0.down == .first ? .deepPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .rush(Int16(snap.ballOn) - 30)
             case 2: return snap.incompletion(interferenceAt: 35)
@@ -682,8 +696,15 @@ public enum RulesScenarios {
         }
     }
 
+    /// The same interference from the 1, where half the distance rather than the spot is
+    /// the answer. The throw is called as a throw so that the record's concept is the play
+    /// it plays.
     static var interferenceInTheEndZoneFromTheOne: ScriptedGame {
-        ScriptedGame { snap in
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 1 && $0.down == .first ? .quickPass : .insideRun
+            })
+        ) { snap in
             switch snap.index {
             case 1: return .rush(Int16(snap.ballOn) - 1)
             case 2: return snap.incompletion(interferenceAt: 3)

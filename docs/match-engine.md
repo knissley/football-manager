@@ -481,7 +481,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | drives starting in own half | 85.6-94.7% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts per team-game | 3.5-4.4 | 2023-24 | — | S1 | yes | — |
 | net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20 — read off the record, which carries where the punt was fielded. |
-| gross punt (yards) | 45.0-50.0 | 2023-24 | — | S1 | yes | Line to where the punt was fielded, downed or went out — to the goal line on a touchback, as the league measures one. Blocked punts excluded. |
+| gross punt (yards) | 45.0-50.0 | 2023-24 | — | S1 | yes | Line to where the punt was fielded, downed or went out. Blocked punts excluded. ASSUMED, not read from the source: that the source measured a touchback's gross to the goal line. The band is what the source publishes; how it treated a touchback is our reading of it, and if that reading is wrong this row is biased by the touchback share. |
 | yards per punt return | 8.8-10.6 | 2023-24 | — | S1 | yes | Over punts that were fielded and run back; a fair catch is not a return. |
 | two-point tries per team-game | 0.19-0.29 | 2023-24 | tryAttempt | S1 | yes | — |
 | two-point conversion rate | 33.6-62.3% | 2023-24 | tryAttempt | S1 | yes | Wide because the sport itself swung from 55% to 41% on about 130 tries a season. |

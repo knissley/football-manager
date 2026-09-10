@@ -6,10 +6,11 @@ import Testing
 /// A completion is a fact in the record, and so are the points.
 ///
 /// `PlayEnding` cannot say a pass was caught: a catch for a loss ends `.tackled` exactly
-/// like a run, so the harness inferred a completion from positive yards and read three
-/// points low while showing green (S14 in the audit). `Outcome.passResult` says it
-/// outright. And `Outcome.pointsScored` sat on every record at zero, so a scoreboard was
-/// never a sum over the stream — it was the rules run again.
+/// like a run, so a reader that infers a completion from positive yards misses every
+/// catch that gained nothing — which is worth about three points of completion
+/// percentage, and shows green the whole time. `Outcome.passResult` says it outright.
+/// And `Outcome.pointsScored` sat on every record at zero, so a scoreboard was never a
+/// sum over the stream — it was the rules run again.
 ///
 /// Promises the engine makes about its stream, not claims about the sport.
 @Suite("Completions and points in the record")

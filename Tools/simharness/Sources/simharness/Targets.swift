@@ -573,7 +573,7 @@ struct CalibrationTarget: Sendable {
             id: "grossPunt", label: "gross punt (yards)", low: 45.0, high: 50.0,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "Line to where the punt was fielded, downed or went out — to the goal line on a touchback, as the league measures one. Blocked punts excluded."
+                "Line to where the punt was fielded, downed or went out. Blocked punts excluded. ASSUMED, not read from the source: that the source measured a touchback's gross to the goal line. The band is what the source publishes; how it treated a touchback is our reading of it, and if that reading is wrong this row is biased by the touchback share."
         ),
         CalibrationTarget(
             id: "puntReturnYards", label: "yards per punt return", low: 8.8, high: 10.6,
