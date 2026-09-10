@@ -200,7 +200,6 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // nickel, a question the stream could not answer at all while every snap of every
         // game was eleven against base.
         var declared: OffensiveCall?
-        var runsTheTry = false
         if !state.pendingKickoff && !state.pendingTry {
             let before = state.situation()
             let call = caller.offensiveCall(
@@ -214,18 +213,22 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             state.defensePackage = caller.package(
                 for: showing, classified: SituationClass(showing), random: &random)
             declared = call
-        } else if state.pendingTry, state.tryGoesForTwo == true {
+        } else if state.pendingTry, state.tryGoesForTwo == true, state.tryRuns == nil {
             // A conversion is a scrimmage down, so it is substituted for like one: the
             // offence sends out a grouping from the two and then decides whether to throw
             // it or hand it off (11-3-1 allows either), and the defence answers with its
-            // goal-line eleven.
+            // goal-line eleven. Decided once, with the spot, for the reason A7 made the
+            // spot a single decision: a try replayed after a flag is the same try.
             let before = state.situation()
-            state.offensePersonnel = caller.personnel(
+            let personnel = caller.personnel(
                 for: .insideRun, situation: before, classified: SituationClass(before),
                 random: &random)
-            let showing = state.situation()
-            runsTheTry = caller.runsTheTwoPointTry(
-                situation: showing, classified: SituationClass(showing), random: &random)
+            var showing = before
+            showing.offensePersonnel = personnel
+            state.chooseTryPlay(
+                runs: caller.runsTheTwoPointTry(
+                    situation: showing, classified: SituationClass(showing), random: &random),
+                personnel: personnel)
         }
 
         // The package a defence has on the field is the package its call names. They are
@@ -255,7 +258,8 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
                 defensiveCaller: .automatic)
         } else if state.pendingTry {
-            calls = tryCalls(goesForTwo: state.tryGoesForTwo ?? false, runs: runsTheTry)
+            calls = tryCalls(
+                goesForTwo: state.tryGoesForTwo ?? false, runs: state.tryRuns ?? false)
         } else {
             var defense = caller.defensiveCall(
                 for: situation, classified: classified, context: context, random: &random)

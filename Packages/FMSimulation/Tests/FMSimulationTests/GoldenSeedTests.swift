@@ -158,9 +158,16 @@ struct GoldenSeedTests {
             // throwaway carry no interference at all now, a deep flag is enforced from
             // the catch point rather than from a re-drawn depth, and the draw moved from
             // four reads a play to one.
-            (UInt64(1), UInt64(13_765_304_909_213_700_783)),
-            (UInt64(5), UInt64(14_804_731_430_467_591_132)),
-            (UInt64(12), UInt64(9_501_220_138_310_594_870)),
+            //
+            // And moved once more by the correction that followed reading the harness:
+            // the three constants the interference move introduced are set so the fouls
+            // it did not touch keep the rates it found them at — defensive holding was
+            // doubling and offensive interference tripling as a side effect — and a
+            // conversion's run-or-pass call is made once with its spot rather than
+            // re-asked before a replay.
+            (UInt64(1), UInt64(4_745_756_930_261_563_394)),
+            (UInt64(5), UInt64(9_358_588_685_460_489_739)),
+            (UInt64(12), UInt64(4_864_393_250_434_305_262)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

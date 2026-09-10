@@ -30,6 +30,23 @@ enum Penalties {
     /// delays of one snapping at normal tempo, which is what the flat bonus used to say.
     static let playClockOverrunSurvival = 0.917
 
+    /// The share of a beaten-in-coverage draw that stays a contact foul now that
+    /// interference is drawn at the throw instead (`onTheThrow`).
+    static let contactShareOfCoverage = 0.68
+
+    /// What one draw on the target's matchup has to carry to replace a draw on each of
+    /// the four reads the coverage loop used to make.
+    static let throwsPerCoverageRead = 4.4
+
+    /// How much of that draw is the receiver's foul rather than the defender's.
+    ///
+    /// Lower than the share the single coverage-loop draw carried, and for a reason the
+    /// move itself creates: the man this is drawn on is the *most open* receiver on the
+    /// play, because he is the one the quarterback threw to. Interference by a defender
+    /// scales with how badly he is beaten; a push-off is what a receiver does when he is
+    /// not winning, so drawing it against the winner at the old share tripled it.
+    static let offensiveShareOfInterference = 0.075
+
     // MARK: - Discipline
 
     /// A foul before the snap, which kills the play.
@@ -196,8 +213,15 @@ enum Penalties {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
-        let chance = 0.010 + beatenBy + (62 - discipline) * 0.0009
-        guard random.nextBool(probability: max(0.003, min(0.11, chance))) else { return nil }
+        // The same curve this draw always had, scaled by the share of it that stays here.
+        // Roughly half of what it used to produce left as interference, which now has its
+        // own draw at the throw; without the share, moving interference out doubles the
+        // defensive-holding rate as a side effect of a change that is not about holding.
+        // Measured over 400 games at seeds 7 and 11: 1.55 and 1.32 calls a game before,
+        // 3.32 and 3.04 without it. Where the rate *should* be is the retune's question
+        // (#49), not this fix's.
+        let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * contactShareOfCoverage
+        guard random.nextBool(probability: max(0.002, min(0.07, chance))) else { return nil }
 
         // Illegal contact is a rare call in the modern game; grabbing is the usual one.
         let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
@@ -224,31 +248,31 @@ enum Penalties {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
-        // Drawn on one matchup a play instead of on every read, so the per-matchup rate
-        // carries what four reads used to.
-        let chance = 0.030 + beatenBy * 2 + (62 - discipline) * 0.0018
-        guard random.nextBool(probability: max(0.006, min(0.22, chance))) else { return nil }
+        // One matchup a play rather than one per read, so the per-matchup rate has to
+        // carry what four reads used to. Chosen to leave the interference rate where it
+        // was — 0.72 and 0.67 calls a game over 400 games at seeds 7 and 11 — because
+        // moving *where* a foul is drawn should not move how often it is called. Both
+        // rates are outside their bands and that is the retune's problem (#49).
+        let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * throwsPerCoverageRead
+        guard random.nextBool(probability: max(0.004, min(0.45, chance))) else { return nil }
 
         // Sometimes the separation was made with a hand in the chest and the flag goes
         // the other way — 8-5-1's "initiating contact with an opponent by shoving or
         // pushing off, thus creating separation", which is a foul on the man the ball was
         // thrown to and on nobody else.
-        if random.nextBool(probability: 0.16) {
+        if random.nextBool(probability: offensiveShareOfInterference) {
             return record(
                 .offensivePassInterference, by: [receiver], personnel, context, &random,
                 offense: true)
         }
 
         // Underneath, an act more than one yard beyond the line is still interference,
-        // but the crude engine cannot tell a hook from a hand-fight inside the sticks, so
-        // anything shorter than the line to gain is called as the contact foul it more
-        // often is (8-5-1: acts that are not interference "could be offensive or
-        // defensive holding").
-        guard routeDepth >= 10 else {
-            let foul: Foul =
-                random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
-            return record(foul, by: [defender], personnel, context, &random, offense: false)
-        }
+        // but a crude engine cannot tell a hook at eight yards from a hand-fight at one,
+        // so a route short of the line to gain draws nothing here: contact on it is the
+        // coverage loop's holding or illegal contact, which is what 8-5-1 says the acts
+        // that are not interference could be. Calling it here as well counted the same
+        // contact twice and put defensive holding at 2.64 a game against 1.55 before.
+        guard routeDepth >= 10 else { return nil }
         return PenaltyRecord(
             foul: .defensivePassInterference, offender: defender,
             offendingTeam: context.defense, yards: Foul.defensivePassInterference.yards,
