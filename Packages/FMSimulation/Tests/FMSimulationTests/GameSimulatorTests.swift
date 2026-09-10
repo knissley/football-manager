@@ -216,15 +216,26 @@ struct GameSimulatorTests {
     }
 
     /// A free kick ends when a team possesses the ball, and a running play begins when
-    /// the receiving team does (6-1-7): every kickoff the kicking team does not recover
-    /// hands the ball to the other side, and every period the engine puts back in play
-    /// with a kick opens with one. Swept over real games rather than a script because a
-    /// period can end between downs as well as on one — on an injury timeout's runoff,
-    /// or on the last-forty-seconds election — and a kickoff's possession has been lost
-    /// on exactly that path before. The fixtures reach every way a half can end: on a
-    /// play, on a foul's runoff, on an injury runoff, and on the election.
+    /// the receiving team does (6-1-7): a kickoff hands the ball to the side the rules
+    /// layer says it did — the receivers, unless the kickers came up with it — and every
+    /// period the engine puts back in play with a kick opens with one. Swept over real
+    /// games rather than a script because a period can end between downs as well as on
+    /// one — on an injury timeout's runoff, or on the last-forty-seconds election — and a
+    /// kickoff's possession has been lost on exactly that path before: the kick was
+    /// played, and then the side that should have received it was handed the ball back.
+    ///
+    /// The oracle is the engine's own advancement of the record rather than a list of
+    /// endings, so a kick the kickers recover — an onside kick, a muff fallen on, or a
+    /// return fumbled to them however a resolver comes to report it — is allowed to
+    /// leave them the ball, and a flagged kick is left to the enforcement tests. A kick
+    /// that ends a half hands nothing to anybody in that half: the next period opens with
+    /// a kick of its own, whose kicker the toss decides, so that record is skipped.
+    ///
+    /// The fixtures reach every way a half can end: on a play, on a foul's runoff, on an
+    /// injury runoff, on the last-forty-seconds election, and on a kickoff return after a
+    /// late score.
     @Test(
-        "contract · over seeded games, every kickoff the kickers do not recover changes possession, and every period the engine restarts with a kick opens with one",
+        "contract · over seeded games, every kickoff hands the ball to the side the rules layer advanced it to, and every period the engine restarts with a kick opens with one",
         .tags(.contract))
     func kickoffsChangePossessionAndOpenEveryRestartedPeriod() {
         let rules = Rules.standard
@@ -232,6 +243,7 @@ struct GameSimulatorTests {
             (1, 0, 1), (5, 0, 1), (12, 0, 1),
             (2, 7, 6), (5, 4, 1),
             (3, 2, 3), (3, 4, 6), (7, 1, 2), (7, 4, 2),
+            (1, 5, 7), (5, 5, 1), (12, 4, 7),
             (1, 3, 5), (9, 0, 1), (10, 5, 7), (12, 6, 2),
         ]
         for fixture in fixtures {
@@ -239,13 +251,6 @@ struct GameSimulatorTests {
                 .plays
             let name = "seed \(fixture.seed), \(fixture.home) v \(fixture.away)"
             for (index, play) in plays.enumerated() {
-                if play.outcome.kind == .kickoff, play.outcome.endedIn != .fumbleRecovered,
-                    index + 1 < plays.count
-                {
-                    #expect(
-                        plays[index + 1].situation.possession != play.situation.possession,
-                        "\(name), play \(index): the kicking side kept the ball after its kickoff")
-                }
                 // Asked of the call rather than the outcome: a flag before the kick is a
                 // `penaltyOnly` play that is still the kicking sequence.
                 let called = CrudePlaybook.family(of: play.calls.offense.design)
@@ -257,6 +262,23 @@ struct GameSimulatorTests {
                         "\(name), play \(index): period \(play.situation.quarter) did not open with a kickoff"
                     )
                 }
+
+                guard play.outcome.kind == .kickoff, play.outcome.penalties.isEmpty,
+                    index + 1 < plays.count
+                else { continue }
+                let next = plays[index + 1]
+                if next.situation.quarter != play.situation.quarter,
+                    rules.periodResumesWithKickoff(quarter: next.situation.quarter)
+                {
+                    continue
+                }
+                let kicker = play.situation.possession
+                let changed = rules.advance(from: play.situation, outcome: play.outcome)
+                    .possessionChanged
+                #expect(
+                    (next.situation.possession != kicker) == changed,
+                    "\(name), play \(index): the kick was advanced to \(changed ? "the receivers" : "the kickers") and the next snap is \(next.situation.possession == kicker ? "the kickers'" : "the receivers'")"
+                )
             }
         }
     }

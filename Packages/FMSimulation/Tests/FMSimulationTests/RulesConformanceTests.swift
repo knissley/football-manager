@@ -1587,9 +1587,8 @@ struct RulesConformanceTests {
         return (index, play)
     }
 
-    /// A half can end on the runoff (4-5-4 Note 4), between downs, and the kickoff that
-    /// puts the ball in play at the start of the second half (6-1-1-a) follows it as it
-    /// follows a half that ended on a play. A free kick ends when a team possesses the
+    /// A half can end on the runoff (4-5-4 Note 4), between downs, and the second half's
+    /// opening kickoff (6-1-1-a) follows it as it follows a half that ended on a play. A free kick ends when a team possesses the
     /// ball, and a running play begins when the receiving team does (6-1-7); a kick dead
     /// in the receivers' possession in their end zone is a touchback (11-6-2), after
     /// which they snap next at their restart spot (11-6-3). The spot is the rules'

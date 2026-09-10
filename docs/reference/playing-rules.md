@@ -202,8 +202,8 @@ no landing zone, no setup zone and no second touchback spot. That is
 [#46](https://github.com/knissley/football-manager/issues/46)'s problem, and the entries
 below are what it is held to.
 
-- **6-1-1-a** — A kickoff puts the ball in play at the start of each half, after a try,
-  and after a successful field goal. —
+- **6-1-1-a** — Each half opens with a kickoff, and so does play after a try and after a
+  field goal that scores. —
   `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
   `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
   `test:touchdownAsTheSecondQuarterExpires`, `test:afterTheTryTheDefendingTeamReceives`,
@@ -256,9 +256,9 @@ below are what it is held to.
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
   and costs the kicking team 15 yards. — not yet enforced,
   [#46](https://github.com/knissley/football-manager/issues/46)
-- **6-1-7** — A free kick ends when either team possesses the ball, or when the ball is
-  dead before that; a running play begins when the receiving team establishes
-  possession. — `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+- **6-1-7** — The free-kick down is over once a side has the ball, or once it is dead
+  without anyone having it; from the moment the receivers secure it they are running a
+  play of their own. — `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
   `test:onsideRecoveryKeepsPossession`
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
@@ -279,8 +279,8 @@ below are what it is held to.
   `test:offsideOnTheConversionMovesItIn`
 - **7-4-8** — Illegal motion: five yards. — `test:everyFoulIsCalled`
 - **7-5-1** — Illegal formation by the offence: five yards. — `test:everyFoulIsCalled`
-- **7-6-1** — The offence puts the ball in play with a snap at the spot where the previous
-  down ended, unless a penalty moves it or the down ended out of bounds. —
+- **7-6-1** — The next snap comes from wherever the last down finished, moved only by
+  an enforced penalty or brought in from the sideline when the down ended there. —
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`
 
 ## Rule 8 — Forward pass
