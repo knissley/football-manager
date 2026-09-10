@@ -19,6 +19,11 @@ let package = Package(
                 .product(name: "FMSimulation", package: "FMSimulation"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
-        )
+        ),
+        .testTarget(
+            name: "simharnessTests",
+            dependencies: ["simharness"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
     ]
 )
