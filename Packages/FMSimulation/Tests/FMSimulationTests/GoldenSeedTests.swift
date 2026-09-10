@@ -141,6 +141,15 @@ struct GoldenSeedTests {
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
             //
+            // And moved again by the enforcement stoppage, by the engine. A flag on a down
+            // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
+            // clock starts again on the ready-for-play signal, or on the snap inside the
+            // late windows (4-3-2-e). Every accepted foul on a down that ended in bounds
+            // therefore costs the offence one ready-for-play interval less than before, and
+            // one inside the last five minutes of a half costs it none at all, so every
+            // clock reading after the first such flag in each of the three games moves and
+            // the play that fills each period changes with it.
+            //
             // The play clock and the record changes met in a merge, and the constants
             // below are the union: the play clock's games, hashed with the record's
             // schema version, concept, presence, pass result and points mixed in. Neither
@@ -157,6 +166,13 @@ struct GoldenSeedTests {
             // spent at the same moments and the clock runs as it did, and `Tools/gamelog`
             // prints the same plays before and after, with the dead ball now written
             // above them and a kick's gross and return beside it.
+            //
+            // The enforcement stoppage and those dead-ball decision points then met in a
+            // merge of their own, and the constants below are again the union: the
+            // enforcement stoppage's games, hashed with the dead-ball decision points
+            // mixed in. Neither side's constants could survive it, for the same reason as
+            // before — each was computed without the other's mechanism — so all three are
+            // regenerated here from the merged tree.
             //
             // And moved by the baseline caller, deliberately. Down and distance now
             // buckets at three and six on every down, fourth included; a passing down is
@@ -177,9 +193,18 @@ struct GoldenSeedTests {
             // constants below are the union: the caller's games, hashed with the
             // record's dead-ball decision points mixed in. Neither side's constants
             // could survive, because each was computed without the other's mechanism.
-            (UInt64(1), UInt64(16_623_515_144_633_109_845)),
-            (UInt64(5), UInt64(5_660_334_875_460_262_331)),
-            (UInt64(12), UInt64(6_759_776_073_452_187_914)),
+            //
+            // And the caller and the clock then met in this merge. The constants below
+            // are regenerated from the merged tree, which has both: the caller decides
+            // what is snapped, the clock decides how much of a period each snap leaves,
+            // and each reaches the other — a knee that ends a half depends on how much
+            // clock a flag or a runoff left, and what is called after the two-minute
+            // warning depends on which side has the ball there. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism.
+            (UInt64(1), UInt64(2_971_130_586_435_342_245)),
+            (UInt64(5), UInt64(13_648_739_027_376_666_008)),
+            (UInt64(12), UInt64(18_092_658_582_545_090_295)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
