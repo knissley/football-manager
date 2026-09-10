@@ -311,6 +311,7 @@ struct Broadcast {
     private var awayScore: Int16 = 0
     private var quarter: UInt8 = 1
     private var drive: Drive?
+    private var ambiguousShortNames: Set<String> = []
 
     /// One team's possession, accumulated only so its summary line can be printed when
     /// it ends.
@@ -339,10 +340,38 @@ struct Broadcast {
         team == home.id ? away.id : home.id
     }
 
-    /// How a box score refers to him — "M. Whitfield".
+    /// How a box score refers to him — "M. Whitfield" — unless both sides have one.
+    ///
+    /// Two generated players sharing a name is not a defect and the generator says so, but
+    /// when both are in the same game the short form stops identifying anybody: a kickoff
+    /// once printed as returned to the PH 16 by K. Vandergriff and tackled by
+    /// K. Vandergriff, which reads as a bug that is not there. Anyone whose short name
+    /// also belongs to someone on the other side is printed in full.
     func name(_ player: PlayerID?) -> String {
         guard let player, let found = players[player] else { return "someone" }
-        return found.name.short
+        let short = found.name.short
+        return ambiguousShortNames.contains(short) ? found.name.full : short
+    }
+
+    /// Short names that belong to a player on each side of this game.
+    ///
+    /// A query over the stream like everything else: only men who were credited with
+    /// something can be printed, so only they can collide, and which side a credit was on
+    /// follows from the slot and who had the ball.
+    private func collidingShortNames(in plays: [PlayRecord]) -> Set<String> {
+        var teams: [String: Set<TeamID>] = [:]
+        for play in plays {
+            let offense = play.situation.possession
+            let defense = defending(offense)
+            for participant in play.outcome.participants {
+                guard let player = players[participant.player] else { continue }
+                let team = participant.team(possessionTeam: offense, defendingTeam: defense)
+                teams[player.name.short, default: []].insert(team)
+            }
+        }
+        var colliding: Set<String> = []
+        for (short, sides) in teams where sides.count > 1 { colliding.insert(short) }
+        return colliding
     }
 
     func name(at slot: PlayerSlot, in outcome: Outcome) -> String {
@@ -400,6 +429,7 @@ struct Broadcast {
     }
 
     mutating func run(_ plays: [PlayRecord]) {
+        ambiguousShortNames = collidingShortNames(in: plays)
         for play in plays { show(play) }
         closeDrive(after: nil)
         print("        " + String(repeating: "═", count: 40))
@@ -424,6 +454,14 @@ struct Broadcast {
         let isTry = family == .extraPoint || family == .twoPointConversion
         let isKickoff = family == .kickoff || family == .onsideKick
 
+        // A kickoff and a try belong to the sequence between drives rather than to a
+        // drive, so both close whatever was open — as does the ball changing hands.
+        //
+        // Decided *before* the period banner is printed rather than after it. A drive
+        // that ended in the closing seconds of a quarter is over by the time the horn
+        // goes, and printing its summary underneath the banner said the opposite.
+        let closesDrive = isTry || isKickoff || (drive.map { $0.team != offense } ?? false)
+
         // A period ends between two plays and nowhere else, so the change is what marks
         // it. The scoreboard goes with it, because a quarter's score is the thing a
         // reader checks against the game they think they just watched.
@@ -431,7 +469,7 @@ struct Broadcast {
             // A half ends a drive and a quarter does not: teams change ends and play on.
             let startsHalf = situation.quarter == rules.quarters / 2 + 1
             let startsOvertime = situation.quarter > rules.quarters
-            if startsHalf || startsOvertime { closeDrive(after: play) }
+            if closesDrive || startsHalf || startsOvertime { closeDrive(after: play) }
             let ending = quarter
             let label =
                 ending == rules.quarters / 2
@@ -442,13 +480,7 @@ struct Broadcast {
             quarter = situation.quarter
         }
 
-        // A kickoff and a try belong to the sequence between drives rather than to a
-        // drive, so both close whatever was open.
-        if isTry || isKickoff {
-            closeDrive(after: play)
-        } else if let open = drive, open.team != offense {
-            closeDrive(after: play)
-        }
+        if closesDrive { closeDrive(after: play) }
 
         if !isTry && !isKickoff {
             if drive == nil {
@@ -528,11 +560,17 @@ struct Broadcast {
 
         print(
             "        ── \(abbreviation(drive.team)) drive: \(drive.snaps) "
-                + "play\(drive.snaps == 1 ? "" : "s"), \(yards) yards, "
-                + "\(minutesAndSeconds(seconds)) — \(driveResult(last))")
+                + "play\(drive.snaps == 1 ? "" : "s"), \(yardText(yards)), "
+                + "\(minutesAndSeconds(seconds)) — \(driveResult(last, endOfGame: next == nil))")
     }
 
-    private func driveResult(_ play: PlayRecord) -> String {
+    /// How the drive ended, in the words a drive chart uses.
+    ///
+    /// - Parameters:
+    ///   - play: the drive's last snap.
+    ///   - endOfGame: whether the stream ran out rather than the ball changing hands.
+    /// - Returns: the drive's result, as a drive chart would label it.
+    private func driveResult(_ play: PlayRecord, endOfGame: Bool) -> String {
         // Classified by what the play *was* before how it ended: a punt that gets
         // returned ends in a tackle on fourth down, which reads as a turnover on downs to
         // anything that only looks at the ending.
@@ -547,12 +585,16 @@ struct Broadcast {
             case .intercepted: return "interception"
             case .fumbleLost: return "fumble lost"
             case .safety: return "safety"
-            case .penaltyEnforced: return "flag"
             default:
-                if play.situation.down == .fourth && !play.gainedFirstDown {
+                // Only a play from scrimmage can be stopped short on fourth down. A snap
+                // that never happened — a pre-snap flag, which is how a game running out
+                // of clock often looks — is the period ending, not a failed gamble.
+                if play.outcome.kind.isScrimmagePlay, play.situation.down == .fourth,
+                    !play.gainedFirstDown
+                {
                     return "turnover on downs"
                 }
-                return "clock"
+                return endOfGame ? "end of game" : "end of half"
             }
         }
     }
@@ -621,11 +663,17 @@ struct Broadcast {
 
         if outcome.kind.isScrimmagePlay {
             text +=
-                "  · \(play.situation.offensePersonnel.code) vs "
+                "  · \(personnelCode(play.situation.offensePersonnel)) vs "
                 + "\(packageName(play.situation.defensePackage)), "
                 + coverageName(play.calls.defense.coverage)
         }
         return text
+    }
+
+    /// The grouping in the digit convention the sport uses: backs then tight ends, always
+    /// two digits. An empty set is `00` personnel, never `0`.
+    private func personnelCode(_ group: PersonnelGroup) -> String {
+        group.code < 10 ? "0\(group.code)" : "\(group.code)"
     }
 
     private func describeKickoff(_ play: PlayRecord) -> String {
@@ -655,18 +703,21 @@ struct Broadcast {
         let offense = play.situation.possession
         let punter = credited(outcome, .kicker) ?? "the punter"
         let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
-        let distance = Int(play.situation.ballOn) - spot
+        // Where the ball came to rest, so this is the gross punt when nobody ran it back
+        // and the **net** when somebody did — the stream does not record where a returned
+        // punt was fielded, so the gross of a returned punt cannot be recovered from it.
+        // Saying "net" on those is the honest version of printing the same subtraction.
+        let distance = yardText(Int(play.situation.ballOn) - spot)
 
         switch outcome.endedIn {
         case .touchback:
             return "\(punter) into the end zone — touchback"
         case .fairCatch:
-            return "\(punter) \(distance) yards, fair catch at \(yardLine(spot, offense: offense))"
+            return "\(punter) \(distance), fair catch at \(yardLine(spot, offense: offense))"
         case .downed:
-            return "\(punter) \(distance) yards, downed at \(yardLine(spot, offense: offense))"
+            return "\(punter) \(distance), downed at \(yardLine(spot, offense: offense))"
         case .outOfBounds:
-            return
-                "\(punter) \(distance) yards, out of bounds at \(yardLine(spot, offense: offense))"
+            return "\(punter) \(distance), out of bounds at \(yardLine(spot, offense: offense))"
         case .touchdown:
             let returner = credited(outcome, .returner) ?? "the returner"
             return "\(punter) is returned all the way by \(returner) — touchdown"
@@ -674,7 +725,8 @@ struct Broadcast {
             return "\(punter) — blocked"
         default:
             let returner = credited(outcome, .returner) ?? "the returner"
-            var text = "\(punter), returned by \(returner) to \(yardLine(spot, offense: offense))"
+            var text = "\(punter) net \(distance), returned by \(returner) to "
+            text += yardLine(spot, offense: offense)
             if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
             return text
         }
@@ -781,6 +833,11 @@ struct Broadcast {
         case .touchback: return " — touchback"
         default: return ""
         }
+    }
+
+    /// Yardage with its noun agreeing with it. A one-yard drive is not "1 yards".
+    private func yardText(_ yards: Int) -> String {
+        "\(yards) yard\(yards == 1 || yards == -1 ? "" : "s")"
     }
 
     private func gainText(_ yards: Int16) -> String {

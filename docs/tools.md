@@ -105,9 +105,14 @@ drive summary at each change of possession and a scoreboard at the end of each p
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
 
-`--home` and `--away` are indices into the generated league, so `worldgen --show teams`
-names them. `--week` is what the weather is drawn from: week 1 in a warm city is not the
-same game as week 17 in a cold one.
+`--home` and `--away` are indices into `gamelog`'s own league, and the header names the
+two teams it picked. **They do not agree with `worldgen`**, which draws a larger college
+pool before its league and so builds a different world from the same seed; the indices
+mean something across `gamelog` and `simharness` and nothing outside them. G1 (#3) is the
+one world generator that makes all three agree.
+
+`--week` is what the weather is drawn from: week 1 in a warm city is not the same game as
+week 17 in a cold one.
 
 Everything printed is a **query over the `PlayRecord` stream** — the score, the drive
 boundaries and the period boundaries are folded out of the emitted plays using the same
