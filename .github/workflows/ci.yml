@@ -145,6 +145,33 @@ jobs:
         # Without this step neither runs in CI at all.
         run: swift test --package-path Tools/simharness
 
+      - name: Harness determinism
+        # The harness's output at a seed is byte-identical between two runs of the same
+        # binary, and every before-and-after comparison in the backlog rests on it (#52).
+        # Until this step existed that property was checked by hand, twice per seed, by
+        # whoever remembered; now a line that moves between two runs fails the build here
+        # instead of being read as noise in a review (#72). --no-timing drops the Budget
+        # block, which is the one part of the output that is meant to move.
+        run: |
+          swift build --package-path Tools/simharness
+          first="${RUNNER_TEMP:-/tmp}/harness-determinism-1.txt"
+          second="${RUNNER_TEMP:-/tmp}/harness-determinism-2.txt"
+          for out in "$first" "$second"; do
+            swift run --skip-build --package-path Tools/simharness \
+              simharness --games 50 --no-timing --seed 7 > "$out"
+          done
+          if ! cmp -s "$first" "$second"; then
+            echo "::error::simharness printed two different runs at seed 7 — the harness"
+            echo "::error::reads something that is not the seed, and every before-and-after"
+            echo "::error::comparison in the backlog is worthless until it does not."
+            # `|| true` because diff exits 1 on a difference and the step's shell runs
+            # with `-eo pipefail`, which would end the step before the exit below.
+            diff "$first" "$second" | head -40 || true
+            exit 1
+          fi
+          echo "Two 50-game runs at seed 7 are identical:"
+          grep 'world checksum' "$first"
+
       - name: playsize
         # Also the proof that the FM* modules link standalone, outside a test bundle.
         run: swift run --package-path Tools/playsize
