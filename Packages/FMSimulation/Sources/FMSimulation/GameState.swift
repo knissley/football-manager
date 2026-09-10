@@ -67,6 +67,10 @@ extension GameSimulator {
         /// changes its mind after a flag.
         private var otherTrySpot: UInt8 = 0
         var pendingKickoff = false
+        /// What happened while the ball was dead since the last snap — a charged timeout
+        /// with the side that took it, the two-minute warning — waiting to go on the
+        /// record of the snap that follows, at the front of its decision points.
+        var beforeTheSnap: [DecisionPoint] = []
         /// Whether the clock was stopped coming into this snap, which decides whether
         /// the huddle costs anything.
         var previousBehavior: ClockBehavior = .stopsUntilSnap
@@ -91,6 +95,13 @@ extension GameSimulator {
 
         /// Every player's day, drawn once when the game starts.
         private let form: [PlayerID: Double]
+
+        /// Each team's roster for the game, the table `PlayRecord.onField` indexes, and
+        /// the index of every man in it. Both fixed before the first kickoff: a player
+        /// who leaves hurt keeps his index, so the indices in an early play still mean
+        /// what they meant.
+        let rosters: [TeamID: [PlayerID]]
+        private let rosterIndex: [TeamID: [PlayerID: UInt8]]
 
         /// The captain who lost the last coin toss, as the engine stands in for a toss
         /// it does not draw: the side that kicks off after one. The loser's first choice
@@ -123,6 +134,16 @@ extension GameSimulator {
             // The opening kickoff is a free kick, put in play on the whistle (4-6-2).
             playClock = setup.rules.playClockAfterAnAdministrativeStoppage
 
+            rosters = [setup.home.id: setup.home.roster, setup.away.id: setup.away.roster]
+            rosterIndex = rosters.mapValues { roster in
+                // A roster is at most the men a club dresses, and `PlayRecord.vacant` is
+                // the one index a man can never have.
+                precondition(roster.count < Int(PlayRecord.vacant), "a roster too large to index")
+                var index: [PlayerID: UInt8] = [:]
+                for (position, player) in roster.enumerated() { index[player] = UInt8(position) }
+                return index
+            }
+
             // The away team receives to open. A coin toss is a real event and belongs in
             // the stream when there is a stream to put it in; hard-coding it here keeps
             // the opening deterministic and visible rather than buried in a draw. The
@@ -153,8 +174,7 @@ extension GameSimulator {
                 offenseTimeouts: possession == setup.home.id ? homeTimeouts : awayTimeouts,
                 defenseTimeouts: possession == setup.home.id ? awayTimeouts : homeTimeouts,
                 offensePersonnel: offensePersonnel,
-                defensePackage: defensePackage,
-                weather: setup.weather)
+                defensePackage: defensePackage)
         }
 
         func context() -> PlayContext {
@@ -183,6 +203,22 @@ extension GameSimulator {
                 rules: setup.rules)
         }
 
+        /// The lineup as the record carries it: twenty-two roster indices in slot order,
+        /// the offensive slots into the possessing team's roster and the defensive slots
+        /// into the other's.
+        ///
+        /// Every man `Lineup.fill` can place comes from a rotation that is a subset of
+        /// the roster this table was built from, so a lookup cannot fail by
+        /// construction; `vacant` is written for an empty slot and for nothing else.
+        func rosterIndices(of lineup: Lineup) -> [UInt8] {
+            (0..<PlayerSlot.count).map { index in
+                let slot = PlayerSlot(index)
+                guard let player = lineup[slot] else { return PlayRecord.vacant }
+                let team = slot.isOffense ? possession : defending
+                return rosterIndex[team]?[player] ?? PlayRecord.vacant
+            }
+        }
+
         func timeouts(of team: TeamID) -> UInt8 {
             team == setup.home.id ? homeTimeouts : awayTimeouts
         }
@@ -197,19 +233,31 @@ extension GameSimulator {
             spendTimeout(of: offense ? possession : defending)
         }
 
+        /// A charged timeout one side asked for while the ball was dead (4-5-1), on the
+        /// record of the snap it precedes with the side that took it — so a timeout
+        /// taken with the ball about to change hands is charged to a team rather than
+        /// inferred from two situations. Nothing is recorded when the side has none
+        /// left, because nothing was charged.
+        mutating func takeTimeout(offense: Bool) {
+            guard spendTimeout(of: offense ? possession : defending) else { return }
+            beforeTheSnap.append(.timeout(byOffense: offense))
+        }
+
         /// The same, charged to `team`, which an injury timeout is (4-5-4-a). A charged
         /// timeout is an administrative stoppage, so the play clock is the short one
-        /// (4-6-2-b).
-        mutating func spendTimeout(of team: TeamID) {
+        /// (4-6-2-b). `false` when the team had none left and nothing was charged.
+        @discardableResult
+        mutating func spendTimeout(of team: TeamID) -> Bool {
             if team == setup.home.id {
-                guard homeTimeouts > 0 else { return }
+                guard homeTimeouts > 0 else { return false }
                 homeTimeouts -= 1
             } else {
-                guard awayTimeouts > 0 else { return }
+                guard awayTimeouts > 0 else { return false }
                 awayTimeouts -= 1
             }
             previousBehavior = .stopsUntilSnap
             playClock = setup.rules.playClockAfterAnAdministrativeStoppage
+            return true
         }
 
         /// Note a choice one side made about the clock on the play just recorded, so
@@ -282,6 +330,7 @@ extension GameSimulator {
 
         mutating func apply(
             _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint],
+            onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count),
             deadBall: DeadBallChoices? = nil
         ) {
             let before = situation()
@@ -302,7 +351,15 @@ extension GameSimulator {
                 advancement = rules.advance(from: before, outcome: outcome)
             }
 
-            record(effective, calls: calls, decisions: decisions, situation: before)
+            // The points go on the play before it is written, so the board is the
+            // stream summed. Whatever a resolver put there is overwritten: what a play
+            // scored is the rules' verdict on it, not the resolver's.
+            effective.pointsScored = UInt8(clamping: advancement.points)
+            effective.scoring = advancement.points != 0 ? advancement.scoring : nil
+
+            record(
+                effective, calls: calls, decisions: decisions, onField: onField,
+                situation: before)
             score(advancement)
             if effective.kind == .penaltyOnly {
                 runClockForDeadBallFoul(effective, choices: deadBall, tempo: calls.offense.tempo)
@@ -340,7 +397,8 @@ extension GameSimulator {
         }
 
         private mutating func record(
-            _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint], situation: Situation
+            _ outcome: Outcome, calls: Calls, decisions: [DecisionPoint], onField: [UInt8],
+            situation: Situation
         ) {
             // The play clock this snap was taken against (4-6), and what it read: the
             // tempo's intended snap, or zero when it expired and the flag is the foul
@@ -348,7 +406,10 @@ extension GameSimulator {
             // rule, and a reader should not have to infer it from the play before.
             let expired =
                 outcome.kind == .penaltyOnly && outcome.penalties.first?.foul == .delayOfGame
-            var explained = decisions
+            // What happened while the ball was dead goes first: it happened first, and
+            // a reader walking the chain meets the timeout before the snap it set up.
+            var explained = beforeTheSnap + decisions
+            beforeTheSnap.removeAll()
             explained.append(
                 .playClock(
                     seconds: playClock.seconds,
@@ -361,7 +422,8 @@ extension GameSimulator {
                     situation: situation,
                     calls: calls,
                     decisions: explained,
-                    outcome: outcome))
+                    outcome: outcome,
+                    onField: onField))
         }
 
         private mutating func score(_ advancement: Advancement) {
@@ -406,7 +468,9 @@ extension GameSimulator {
                 }
                 elapsed = GameClock.Elapsed(
                     duringPlay: returned ? outcome.clockRunoff : 0, beforeSnap: 0)
-                _ = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
+                if clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason) {
+                    beforeTheSnap.append(.twoMinuteWarning)
+                }
                 previousBehavior = .stopsUntilSnap
                 // A kick that changed hands is an administrative stoppage (4-6-2-a);
                 // one the kickers kept is a play that ended, and the forty runs from it.
@@ -423,6 +487,7 @@ extension GameSimulator {
             }
 
             let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
+            if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
 
             // What the clock does next is judged where the ball became dead, after the
             // play's own time has come off it. The late out-of-bounds windows — after the
@@ -463,6 +528,7 @@ extension GameSimulator {
             let warningTaken = clock.run(
                 huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: rules,
                 isPostseason: setup.isPostseason)
+            if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
             // The clock at the flag is running only if it was running into the interval
             // and nothing stopped it on the way — the two-minute warning, or the end of
             // the period.
@@ -911,8 +977,9 @@ extension GameSimulator {
                 winner = nil
             }
             return GameResult(
-                game: setup.game, plays: plays, injuries: injuries, homeScore: homeScore,
-                awayScore: awayScore, winner: winner)
+                game: setup.game, plays: plays, injuries: injuries, rosters: rosters,
+                weather: setup.weather, homeScore: homeScore, awayScore: awayScore,
+                winner: winner)
         }
     }
 }

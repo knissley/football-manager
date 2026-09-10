@@ -194,9 +194,8 @@ func downAndDistance(_ situation: Situation) -> String {
     return situation.isGoalToGo ? "\(ordinal) & goal" : "\(ordinal) & \(situation.distance)"
 }
 
-func concept(_ calls: Calls) -> String {
-    guard let family = CrudePlaybook.family(of: calls.offense.design) else { return "unknown" }
-    switch family {
+func conceptName(_ calls: Calls) -> String {
+    switch calls.offense.concept {
     case .insideRun: return "inside run"
     case .outsideRun: return "outside run"
     case .quickPass: return "quick pass"
@@ -483,9 +482,9 @@ struct Broadcast {
         // kickoff is a `penaltyOnly` play that is still part of the kicking sequence —
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
-        let family = CrudePlaybook.family(of: play.calls.offense.design)
-        let isTry = family == .extraPoint || family == .twoPointConversion
-        let isKickoff = family == .kickoff || family == .onsideKick
+        let concept = play.calls.offense.concept
+        let isTry = concept == .extraPoint || concept == .twoPointConversion
+        let isKickoff = concept == .kickoff || concept == .onsideKick
 
         // A kickoff and a try belong to the sequence between drives rather than to a
         // drive, so both close whatever was open — as does the ball changing hands.
@@ -535,6 +534,20 @@ struct Broadcast {
         let advancement = advancement(for: play)
         applyScore(advancement, offense: offense)
 
+        // What happened while the ball was dead before this snap, in the order it
+        // happened, above the snap it preceded: the warning, and each charged timeout
+        // with the side that took it and what it has left — which the situation of this
+        // snap already reads, the timeout having been charged before it was written.
+        for decision in play.decisions {
+            if decision.isTwoMinuteWarning {
+                emit("        two-minute warning")
+            } else if let byOffense = decision.timeoutByOffense {
+                let team = byOffense ? offense : (offense == home.id ? away.id : home.id)
+                let left = byOffense ? situation.offenseTimeouts : situation.defenseTimeouts
+                emit("        timeout: \(abbreviation(team)) (\(left) left)")
+            }
+        }
+
         var line = padLeft("\(play.index)", 4) + "  "
         line += pad(
             clockLabel(
@@ -548,7 +561,7 @@ struct Broadcast {
         // Fourteen, not thirteen: "two-point try" is thirteen characters exactly, and a
         // conversion printed as `two-point tryconversion good` is the one play in the
         // sport whose line nobody could read.
-        line += pad(concept(play.calls), 14)
+        line += pad(conceptName(play.calls), 14)
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
@@ -797,11 +810,41 @@ struct Broadcast {
         group.code < 10 ? "0\(group.code)" : "\(group.code)"
     }
 
+    /// Where a kick was fielded, in the words the sport uses: `the own 3`, or `3 deep`
+    /// for a kick caught in the end zone.
+    private func fieldedText(_ fielded: Int8, offense: TeamID) -> String {
+        fielded < 0 ? "\(-Int(fielded)) deep" : yardLine(Int(fielded), offense: offense)
+    }
+
+    /// A kick that was fielded and run back: how far the kick went, where it was caught,
+    /// and how far it came back. The record carries all three spots, so the gross of a
+    /// returned kick and the return are both read off it rather than one inferred from
+    /// the other.
+    private func returnText(
+        _ play: PlayRecord, kicker: String, returner: String, offense: TeamID
+    ) -> String {
+        let outcome = play.outcome
+        guard let fielded = outcome.fieldedAt, let gross = play.kickDistance,
+            let back = play.returnYards
+        else {
+            let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+            return "\(kicker), \(returner) returns it to \(yardLine(spot, offense: offense))"
+        }
+        var text = "\(kicker) \(yardText(gross)) to \(fieldedText(fielded, offense: offense)), "
+        if outcome.endedIn == .touchdown {
+            return text + "\(returner) returns it \(back) all the way — touchdown"
+        }
+        let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+        text += "\(returner) returns it \(back) to \(yardLine(spot, offense: offense))"
+        if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
+        return text
+    }
+
     private func describeKickoff(_ play: PlayRecord) -> String {
         let outcome = play.outcome
         let offense = play.situation.possession
         let kicker = credited(outcome, .kicker) ?? "the kicker"
-        let returner = credited(outcome, .returner)
+        let returner = credited(outcome, .returner) ?? "the returner"
         let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
 
         switch outcome.endedIn {
@@ -809,11 +852,16 @@ struct Broadcast {
             return "\(kicker) into the end zone — touchback"
         case .fumbleRecovered:
             return "recovered by \(abbreviation(offense)) at \(yardLine(spot, offense: offense))"
-        case .touchdown:
-            return "\(returner ?? "the returner") returns it all the way — touchdown"
+        case .touchdown where outcome.isKickingTeamTouchdown:
+            var text = "\(kicker)"
+            if let fielded = outcome.fieldedAt {
+                text += " to \(fieldedText(fielded, offense: offense)), fumbled by \(returner)"
+            }
+            return text + " — recovered and carried in by \(abbreviation(offense)) — touchdown"
+        case .touchdown, .tackled:
+            return returnText(play, kicker: kicker, returner: returner, offense: offense)
         default:
-            var text = "\(returner ?? "the returner") returns it to "
-            text += yardLine(spot, offense: offense)
+            var text = "\(kicker), \(returner) at \(yardLine(spot, offense: offense))"
             if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
             return text
         }
@@ -824,11 +872,9 @@ struct Broadcast {
         let offense = play.situation.possession
         let punter = credited(outcome, .kicker) ?? "the punter"
         let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
-        // Where the ball came to rest, so this is the gross punt when nobody ran it back
-        // and the **net** when somebody did — the stream does not record where a returned
-        // punt was fielded, so the gross of a returned punt cannot be recovered from it.
-        // Saying "net" on those is the honest version of printing the same subtraction.
-        let distance = yardText(Int(play.situation.ballOn) - spot)
+        // The gross: from the line to where the ball was fielded, which on a punt nobody
+        // ran back is also where it came to rest.
+        let distance = yardText(play.kickDistance ?? (Int(play.situation.ballOn) - spot))
 
         switch outcome.endedIn {
         case .touchback:
@@ -839,17 +885,11 @@ struct Broadcast {
             return "\(punter) \(distance), downed at \(yardLine(spot, offense: offense))"
         case .outOfBounds:
             return "\(punter) \(distance), out of bounds at \(yardLine(spot, offense: offense))"
-        case .touchdown:
-            let returner = credited(outcome, .returner) ?? "the returner"
-            return "\(punter) is returned all the way by \(returner) — touchdown"
         case .blocked:
             return "\(punter) — blocked"
         default:
             let returner = credited(outcome, .returner) ?? "the returner"
-            var text = "\(punter) net \(distance), returned by \(returner) to "
-            text += yardLine(spot, offense: offense)
-            if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
-            return text
+            return returnText(play, kicker: punter, returner: returner, offense: offense)
         }
     }
 

@@ -103,6 +103,16 @@ extension Rules {
                 ballOn: spot, down: downs.down, distance: downs.distance,
                 possessionChanged: true)
 
+        case .touchdown where outcome.isKickingTeamTouchdown:
+            // The returner fumbled and the kicking team carried it in, which any player
+            // of either team may do with a fumble (8-7-3 Item 1). The kicking team is
+            // the side in possession on a kick, so this is its touchdown (11-2-1), it
+            // owes the try, and possession does not change.
+            return Advancement(
+                ballOn: extraPointSnapYard, down: .first, distance: 1,
+                possessionChanged: false, scoring: .touchdown, points: touchdown,
+                requiresTry: true)
+
         case .touchdown:
             // Taken back the other way. The receiving team scores, so from the kicking
             // team's point of view this is a defensive touchdown, and the *returning*

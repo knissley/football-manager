@@ -321,7 +321,6 @@ struct SituationClassTests {
         situation.possession = TeamID(9)
         situation.offenseTimeouts = 0
         situation.defensePackage = .dime
-        situation.weather = .dome
 
         #expect(SituationClass(situation) == before)
     }

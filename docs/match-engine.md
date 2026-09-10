@@ -418,7 +418,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | passing yards | 221.7-248.1 | 2023-24 | — | S1 | yes | Gross: yards on completions, sacks not deducted, which is what the harness sums. |
 | rushing yards | 94.7-110.4 | 2023-24 | — | S1 | yes | Designed runs only, as the harness counts them; the league's figure adds scrambles and kneels. |
 | yards per carry | 3.9-4.6 | 2023-24 | — | S1 | yes | Designed runs only. |
-| completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts. The harness still counts a completion only when it gains, so it reads about three points low; the gap is the zero-or-fewer row (2023–24 positive-only rate: 61.1–62.4). |
+| completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts, read from the record's pass result. Counted as a gain of a yard or more it read about three points low (2023–24 positive-only rate: 61.1–62.4); the zero-or-fewer row is the gap. |
 | sack rate per dropback | 6.1-7.2 | 2023-24 | — | S1 | yes | — |
 | interception rate | 1.9-2.6 | 2023-24 | — | S1 | yes | Per pass attempt. |
 | third down conversion | 36.7-41.7 | 2023-24 | — | S1 | yes | — |
@@ -446,6 +446,13 @@ cannot measure yet or whose sample is too thin to fail on.
 | snaps against base | 20.2-25.0% | 2023-24 | — | S2 | yes | Four defensive backs on the field. |
 | yards per carry, even count | 4.3-5.0 | 2023-24 | — | S2 | yes | First and ten, designed runs; blockers are five linemen plus tight ends plus extra backs, the box is eleven less the defensive backs, as the harness counts it. By defenders actually in the box the figure was 4.5–4.7. |
 | yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. |
+| quarterback snaps per team-game | 58.9-66.8 | 2023-24 | — | S2 | yes | Player-snaps on plays from scrimmage by roster position group, the source's participation feed scaled to plays from scrimmage. One a snap by construction on both sides. |
+| backfield snaps per team-game | 64.2-72.4 | 2023-24 | — | S2 | yes | Running backs and fullbacks. |
+| receiver snaps per team-game | 150.3-171.0 | 2023-24 | — | S2 | yes | — |
+| tight end snaps per team-game | 77.1-87.2 | 2023-24 | — | S2 | yes | — |
+| offensive line snaps per team-game | 296.7-332.9 | 2023-24 | — | S2 | yes | Five a snap by construction in the engine; the source has a sixth now and then. |
+| front seven snaps per team-game | 363.7-405.1 | 2023-24 | — | S2 | yes | Edge, interior and linebacker together: the source lists a four-man front's edge rushers as ends and a three-man front's as outside linebackers, so a narrower split would follow the scheme rather than the job. |
+| defensive back snaps per team-game | 285.5-323.9 | 2023-24 | — | S2 | yes | Cornerbacks and safeties. |
 | carries stuffed (0 or fewer) | 17.5-19.9% | 2023-24 | — | S1 | yes | — |
 | carries of 2 or fewer | 40.6-46.5% | 2023-24 | — | S1 | yes | — |
 | carries of 10 or more | 9.6-11.2% | 2023-24 | — | S1 | yes | — |
@@ -473,7 +480,9 @@ cannot measure yet or whose sample is too thin to fail on.
 | drives starting in own half | 85.2-94.2% | 2025 | kickoff | S1 | yes | Strictly inside the drive's own half; midfield is not. |
 | drives starting in own half | 85.6-94.7% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts per team-game | 3.5-4.4 | 2023-24 | — | S1 | yes | — |
-| net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20. The harness spots a punt touchback at the goal line, so its figure reads high on touchbacks; a harness fix, not a retune. |
+| net punt (yards) | 39.4-43.8 | 2023-24 | — | S1 | yes | Distance less return yards, a touchback counted as a punt to the 20 — read off the record, which carries where the punt was fielded. |
+| gross punt (yards) | 45.0-50.0 | 2023-24 | — | S1 | yes | Line to where the punt was fielded, downed or went out. Blocked punts excluded. ASSUMED, not read from the source: that the source measured a touchback's gross to the goal line. The band is what the source publishes; how it treated a touchback is our reading of it, and if that reading is wrong this row is biased by the touchback share. |
+| yards per punt return | 8.8-10.6 | 2023-24 | — | S1 | yes | Over punts that were fielded and run back; a fair catch is not a return. |
 | two-point tries per team-game | 0.19-0.29 | 2023-24 | tryAttempt | S1 | yes | — |
 | two-point conversion rate | 33.6-62.3% | 2023-24 | tryAttempt | S1 | yes | Wide because the sport itself swung from 55% to 41% on about 130 tries a season. |
 | kickoff touchbacks | 18.9-22.4% | 2025 | kickoff | S1 | yes | Share of all kickoffs, onside kicks included in the denominator. |
@@ -508,6 +517,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | onside kicks recovered | 0.5-11.5% | 2024 | onsideKick | S1 | no | Kept for --rulebook 2024. |
 | kickoffs returned | 72.3-80.0% | 2025 | kickoff | S1 | yes | Share of all kickoffs. |
 | kickoffs returned | 30.9-35.9% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
+| yards per kickoff return | 24.1-26.7 | 2025 | kickoff | S1 | yes | From where the kick was fielded, end-zone depth included, to where the return ended; onside kicks excluded. |
+| yards per kickoff return | 25.6-28.4 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts returned | 40.5-45.3% | 2023-24 | — | S1 | yes | Share of punts fielded and run back; fair catches, downed and touchbacks are not. |
 | snaps inside own 10 | 1.55-1.84 | 2023-24 | — | S1 | yes | Scrimmage plays per team-game. |
 | safeties per team-game | 0.01-0.05 | 2023-24 | — | S1 | yes | — |
@@ -551,11 +562,12 @@ offence commits about 6% more pre-snap fouls than a home one, not a fifth more; 
 for it on a fifth of fourth downs, not an eighth. Every one of those was a band written
 from memory, and every one of them read `ok` against an engine that was wrong.
 
-Three harness measurements do not yet match the source's definition, and the notes column
-says so rather than bending the band to the measurement: completion percentage counts only
-completions that gained (the zero-or-fewer row is the gap), net punt spots a touchback at
+Two harness measurements do not yet match the source's definition, and the notes column
+says so rather than bending the band to the measurement: net punt spots a touchback at
 the goal line, and yards per play leaves scramble yards out of the numerator. Those are
-harness fixes, not retunes, and they move measured values, so they are not made here.
+harness fixes, not retunes, and they move measured values, so they are not made here. A
+third was fixed the same way: completion percentage counted only completions that gained
+until the record could say a pass was caught, and it reads `Outcome.passResult` now.
 
 Home win rate and the home scoring edge are printed **without** a target. In 2023–24 the
 home side won 53–56% of decided games and outscored the visitor by two to three points,

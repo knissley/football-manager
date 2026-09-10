@@ -20,7 +20,7 @@ struct FourthDownTests {
     private func decision(
         distance: UInt8, ballOn: UInt8, quarter: UInt8 = 2, clock: UInt16 = 600,
         differential: Int16 = 0
-    ) -> PlayFamily? {
+    ) -> PlayConcept {
         let situation = Situation(
             quarter: quarter, clockRemaining: clock, down: .fourth, distance: distance,
             ballOn: ballOn, possession: TeamID(1), scoreDifferential: differential)
@@ -34,12 +34,11 @@ struct FourthDownTests {
                 defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
                 rules: .standard),
             random: &random)
-        return CrudePlaybook.family(of: call.design)
+        return call.concept
     }
 
-    private func goesForIt(_ family: PlayFamily?) -> Bool {
-        guard let family else { return false }
-        return family != .punt && family != .fieldGoal
+    private func goesForIt(_ concept: PlayConcept) -> Bool {
+        concept != .punt && concept != .fieldGoal
     }
 
     @Test("Fourth and one is a play, not a formality", .tags(.unit))

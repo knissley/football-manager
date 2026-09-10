@@ -32,14 +32,14 @@ struct EndgameTests {
             offenseTimeouts: offenseTimeouts, defenseTimeouts: defenseTimeouts)
     }
 
-    private func family(
+    private func concept(
         _ situation: Situation, clockRunning: Bool = true, seed: UInt64 = 1
-    ) -> PlayFamily? {
+    ) -> PlayConcept {
         var random = SplittableRandom(seed: seed)
         let call = caller.offensiveCall(
             for: situation, classified: SituationClass(situation),
             context: context(clockRunning: clockRunning), random: &random)
-        return CrudePlaybook.family(of: call.design)
+        return call.concept
     }
 
     // MARK: - Victory formation
@@ -50,7 +50,7 @@ struct EndgameTests {
     func kneelsWhenTheClockCanBeBurned() {
         let safe = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(safe) == .kneel)
+        #expect(concept(safe) == .kneel)
     }
 
     /// Kneeling a play too early hands the ball back. Timeouts are exactly what buys the
@@ -59,23 +59,24 @@ struct EndgameTests {
     func timeoutsPreventKneeling() {
         let withTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 3)
-        #expect(family(withTimeouts) != .kneel, "three timeouts can still get the ball back")
+        #expect(concept(withTimeouts) != .kneel, "three timeouts can still get the ball back")
 
         let noTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(noTimeouts) == .kneel)
+        #expect(concept(noTimeouts) == .kneel)
     }
 
     @Test("A team that is behind or level never kneels", .tags(.unit))
     func neverKneelsWhenItCannotAfford() {
-        #expect(family(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
-        #expect(family(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
     }
 
     @Test("Nobody kneels in the first quarter", .tags(.unit))
     func neverKneelsEarly() {
         #expect(
-            family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
+            concept(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0))
+                != .kneel)
     }
 
     /// A knee on fourth down gives the ball up on downs — unless the period cannot
@@ -96,15 +97,15 @@ struct EndgameTests {
         // Forty-five seconds and a running clock: the ball has to be snapped, and a knee
         // would hand it over.
         #expect(
-            family(situation(down: .fourth, clock: 45, differential: 7, defenseTimeouts: 0))
+            concept(situation(down: .fourth, clock: 45, differential: 7, defenseTimeouts: 0))
                 != .kneel)
         // Twenty, and the play clock runs the period out before there can be a snap.
         #expect(
-            family(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
+            concept(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
                 == .kneel)
         // A stopped clock is a snap whenever the offence likes, so the down is real again.
         #expect(
-            family(
+            concept(
                 situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0),
                 clockRunning: false) != .kneel)
     }
@@ -117,17 +118,17 @@ struct EndgameTests {
     @Test("A team kneels out the first half when a snap can only cost it", .tags(.unit))
     func kneelsOutTheFirstHalf() {
         #expect(
-            family(situation(quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0))
+            concept(situation(quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0))
                 == .kneel,
             "up seven with thirty seconds to the break")
         #expect(
-            family(
+            concept(
                 situation(
                     ballOn: 96, quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0)
             ) == .kneel,
             "level on your own four, thirty seconds to the break: a snap here can only lose it")
         #expect(
-            family(
+            concept(
                 situation(
                     ballOn: 96, quarter: 2, clock: 30, differential: -7, defenseTimeouts: 0)
             ) != .kneel,
@@ -135,24 +136,24 @@ struct EndgameTests {
 
         // With the half still there to be used, nobody kneels it away.
         #expect(
-            family(situation(quarter: 2, clock: 110, differential: 7, defenseTimeouts: 3))
+            concept(situation(quarter: 2, clock: 110, differential: 7, defenseTimeouts: 3))
                 != .kneel)
         // And a lead is not a reason to kneel away points: in range before the break the
         // half is worth playing, whatever the scoreboard says.
         #expect(
-            family(
+            concept(
                 situation(
                     distance: 3, ballOn: 3, quarter: 2, clock: 16, differential: 7,
                     defenseTimeouts: 0)) != .kneel,
             "first and goal at the three before the break is a play, not a knee")
         #expect(
-            family(
+            concept(
                 situation(ballOn: 40, quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0)
             ) != .kneel,
             "a field goal from the opponent's forty is still three points")
         // Level in the middle of the field, the half is worth playing out.
         #expect(
-            family(situation(quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0))
+            concept(situation(quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0))
                 != .kneel)
     }
 
@@ -173,22 +174,22 @@ struct EndgameTests {
         // First and ten, 1:52, two timeouts left to the defence: two of the intervals
         // ahead can be taken away and there is far too much clock for the rest.
         #expect(
-            family(situation(quarter: 4, clock: 112, differential: 8, defenseTimeouts: 2))
+            concept(situation(quarter: 4, clock: 112, differential: 8, defenseTimeouts: 2))
                 != .kneel,
             "up eight at 1:52 against two timeouts is too early")
         // Fifty seconds, and the defence has nothing left to stop it with.
         #expect(
-            family(situation(quarter: 4, clock: 50, differential: 8, defenseTimeouts: 0))
+            concept(situation(quarter: 4, clock: 50, differential: 8, defenseTimeouts: 0))
                 == .kneel)
         // And having knelt once, it kneels again: second and eleven with the clock down
         // by the knee alone, then third and twelve a play clock later.
         #expect(
-            family(
+            concept(
                 situation(
                     down: .second, distance: 11, quarter: 4, clock: 48, differential: 8,
                     defenseTimeouts: 0)) == .kneel)
         #expect(
-            family(
+            concept(
                 situation(
                     down: .third, distance: 12, quarter: 4, clock: 9, differential: 8,
                     defenseTimeouts: 0)) == .kneel)
@@ -250,14 +251,14 @@ struct EndgameTests {
     func spikesWithNoTimeouts() {
         let racing = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(racing, clockRunning: true) == .spike)
+        #expect(concept(racing, clockRunning: true) == .spike)
     }
 
     @Test("A team with a timeout uses it rather than burning a down", .tags(.unit))
     func doesNotSpikeWithTimeouts() {
         let hasTimeouts = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 2)
-        #expect(family(hasTimeouts, clockRunning: true) != .spike)
+        #expect(concept(hasTimeouts, clockRunning: true) != .spike)
     }
 
     /// Spiking on a stopped clock wastes a down for nothing.
@@ -265,14 +266,14 @@ struct EndgameTests {
     func doesNotSpikeOnAStoppedClock() {
         let stopped = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(stopped, clockRunning: false) != .spike)
+        #expect(concept(stopped, clockRunning: false) != .spike)
     }
 
     @Test("A spike on fourth down is a turnover with extra steps", .tags(.unit))
     func neverSpikesOnFourth() {
         let fourth = situation(
             down: .fourth, quarter: 4, clock: 20, differential: -4, offenseTimeouts: 0)
-        #expect(family(fourth, clockRunning: true) != .spike)
+        #expect(concept(fourth, clockRunning: true) != .spike)
     }
 
     // MARK: - Timeouts

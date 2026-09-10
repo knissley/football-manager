@@ -13,22 +13,34 @@ public enum Tempo: UInt8, CaseIterable, Sendable, Hashable, Codable {
 ///
 /// A `PlayDesign` is the authored artifact — formation, routes, blocking rules — and
 /// lives in a playbook across seasons. This is that design plus the wrapper that makes
-/// it a call: how fast, and whether anybody moved before the snap.
+/// it a call: what it is, how fast, and whether anybody moved before the snap.
 ///
 /// The counterpart to `DefensiveCall`, and the two are stored together by value in a
 /// `PlayRecord` ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)), so
 /// editing a design in the play designer never rewrites what happened three seasons ago.
 ///
-/// Thin today because the play format itself is M6 work; `design` points into a playbook
-/// that does not exist yet. What lands there belongs behind the identifier, not here —
-/// this type holds only what varies snap to snap.
+/// The concept is held by value and the design by reference, and the reference is `nil`
+/// until M6 gives it a playbook to point into. For a while the design pointed into a
+/// stand-in playbook whose identifiers were the concept's raw value plus one — an
+/// identifier space that would have dangled the day a real playbook existed, so the M1
+/// stream could not have been read by the M6 engine. A record carries what was called,
+/// whatever becomes of the playbook it was called from.
 public struct OffensiveCall: Sendable, Hashable, Codable {
 
-    public var design: PlayDesignID
+    /// What was called, at the coarsest grain the record keeps.
+    public var concept: PlayConcept
     public var tempo: Tempo
     public var usedMotion: Bool
+    /// The authored design the concept was run from, once one exists to be named.
+    /// Declared last because an optional identifier is nine bytes aligned to eight, and
+    /// the three single-byte fields pack ahead of it rather than behind.
+    public var design: PlayDesignID?
 
-    public init(design: PlayDesignID, tempo: Tempo = .normal, usedMotion: Bool = false) {
+    public init(
+        concept: PlayConcept, design: PlayDesignID? = nil, tempo: Tempo = .normal,
+        usedMotion: Bool = false
+    ) {
+        self.concept = concept
         self.design = design
         self.tempo = tempo
         self.usedMotion = usedMotion
