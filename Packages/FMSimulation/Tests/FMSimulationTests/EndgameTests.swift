@@ -78,13 +78,35 @@ struct EndgameTests {
             family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
     }
 
-    /// Kneeling on fourth down is a turnover on downs, not a way to end a game.
-    @Test("Fourth down is not a kneel", .tags(.unit))
-    func neverKneelsOnFourth() {
+    /// A knee on fourth down gives the ball up on downs — unless the period cannot
+    /// survive the play clock standing in front of it. A down that ended in bounds
+    /// leaves the game clock running, the next snap has to come inside the forty seconds
+    /// of 4-6-1, and nothing extends a period that expires between downs: 4-8-1 extends
+    /// one only while the ball is in play and 4-8-2 only for a foul in the down that
+    /// expired it. With less than a play clock left and the clock running there is no
+    /// fourth-down snap to give away, and the knee is the offence standing on the ball.
+    ///
+    /// Rewritten. This used to assert that fourth down is never a kneel, and it made
+    /// that case at twenty seconds with the clock running — which is exactly the case
+    /// where the down is never played. The rule was true; it was stated too widely.
+    @Test(
+        "football · Rules 4-6-1, 4-8-1, 4-8-2 · a knee on fourth down is a turnover on downs unless the period expires in the play clock before the snap",
+        .tags(.football))
+    func fourthDownIsAKneelOnlyWhenThePeriodExpiresFirst() {
+        // Forty-five seconds and a running clock: the ball has to be snapped, and a knee
+        // would hand it over.
+        #expect(
+            family(situation(down: .fourth, clock: 45, differential: 7, defenseTimeouts: 0))
+                != .kneel)
+        // Twenty, and the play clock runs the period out before there can be a snap.
+        #expect(
+            family(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
+                == .kneel)
+        // A stopped clock is a snap whenever the offence likes, so the down is real again.
         #expect(
             family(
-                situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0)
-            ) != .kneel)
+                situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0),
+                clockRunning: false) != .kneel)
     }
 
     /// A half is worth ending too, and the old guard would not let the caller do it: it
@@ -108,6 +130,19 @@ struct EndgameTests {
         #expect(
             family(situation(quarter: 2, clock: 110, differential: 7, defenseTimeouts: 3))
                 != .kneel)
+        // And a lead is not a reason to kneel away points: in range before the break the
+        // half is worth playing, whatever the scoreboard says.
+        #expect(
+            family(
+                situation(
+                    distance: 3, ballOn: 3, quarter: 2, clock: 16, differential: 7,
+                    defenseTimeouts: 0)) != .kneel,
+            "first and goal at the three before the break is a play, not a knee")
+        #expect(
+            family(
+                situation(ballOn: 40, quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0)
+            ) != .kneel,
+            "a field goal from the opponent's forty is still three points")
         // Level in the middle of the field, the half is worth playing out.
         #expect(
             family(situation(quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0))
@@ -338,6 +373,15 @@ struct EndgameTests {
             var possession: TeamID?
             var kneeled = false
             for play in game(seed: seed).plays {
+                // A free kick starts a sequence of its own, and the side that kneels a
+                // half out can be the side that kicks off to open the next one — the
+                // kicking team has possession on a kickoff, so nothing else marks the
+                // boundary.
+                if play.outcome.kind == .kickoff {
+                    possession = nil
+                    kneeled = false
+                    continue
+                }
                 if play.situation.possession != possession {
                     possession = play.situation.possession
                     kneeled = false

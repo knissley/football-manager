@@ -480,6 +480,34 @@ spread(
 
 let kneels = allPlays.filter { $0.outcome.kind == .kneel }.count
 let spikes = allPlays.filter { $0.outcome.kind == .spike }.count
+
+// Knees that were followed by an ordinary snap on the same possession. A knee is the
+// offence saying the game is over; going back to running plays afterwards means the
+// arithmetic behind it was wrong, and the lead was being handed back one snap at a time.
+// Not a league rate and so not a `row:` — it is a promise the caller makes about itself,
+// and the number to beat is zero.
+var kneelsFollowedByALivePlay = 0
+for result in results {
+    var possession: TeamID?
+    var kneeled = false
+    for play in result.plays {
+        // A free kick starts a sequence of its own, and the side that kneels a half out
+        // can be the side that kicks off to open the next one: the kicking team has
+        // possession on a kickoff, so nothing else marks the boundary.
+        if play.outcome.kind == .kickoff {
+            possession = nil
+            kneeled = false
+            continue
+        }
+        if play.situation.possession != possession {
+            possession = play.situation.possession
+            kneeled = false
+        }
+        let isKneel = play.outcome.kind == .kneel
+        if kneeled && !isKneel { kneelsFollowedByALivePlay += 1 }
+        kneeled = kneeled || isKneel
+    }
+}
 var timeoutsSpent = 0
 for result in results {
     for (previous, next) in zip(result.plays, result.plays.dropFirst())
@@ -560,6 +588,11 @@ print("")
 print("  The endgame")
 report("scramblesPerGame", Double(scrambles.count) / Double(max(1, results.count)))
 report("kneelsPerGame", Double(kneels) / Double(max(1, results.count)))
+print(
+    "  " + pad("knees followed by a live play", labelWidth)
+        + pad("\(kneelsFollowedByALivePlay)", 9) + pad("0", 14)
+        + pad(kneelsFollowedByALivePlay == 0 ? "ok" : "OFF", 11) + pad("-", 9) + pad("-", 5)
+        + "a caller contract, not a league rate: test:aKneelIsNeverFollowedByALivePlay")
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
 

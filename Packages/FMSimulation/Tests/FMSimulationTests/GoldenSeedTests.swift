@@ -125,9 +125,14 @@ struct GoldenSeedTests {
             // it, and stops spending defensive timeouts three scores down. Every one of
             // those changes what is called on some snap, and a different call is a
             // different game from there on.
+            //
+            // And moved again by the kneel-down, at seed 12 alone: the caller now counts
+            // the play clocks it can actually spend and the ones a defensive timeout
+            // takes back, so a lead that can be knelt out is knelt out to the end of the
+            // game instead of two knees and then an ordinary play.
             (UInt64(1), UInt64(13_909_574_298_202_381_945)),
             (UInt64(5), UInt64(77_035_360_226_662_895)),
-            (UInt64(12), UInt64(4_871_049_930_809_324_504)),
+            (UInt64(12), UInt64(17_199_625_385_737_701_783)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

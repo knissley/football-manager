@@ -36,27 +36,48 @@ struct TryTests {
         var checked = 0
         var moved = 0
         for plays in (UInt64(1)...30).map({ Self.game(seed: $0).plays }) {
-            for (previous, play) in zip(plays, plays.dropFirst()) {
+            for index in plays.indices {
+                let play = plays[index]
                 let standard: UInt8
                 switch play.outcome.kind {
                 case .extraPoint: standard = rules.extraPointSnapYard
                 case .twoPointConversion: standard = rules.twoPointSnapYard
                 default: continue
                 }
-                let flagOnTheTry =
-                    previous.outcome.kind == .penaltyOnly
-                    && previous.situation.possession == play.situation.possession
-                    && previous.calls.offense == play.calls.offense
-                if flagOnTheTry {
-                    moved += 1
-                    #expect(
-                        play.situation.ballOn != standard,
-                        "a flag on the try left it at the standard spot (play \(play.index))")
-                } else {
+
+                // Every flag that preceded this try, walking back, with what each did to
+                // the spot: a foul by the offence pushes the try out, one by the defence
+                // brings it in. More than one can fly before the same try, and two that
+                // cancel — a neutral zone infraction and then a false start — put the ball
+                // back on the standard yard line honestly. "Not the standard spot" is the
+                // wrong question to ask of that one, so it is counted and skipped rather
+                // than asserted on either way.
+                var net = 0
+                var flags = 0
+                var back = index - 1
+                while back >= 0, plays[back].outcome.kind == .penaltyOnly,
+                    plays[back].situation.possession == play.situation.possession,
+                    plays[back].calls.offense == play.calls.offense
+                {
+                    flags += 1
+                    for penalty in plays[back].outcome.penalties where penalty.wasAccepted {
+                        net +=
+                            penalty.foul.committedBy == .offense
+                            ? Int(penalty.yards) : -Int(penalty.yards)
+                    }
+                    back -= 1
+                }
+
+                if flags == 0 {
                     checked += 1
                     #expect(
                         play.situation.ballOn == standard,
                         "a try snapped from the \(play.situation.ballOn) (play \(play.index))")
+                } else if net != 0 {
+                    moved += 1
+                    #expect(
+                        play.situation.ballOn != standard,
+                        "a flag on the try left it at the standard spot (play \(play.index))")
                 }
             }
         }

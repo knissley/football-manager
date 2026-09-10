@@ -136,6 +136,46 @@ acting on the description alike. The run shares themselves are modelling convent
 sourced rows in `Tools/simharness` are what grade the balance, and a retune is what moves
 them.
 
+### Victory formation, and the arithmetic behind it
+
+The one place where a caller's decision is a piece of clock arithmetic rather than a
+lean, so it is written down here rather than left in the code. A knee ends the down in
+bounds, so the game clock keeps running and the next snap has to come inside the forty
+seconds of the play clock (2025 rulebook, 4-6-1) — every one of which an offence in
+victory formation spends. A charged timeout stops the clock until the next snap instead
+(4-3-2), so each timeout the defence still holds erases one of those intervals; it has
+three a half (4-5-1 Item 1). And nothing extends a period that expires between downs:
+4-8-1 extends one only while the ball is in play, and 4-8-2 only for a foul in the down
+that expired it.
+
+So, from this down: one knee per down remaining, an interval before every snap after this
+one, and one more before the snap the offence is already standing over if the clock is
+running into it. Take away one interval per defensive timeout. If the clock left is no
+more than that, the lead is safe.
+
+Two things the count leaves out on purpose. The interval before the **fourth** down,
+which a real team also spends — it takes the delay of game rather than snap the ball —
+because declining to snap is not something this engine can express, and a plan that leans
+on that interval ends with the ball in a punter's hands. And any generosity at all:
+counting high hands the other side the ball, counting low costs one ordinary snap.
+
+Counted this way the decision is **monotone**, which is what makes a knee stick: the clock
+the next snap faces is exactly what this knee leaves, and the count falls by exactly as
+much, so a lead that can be knelt out on first down can still be knelt out on second. A
+count that shrinks faster than the clock kneels twice and then runs an ordinary play,
+which is how a won game gets fumbled away. There is no memory in the caller and none is
+needed — the arithmetic is what carries the decision forward.
+
+A knee on fourth down is a turnover on downs, so the caller does not take one — except
+when the period cannot survive the play clock in front of it, where there is no
+fourth-down snap to give away.
+
+Both halves are worth ending, but not on the same terms. Ending the game needs a lead —
+level or behind, a snap is the only thing that can still change the scoreboard. Ending
+the half needs a lead *and* the ball too far out to do anything with, or your own goal
+line right behind you: the half is not the game and the points still count, so a team in
+field goal range plays for them however comfortable the lead is.
+
 **There is one per snap, not one per sideline.** Like `Situation`, it reads from the
 offence's point of view — `isMustPass` means *the team with the ball* has to throw,
 whichever bench is asking. The defence reads the same value and draws the opposite

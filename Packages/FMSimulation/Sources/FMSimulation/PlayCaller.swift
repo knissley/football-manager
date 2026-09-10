@@ -472,37 +472,79 @@ public struct BaselineCaller: PlayCaller {
 
     // MARK: - The endgame
 
+    /// The seconds between the snap of a knee and the whistle.
+    ///
+    /// A modelling convention about how long a quarterback takes to go down, not a rule,
+    /// and the same two seconds the resolver charges the play.
+    private static let secondsToTakeAKnee = 2
+
     /// Victory formation: the lead is safe if the clock can be exhausted.
     ///
-    /// Three kneels from first down, each burning the play clock and a couple of seconds
-    /// of live ball — less whatever the defence can claw back with its timeouts. A team
-    /// that kneels a play too early hands the ball back, and one that runs a play it did
-    /// not need to can fumble the game away.
+    /// Every term of the arithmetic is a rule. A knee ends the down in bounds, so the
+    /// clock keeps running and the next snap has to come inside the forty seconds of the
+    /// play clock (2025 rulebook, 4-6-1) — all of which an offence in victory formation
+    /// spends. A charged timeout stops it until the next snap instead (4-3-2), so every
+    /// timeout the defence still holds erases one of those intervals; it has three a half
+    /// (4-5-1 Item 1). And nothing extends a period that expires between downs: 4-8-1
+    /// extends one only while the ball is in play, 4-8-2 only for a foul in the down that
+    /// expired it.
+    ///
+    /// So from this down: one knee per remaining down, an interval before each snap after
+    /// this one, and one more before the snap this offence is already standing over if the
+    /// clock is running into it.
+    ///
+    /// Two things the count deliberately leaves out. The interval before the *fourth*
+    /// down, which a real team also spends — it takes the delay of game rather than snap
+    /// — because declining to snap is not something this engine can express, and a plan
+    /// that leans on that interval ends with the ball in a punter's hands. And any
+    /// generosity at all: getting this wrong upwards hands the other side the ball, and
+    /// getting it wrong downwards costs one ordinary snap.
+    ///
+    /// Counted this way the decision is monotone, which is what makes a knee stick. The
+    /// clock the next snap faces is exactly what this knee leaves — one interval and one
+    /// knee, or one knee alone if the defence stops the clock — and the count falls by
+    /// exactly as much, so a lead that could be knelt out on first down can still be knelt
+    /// out on second. A count that shrinks faster than the clock kneels twice and then
+    /// runs an ordinary play, which is what a won game gets fumbled away on.
     private func shouldKneel(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
     ) -> Bool {
         guard endingIsWorthMoreThanASnap(classified) else { return false }
-        guard situation.down != .fourth else { return false }
+        // A knee on fourth down is a turnover on downs — unless the period cannot survive
+        // the play clock in front of it, in which case there is no fourth-down snap to
+        // give away and the knee is the offence standing on the ball while the clock runs
+        // out.
+        let interval = Int(context.rules.playClockAfterAPlay.intendedSnap(at: .bleedClock))
+        guard situation.down != .fourth else {
+            return context.clockIsRunning && Int(situation.clockRemaining) <= interval
+        }
 
-        let kneelsAvailable = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
-        guard kneelsAvailable > 0 else { return false }
+        let knees = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
+        guard knees > 0 else { return false }
 
-        let secondsPerKneel = Int(context.rules.playClock) + 2
-        let clawedBack = Int(situation.defenseTimeouts) * secondsPerKneel
-        let burnable = kneelsAvailable * secondsPerKneel - clawedBack
-        return Int(situation.clockRemaining) <= burnable
+        let intervals = knees - 1 + (context.clockIsRunning ? 1 : 0)
+        let stopped = min(Int(situation.defenseTimeouts), intervals)
+        let exhaustible = knees * Self.secondsToTakeAKnee + (intervals - stopped) * interval
+        return Int(situation.clockRemaining) <= exhaustible
     }
 
     /// Whether a snap can only cost this offence, so that ending the period is the
     /// better outcome.
     ///
     /// Ending the *game* needs a lead: level or behind, a snap is the only thing that
-    /// can still change the scoreboard. Ending the *half* needs a lead too — or your own
-    /// goal line right behind you, where the only points a snap can produce are the
-    /// other side's, and the break is worth more than the field position.
+    /// can still change the scoreboard, and a lead in range at 0:20 kneels the game out
+    /// rather than pad it.
+    ///
+    /// Ending the *half* is a different question, because the half is not the game and
+    /// the points still count. A team in field goal range plays for them however
+    /// comfortable the lead is; a kneel there throws away three or seven for nothing.
+    /// What is left is a lead with the ball too far out to do anything with before the
+    /// break, or your own goal line right behind you, where the only points a snap can
+    /// produce are the other side's.
     private func endingIsWorthMoreThanASnap(_ classified: SituationClass) -> Bool {
         if classified.time.isEndgame { return classified.score.isLeading }
         guard classified.time == .twoMinuteFirstHalf else { return false }
+        guard !classified.isFieldGoalRange else { return false }
         return classified.score.isLeading || classified.field == .ownDeep
     }
 
