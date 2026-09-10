@@ -345,6 +345,21 @@ extension Outcome {
             endedIn: converted ? .touchdown : .incomplete,
             passResult: converted ? .complete : .incomplete, clockRunoff: 0)
     }
+
+    /// A two-point pass the defence intercepts at the front of the end zone and returns
+    /// to `spot`, in the frame of the team that snapped it like every other spot on the
+    /// record.
+    ///
+    /// The kind is the try and not the pass. A try is one scrimmage down, and the whistle
+    /// closes it out whether or not anybody scored (2025 rulebook, 11-3-1, 11-3-2-e), so
+    /// the down is the try
+    /// whoever ends up with the ball — and the kind is what the rules layer reads to know
+    /// that a kickoff and not a first down comes next (11-3-4).
+    public static func twoPointIntercepted(returnedTo spot: UInt8) -> Outcome {
+        Outcome(
+            kind: .twoPointConversion, yards: 0, endedIn: .intercepted,
+            passResult: .intercepted, finalSpot: spot, possessionLostAt: 1, clockRunoff: 0)
+    }
 }
 
 // MARK: - A caller that does what the scenario says

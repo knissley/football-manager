@@ -141,6 +141,15 @@ struct GoldenSeedTests {
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
             //
+            // And moved again by the enforcement stoppage, by the engine. A flag on a down
+            // stops the game clock at the end of that down (2025 rulebook, 4-4-e) and the
+            // clock starts again on the ready-for-play signal, or on the snap inside the
+            // late windows (4-3-2-e). Every accepted foul on a down that ended in bounds
+            // therefore costs the offence one ready-for-play interval less than before, and
+            // one inside the last five minutes of a half costs it none at all, so every
+            // clock reading after the first such flag in each of the three games moves and
+            // the play that fills each period changes with it.
+            //
             // The play clock and the record changes met in a merge, and the constants
             // below are the union: the play clock's games, hashed with the record's
             // schema version, concept, presence, pass result and points mixed in. Neither
@@ -158,6 +167,42 @@ struct GoldenSeedTests {
             // prints the same plays before and after, with the dead ball now written
             // above them and a kick's gross and return beside it.
             //
+            // The enforcement stoppage and those dead-ball decision points then met in a
+            // merge of their own, and the constants below are again the union: the
+            // enforcement stoppage's games, hashed with the dead-ball decision points
+            // mixed in. Neither side's constants could survive it, for the same reason as
+            // before — each was computed without the other's mechanism — so all three are
+            // regenerated here from the merged tree.
+            //
+            // And moved by the baseline caller, deliberately. Down and distance now
+            // buckets at three and six on every down, fourth included; a passing down is
+            // third or fourth and seven or more and nothing else; and the caller reads
+            // all of it as a lean rather than an instruction, so it runs a small share of
+            // third and longs instead of none. It also goes for it on fourth and goal
+            // from inside the three, kneels out the first half when a snap can only cost
+            // it, and stops spending defensive timeouts three scores down. Every one of
+            // those changes what is called on some snap, and a different call is a
+            // different game from there on.
+            //
+            // And moved again by the kneel-down, at seed 12 alone: the caller now counts
+            // the play clocks it can actually spend and the ones a defensive timeout
+            // takes back, so a lead that can be knelt out is knelt out to the end of the
+            // game instead of two knees and then an ordinary play.
+            //
+            // The caller's changes and the record's met in a merge, and all three
+            // constants below are the union: the caller's games, hashed with the
+            // record's dead-ball decision points mixed in. Neither side's constants
+            // could survive, because each was computed without the other's mechanism.
+            //
+            // And the caller and the clock then met in a merge of their own, and the
+            // constants were regenerated from that tree, which has both: the caller
+            // decides what is snapped, the clock decides how much of a period each snap
+            // leaves, and each reaches the other — a knee that ends a half depends on how
+            // much clock a flag or a runoff left, and what is called after the two-minute
+            // warning depends on which side has the ball there. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism.
+            //
             // And moved again when every player came to carry every key — by the world,
             // and by what the engine reads of it. Nothing in the rules layer changed, but a
             // rating a position does not train is now present and low rather than absent,
@@ -170,13 +215,21 @@ struct GoldenSeedTests {
             // thirties, so a game between the same men is a different game. The men
             // themselves did not move: every trained rating is byte-identical.
             //
-            // The constants below are every mechanism above together, regenerated on the
-            // merged tree: the play clock on every play, the dead ball before it, the
-            // record's own fields, and the untrained keys on every man. No subset of them
-            // reproduces these numbers.
-            (UInt64(1), UInt64(3_356_912_127_761_341_806)),
-            (UInt64(5), UInt64(5_553_166_993_840_887_049)),
-            (UInt64(12), UInt64(3_965_614_626_697_509_682)),
+            // And the untrained keys then met the caller and the clock, in this merge. The
+            // constants below are regenerated from the merged tree, which carries both
+            // mechanisms and every one above them. On one side, every player now carries
+            // every rating key, so the resolver's fallback to a man's overall for a key he
+            // lacked never fires, and a receiver breaks a tackle on a number in the
+            // twenties where he used to break it on one in the sixties. On the other, the
+            // caller decides what is snapped and the clock decides how much of a period
+            // each snap leaves. The two reach each other: a weaker cover man changes
+            // whether a third and long is converted, and that changes both what is called
+            // next and how much clock is left for the rest of the half. Neither parent's
+            // constants could survive, because each was computed without the other's
+            // mechanism, and no subset of the mechanisms above reproduces these numbers.
+            (UInt64(1), UInt64(4_527_532_202_504_413_039)),
+            (UInt64(5), UInt64(9_245_522_178_510_744_962)),
+            (UInt64(12), UInt64(12_825_918_046_467_577_611)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

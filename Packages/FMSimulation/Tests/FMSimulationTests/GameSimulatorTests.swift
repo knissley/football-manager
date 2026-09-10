@@ -491,22 +491,42 @@ struct GameSimulatorTests {
     }
 
     /// The situational vocabulary is shared, so a caller and a tendency table mean the
-    /// same thing by "must pass". If the caller ran on those downs it would be reading
-    /// something else.
-    @Test("The caller throws when the situation says it must", .tags(.unit))
-    func mustPassIsHonoured() {
+    /// same thing by "third and long". What the caller does with it is a *lean*.
+    ///
+    /// Rewritten: this used to assert that the caller ran **zero** times on a must-pass
+    /// down, which asserted the bug rather than the sport. The classification decides
+    /// nothing; a caller with literally no run in it on third and eight is one a defence
+    /// can play the pass against for free, and the sport draws from that bucket every
+    /// week. The ceiling here is a modelling convention rather than a sourced band — the
+    /// sourced run and pass rows in `Tools/simharness` are what grade the balance — so
+    /// this is a contract on the caller, not a football claim.
+    @Test(
+        "contract · third and seven or more is a lean and not a law: the baseline throws the great majority of them and still runs some",
+        .tags(.contract)
+    )
+    func thirdAndLongIsALeanNotALaw() {
         var passes = 0
         var runs = 0
         for seed in UInt64(1)...6 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
-            for play in result.plays where SituationClass(play.situation).isMustPass {
+            for play in result.plays {
+                // Ordinary third and longs. The endgame is its own question — a leading
+                // team runs on third and twelve on purpose, to keep the clock moving —
+                // and it is `isClockBurn` that answers it.
+                let classified = SituationClass(play.situation)
                 let concept = play.calls.offense.concept
-                guard concept.isRun || concept.isPass else { continue }
+                guard classified.downAndDistance == .thirdLong, !classified.time.isEndgame,
+                    concept.isRun || concept.isPass
+                else { continue }
                 if concept.isPass { passes += 1 } else { runs += 1 }
             }
         }
-        #expect(passes > 0)
-        #expect(runs == 0, "ran \(runs) times on a must-pass down")
+        let snaps = passes + runs
+        #expect(snaps > 0, "six games and not one third and seven or more")
+        #expect(runs > 0, "never ran on any of \(snaps) of them")
+        #expect(
+            Double(runs) / Double(snaps) < 0.15,
+            "ran \(runs) of \(snaps) third and longs")
     }
 
     // MARK: - Overtime

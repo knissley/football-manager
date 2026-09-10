@@ -98,8 +98,8 @@ Calls
   defensiveCaller  .coordinator(PersonnelID) | .player | .automatic
 
 Outcome
-  kind          .rush .pass .sack .scramble .punt .fieldGoal .kickoff .kneel
-                .spike .penaltyOnly
+  kind          .rush .pass .sack .scramble .punt .fieldGoal .extraPoint
+                .twoPointConversion .kickoff .kneel .spike .penaltyOnly
   yards         Int16
   endedIn       .tackle .outOfBounds .touchdown .incomplete .interception
                 .fumbleLost .fumbleRecovered .touchback .safety .firstDown
@@ -253,7 +253,42 @@ was called whatever becomes of the playbook it was called from
 The concept's kind is a contract: a snap of it produces a play of `PlayConcept.kind`
 unless a flag before the snap wiped it out, where a called pass is a dropback and a
 dropback may end as a sack or a scramble. `SchemaAndConceptTests` checks it over twenty
-games, and that no record names a design.
+games, that no record names a design, and — because twenty games cannot be trusted to
+contain a rare exit — over the resolver's own exits for every concept, thousands of snaps
+at a time.
+
+**A two-point try is a two-point try however it ended.** `PlayKind` says what the play
+*was*, and the try is one scrimmage down after a touchdown, closed out at the whistle
+whether or not anybody scored on it (2025 rulebook, 11-3-1, 11-3-2-e). So `kind` is
+`.twoPointConversion` on every exit and the ending says the rest:
+
+| what happened | `endedIn` | `passResult` | `yards` |
+|---|---|---|---|
+| caught in the end zone | `.touchdown` | `.complete` | the snap yard |
+| caught short of it | `.tackled` / `.outOfBounds` | `.complete` | what he got |
+| dropped, broken up, off target | `.incomplete` | `.incomplete` | 0 |
+| thrown away | `.incomplete` | `.incomplete` | 0 |
+| intercepted | `.intercepted` | `.intercepted` | 0, with `finalSpot` and `possessionLostAt` |
+| a flag before the snap | — the play is `.penaltyOnly`, as any snap is | | |
+
+The pick is the one that was wrong, and it was wrong in both layers: the resolver filed it
+as an ordinary `.pass`, and `Rules.advance` reads the kind — so the down took the ordinary
+scrimmage path, possession changed, and the interceptors were handed the ball for the
+kickoff the scoring team owes (11-3-4). A record that mislabels a play is not only a
+reporting fault when the rules read the same field.
+
+`finalSpot` and `possessionLostAt` stay on an intercepted try: the ball did change hands
+during the down, and where it was picked off and how far it came back are facts about the
+play whatever the try was worth. What follows the try does not read them, because nothing
+follows a try but a kickoff.
+
+**A sacked try and a scrambled try are not told apart**, and that is a known limit rather
+than an oversight: `PlayEnding` has no `.sacked`, so both would be `.tackled` with no
+`passResult`, and only the `.throwDecision` decision point separates them. Neither is
+reachable today — a try's throw is out before any rusher arrives, so the resolver's
+pressure branches are dead on one — and closing the gap means a new `PlayEnding` case,
+which is a change to the record's shape and needs its own version bump. The exits report
+the try regardless, so the labelling does not depend on that timing holding.
 
 ## Kicks, takeaways, and the dead ball
 

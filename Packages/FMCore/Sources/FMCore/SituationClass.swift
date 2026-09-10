@@ -42,6 +42,11 @@ public struct SituationClass: Sendable, Hashable, Codable {
 }
 
 /// Down and distance, bucketed the way the sport talks about it.
+///
+/// One to three, four to six, seven or more — the same three widths on second, third
+/// and fourth down. Seven is where the ground stops being a realistic answer to the
+/// distance; a bucket that ran to seven put third and seven in with third and four,
+/// which is a different down with a different menu.
 public enum DownAndDistanceClass: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case firstDown = 0
     case secondShort = 1
@@ -51,8 +56,9 @@ public enum DownAndDistanceClass: UInt8, CaseIterable, Sendable, Hashable, Codab
     case thirdMedium = 5
     case thirdLong = 6
     case fourthShort = 7
-    case fourthLong = 8
-    case goalToGo = 9
+    case fourthMedium = 8
+    case fourthLong = 9
+    case goalToGo = 10
 
     public init(_ situation: Situation) {
         if situation.isGoalToGo {
@@ -66,30 +72,36 @@ public enum DownAndDistanceClass: UInt8, CaseIterable, Sendable, Hashable, Codab
             self =
                 situation.distance <= 3
                 ? .secondShort
-                : (situation.distance <= 7 ? .secondMedium : .secondLong)
+                : (situation.distance <= 6 ? .secondMedium : .secondLong)
         case .third:
             self =
                 situation.distance <= 3
                 ? .thirdShort
-                : (situation.distance <= 7 ? .thirdMedium : .thirdLong)
+                : (situation.distance <= 6 ? .thirdMedium : .thirdLong)
         case .fourth:
-            self = situation.distance <= 3 ? .fourthShort : .fourthLong
+            self =
+                situation.distance <= 3
+                ? .fourthShort
+                : (situation.distance <= 6 ? .fourthMedium : .fourthLong)
         }
     }
 
     /// A down where failing gives the ball away, so the calculus changes
     /// entirely.
     public var isLastDown: Bool {
-        self == .fourthShort || self == .fourthLong
+        self == .fourthShort || self == .fourthMedium || self == .fourthLong
     }
 
-    /// Distance the offence is unlikely to gain on the ground, which is what
-    /// makes a defence able to plan.
+    /// Third or fourth and seven or more: far enough that the ground is not a realistic
+    /// answer with the down on the line, which is what lets a defence stop honouring the
+    /// run.
+    ///
+    /// It is still a *description*. Second and eight has a whole extra play behind it
+    /// and third and four is a down the sport runs on constantly; reading either as a
+    /// passing down told the defence something that was not true, and a caller that
+    /// obeyed it never ran on them at all.
     public var isPassingDown: Bool {
-        switch self {
-        case .thirdMedium, .thirdLong, .fourthLong, .secondLong: return true
-        default: return false
-        }
+        self == .thirdLong || self == .fourthLong
     }
 
     /// Short enough that a defence must respect the run.
@@ -200,15 +212,25 @@ extension SituationClass {
 
     /// The offence has to throw, and the defence knows it.
     ///
-    /// Either the distance demands it, or the clock does. This is the single
-    /// most useful situational read in the sport, and it belongs to both sides:
-    /// the offence knows its menu has shrunk, and the defence knows it can stop
-    /// honouring the run.
+    /// Either the distance demands it — third or fourth and seven or more — or the
+    /// clock does: inside two minutes, trailing, with the ball needed back. Tied inside
+    /// two minutes of the game counts too, unless you are backed up, where a punt and
+    /// overtime are a fine outcome.
+    ///
+    /// This is the single most useful situational read in the sport, and it belongs to
+    /// both sides: the offence knows its menu has shrunk, and the defence knows it can
+    /// stop honouring the run. It says the menu *shrank*, not that it is down to one
+    /// item — a caller that never runs from here is one a defence can play the pass
+    /// against for nothing.
+    ///
+    /// A passing down is a passing down whenever it happens. The endgame qualifier that
+    /// used to hang off the first clause switched the read off inside the last five
+    /// minutes, so third and fifteen with four minutes left classified as an ordinary
+    /// down.
     public var isMustPass: Bool {
-        if downAndDistance.isPassingDown && !time.isEndgame { return true }
+        if downAndDistance.isPassingDown { return true }
         if time.isTwoMinute && score.isTrailing { return true }
-        if time == .twoMinuteGame && score == .tied && field != .ownDeep { return true }
-        return downAndDistance == .fourthLong
+        return time == .twoMinuteGame && score == .tied && field != .ownDeep
     }
 
     /// The offence wants the clock to run, and the defence wants it stopped —

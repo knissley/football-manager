@@ -556,7 +556,13 @@ two-minute warning is charged as a team timeout or, with none left, is an excess
 whose runoff is the defence's to take (4-5-4 Note 3). Eight more scenarios cover them,
 and every election a side makes about the clock is in the play's decision log. Article
 4, the runoff after a replay reversal, stays a labelled exclusion until there is a
-replay system to reverse anything.
+replay system to reverse anything. A15 ([#94](https://github.com/knissley/football-manager/issues/94)),
+which #76's reviewer found, closed the last gap in the restart: a flag during a down
+stops the clock as the down ends (4-4-e) and the enforcement is charged nothing, where
+before only a flag between downs stopped it, so an accepted foul on a tackle in bounds
+cost the offence the whole interval to the next snap. One predicate now decides the
+restart for both, and it is told which kind of flag it is, because 4-3-2-e-3 reaches a
+foul between downs alone.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -658,7 +664,9 @@ out-of-bounds window is judged where the runner stepped out, not at the previous
 and [A14 · #86](https://github.com/knissley/football-manager/issues/86) (postseason
 overtime halves: a third period, and a fifth, put back in play with a kick at the toss
 loser's first choice, three timeouts a half, and the kickoff that opens a half settled
-before it is played whichever way the half before it ended);
+before it is played whichever way the half before it ended); and
+[A15 · #94](https://github.com/knissley/football-manager/issues/94) (a flag during a down
+stops the clock, and the enforcement is not free);
 [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
 possession was lost, and a kicking-team kickoff touchdown, neither in the record) and
 [C9 · #48](https://github.com/knissley/football-manager/issues/48) (the re-try after a

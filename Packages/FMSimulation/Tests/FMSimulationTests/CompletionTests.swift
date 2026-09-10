@@ -20,7 +20,11 @@ struct CompletionTests {
         TestWorld.game(seed: seed, game: GameID(seed))
     }
 
-    private static let sample: [GameResult] = (UInt64(1)...20).map(game(seed:))
+    /// Forty games, because the sample has to reach the rarest thing it asserts. A safety
+    /// is that thing — one in the first forty games of this world — and which game it
+    /// falls in moves whenever the caller does, so this number is a coverage floor rather
+    /// than a constant with a meaning. The per-play promises below hold at any size.
+    private static let sample: [GameResult] = (UInt64(1)...40).map(game(seed:))
     private static var plays: [PlayRecord] { sample.flatMap(\.plays) }
 
     /// The whole point: a ball caught behind the line, or for nothing, is a completion.
@@ -31,7 +35,7 @@ struct CompletionTests {
         }
         #expect(
             caughtForNothing.count > 10,
-            "twenty games and \(caughtForNothing.count) catches for nothing")
+            "forty games and \(caughtForNothing.count) catches for nothing")
         for play in caughtForNothing {
             #expect(play.isCompletion)
             #expect(play.outcome.endedIn != .incomplete, "a completion that ended incomplete")
@@ -105,7 +109,7 @@ struct CompletionTests {
             Scoring.touchdown, .fieldGoal, .extraPoint, .twoPointConversion, .safety,
             .defensiveTouchdown,
         ] {
-            #expect(kinds.contains(kind), "twenty games never scored a \(kind)")
+            #expect(kinds.contains(kind), "forty games never scored a \(kind)")
         }
     }
 }

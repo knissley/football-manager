@@ -149,6 +149,37 @@ struct RulesConformanceTests {
         trace.expectScore(scorer, 7)
     }
 
+    /// The try the defence takes away. A try is one scrimmage down, and 11-3-2-e closes
+    /// it out at the whistle whether or not anybody scored on it, so a pick finishes it:
+    /// nothing is scored, nothing is
+    /// replayed, and the side that scored the touchdown still kicks off to the side that
+    /// defended the try — the ball does not change hands for the kickoff however far the
+    /// interceptor carried it.
+    ///
+    /// `afterTheTryTheDefendingTeamReceives` above runs a *kick* try, so 11-3-4 was only
+    /// ever asserted on the try that ends in the kicker's own hands.
+    @Test(
+        "football · Rule 11-3-2-e, 11-3-4 · a two-point try the defence intercepts scores nothing, and the side that scored the touchdown still kicks off",
+        .tags(.football)
+    )
+    func aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer() {
+        let trace = RulesScenario.twoPointTryIntercepted.run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectSequence([.kickoff, .rush, .twoPointConversion, .kickoff, .rush], from: 0)
+        trace.expectPlay(
+            2, kind: .twoPointConversion, endedIn: .intercepted, possession: scorer,
+            "the side that scored goes for two and the defence takes it away")
+        trace.expectPlay(
+            3, kind: .kickoff, possession: scorer, "the try is over, and the scorer kicks off")
+        trace.expectPlay(
+            4, possession: trace.opponent(of: scorer), "the side that defended the try receives")
+        trace.expectScore(scorer, 6, "the touchdown and nothing else")
+        trace.expectScore(trace.opponent(of: scorer), 0, "an interception on a try is not a score")
+    }
+
     @Test(
         "football · Rule 11-4-6 · after a successful field goal the team scored upon receives the kickoff",
         .tags(.football)
@@ -1561,6 +1592,259 @@ struct RulesConformanceTests {
         #expect(
             hurried < Int(huddle),
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
+    }
+
+    // MARK: Fouls during a down
+
+    /// The first accepted foul in `quarter` on a down that was actually run and ended in
+    /// bounds — the down 4-4-e is about, as against a flag before the snap, which stops
+    /// the clock the moment it flies (4-4-g).
+    private func foulDuringADown(
+        in trace: Trace, quarter: UInt8
+    ) -> (index: Int, play: PlayRecord)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == quarter && $0.outcome.kind != .penaltyOnly
+                    && $0.outcome.endedIn == .tackled
+                    && $0.outcome.penalties.first?.wasAccepted == true
+            })
+        else {
+            Issue.record(
+                "the script never drew an accepted foul on a down that ended in bounds in quarter \(quarter)"
+            )
+            return nil
+        }
+        #expect(
+            trace.clockRunning(into: found.index) == true,
+            "the scenario meant the clock to be running into the flagged down")
+        return found
+    }
+
+    /// What the game clock was charged getting to the snap after play `index`: the clock
+    /// where that play left it, less the clock where the play after it left it, less that
+    /// play's own time.
+    private func chargedBeforeTheSnap(after index: Int, in trace: Trace) -> Int? {
+        guard let next = trace[index + 1], let following = trace[index + 2] else {
+            Issue.record("the scenario needs two downs after the flag to show what the wait cost")
+            return nil
+        }
+        return Int(next.situation.clockRemaining) - Int(following.situation.clockRemaining)
+            - Int(next.outcome.clockRunoff)
+    }
+
+    /// What the offence would be charged before the snap after an enforcement if the
+    /// clock had never stopped, against the play clock an enforcement leaves (4-6-2-e).
+    /// A clock that restarts on the ready costs `GameClock.readyForPlayDelay` less than
+    /// this: the officials' spot is what buys those seconds back.
+    private func intervalAfterAnEnforcement(_ trace: Trace, after index: Int) -> Int? {
+        guard let next = trace[index + 1] else { return nil }
+        return Int(
+            Rules.standard.playClockAfterAnAdministrativeStoppage.intendedSnap(
+                at: next.calls.offense.tempo))
+    }
+
+    /// A foul during a down stops the clock at the end of that down (4-4-e), and the
+    /// enforcement is not free: the clock is dead through it and starts again as though
+    /// the foul had not occurred (4-3-2-e) — on the ready-for-play signal, since it was
+    /// running — so the offence keeps the seconds between the whistle and the spot.
+    @Test(
+        "football · Rule 4-4-e, 4-3-2-e · an accepted foul on a down that ends in bounds stops the clock for enforcement, and it restarts on the ready",
+        .tags(.football)
+    )
+    func acceptedFoulDuringADownStopsTheClockForEnforcement() {
+        let trace = RulesScenario.defensiveHoldingOnAPlayEndingInBounds.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 1),
+            let charged = chargedBeforeTheSnap(after: flag.index, in: trace),
+            let running = intervalAfterAnEnforcement(trace, after: flag.index)
+        else { return }
+        let onTheReady = running - Int(GameClock.readyForPlayDelay)
+        #expect(
+            charged == onTheReady,
+            "the snap after the enforcement cost \(charged) seconds of game clock, and a clock stopped for the flag and restarted on the ready costs \(onTheReady)"
+        )
+    }
+
+    /// Inside the last five minutes of the second half the clock does not restart on the
+    /// ready after a foul: it waits for the snap (4-3-2-e-2), the same window the
+    /// out-of-bounds rule uses, judged where the ball was dead.
+    @Test(
+        "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half an accepted foul during a down has the clock start on the snap",
+        .tags(.football)
+    )
+    func acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap() {
+        let trace = RulesScenario.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 4), let next = trace[flag.index + 1]
+        else { return }
+        #expect(
+            next.situation.clockRemaining <= 300 && next.situation.clockRemaining > 120,
+            "the scenario meant the down to be dead inside five minutes and outside the warning")
+        trace.expectPlay(
+            flag.index + 1, clockRunning: false,
+            "inside five minutes of the second half the clock waits for the snap")
+    }
+
+    /// 4-3-2-e-3 is about a foul that stops the clock *before a snap*: the offence fouls
+    /// between downs, after the ball has been made ready. A foul during a down stops the
+    /// clock at the end of the down instead (4-4-e), so e-3's words do not reach it, and
+    /// the fourth quarter restarts such a clock on the ready as any other period does.
+    @Test(
+        "football · Rule 4-3-2-e-3, 4-4-e · e-3 reaches only an offensive foul that stops the clock before a snap, so an offensive foul during a fourth-quarter down outside every window restarts the clock on the ready",
+        .tags(.football)
+    )
+    func offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady() {
+        let trace = RulesScenario.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 4), let next = trace[flag.index + 1],
+            let charged = chargedBeforeTheSnap(after: flag.index, in: trace),
+            let running = intervalAfterAnEnforcement(trace, after: flag.index)
+        else { return }
+        #expect(
+            flag.play.outcome.penalties.first?.offendingTeam == flag.play.situation.possession,
+            "the scenario meant the offence to commit it")
+        #expect(
+            next.situation.clockRemaining > 300,
+            "the scenario meant the down to be dead outside every late window")
+        trace.expectPlay(
+            flag.index + 1, clockRunning: true, "the clock is not held to the snap by e-3")
+        let onTheReady = running - Int(GameClock.readyForPlayDelay)
+        #expect(
+            charged == onTheReady,
+            "the snap after the enforcement cost \(charged) seconds of game clock, and a clock restarted on the ready costs \(onTheReady)"
+        )
+    }
+
+    /// 4-7-3 has two clauses, and this is the second: an excess timeout for an injured
+    /// *defensive* player in the last forty seconds of a half, with the clock running,
+    /// ends the half on the same terms a defensive foul that conserves time does — unless
+    /// the defence still has a timeout, or the offence would rather play on. The defence
+    /// here has spent its second-half timeouts, so the excess timeout is charged to it
+    /// (4-5-4-b) and the leading offence takes the half.
+    @Test(
+        "football · Rule 4-7-3, 4-5-4-b · in the last forty seconds an excess timeout for an injured defender with the clock running ends the half when the defence has no timeouts left and the offence, leading, elects to end it",
+        .tags(.football)
+    )
+    func injuryToADefenderInTheLastFortySecondsEndsTheHalf() {
+        let trace = RulesScenario.injuryToADefenderInTheLastFortySeconds.run()
+        guard let hurt = trace.result.injuries.first, let play = trace[Int(hurt.occurredOn.index)]
+        else {
+            Issue.record("the scenario never hurt anybody")
+            return
+        }
+        let index = Int(hurt.occurredOn.index)
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return
+        }
+        // The clock where the ball was dead, which is where 4-7-3's window is read: the
+        // recorded clock is the previous whistle's, less the interval charged at the snap
+        // when the clock was running into it, less the play's own time.
+        let charged = trace.clockRunning(into: index) == true ? Int(huddle) : 0
+        let deadAt =
+            Int(play.situation.clockRemaining) - charged - Int(play.outcome.clockRunoff)
+        #expect(
+            play.situation.quarter == 4 && deadAt <= 40 && deadAt > 0,
+            "the scenario meant the injury on a down that ended inside the last forty seconds")
+        let elections = play.decisions.compactMap(\.clockElectionValue)
+        #expect(
+            elections.contains(.excessInjuryTimeout),
+            "a defence with no timeouts left is charged an excess timeout, not a team timeout")
+        #expect(
+            elections.contains(.halfEnded),
+            "the offence, leading, ends the half rather than play the last forty seconds")
+        #expect(
+            trace[index + 1] == nil, "the half ended, so there is no snap after it")
+        #expect(
+            trace.result.plays.last?.index == play.index,
+            "the injury timeout ended the game on that play")
+    }
+
+    // MARK: The spike
+
+    /// The scenario's spike and the clock it was snapped on.
+    ///
+    /// A play's recorded situation is the clock at the previous whistle, and the offence's
+    /// interval between downs is charged at the snap when the clock is running, so the
+    /// clock the spike is *snapped* on is the recorded one less that interval — measured
+    /// from the game, never assumed. The two facts a reader of a play-by-play must hold
+    /// together to read a spike at all.
+    private func spikeSnappedOn(
+        _ trace: Trace, expecting seconds: UInt16
+    ) -> (index: Int, play: PlayRecord, snappedOn: UInt16)? {
+        guard
+            let spike = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .spike
+            })
+        else {
+            Issue.record("the scenario never spiked the ball")
+            return nil
+        }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return nil
+        }
+        guard trace.clockRunning(into: spike.index) == true else {
+            Issue.record("the clock was not running into the spike, so there was nothing to stop")
+            return nil
+        }
+        let snappedOn = spike.play.situation.clockRemaining - huddle
+        guard snappedOn == seconds else {
+            Issue.record(
+                "the scenario meant the spike snapped with \(seconds) left; it was snapped with \(snappedOn)"
+            )
+            return nil
+        }
+        return (spike.index, spike.play, snappedOn)
+    }
+
+    /// A quarterback who takes the snap and throws the ball straight into the ground stops
+    /// the clock legally (8-2-1 Item 3): the pass is incomplete, and an incomplete pass
+    /// stops the clock until the snap (4-4-f, 4-3-2). So the down after a spike is snapped
+    /// on the clock the spike left — one second later, that being what the spike itself
+    /// takes — and none of the offence's interval between downs is charged to it.
+    ///
+    /// What is charged *before* the spike is a different question with a different answer:
+    /// the clock was running from the play before, nothing had stopped it, and the seconds
+    /// the offence spends getting to the line come off it.
+    ///
+    /// The one second is staged input, not a claim about the resolver: a scenario dictates
+    /// each play's outcome, so `clockRunoff == 1` here reads `ScriptedGame`'s own spike
+    /// constant and never `CrudeResolver`'s, which carries the same second separately. What
+    /// this asserts is the clock the rules layer runs on a spike, given that a spike took a
+    /// second — not that a second is what a spike takes.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left",
+        .tags(.football)
+    )
+    func spikeCostsItsOwnSecondAndStopsTheClock() {
+        let trace = RulesScenario.spikeSnappedAtTwentySeconds.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 20) else { return }
+        #expect(spike.play.outcome.endedIn == .incomplete, "a spike is an incomplete forward pass")
+        #expect(
+            spike.play.outcome.clockRunoff == 1,
+            "the snap and the throw into the ground are one second of game clock")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 19,
+            "the down after the spike is snapped on the clock the spike left")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false, "and the clock is dead until that snap")
+    }
+
+    /// A spike on third down inside ten seconds is an ordinary call, and the down after it
+    /// is an ordinary down: the clock the spike stopped is the clock the fourth down is
+    /// snapped on, and the period does not end on it.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3 · a third-down spike snapped with five seconds left does not end the period: the fourth down is snapped a second later",
+        .tags(.football)
+    )
+    func spikeAtFiveSecondsIsFollowedByTheNextDown() {
+        let trace = RulesScenario.spikeSnappedAtFiveSecondsOnThirdDown.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 5) else { return }
+        #expect(spike.play.situation.down == .third, "the scenario meant a third-down spike")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 4, down: .fourth,
+            "the fourth down is played, one second after the spike was snapped")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false,
+            "and it is snapped on a clock the spike stopped, not one still running into it")
     }
 
     // MARK: The kickoff that opens a half
