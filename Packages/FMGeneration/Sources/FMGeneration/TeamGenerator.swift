@@ -14,6 +14,11 @@ public enum TeamGenerator {
     /// side by side in a standings table or a schedule. Rolling each team in isolation
     /// produces collisions a per-team test cannot see, so the ledger is threaded
     /// through generation rather than checked afterwards.
+    ///
+    /// It is threaded through a *curated* league too, even though nothing there is
+    /// drawn: a league that takes its franchises from `FranchiseSet` and tops up a short
+    /// region from the pools would otherwise draw a name the curated half already has.
+    /// `record(_:)` is how the curated half gets into it.
     public struct NameLedger: Sendable {
 
         public var nicknames: Set<String> = []
@@ -22,13 +27,20 @@ public enum TeamGenerator {
         /// same name — a pool that ever holds both "Kestrel" and "Kestrels" cannot hand
         /// out one of each.
         public var nicknameStems: Set<String> = []
-        public var stadiums: Set<String> = []
         /// The word a feature-led ground is named for. Tracked because the collision
         /// that reads as a duplicate is the *word*: Riverfront Park, Riverfront Field
         /// and Riverfront Arena are three distinct strings and one ground written down
         /// three times.
+        ///
+        /// There is deliberately no set of whole stadium names beside it. One existed,
+        /// was written on every draw and read by nothing, and a ledger nobody consults
+        /// is a uniqueness rule that is not enforced (#65).
         public var stadiumFeatures: Set<String> = []
         public var abbreviations: Set<String> = []
+        /// Whole city names, so "cities are unique in a world" is a property of the
+        /// world and not of one region's batch. `stadium(for:ledger:using:)` relies on
+        /// it: a city-led ground name can only be unique if the city is.
+        public var cityNames: Set<String> = []
         /// The part of a city name before its suffix. Tracked separately because four
         /// distinct names — Saltflat, Saltflat Ridge, Saltflat Landing, Saltflat Mills
         /// — read as one city with a stutter, and uniqueness of the full string does
@@ -36,6 +48,23 @@ public enum TeamGenerator {
         public var cityStems: Set<String> = []
 
         public init() {}
+
+        /// Take a curated franchise's names out of circulation.
+        ///
+        /// The stadium's feature word is recognised rather than parsed: a curated ground
+        /// named for a place — Drydock Field — spends no pool word, and one that happens
+        /// to lead with a pool feature spends exactly that word.
+        public mutating func record(_ franchise: Franchise) {
+            nicknames.insert(franchise.nickname)
+            nicknameStems.insert(TeamGenerator.stem(ofNickname: franchise.nickname))
+            abbreviations.insert(franchise.abbreviation)
+            cityNames.insert(franchise.city)
+            cityStems.insert(TeamGenerator.stem(ofCity: franchise.city))
+            for feature in StadiumPools.features
+            where franchise.stadiumName.hasPrefix("\(feature) ") {
+                stadiumFeatures.insert(feature)
+            }
+        }
     }
 
     // MARK: - Cities
@@ -116,14 +145,17 @@ public enum TeamGenerator {
 
         var cities: [GeneratedCity] = []
         cities.reserveCapacity(count)
-        var seen: Set<String> = []
 
         for _ in 0..<count {
+            // Against the world's ledger rather than this batch's own set: the caller
+            // asks region by region, and a name that is unique among the north's eight
+            // is not unique in the league if the east has it too (#65).
+            //
             // Bounded attempts: the name space is finite, and a duplicate city name is
             // a better outcome than a generator that fails.
             for attempt in 0..<8 {
                 let candidate = city(in: region, ledger: &ledger, using: &random)
-                if seen.insert(candidate.name).inserted || attempt == 7 {
+                if ledger.cityNames.insert(candidate.name).inserted || attempt == 7 {
                     cities.append(candidate)
                     break
                 }
@@ -211,6 +243,21 @@ public enum TeamGenerator {
         return lowered.hasSuffix("s") ? String(lowered.dropLast()) : lowered
     }
 
+    /// A city's stem: its name with a pool suffix taken off, and the whole of a bare
+    /// name.
+    ///
+    /// A drawn city carries its stem, because the two pools share words and parsing one
+    /// back out is guesswork. A *curated* city carries no stem — it was written, not
+    /// assembled — so the ledger reads one off it this way, which is right whenever the
+    /// last word is a suffix the pools use and harmlessly conservative when it is not.
+    static func stem(ofCity city: String) -> String {
+        let words = city.split(separator: " ").map(String.init)
+        guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {
+            return city
+        }
+        return words.dropLast().joined(separator: " ")
+    }
+
     /// Whether a nickname says its own city back at it — Coyote Coyotes, Frost
     /// Frostbite, Elkhart Elk.
     ///
@@ -239,8 +286,11 @@ public enum TeamGenerator {
         // what collides is the word rather than the whole name: Riverfront Park and
         // Riverfront Field are one ground written down twice however the kinds differ.
         // So a feature word is spent once per world. When the draws all land on words
-        // already spent, the city-led form takes over — cities are unique in a world and
-        // no city is named for a feature, so it cannot collide with anything.
+        // already spent, the city-led form takes over — a city name is spent once per
+        // world too, in the same ledger, and no city is named for a feature, so it
+        // cannot collide with anything. The one exception is the exhausted pool, where
+        // `cities(in:count:)` repeats a name rather than failing and this repeats with
+        // it (#65).
         var name = "\(city.name) \(kind)"
         if random.nextBool(probability: 0.55) {
             for _ in 0..<5 {
@@ -252,8 +302,6 @@ public enum TeamGenerator {
                 }
             }
         }
-        ledger.stadiums.insert(name)
-
         // Bigger markets build bigger, and a dome is far more likely where the weather
         // is a problem worth spending money on.
         let baseCapacity: Int
@@ -290,17 +338,72 @@ public enum TeamGenerator {
             noise: UInt8(noise))
     }
 
-    /// One team for a city.
+    // MARK: - Franchises
+
+    /// One drawn franchise for a region: a city, a name for the club and a ground.
+    ///
+    /// The randomiser of [decision 154](../../../../docs/design-decisions.md), behind
+    /// `FranchiseSource.randomised` and not refined
+    /// ([decision 215](../../../../docs/design-decisions.md)). It returns the same shape
+    /// the curated table holds, so `team(id:franchise:using:)` is the only way a `Team`
+    /// is built and a drawn league and a curated one differ in nothing but where the
+    /// row came from.
     ///
     /// The ledger is passed in rather than rolled against, because two teams sharing a
     /// nickname — or a stadium name — is the kind of thing nobody notices in a test of
     /// one team and everybody notices in a standings table.
-    public static func team(
-        id: TeamID,
-        city: GeneratedCity,
-        ledger: inout NameLedger,
+    public static func franchise(
+        in region: Region, ledger: inout NameLedger, using random: inout SplittableRandom
+    ) -> Franchise {
+        let city = city(in: region, ledger: &ledger, using: &random)
+        return franchise(for: city, ledger: &ledger, using: &random)
+    }
+
+    /// A set of drawn franchises for one region, cities and all.
+    ///
+    /// Asked for region by region for the reason `cities(in:count:)` is: how many a
+    /// region needs follows from the league's shape, and an even spread across four
+    /// regions leaves a two-division conference short.
+    public static func franchises(
+        in region: Region, count: Int, ledger: inout NameLedger,
         using random: inout SplittableRandom
-    ) -> Team {
+    ) -> [Franchise] {
+        precondition(count >= 0, "cannot generate a negative number of franchises")
+
+        let cities = cities(in: region, count: count, ledger: &ledger, using: &random)
+        return cities.map { franchise(for: $0, ledger: &ledger, using: &random) }
+    }
+
+    /// The club a drawn city fields, and the ground it fields it in.
+    private static func franchise(
+        for city: GeneratedCity, ledger: inout NameLedger, using random: inout SplittableRandom
+    ) -> Franchise {
+        let nickname = nickname(for: city, ledger: &ledger, using: &random)
+        let abbreviation = abbreviation(for: city.name, nickname: nickname, ledger: &ledger)
+        let palette = colors(using: &random)
+        let ground = stadium(for: city, ledger: &ledger, using: &random)
+        return Franchise(
+            city: city.name,
+            region: city.region,
+            market: city.market,
+            climate: city.climate,
+            altitude: city.altitudeFeet,
+            nickname: nickname,
+            abbreviation: abbreviation,
+            primary: palette.primary.rawValue,
+            secondary: palette.secondary.rawValue,
+            accent: palette.accent.rawValue,
+            stadium: ground.name,
+            roof: ground.isIndoors ? .dome : .open,
+            surface: ground.surface,
+            capacity: ground.capacity,
+            noise: ground.noise)
+    }
+
+    /// A nickname nobody else in this world has, that does not say its own city back.
+    private static func nickname(
+        for city: GeneratedCity, ledger: inout NameLedger, using random: inout SplittableRandom
+    ) -> String {
         let categories = NicknamePools.categories(for: city.region)
         var nickname = ""
         for _ in 0..<24 {
@@ -325,19 +428,30 @@ public enum TeamGenerator {
             ledger.nicknames.insert(nickname)
             ledger.nicknameStems.insert(stem(ofNickname: nickname))
         }
+        return nickname
+    }
 
-        let identity = TeamIdentity(
-            city: city.name,
-            nickname: nickname,
-            abbreviation: abbreviation(for: city.name, nickname: nickname, ledger: &ledger),
-            colors: colors(using: &random))
+    // MARK: - Teams
 
-        return Team(
+    /// The team a franchise fields.
+    ///
+    /// The only draw left is the scheme, because a scheme is what a club is *doing*
+    /// rather than who it is: a coach arrives and changes it, and a career that started
+    /// twice in the same buildings should not find the same playbooks in them
+    /// ([decision 215](../../../../docs/design-decisions.md)).
+    public static func team(
+        id: TeamID, franchise: Franchise, using random: inout SplittableRandom
+    ) -> Team {
+        Team(
             id: id,
-            region: city.region,
-            identity: identity,
-            stadium: stadium(for: city, ledger: &ledger, using: &random),
-            market: city.market,
+            region: franchise.region,
+            identity: TeamIdentity(
+                city: franchise.city,
+                nickname: franchise.nickname,
+                abbreviation: franchise.abbreviation,
+                colors: franchise.colors),
+            stadium: franchise.stadium,
+            market: franchise.market,
             scheme: SchemeIdentity.scheme(using: &random))
     }
 }

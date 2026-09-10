@@ -185,6 +185,10 @@ public enum WorldGenerator {
     /// - Parameters:
     ///   - seed: the world seed. Everything below is derived from it and nothing else.
     ///   - shape: the league's structure. Validated before anything is generated.
+    ///   - franchises: which clubs the league is made of. The curated thirty-two by
+    ///     default, which is what makes two seeds two leagues in the same buildings
+    ///     ([decision 215](../../../../docs/design-decisions.md)); `.randomised` is the
+    ///     pool draw, kept as a last resort and not refined.
     ///   - season: the season the world starts in.
     ///   - parts: which optional stages to draw. See `Parts`.
     ///   - collegeCount: how many colleges the world's players come from.
@@ -194,6 +198,7 @@ public enum WorldGenerator {
     public static func generate(
         seed: UInt64,
         shape: LeagueShape = .standard,
+        franchises: FranchiseSource = .curated,
         season: Int,
         parts: Parts = .all,
         collegeCount: Int = 120,
@@ -212,7 +217,9 @@ public enum WorldGenerator {
 
         var leagueRandom = root.split(Stream.league.rawValue)
         let generatedLeague: LeagueGenerator.GeneratedLeague
-        switch LeagueGenerator.league(shape: shape, using: &leagueRandom) {
+        switch LeagueGenerator.league(
+            shape: shape, franchises: franchises, using: &leagueRandom)
+        {
         case .failure(let failure): return .failure(.league(failure))
         case .success(let value): generatedLeague = value
         }
