@@ -971,6 +971,80 @@ struct PocketTests {
         )
     }
 
+    /// The window the rush arrives in has to span the holds it is compared against, or
+    /// the comparison is not a comparison.
+    ///
+    /// Pressure is one inequality: did the first man home get there before the ball came
+    /// out. The arrival is drawn once per beaten blocker, the hold is a property of the
+    /// concept, and the verdict is the two read against each other. An inequality whose
+    /// two sides cannot cross is not an inequality — it is a constant wearing one — and
+    /// that is the failure this asserts against.
+    ///
+    /// It bites at both ends. A hold **under the earliest arrival** is never pressured,
+    /// whatever the rush did and whoever is blocking: the concept is un-pressurable by
+    /// construction rather than hard to pressure. A hold **over the latest arrival** is
+    /// pressured on every snap a rep was lost, so the hold stops being read at all — and
+    /// any two such holds are then pressured on exactly the same snaps, which makes them
+    /// the same concept however far apart their numbers look. Both are silent: the shares
+    /// come out plausible, and nothing in them says the dial is dead.
+    ///
+    /// So four things, all measured off the paired sample above and none of them a
+    /// statement about a constant, so that a hold moved out of the window fails this
+    /// rather than the next person to wonder why a parameter does nothing:
+    ///
+    /// 1. the **earliest** first arrival is sooner than the shortest hold any concept
+    ///    asks for, so the quickest ball in the game can still be beaten;
+    /// 2. the **latest** first arrival is later than the longest hold, so the deepest
+    ///    drop in the game can still be protected;
+    /// 3. no concept's verdict is a constant — every one of them is pressured on some
+    ///    snaps and clean on others;
+    /// 4. no two concepts are pressured on the *same* snaps — waiting longer has to turn
+    ///    at least one clean snap into a pressured one, or the extra hold bought nothing.
+    ///
+    /// The fourth is the exact complement of the superset in the test above: that one
+    /// says a longer hold is never pressured *less*, this one says it is pressured
+    /// *more*. Together they are what makes the hold a dial rather than a label.
+    @Test(
+        "The rush's arrival window spans every route hold, so every hold is read",
+        .tags(.contract))
+    func theArrivalWindowSpansTheRouteHolds() {
+        let measured = pooledPocket()
+        guard let shortest = measured.first, let longest = measured.last else {
+            Issue.record("no pass concepts to span")
+            return
+        }
+        // The first man home, on the snaps anybody got home at all. This is the quantity
+        // the hold is compared against, so it is the one that has to span them — a later
+        // rusher on the same snap never decides anything.
+        let arrivals = shortest.firstArrival.filter { $0 > 0 }
+        #expect(arrivals.count > 0, "no rusher ever got home: nothing to span")
+        let earliest = arrivals.min() ?? 0
+        let latest = arrivals.max() ?? 0
+        #expect(
+            earliest < shortest.hold,
+            "the earliest arrival in \(arrivals.count) rushes is \(earliest)ms and the shortest hold is \(shortest.concept) at \(shortest.hold)ms: that concept cannot be pressured at all"
+        )
+        #expect(
+            latest > longest.hold,
+            "the latest arrival in \(arrivals.count) rushes is \(latest)ms and the longest hold is \(longest.concept) at \(longest.hold)ms: that concept is pressured whenever any rep is lost, so its hold is never read"
+        )
+        for entry in measured {
+            let pressured = entry.pressured.filter { $0 }.count
+            #expect(
+                pressured > 0 && pressured < entry.pressured.count,
+                "\(entry.concept) at \(entry.hold)ms came back pressured on \(pressured) of \(entry.pressured.count) snaps: its verdict is a constant, not a comparison"
+            )
+        }
+        for (earlier, later) in zip(measured, measured.dropFirst()) {
+            let boughtByWaiting = zip(earlier.pressured, later.pressured).filter { !$0 && $1 }
+                .count
+            #expect(
+                boughtByWaiting > 0,
+                "\(earlier.concept) at \(earlier.hold)ms and \(later.concept) at \(later.hold)ms were pressured on exactly the same snaps: \(later.hold - earlier.hold)ms of extra hold changed nothing"
+            )
+        }
+    }
+
     /// What a dropback records about its pocket, once, whatever happened in it.
     ///
     /// One `.blockResult` per rep resolved — the fact of the matchup — and then exactly
