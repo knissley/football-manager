@@ -699,13 +699,30 @@ struct GoldenSeedTests {
             // lands and not again because a later branch moved the engine. The drift is
             // recorded instead, and `row:betweenTeamSigma` is what keeps it visible.
             //
-            // So the three below are a third set rather than either parent's, and both
-            // mechanisms are in every one of them: a different eleven men, drawn to a
-            // different ceiling, playing under a pass rush that arrives on a different
-            // window. Checked against both parents before they were written down — all
-            // three differ from both.
+            // And moved by half the distance, once the ceiling of 14-2-1 started capping
+            // every walk-off at the midpoint between the spot of enforcement and the goal
+            // line the offending team defends rather than only a walk-off that would reach
+            // the goal line itself. On its own branch that changed no golden: across the
+            // three games there, forty-five accepted penalties all walked their nominal
+            // yardage and none met the ceiling. Against the wider talent spread it moves
+            // seed 5, which has a taunting foul enforced from around the 26 — fifteen yards
+            // where thirteen is half the distance.
+            //
+            // So seed 5 below carries three mechanisms at once: a different eleven men
+            // drawn to a different ceiling, a pass rush arriving on a window that spans the
+            // route holds, and a walk-off that stops on the midpoint.
+            //
+            // **Seeds 1 and 12 are unchanged from this merge's first parent, and that was
+            // checked rather than inherited.** The ceiling binds only where the goal line
+            // is nearer than twice the penalty's yardage, and the note above about which
+            // seeds meet it was written against different games — the pass rush makes these
+            // three games different games, so it does not carry. What settles it is that
+            // the checksum folds `situation.ballOn` for every play in the stream: a clamp
+            // that bound would move a spot, and a moved spot moves the down and everything
+            // after it. Two identical sixty-four-bit checksums across the two enforcements
+            // are a play-for-play identical game, so the ceiling bound nowhere in either.
             (UInt64(1), UInt64(13_153_807_975_940_597_992)),
-            (UInt64(5), UInt64(9_139_961_247_156_091_205)),
+            (UInt64(5), UInt64(1_093_611_880_970_820_037)),
             (UInt64(12), UInt64(13_259_479_467_292_385_971)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {

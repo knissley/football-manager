@@ -2647,6 +2647,88 @@ struct RulesConformanceTests {
         )
     }
 
+    /// 14-2-1's ceiling short of a goal line. Five yards from the 7 does not reach the
+    /// goal line, so the older scenarios' reading — clamp only what would — walks the
+    /// whole five to the 2. The article caps the walk-off at half the distance whenever
+    /// the walk-off is longer than half, and half of seven is three and a half.
+    ///
+    /// The engine spots on whole yards and the article's midpoint here is not one, so
+    /// the walk-off is rounded down to three and the ball is left on the 4, the nearer
+    /// whole yard that the ceiling still allows. That rounding is a modelling choice;
+    /// the ceiling itself is the article.
+    @Test(
+        "football · Rule 14-2-1, 8-4-6 · five yards against the defence from the 7 is half the distance, because five is more than half of seven",
+        .tags(.football)
+    )
+    func defensiveHoldingAtTheSevenIsHalfTheDistance() {
+        let trace = RulesScenario.defensiveHoldingAtTheSeven.run()
+        guard let foul = trace[2], let next = trace[3] else {
+            Issue.record("the script did not reach the foul")
+            return
+        }
+        #expect(foul.situation.ballOn == 7, "the scenario meant the foul at the 7")
+        trace.expectPlay(
+            3, possession: foul.situation.possession, down: .first, "an automatic first down")
+        #expect(next.situation.ballOn < 7, "the flag moved the ball")
+        #expect(
+            2 * Int(next.situation.ballOn) >= 7,
+            "never past the midpoint of the 7: \(next.situation.ballOn)")
+        #expect(
+            next.situation.ballOn == 4,
+            "the midpoint on whole yards, the walk-off rounded down: \(next.situation.ballOn)")
+        #expect(next.situation.isGoalToGo, "first and goal")
+    }
+
+    /// The same ceiling at the yardage that meets it most often: a contact foul in the
+    /// red zone. Fifteen yards from the 20 is more than half of twenty, so the ball
+    /// stops on the 10 and not on the 5.
+    @Test(
+        "football · Rule 14-2-1, 12-2-15 · fifteen yards against the defence from the 20 is half the distance, because fifteen is more than half of twenty",
+        .tags(.football)
+    )
+    func facemaskAtTheTwentyIsHalfTheDistance() {
+        let trace = RulesScenario.facemaskAtTheTwenty.run()
+        guard let foul = trace[2], let next = trace[3] else {
+            Issue.record("the script did not reach the foul")
+            return
+        }
+        #expect(foul.situation.ballOn == 20, "the scenario meant the foul at the 20")
+        #expect(next.situation.ballOn < 20, "the flag moved the ball")
+        #expect(
+            2 * Int(next.situation.ballOn) >= 20,
+            "never past the midpoint of the 20: \(next.situation.ballOn)")
+        #expect(
+            next.situation.ballOn == 10,
+            "half the distance from the 20: \(next.situation.ballOn)")
+    }
+
+    /// The other direction of the same ceiling, in the band the own-3 scenario never
+    /// enters: five yards back from the offence's own 7 is more than half of the seven
+    /// yards between it and its own goal line, so it goes back to the midpoint — three
+    /// yards, rounded down from three and a half — and not the five that would leave it
+    /// on its own 2.
+    @Test(
+        "football · Rule 14-2-1, 7-4-2 · a false start seven yards out from the offence's own goal line is half the distance back, not five yards",
+        .tags(.football)
+    )
+    func falseStartAtTheOwnSevenIsHalfTheDistance() {
+        let trace = RulesScenario.falseStartAtTheOwnSeven.run()
+        guard let foul = trace[2], let next = trace[3] else {
+            Issue.record("the script did not reach the foul")
+            return
+        }
+        #expect(foul.situation.ballOn == 93, "the scenario meant the foul at the own 7")
+        trace.expectPlay(
+            3, possession: foul.situation.possession, down: .first, "the down is replayed")
+        #expect(next.situation.ballOn > 93, "the flag moved the ball")
+        #expect(
+            2 * (100 - Int(next.situation.ballOn)) >= 7,
+            "never past the midpoint of the own 7: \(next.situation.ballOn)")
+        #expect(
+            next.situation.ballOn == 96,
+            "the midpoint on whole yards, the walk-off rounded down: \(next.situation.ballOn)")
+    }
+
     /// The reference gives the yardage and the automatic first down and names Rule 14-4
     /// for the spot; the spot itself — the end of the run — is the sentence the audit's
     /// S13 recorded. Fifteen yards from the end of a twenty-yard run is thirty-five.
@@ -2756,8 +2838,15 @@ struct RulesConformanceTests {
     /// The other branch of the same draw. Nothing scored, so nothing is carried anywhere:
     /// a personal foul on the kicker is fifteen yards and a first down from the previous
     /// spot, and the offence keeps the ball.
+    ///
+    /// The kick is from the 20, and fifteen from the 20 is past the midpoint of it, so
+    /// 14-2-1's ceiling cuts the walk-off to half the distance and first-and-goal is at
+    /// the 10. This assertion read "the 5, fifteen on from the 20" until the ceiling was
+    /// understood to govern every distance penalty and not only one that would reach a
+    /// goal line; the fifteen and the automatic first down, which is what 12-2-12 is
+    /// asserted for here, are unchanged.
     @Test(
-        "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down",
+        "football · Rule 12-2-12, 14-2-1 · roughing the kicker on a missed field goal is a first down, the fifteen capped at half the distance from the 20",
         .tags(.football)
     )
     func roughingOnAMissedFieldGoalIsAFirstDown() {
@@ -2770,9 +2859,12 @@ struct RulesConformanceTests {
         trace.expectScore(kicker, 0)
         #expect(kick.play.outcome.penalties.first?.wasAccepted == true)
         #expect(kick.play.outcome.penalties.first?.awardedFirstDown == true)
+        #expect(
+            kick.play.outcome.penalties.first?.yards == 10,
+            "the record carries the distance assessed, which the ceiling cut from fifteen")
         trace.expectPlay(
-            kick.index + 1, possession: kicker, down: .first, ballOn: 5,
-            "first and goal at the 5, fifteen on from the 20")
+            kick.index + 1, possession: kicker, down: .first, ballOn: 10,
+            "first and goal at the 10: half the distance from the 20 caps the fifteen")
     }
 
     /// The same foul on the kick that went over. 12-2-12's second penalty marks running

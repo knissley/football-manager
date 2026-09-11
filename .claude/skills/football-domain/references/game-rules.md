@@ -266,8 +266,15 @@ its season and source belong to issue #2.
   put in play), the spot of the foul, the spot of a backward pass or fumble, the dead-ball
   spot, the succeeding spot (where the next down will start), the other try spot, and the
   spot of a change of possession. `[2025 · 14-3-4]`
-- **Half the distance to the goal is measured from the spot of enforcement**, whichever
-  spot that is. `[2025 · 14-2-1]`
+- **Half the distance to the goal is a ceiling on every distance penalty**, and it is
+  measured from the spot of enforcement, whichever spot that is. When the walk-off would
+  carry the ball past the midpoint between that spot and the goal line the offending team
+  defends, the ball goes to the midpoint instead. The article overrides every other
+  enforcement of a distance penalty and excepts only intentional grounding and a palpably
+  unfair act; a try is not excepted. **It bites well short of a goal line** — five yards
+  from the 7 and fifteen from the 20 are both more than half, and neither would have
+  reached the goal line, so a walk-off that stops inside the field is no evidence the
+  ceiling is idle. `[2025 · 14-2-1]`
 - A flag that comes down before the ball is snapped walks off from the succeeding spot and
   the same down is played again; one that comes down as it is snapped walks off from the
   previous spot instead, and the down is played over. Either way, if enforcing the penalty

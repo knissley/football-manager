@@ -985,6 +985,77 @@ public enum RulesScenarios {
         ScriptedGame { snap in snap.index == 1 ? snap.rush(20, foulBy: .facemask) : plod(snap) }
     }
 
+    // MARK: The half-distance ceiling short of a goal line
+    //
+    // 14-2-1 caps a distance penalty at the midpoint between the spot it is enforced
+    // from and the goal line the offending team defends. The cap bites whenever the
+    // walk-off is longer than half that distance — which is a wider band than the
+    // walk-offs that would reach the goal line outright, and the three scripts below
+    // live in the part of it the older scenarios never enter: half the distance is
+    // shorter than the penalty, and the penalty is still shorter than the distance.
+
+    /// A drive to the 7, then defensive holding on a run that goes nowhere. Five yards
+    /// is more than half of seven, so the ball stops at the midpoint rather than the 2.
+    static var defensiveHoldingAtTheSeven: ScriptedGame {
+        ScriptedGame { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 7)
+            case 2: return snap.rush(0, foulBy: .defensiveHolding)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// A drive to the 20, then a facemask on a run that goes nowhere. Fifteen yards is
+    /// more than half of twenty, so the ball stops at the midpoint rather than the 5.
+    /// This is the common case of the ceiling: every contact foul in the red zone.
+    static var facemaskAtTheTwenty: ScriptedGame {
+        ScriptedGame { snap in
+            switch snap.index {
+            case 1: return .rush(Int16(snap.ballOn) - 20)
+            case 2: return snap.rush(0, foulBy: .facemask)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// The offence throws from its own 30 and is picked off at the other side's 7, where
+    /// the false start that follows is worth half the distance rather than five yards.
+    /// The throw is called as a throw so that the record's concept is the play it plays.
+    static var falseStartAtTheOwnSeven: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: {
+                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+            })
+        ) { snap in
+            switch snap.index {
+            case 1: return .interception(to: 7)
+            case 2: return snap.preSnapFoul(.falseStart)
+            default: return plod(snap)
+            }
+        }
+    }
+
+    /// A touchdown, then a two-point try walked out to the 7 by a false start and walked
+    /// back in by defensive offside.
+    ///
+    /// Two flags rather than one because a try starts on the 2, where five yards would
+    /// reach the goal line and every reading of the ceiling agrees. Walked out to the 7
+    /// first, the same five yards land in the band where they do not: 11-3-3 exempts no
+    /// try from 14-2-1, and 14-3-4-f puts the try's own spot among the spots 14-2-1
+    /// measures from.
+    static var twoPointTryWalkedOutAndBackIn: ScriptedGame {
+        ScriptedGame(caller: ScriptedCaller(twoPointDecision: { _ in true })) { snap in
+            switch snap.index {
+            case 1: return snap.touchdown()
+            case 2: return snap.preSnapFoul(.falseStart)
+            case 3: return snap.preSnapFoul(.offside)
+            case 4: return .twoPoint(converted: true)
+            default: return plod(snap)
+            }
+        }
+    }
+
     /// A run to the opponents' 30, then a throw at the end zone a defender interferes on.
     /// The throw is called as a deep throw so that the record's concept is the play it
     /// plays.

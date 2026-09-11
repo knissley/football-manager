@@ -177,6 +177,41 @@ struct TryTests {
         trace.expectScore(scorer, 8)
     }
 
+    /// A try is not exempt from the half-distance ceiling. 11-3-3 lifts nothing — it
+    /// applies the same half-distance twice inside its own interference exception — and
+    /// 14-3-4-f puts the try's spot among the spots 14-2-1 measures from.
+    ///
+    /// A try starts on the 2, where five yards would reach the goal line and the ceiling
+    /// is not in dispute. Walked out to the 7 by a false start first, the same five yards
+    /// land where it is: half of seven is three and a half, so the replay comes from the
+    /// 4 — the walk-off rounded down to the whole yard the engine can spot, which is a
+    /// modelling choice — and not from the 2.
+    @Test(
+        "football · Rule 14-2-1, 11-3-3, 11-3-3 Item 2 · a five-yard defensive foul on a try snapped from the 7 is half the distance, and a try is not exempt from the ceiling",
+        .tags(.football)
+    )
+    func offsideOnATryFromTheSevenIsHalfTheDistance() {
+        let trace = RulesScenario.twoPointTryWalkedOutAndBackIn.run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectPlay(2, kind: .penaltyOnly, possession: scorer, ballOn: 2, "the false start")
+        trace.expectPlay(3, kind: .penaltyOnly, possession: scorer, ballOn: 7, "then the offside")
+        guard let replay = trace[4] else {
+            Issue.record("the script did not reach the replayed try")
+            return
+        }
+        #expect(replay.situation.ballOn < 7, "the flag moved the try in")
+        #expect(
+            2 * Int(replay.situation.ballOn) >= 7,
+            "never past the midpoint of the 7: \(replay.situation.ballOn)")
+        trace.expectPlay(
+            4, kind: .twoPointConversion, possession: scorer, ballOn: 4,
+            "the try is snapped from the midpoint, the walk-off rounded down")
+        trace.expectScore(scorer, 8)
+    }
+
     /// A two-point try is a scrimmage down like any other, and the sport lets it be a run.
     ///
     /// 2025 rulebook, 11-3-1: the team that scored puts the ball in play 15 yards from the
