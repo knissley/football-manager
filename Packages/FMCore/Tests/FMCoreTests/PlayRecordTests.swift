@@ -254,13 +254,57 @@ struct DecisionPointTests {
         #expect(point.coverageTechnique == nil)
     }
 
-    @Test("The progression read carries both its index and the separation", .tags(.unit))
+    /// Rewritten. The case this replaces asserted that `primary` was the receiver, which
+    /// is the opposite of what every other two-man decision in the enum does and the
+    /// opposite of what the engine emitted: `primary` is the man whose act is recorded
+    /// and `secondary` the man on the other side of it, so a read is the quarterback's,
+    /// with the receiver he looked at second — the same pair, in the same order, as
+    /// `throwDecision`.
+    @Test("A read names the quarterback first and the receiver he read second", .tags(.unit))
     func progression() {
         let point = DecisionPoint.readProgression(
-            tick: 18, receiver: PlayerSlot(8), index: 2, separationCentimetres: 45)
+            tick: 18, passer: PlayerSlot(0), receiver: PlayerSlot(8), index: 2,
+            separationCentimetres: 45)
+        #expect(point.primary == PlayerSlot(0))
+        #expect(point.secondary == PlayerSlot(8))
         #expect(point.detail == 2)
         #expect(point.value == 45)
-        #expect(point.primary == PlayerSlot(8))
+    }
+
+    /// The pair every two-man decision names, in the one order they all name it in: the
+    /// man whose act the point records, then the man on the other side of it. Written
+    /// down as a test because the factories are the only place the convention is
+    /// enforced, and a factory that disagrees with its neighbours is how a query comes to
+    /// credit a quarterback as a receiver.
+    @Test("Two-man decisions name the actor first and the man opposite second", .tags(.contract))
+    func actorNamedFirst() {
+        let actor = PlayerSlot(4)
+        let opposite = PlayerSlot(17)
+        let points = [
+            DecisionPoint.pressureAllowed(
+                tick: 1, blocker: actor, rusher: opposite, afterMilliseconds: 1),
+            DecisionPoint.pressureHeld(
+                tick: 1, blocker: actor, rusher: opposite, forMilliseconds: 1),
+            DecisionPoint.readProgression(
+                tick: 1, passer: actor, receiver: opposite, index: 1, separationCentimetres: 1),
+            DecisionPoint.throwDecision(
+                tick: 1, passer: actor, target: opposite, decision: .primary),
+            DecisionPoint.ballArrival(
+                tick: 1, receiver: actor, defender: opposite, placement: .onTarget,
+                separationCentimetres: 1),
+            DecisionPoint.catchAttempt(
+                tick: 1, receiver: actor, defender: opposite, result: .caught),
+            DecisionPoint.tackleAttempt(
+                tick: 1, defender: actor, carrier: opposite, result: .madeTackle),
+            DecisionPoint.blockResult(tick: 1, blocker: actor, defender: opposite, result: .won),
+            DecisionPoint.coverageAssignment(
+                tick: 1, defender: actor, receiver: opposite, technique: .press,
+                separationCentimetres: 1),
+        ]
+        for point in points {
+            #expect(point.primary == actor, "\(point.kind) does not name the actor first")
+            #expect(point.secondary == opposite, "\(point.kind) does not name the man opposite")
+        }
     }
 }
 
@@ -461,10 +505,11 @@ struct PlayRecordTests {
     }
 
     /// Old events must still fold correctly, which starts with an event saying which
-    /// shape it is. The version is on every record, and the first shape is 1.
+    /// shape it is. The version is on every record; the first shape was 1, and the
+    /// literal here is what makes moving it a deliberate act rather than a side effect.
     @Test("A record carries the schema version it was written under", .tags(.contract))
     func recordIsVersioned() {
-        #expect(PlayRecord.currentSchemaVersion == 1)
+        #expect(PlayRecord.currentSchemaVersion == 2)
         #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
     }
 

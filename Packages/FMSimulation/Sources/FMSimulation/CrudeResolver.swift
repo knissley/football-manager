@@ -458,17 +458,18 @@ public struct CrudeResolver: PlayResolver {
 
             credit(receiver, .receiver)
             credit(defender, .coverage)
+            // The matchup and what it was worth, on one point, through the factory the
+            // convention is stated on. A second point saying the quarterback read this
+            // man is not something the resolver knows: it works every route runner in
+            // whatever order the personnel hands them over, so the only index it could
+            // record is its own loop's, and a `.readProgression` is documented to carry
+            // the place in the play's read order. The separation lives here instead,
+            // where it is a fact about the coverage rather than about a read nobody made.
             decisions.append(
-                .init(
-                    tick: UInt16(12 + index * 3), kind: .coverageAssignment, primary: defender,
-                    secondary: receiver,
-                    detail: (defense.coverage.isMan ? CoverageTechnique.offMan : .zoneDeep).rawValue
-                ))
-            decisions.append(
-                .init(
-                    tick: UInt16(14 + index * 4), kind: .readProgression,
-                    primary: SlotLayout.quarterback,
-                    secondary: receiver, detail: UInt8(index + 1), value: Int16(separation)))
+                .coverageAssignment(
+                    tick: UInt16(12 + index * 3), defender: defender, receiver: receiver,
+                    technique: defense.coverage.isMan ? .offMan : .zoneDeep,
+                    separationCentimetres: Int16(separation)))
             reads.append((receiver, defender, separation))
 
             // Only the fouls whose restrictions start at the snap. Interference needs a

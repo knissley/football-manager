@@ -556,7 +556,22 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
     /// The shape a record written today has. Bumped when the record's layout or the
     /// meaning of a field changes, so that an old event can still be folded by whatever
     /// reads it ([ADR-0009](../../../../docs/adr/0009-event-sourcing-by-default.md)).
-    public static let currentSchemaVersion: UInt8 = 1
+    ///
+    /// The test for whether a change needs one is whether a reader of an older record
+    /// would now be *wrong*, not whether the record moved. A decision kind that starts
+    /// being emitted needs no bump — a record without it is simply a record where it did
+    /// not happen, which is the truth about that record. A field that starts carrying a
+    /// quantity where it carried a filler does: the same byte answers a different
+    /// question either side of the change, and nothing but this one can tell a reader
+    /// which question it answered.
+    ///
+    /// Version 2 is where a coverage assignment began carrying the separation the matchup
+    /// produced. In version 1 that field is zero on every coverage point, so a fold that
+    /// read it without checking here would report that every receiver in recorded history
+    /// was blanketed; and a version-1 record carries a read progression whose index is the
+    /// resolver's own iteration order rather than a place in a read order, so a tendency
+    /// query over one would describe a progression that was never worked.
+    public static let currentSchemaVersion: UInt8 = 2
 
     /// The index of a slot nobody stood in.
     public static let vacant: UInt8 = 255
