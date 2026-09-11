@@ -97,7 +97,8 @@ enum TestWorld {
     /// kind of play many times rather than watch a whole game.
     static func context(
         seed: UInt64, home homeIndex: Int = 0, away awayIndex: Int = 1,
-        weather: WeatherState = .clear, rules: Rules = .standard
+        weather: WeatherState = .clear, rules: Rules = .standard,
+        playClockExpired: Bool = false
     ) -> PlayContext {
         let setup = Self.setup(
             seed: seed, home: homeIndex, away: awayIndex, weather: weather, rules: rules)
@@ -112,6 +113,7 @@ enum TestWorld {
             crowdNoise: setup.stadium.noise,
             altitudeFeet: setup.stadium.altitudeFeet,
             weather: weather,
+            playClockExpired: playClockExpired,
             rules: rules)
     }
 

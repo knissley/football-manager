@@ -593,14 +593,25 @@ struct ScenarioResolver: PlayResolver {
             clockIsRunning: context.clockIsRunning, previous: log.previous(), huddle: log.huddle)
     }
 
+    /// The scenario's own answer to the interval: this offence is late, or it is not.
+    /// Whether anybody stops the clock in time is the rules layer's and the benches', and
+    /// the answer comes back on `PlayContext.playClockExpired`.
+    func overrunsThePlayClock(
+        situation: Situation, calls: Calls, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> Bool {
+        playClockExpires(snap(situation, calls, context))
+    }
+
     func resolve(
         situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let snap = self.snap(situation, calls, context)
-        // A play clock the scenario said would expire: the ball stays dead and the
-        // whistle is the foul (4-6-4), so there is no play for the script to describe.
-        let outcome = playClockExpires(snap) ? snap.preSnapFoul(.delayOfGame) : script(snap)
+        // Nobody stopped the clock in time, so the ball stays dead and the whistle is the
+        // foul (4-6-4): there is no play for the script to describe. The contract the
+        // crude resolver honours for the same event.
+        let outcome = context.playClockExpired ? snap.preSnapFoul(.delayOfGame) : script(snap)
         log.append(
             .init(
                 clockIsRunning: context.clockIsRunning, situation: situation, outcome: outcome,

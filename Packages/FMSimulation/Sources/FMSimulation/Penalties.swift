@@ -47,6 +47,39 @@ enum Penalties {
     /// not winning, so drawing it against the winner at the old share tripled it.
     static let offensiveShareOfInterference = 0.075
 
+    // MARK: - The play clock
+
+    /// Whether the offence fails to get this snap away inside the play clock in force
+    /// (2025 rulebook, 4-6-1, 4-6-2).
+    ///
+    /// Not a foul yet, and that is the point. An offence beaten by the clock has two
+    /// ends available to it — five yards for the delay of game (4-6-4), or a charged
+    /// timeout that stops the clock and costs it one of three (4-3-2, 4-5-1 Item 1) —
+    /// and which of them the down comes to is a decision somebody makes afterwards. So
+    /// this reports the interval and nothing about the consequence.
+    ///
+    /// The offence means to snap with some slack left — a second bleeding the clock,
+    /// nine at normal tempo on the forty, six on the twenty-five that follows a change
+    /// of possession — and the chance it overruns that slack halves with every eight
+    /// seconds of it. The base is the crowd's, and noise moves this far less than it
+    /// moves a false start: the play clock is the coach's problem, not the crowd's. At a
+    /// tenth of a point per unit of noise it was doubling the road team's delay-of-game
+    /// rate and quietly supplying most of the road/home penalty gap.
+    ///
+    /// The base is set so that a normal-tempo snap on the forty at a quiet ground
+    /// overruns exactly as often as the flat rate it replaced fired (0.35%); everything
+    /// else — the shorter clock, the tempo, the crowd, the huddle a timeout bought — is
+    /// the derivation.
+    static func overrunsThePlayClock(
+        calls: Calls, context: PlayContext, random: inout SplittableRandom
+    ) -> Bool {
+        let noise = context.offenseIsHome ? 0.0 : Double(context.crowdNoise)
+        let slack = Int(context.remainingAtIntendedSnap(at: calls.offense.tempo))
+        var overrun = 0.007 + noise * 0.00006
+        for _ in 1..<max(1, slack) { overrun *= playClockOverrunSurvival }
+        return random.nextBool(probability: overrun)
+    }
+
     // MARK: - Discipline
 
     /// A foul before the snap, which kills the play.
@@ -63,6 +96,18 @@ enum Penalties {
     ) -> PenaltyRecord? {
         let noise = context.offenseIsHome ? 0.0 : Double(context.crowdNoise)
 
+        // The play clock has already run out, so the ball never came into play and
+        // nothing else about this down can have happened (2025 rulebook, 4-6-4). It is
+        // not drawn here: whether the offence was beaten by the interval is
+        // `overrunsThePlayClock`, asked before the benches were given their chance to
+        // stop the clock, and what is left here is to report it. The quarterback is the
+        // offender by convention — the ball is his to put in play.
+        if context.playClockExpired {
+            return record(
+                .delayOfGame, by: [SlotLayout.quarterback], personnel, context, &random,
+                offense: true)
+        }
+
         // The offence's procedural fouls. A loud road stadium is worth roughly a extra
         // false start a game, which is what the advantage is made of.
         let lineSlots = personnel.blockers(includingEligibles: false)
@@ -76,29 +121,6 @@ enum Penalties {
 
         if random.nextBool(probability: max(0.002, falseStart)) {
             return record(.falseStart, by: lineSlots, personnel, context, &random, offense: true)
-        }
-
-        // Delay of game is the play clock expiring with the ball not snapped (2025
-        // rulebook, 4-6-1, 4-6-4), so it is derived from the clock in force and the
-        // tempo rather than drawn at a flat rate. The offence means to snap with some
-        // slack left — a second bleeding the clock, nine at normal tempo on the forty,
-        // six on the twenty-five that follows a change of possession — and the chance
-        // it overruns that slack halves with every eight seconds of it. The base is the
-        // crowd's, and it moves this far less than it moves a false start: the play
-        // clock is the coach's problem, not the crowd's. At a tenth of a point per unit
-        // of noise it was doubling the road team's delay-of-game rate and quietly
-        // supplying most of the road/home penalty gap.
-        //
-        // Set so that a normal-tempo snap on the forty at a quiet ground overruns
-        // exactly as often as the flat rate used to fire (0.35%); everything else — the
-        // shorter clock, the tempo, the crowd — is the derivation.
-        let slack = Int(context.playClock.remainingAtIntendedSnap(at: calls.offense.tempo))
-        var overrun = 0.007 + noise * 0.00006
-        for _ in 1..<max(1, slack) { overrun *= playClockOverrunSurvival }
-        if random.nextBool(probability: overrun) {
-            return record(
-                .delayOfGame, by: [SlotLayout.quarterback], personnel, context, &random,
-                offense: true)
         }
 
         // The rest of the procedural offensive fouls: lining up wrong, moving early, a

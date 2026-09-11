@@ -94,6 +94,15 @@ extension GameSimulator {
         /// defensive act that conserves time. Set by whatever stopped the clock, read
         /// by the resolver to know when it has expired, and written into every record.
         var playClock: PlayClock
+        /// Whether a charged timeout is what put that clock where it is, either side's
+        /// (2025 rulebook, 4-5-1, 4-6-3-a).
+        ///
+        /// The offence stands through a timeout with the ball, so the huddle has already
+        /// happened when the twenty-five seconds start, and it comes to the snap set —
+        /// which is the difference between a timeout and every other stoppage that
+        /// leaves the same twenty-five. Set where a timeout is charged and cleared by
+        /// the snap that spends it, or by a period that ends before one comes.
+        var offenseIsSetFromATimeout = false
         /// Who is on the field for this snap. The offence declares by substituting and
         /// the defence answers, so these are set in that order before the snap and are
         /// part of the situation both callers and the resolver read.
@@ -198,7 +207,13 @@ extension GameSimulator {
                 defensePackage: defensePackage)
         }
 
-        func context() -> PlayContext {
+        /// The game as a resolver sees it.
+        ///
+        /// `playClockExpired` says whether the interval before this snap ran out with the
+        /// ball not put in play (2025 rulebook, 4-6-4). It is decided above this, by the
+        /// resolver and the benches together, and is false everywhere the question has
+        /// not been asked yet.
+        func context(playClockExpired: Bool = false) -> PlayContext {
             let offense = possession == setup.home.id ? setup.home : setup.away
             let defense = possession == setup.home.id ? setup.away : setup.home
             return PlayContext(
@@ -220,6 +235,8 @@ extension GameSimulator {
                 // ready-for-play signal, false only when it waits for the snap.
                 clockIsRunning: previousBehavior != .stopsUntilSnap,
                 playClock: playClock,
+                playClockExpired: playClockExpired,
+                offenseIsSetFromATimeout: offenseIsSetFromATimeout,
                 form: form,
                 rules: setup.rules)
         }
@@ -258,10 +275,13 @@ extension GameSimulator {
         /// record of the snap it precedes with the side that took it — so a timeout
         /// taken with the ball about to change hands is charged to a team rather than
         /// inferred from two situations. Nothing is recorded when the side has none
-        /// left, because nothing was charged.
-        mutating func takeTimeout(offense: Bool) {
-            guard spendTimeout(of: offense ? possession : defending) else { return }
+        /// left, because nothing was charged — which is what `false` says, so that a
+        /// caller acting on the stoppage acts on one that happened.
+        @discardableResult
+        mutating func takeTimeout(offense: Bool) -> Bool {
+            guard spendTimeout(of: offense ? possession : defending) else { return false }
             beforeTheSnap.append(.timeout(byOffense: offense))
+            return true
         }
 
         /// The same, charged to `team`, which an injury timeout is (4-5-4-a). A charged
@@ -278,6 +298,11 @@ extension GameSimulator {
             }
             previousBehavior = .stopsUntilSnap
             playClock = setup.rules.playClockAfterAnAdministrativeStoppage
+            // The offence stands through this one with the ball, so it comes to the next
+            // snap with its call in and its grouping set — which is what separates the
+            // twenty-five a timeout leaves from the same twenty-five a change of
+            // possession leaves, where the side about to snap has prepared nothing.
+            offenseIsSetFromATimeout = true
             return true
         }
 
@@ -516,7 +541,14 @@ extension GameSimulator {
                 .playClock(
                     seconds: playClock.seconds,
                     remaining: expired
-                        ? 0 : playClock.remainingAtIntendedSnap(at: calls.offense.tempo)))
+                        ? 0
+                        : PlayContext.remainingAtIntendedSnap(
+                            playClock, at: calls.offense.tempo,
+                            setFromATimeout: offenseIsSetFromATimeout)))
+            // The timeout, if there was one, has now been spent: this is the snap it
+            // bought, and the one after it starts from wherever this down leaves the
+            // clock.
+            offenseIsSetFromATimeout = false
             plays.append(
                 PlayRecord(
                     game: setup.game,
@@ -1120,8 +1152,11 @@ extension GameSimulator {
             }
             previousBehavior = .stopsUntilSnap
             // The end of a period is an administrative stoppage (4-6-2-d), and so is the
-            // free kick that opens a half (4-6-2-g).
+            // free kick that opens a half (4-6-2-g). It is the period's clock that put
+            // the twenty-five there, not a timeout, and a period the interval alone
+            // exhausted may have had one charged in it that no snap ever spent.
             playClock = rules.playClockAfterAnAdministrativeStoppage
+            offenseIsSetFromATimeout = false
         }
 
         func result() -> GameResult {

@@ -400,19 +400,35 @@ timeout or the two-minute warning (4-6-2) — and missing it leaves the ball dea
 delay of game, which is five yards (4-6-4). Five yards decides third and short and fourth
 and short and nothing else: on first and ten it is a down replayed with two behind it, and
 on first and goal it is a worse goal-line call rather than a lost one. So the offence
-spends one when the down is third or fourth and short, when it is going to be late — it
-means to snap on the nub of the clock, or the clock is the short one — and when the
-timeout is cheap, which it is outright with the game clock already stopped and only in a
-one-score game with it running.
+spends one when the down is third or fourth and short, when the clock has actually beaten
+it, and when the timeout is cheap, which it is outright with the game clock already
+stopped and only in a one-score game with it running.
 
-**A caveat on that last one, measured.** In this engine a delay of game is drawn from the
-slack the offence leaves itself on the clock in force rather than counted down, and a
-charged timeout resets the play clock to the twenty-five of 4-6-3-a — the shortest
-interval the book gives. So a timeout here cannot lower the chance of the flag on the snap
-that follows, and the delay-of-game row does not move when this rule is switched on: 0.84
-a game with it and 0.84 without, at seed 7 over 400 games. The decision is still the one a
-bench makes; what it buys is not yet modelled, and closing that gap means moving where the
-flag is decided, not retuning its rate.
+**The bench is asked with the answer in hand, and that is what makes it a decision.**
+Whether the offence gets a given snap away inside the clock in force is settled before
+either bench is asked — the resolver draws it from the clock, the tempo and the crowd, and
+`PlayContext.playClockExpired` carries the verdict — so the question a coach is really put
+is *the ball is not going to be snapped in time: five yards, or a timeout?* Spending one
+because the clock merely looks tight buys a down that was never in danger, which is what
+this rule did when it was first written: the delay-of-game row did not move at all when it
+was switched on, 0.84 a game with it and 0.84 without at seed 7 over 400 games. With the
+flag on the table the rule is worth measuring instead of arguing about, and what it turns
+out to be worth is small — it reaches about one snap in two hundred, because a play clock
+is rarely lost on exactly third and short.
+
+**And a timeout leaves the offence set, which is why it now helps.** A charged timeout is
+a stoppage the benches asked for and the offence stands through it with the ball, so the
+call is in and the grouping is on by the time the twenty-five seconds of 4-6-3-a start;
+what is left of them is lining up. Modelled as the interval a hurry-up offence works in —
+the book fixes the clock's length and says nothing about how ready anyone is — and it is
+the difference between a timeout that helps and one that hurts. Measured over 400 games at
+each of two seeds, with everything else held: with the offence counted as set, a delay of
+game follows a charged timeout on 0.21 snaps in a hundred at seed 7 and 0.37 at seed 11,
+against 0.44 and 0.42 on every other snap; without it, 0.52 and 0.68 — *more* likely than
+an ordinary snap, so that stopping the clock to avoid the five yards made the next five
+yards likelier. A change of possession leaves the same twenty-five seconds and is
+deliberately not treated this way: the side coming on has prepared nothing, which is why
+the short clock after one is the tightest interval in the game.
 
 **Icing the kicker is not modelled.** Calling a timeout to freeze a kicker before a field
 goal is a real thing a bench does, and no caller here does it: the kick is resolved from

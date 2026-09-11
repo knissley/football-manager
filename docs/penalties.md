@@ -18,9 +18,28 @@ inexplicable.
 
 ## Two classes, and only one of them is a roll
 
-**Discipline penalties** are procedural. False start, offside, delay of game,
-twelve men, illegal formation. No matchup produced them; somebody broke a rule.
-These come from a player's `discipline` rating, his coaching, and the situation.
+**Discipline penalties** are procedural. False start, offside, twelve men,
+illegal formation. No matchup produced them; somebody broke a rule. These come
+from a player's `discipline` rating, his coaching, and the situation.
+
+**Delay of game is the one that is neither**, and it used to sit in the list
+above as though it were. In the sport it is not a foul anybody commits: it is a
+clock running out `[2025 · 4-6-1, 4-6-2]`, and the whistle at the end of it is
+the foul `[2025 · 4-6-4]`. Drawn beside the down like a false start, it was a
+rate nothing could answer — and the thing the sport answers it with, a charged
+timeout, could not reach it, so a bench spending one to avoid the five yards
+bought nothing at all.
+
+So the interval is settled first and the consequence second.
+`PlayResolver.overrunsThePlayClock` asks whether this offence gets this snap
+away inside the clock in force — the clock's length is the rules layer's, the
+tempo and the crowd are the resolver's — and the answer is a fact about the
+interval rather than a foul. The rules layer then puts it to the offence, which
+may stop the clock with a charged timeout `[2025 · 4-3-2]` and play the down for
+the price of a timeout instead of five yards, and only what nobody stopped
+becomes a flag. A resolver that has no model of the interval never loses a play
+clock, so a scripted game is not sprinkled with delays of game it did not ask
+for.
 
 **Desperation penalties** are what a player does when he is *losing*. A hold is
 what happens when a tackle is about to give up a sack. Defensive interference is

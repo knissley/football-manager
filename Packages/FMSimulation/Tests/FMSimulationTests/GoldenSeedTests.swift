@@ -548,9 +548,24 @@ struct GoldenSeedTests {
             // above reproduces these numbers. Checked before they were written down: all
             // three seeds differ from both parents of this merge, from each of the three
             // caller branches, and from both intermediate merges on this branch.
-            (UInt64(1), UInt64(18_059_936_834_785_840_009)),
-            (UInt64(5), UInt64(450_664_120_030_719_106)),
-            (UInt64(12), UInt64(12_428_643_440_527_402_903)),
+            //
+            // And then the play clock stopped being a rate and became an interval with a
+            // decision in it, which is where the constants below come from. Whether the
+            // offence gets a snap away inside the clock in force is asked once per snap,
+            // before either bench is asked for a timeout and before the eleven men are
+            // drawn — where the flag used to be drawn beside the down, after the false
+            // start and inside the resolver. That draw has moved in every snap's stream,
+            // so every game diverges from its first possession whether or not a play
+            // clock is ever lost. Three things then differ in the football as well: the
+            // offence spends a timeout on a play clock only when it has actually lost one
+            // rather than whenever the clock looked tight, which is about 0.7 fewer
+            // timeouts a game; the snap that follows a charged timeout is a prepared one,
+            // so it takes about half as many delays of game as an ordinary snap instead
+            // of rather more; and a down where nobody stopped the clock is a delay of
+            // game whatever else might have been drawn on it, since no play was run.
+            (UInt64(1), UInt64(6_826_330_890_823_354_983)),
+            (UInt64(5), UInt64(8_680_277_558_239_915_655)),
+            (UInt64(12), UInt64(1_235_323_273_292_413_922)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -216,6 +216,9 @@ struct VocabularyCoverageTests {
     /// reads as a table.
     private static let foulDraws: [(name: String, expected: [Foul], drawn: Set<Foul>)] = {
         let context = TestWorld.context(seed: 5)
+        // The same snap with the interval already lost, which is what the rules layer
+        // hands a resolver once nobody has stopped the clock (4-6-4).
+        let lostThePlayClock = TestWorld.context(seed: 5, playClockExpired: true)
         var setUp = SplittableRandom(seed: 1)
         let midfield = Situation(
             quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 50,
@@ -250,7 +253,7 @@ struct VocabularyCoverageTests {
             (
                 "Penalties.preSnap",
                 [
-                    .falseStart, .delayOfGame, .illegalFormation, .illegalMotion, .illegalShift,
+                    .falseStart, .illegalFormation, .illegalMotion, .illegalShift,
                     .illegalSubstitution, .offside, .neutralZoneInfraction, .encroachment,
                     .tooManyMenOnField,
                 ],
@@ -258,6 +261,25 @@ struct VocabularyCoverageTests {
                     Penalties.preSnap(
                         situation: midfield, calls: tempo, context: context, personnel: dropback,
                         random: &random)
+                }
+            ),
+            (
+                // Two steps, because the foul is two things: the interval beating the
+                // offence, which `overrunsThePlayClock` draws, and the ball staying dead
+                // for it, which `preSnap` reports off a context the rules layer has
+                // already stamped (2025 rulebook, 4-6-4). The draw is run at its own rate
+                // and the report is only asked where the draw fired, so the row measures
+                // the path a game takes rather than the report on its own.
+                "Penalties.overrunsThePlayClock, reported by Penalties.preSnap",
+                [.delayOfGame],
+                sweep(40_000) { random in
+                    guard
+                        Penalties.overrunsThePlayClock(
+                            calls: tempo, context: context, random: &random)
+                    else { return nil }
+                    return Penalties.preSnap(
+                        situation: midfield, calls: tempo, context: lostThePlayClock,
+                        personnel: dropback, random: &random)
                 }
             ),
             (
