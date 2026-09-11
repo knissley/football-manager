@@ -190,6 +190,28 @@ the fourth down's interval, and it is what an unforeseen stoppage lands on: an i
 timeout between downs takes an interval away that nothing could have planned for, and the
 fourth-down knee is where the sequence still ends rather than turning into a punt.
 
+**Nobody spends a timeout into a victory formation**, and the two benches have different
+reasons. The offence is about to stand on the ball and has nothing to buy with one. The
+defence's case is already inside the count above: it assumes every timeout the defence
+holds and still finds the clock exhaustible, so the ball is not coming back and a timeout
+spent there only shortens a defeat. Declining also keeps the count honest, because the
+count is remade at every down of the sequence and is monotone only while its terms hold
+still — a timeout spent inside a sequence the offence has already committed to erases an
+interval the count was spending, and leaves the offence a live play short of the whistle
+it planned for.
+
+That guard covers every timeout a bench *calls*. It does not cover the two things that
+can still take an interval away from a committed sequence, and neither is a caller's to
+decline. One is a timeout charged by rule: an injury inside the two minutes charges the
+injured team one (4-5-4-a), and it lands wherever the injury does. The other is a
+defensive foul, which can move the ball five yards into field goal range mid-sequence and
+turn a half that was worth ending into a half worth three points — which is the sport, not
+a defect, and the offence is right to stop kneeling and kick. Both are measurable: the
+harness prints **knees followed by a live play**, whose target is zero, and it is not
+always zero. The residual is
+[#101](https://github.com/knissley/football-manager/issues/101)'s to settle, because the
+fix is in what the count assumes rather than in what a coach asks for.
+
 None of it applies above the two-minute warning. The warning is a stoppage the defence
 is handed for nothing (4-4), so it is a fourth timeout — and a knee taken into it has its
 interval truncated at 2:00, which is how a team kneels at 2:01 and then finds it has to
@@ -267,6 +289,55 @@ vacate the middle — is a property of the call, and a coordinator with a weak
 
 Watching that unfold, with the reasoning legible, is the same product as watching your
 own drive. Defense is not the half you skip.
+
+### What a bench buys with a timeout
+
+**Built, and it is the baseline caller's.** A timeout is not a play, so it is asked of
+both benches before every snap, and three things make one worth spending.
+
+**Stopping the clock on defence.** One score down inside the last five minutes, the
+offence in front is spending the whole forty seconds of 4-6-1 between snaps and a timeout
+takes one of those away outright, because the game clock then waits for the snap (4-3-2).
+Three of them is two minutes of game clock, and they are worth nothing at the whistle: the
+allotment is three a half and nothing carries out of one (4-5-1 Item 1). A defence that
+waits for the game to be visibly finite arrives at two minutes with three timeouts and a
+deficit it has run out of possessions to close. Two scores down the ball has to come back
+twice, each timeout buys proportionally less, and they are held for the last three and a
+third minutes instead.
+
+**Saving time with the ball.** Inside the last minute of either half, with points still
+to get, the offence stops the clock rather than keep a timeout it cannot carry past the
+whistle. Points still to get is the mirror of the knee: wherever ending the half is worth
+more than a snap the clock is the offence's friend and stopping it is the last thing it
+wants. The timeouts go before the spike, because a timeout costs a timeout and a spike
+costs a down.
+
+**Saving the play clock.** Which clock the offence faces is the book's — forty seconds
+from the end of the previous play (4-6-1), or twenty-five from the Referee's whistle after
+an administrative stoppage such as a change of possession, an enforcement, a charged
+timeout or the two-minute warning (4-6-2) — and missing it leaves the ball dead for a
+delay of game, which is five yards (4-6-4). Five yards decides third and short and fourth
+and short and nothing else: on first and ten it is a down replayed with two behind it, and
+on first and goal it is a worse goal-line call rather than a lost one. So the offence
+spends one when the down is third or fourth and short, when it is going to be late — it
+means to snap on the nub of the clock, or the clock is the short one — and when the
+timeout is cheap, which it is outright with the game clock already stopped and only in a
+one-score game with it running.
+
+**A caveat on that last one, measured.** In this engine a delay of game is drawn from the
+slack the offence leaves itself on the clock in force rather than counted down, and a
+charged timeout resets the play clock to the twenty-five of 4-6-3-a — the shortest
+interval the book gives. So a timeout here cannot lower the chance of the flag on the snap
+that follows, and the delay-of-game row does not move when this rule is switched on: 0.84
+a game with it and 0.84 without, at seed 7 over 400 games. The decision is still the one a
+bench makes; what it buys is not yet modelled, and closing that gap means moving where the
+flag is decided, not retuning its rate.
+
+**Icing the kicker is not modelled.** Calling a timeout to freeze a kicker before a field
+goal is a real thing a bench does, and no caller here does it: the kick is resolved from
+the kicker, the distance, the weather and the snap, and there is no term in it that a wait
+could move. Calling for the freeze without modelling the freeze would spend a timeout for
+nothing and put it in the timeouts row under a name that was not doing the work.
 
 ## The opponent model
 

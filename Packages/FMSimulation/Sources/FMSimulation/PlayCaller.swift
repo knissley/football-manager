@@ -751,19 +751,96 @@ public struct BaselineCaller: PlayCaller {
         return situation.clockRemaining <= 28
     }
 
+    /// Whether the offence spends a charged timeout rather than let the play clock run
+    /// out for five yards.
+    ///
+    /// Which clock is in force is the book's and not the coach's: forty seconds from the
+    /// end of the previous play (2025 rulebook, 4-6-1), or twenty-five from the Referee's
+    /// whistle after an administrative stoppage — a change of possession, an enforcement,
+    /// a charged timeout, the two-minute warning (4-6-2). Miss it and the ball stays dead
+    /// for a delay of game (4-6-4), which is five yards.
+    ///
+    /// Three things have to be true, and each is one side of the trade.
+    ///
+    /// *The yards have to decide something.* That is third down and fourth, and short:
+    /// five on third and one is third and six, and third and six is a punt. Five on first
+    /// and ten is a down replayed with two behind it, and five on first and goal is a
+    /// worse goal-line call rather than a lost one, so neither is worth a timeout. The
+    /// down has to be read off `Situation` and not off the class, because every goal-line
+    /// snap classifies as goal to go and the class alone cannot tell first and goal from
+    /// third and goal.
+    ///
+    /// *The offence has to be one that is going to be late.* It is late when it means to
+    /// snap on the nub of the clock — a team bleeding the clock leaves itself a second
+    /// whichever of the two it is facing — or when the clock is the short one, which is
+    /// the clock that catches a team still getting a call in and a grouping on. Read off
+    /// `PlayContext.playClock` and the tempo this caller is about to play at, so a caller
+    /// that ignored either would answer the same everywhere.
+    ///
+    /// *The timeout has to be cheap.* With the game clock stopped it costs the timeout
+    /// and nothing else, because the clock was already waiting for the snap (4-3-2). With
+    /// the clock running it costs the interval too, and only a game one possession
+    /// decides is worth spending that on.
+    private func savesThePlayClock(
+        _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
+    ) -> Bool {
+        guard classified.downAndDistance.isShortYardage else { return false }
+        guard situation.down == .third || situation.down == .fourth else { return false }
+        let onTheNub = tempo(for: classified) == .bleedClock
+        let shortClock = context.playClock.seconds < context.rules.playClockAfterAPlay.seconds
+        guard onTheNub || shortClock else { return false }
+        return !context.clockIsRunning || classified.score.isOneScoreGame
+    }
+
+    /// Icing the kicker is **not modelled**, deliberately. Freezing a kicker with a
+    /// timeout before a field goal is a real thing a bench does, and nothing here ever
+    /// does it: the kick is resolved from the kicker, the distance, the weather and the
+    /// snap, and there is no term in it a wait could move. Calling for the freeze without
+    /// modelling the freeze would spend a timeout for nothing and put it in the timeouts
+    /// row under a name that was not doing the work — see
+    /// [play-calling.md](../../../../docs/play-calling.md).
     public func callsTimeout(
         for situation: Situation, classified: SituationClass, isOffense: Bool,
         context: PlayContext
     ) -> Bool {
-        guard context.clockIsRunning else { return false }
         let remaining = isOffense ? situation.offenseTimeouts : situation.defenseTimeouts
         guard remaining > 0 else { return false }
 
+        // Nobody spends one into a victory formation, and the reason differs by bench.
+        // The offence is about to stand on the ball and has nothing to buy. The defence's
+        // count is already in `shouldKneel`, which assumes every timeout the defence
+        // holds and still finds the clock exhaustible — so the ball is not coming back
+        // and the timeout would only shorten a defeat.
+        //
+        // It also keeps that count honest. The count is made afresh at every down of the
+        // sequence and is monotone only while the terms it counted stay put; a timeout
+        // spent inside a sequence the offence has already committed to erases one of the
+        // intervals the count was spending, and leaves the offence a live play short of
+        // the whistle it had planned for.
+        guard !shouldKneel(situation, classified, context) else { return false }
+
         if isOffense {
+            // The play clock first, because it is the one reason to call a timeout with
+            // the game clock already stopped.
+            if savesThePlayClock(situation, classified, context) { return true }
+            guard context.clockIsRunning else { return false }
+
             // Keep the drive alive: the clock is running and there is not enough of it.
-            guard classified.isDesperation else { return false }
-            return situation.clockRemaining <= 100
+            if classified.isDesperation, situation.clockRemaining <= 100 { return true }
+
+            // The last minute of a half with points still to get. A timeout costs a
+            // timeout, and the alternative — throwing it at the ground — costs a down
+            // (`shouldSpike`), so the timeouts go first and the spike is what is left
+            // when they are gone. Points still to get is the mirror of the knee: where
+            // ending the half is worth more than a snap the clock is the offence's
+            // friend, and stopping it is the last thing it wants.
+            guard classified.time.isTwoMinute, situation.clockRemaining <= 60 else {
+                return false
+            }
+            return !endingIsWorthMoreThanASnap(classified)
         }
+
+        guard context.clockIsRunning else { return false }
 
         // The defence spends them to get the ball back — in a game it can still win.
         // `scoreDifferential` is the offence's, so `score.isLeading` means the team
@@ -772,6 +849,19 @@ public struct BaselineCaller: PlayCaller {
         // to shorten a loss is not football.
         guard classified.time.isEndgame, classified.score.isLeading else { return false }
         guard classified.score != .leadingThreeScores else { return false }
+
+        // One score down, the whole clock-burn window is the ball game. The offence in
+        // front is spending the full forty of 4-6-1 between snaps and a timeout takes one
+        // of those away outright, since the clock then waits for the snap (4-3-2); three
+        // of them is two minutes of game clock, and they are worth nothing at the whistle
+        // because a half's allotment is three and nothing carries (4-5-1 Item 1). Waiting
+        // until the game is visibly finite is how a defence arrives at two minutes with
+        // three timeouts and a deficit it has run out of possessions to close.
+        //
+        // Two scores down the ball has to come back twice, so each timeout buys
+        // proportionally less and they are held for the window where the possessions left
+        // can be counted.
+        if classified.score == .leadingOneScore { return true }
         return situation.clockRemaining <= 200
     }
 

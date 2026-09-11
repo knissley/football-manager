@@ -422,9 +422,22 @@ struct GoldenSeedTests {
             // stream. Neither parent's constants could survive, because each was computed
             // without the other's mechanism, and no subset of the mechanisms above
             // reproduces these numbers.
-            (UInt64(1), UInt64(12_846_516_332_598_426_273)),
-            (UInt64(5), UInt64(18_162_519_760_039_925_891)),
-            (UInt64(12), UInt64(6_072_345_254_296_759_821)),
+            //
+            // And moved again by the benches spending their timeouts. Nothing in the
+            // rules layer changed; what changed is when a coach asks for one. A defence a
+            // single score down now stops the clock through the whole five-minute
+            // clock-burn window rather than only inside the last three and a third, an
+            // offence with the ball in the last minute of either half stops it rather
+            // than keep a timeout it cannot carry past the whistle, and an offence on
+            // third or fourth and short facing a play clock it is not going to beat
+            // spends one instead of the five yards. A charged timeout is an
+            // administrative stoppage, so each one resets the play clock to the short one
+            // and leaves the game clock waiting for the snap — which changes how much of
+            // the period the next snap costs, which changes what is called on the snap
+            // after that, and the stream diverges from there.
+            (UInt64(1), UInt64(234_699_460_847_983_132)),
+            (UInt64(5), UInt64(9_111_295_861_296_310_314)),
+            (UInt64(12), UInt64(450_169_252_029_078_525)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
