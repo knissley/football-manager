@@ -79,7 +79,10 @@ So, in this repo:
   failures.
 - **A floor is a guard, and it has a number behind it.** `count > 10` means "the instrument
   is not broken", not "the claim holds", and the comment says what the measured count
-  actually is.
+  actually is. That number is the one thing in a test that nobody re-reads, and it is the
+  family that goes stale first: swept below, a count against a fixed number is roughly
+  twice as likely to sit inside five standard errors as a rate is, and two of the counts
+  written into doc comments in this repository no longer match what the tree produces.
 - **A loop that filters before it asserts says nothing when the filter is empty.** A
   `guard … else { continue }`, a `where` clause on the sequence, an assertion nested under
   an `if`: each is a path through the body that asserts nothing, and a loop that takes it
@@ -99,6 +102,75 @@ So, in this repo:
 - **Except where replay is the point.** A determinism test simulates twice and says so
   beside the call: served from a shared value it compares a value with itself and passes
   whatever the engine does.
+
+### What a sample can resolve, and how to check it
+
+The nickel band below was found by accident, when an unrelated edit moved a reading by
+half a point and both readings turned out to be inside the instrument's noise. So the
+suite was swept for the same shape deliberately: **every assertion on a rate, a share, a
+count per game or a mean** — as against an invariant that must hold on every play, which
+needs no sample size at all. **133 of them**, measured on `c69566a`. One has been added
+since, the per-scenario count in the bullet above, and it is not in the 133: it compares
+15,448 snaps of 15,448 against a floor of zero.
+
+**The method, so the table can be recomputed rather than trusted.** Two instruments, and
+which one applies depends on what the test draws.
+
+- **A statistic over the game corpus is jackknifed over games.** Leave each game out in
+  turn, recompute the statistic over the other thirty-nine, and take the standard error
+  from the spread of those thirty-nine-game values. This is the one to use for a ratio,
+  because the snaps inside a game are not independent draws and a binomial standard error
+  quietly understates the spread: the share of carries gaining three to nine reads a
+  binomial error of 1.01 points over 2,440 carries and a jackknifed one of **1.46**, half
+  again as large, and the difference is the clustering.
+- **A statistic over a forced draw is replicated.** Re-run the whole measurement at ten
+  further seeds and take the standard deviation across the ten. That spread *is* the
+  standard error of the one replicate the test draws, measured rather than modelled.
+- **A fixed-seed assertion is read the same way with a different meaning.** It cannot fail
+  on a draw, because there is no draw; what its margin over the replicate spread says is
+  how much of its tolerance an innocent re-draw somewhere upstream would eat.
+
+Then the margin is the distance from the engine's current reading to the threshold, in
+units of that standard error, and a two-sided band is measured to its nearer edge.
+
+**The result: 97 comfortable (five standard errors or more), 29 marginal (one to five),
+and 7 that the sample cannot resolve.** Being marginal is not being broken — some claims
+are legitimately tight, and re-powering costs suite time that
+[#106](https://github.com/knissley/football-manager/issues/106) owns — but a margin
+inside one standard error is a coin flip with a citation attached, and it will read as a
+regression the first time anything re-draws the sample.
+
+**The seven, at `c69566a`**, each with its reading, the threshold it is measured against,
+and its own standard error. They are recorded rather than changed: re-powering, rewriting
+to what the sample can resolve, and handing the precise claim to a harness row are three
+different answers and the choice belongs with the issue that files them.
+
+| test | asserts | reads | standard error | margin, in errors |
+| --- | --- | --: | --: | --: |
+| `Penalties.holdsAreExplicable` | a hold on a dropback exists to check | 1 in 8 games | 1.0 | 1.0 |
+| `UntrainedRatingsTests.receiversAndKickersAtQuarterback` | kickers average under 35 there | 34.41 | 0.46 | 1.3 |
+| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | one ended in bounds | 1.5 in 8,000 runs | 0.93 | 1.6 |
+| `PenaltyTests.crowdNoiseIsTheMechanism` | noise raises the road team's fouls | +14 paired | 8.60 | 1.6 |
+| `UntrainedRatingsTests.ownPositionMomentsAreUnmoved` | the spread is within 0.5 of 10.66 | 10.39 | 0.14 | 1.7 |
+| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | a breakaway happened at all | 2 in 8,000 runs | 1.07 | 1.9 |
+| `CarryShapeTests.theMiddleIsTheLargestPartOfTheRunGame` | three to nine is at least 42.3% | 45.04% | 1.46 | 1.9 |
+
+The last is the one to read twice. It is a `.football` test against a band derived from
+two sourced shares, and it is the assertion in the tree whose citation is strongest and
+whose sample is least able to settle it — the corpus cannot tell 45.0% from 42.3% with
+confidence, so it passes on which forty games it drew.
+
+**What the table does not support is a rule that every statistical assertion state its
+margin in standard errors.** Four assertions in the tree already do — ball security's
+four-error tolerance, the hole bins' own sampling error, the strength sweep's five-error
+bound, and the nickel bounds — and they are good tests. But 97 of the 133 sit five or
+more errors clear, most of them tens of errors clear, and requiring the arithmetic on all
+of them would be ninety-seven pieces of ceremony to catch nothing. **What the sweep does
+support is narrower**: counts against a fixed number are where the tightness lives.
+Forty-six of the 133 are that shape, and eighteen of the forty-six are inside five errors
+against eighteen of the other eighty-seven — nearly twice the rate. A count floor is
+written once from a measurement and then never re-measured, while the engine underneath
+it keeps moving.
 
 ## Counting it
 
