@@ -95,12 +95,21 @@ public enum RatingKey: UInt8, CaseIterable, Sendable, Hashable, Codable {
             return [.carrying, .vision, .breakTackle, .elusiveness, .catching, .passBlock]
         case .fullback:
             return [.carrying, .breakTackle, .catching, .runBlock, .passBlock, .hitPower]
+        // A receiver is a runner from the moment the catch is complete — the rules give
+        // one definition of a runner and one of a fumble, neither of them by position
+        // (2025 rulebook, 3-27, 3-2-5, 8-1-3) — so holding on to the ball and breaking a
+        // tackle are his to train like anybody else who runs with it. Left off, they fell
+        // to the untrained table's ball-carrying floor, and the fumble draw reads a
+        // carrier's `carrying` and nothing else about him.
         case .wideReceiver:
-            return [.catching, .catchInTraffic, .routeRunning, .releaseVsPress, .elusiveness]
+            return [
+                .catching, .catchInTraffic, .routeRunning, .releaseVsPress,
+                .carrying, .breakTackle, .elusiveness,
+            ]
         case .tightEnd:
             return [
                 .catching, .catchInTraffic, .routeRunning, .releaseVsPress,
-                .runBlock, .passBlock,
+                .carrying, .breakTackle, .runBlock, .passBlock,
             ]
         case .leftTackle, .leftGuard, .center, .rightGuard, .rightTackle:
             return [.runBlock, .passBlock, .blockAnchor, .handTechnique]
