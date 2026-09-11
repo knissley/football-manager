@@ -210,6 +210,18 @@ test claims about a game and nothing sources* in
 turns out to cite nothing is worth one less than a `.contract` that holds, and the share
 falling is the honest reading of that.
 
+A third has since joined them, and it is the one that found the defect underneath: the
+rush's arrival window has to span every hold it is compared against. That is worth reading
+as a lesson about what a `.contract` is for. The monotone claim above was green while three
+of the five pass concepts had no signal at all — a screen un-pressurable by construction,
+and the two longest holds pressured on exactly the same snaps — because a superset claim
+is satisfied by a comparison that never happens. The new one asserts that the comparison
+*happens*: arrivals on both sides of every hold, no concept's verdict a constant, and no
+two concepts pressured on the same snaps. Both are needed, and neither implies the other:
+with the arrival's tail removed the first stays green and the second fails, and with a hold
+moved outside the window the same. The suite's football about pressure is unchanged —
+`row:pressureRate` in the harness, and `pressureMeansTheRusherGotThereFirst` here.
+
 Its parametric rates — completion percentage, sack rate, pressure rate,
 interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
@@ -219,6 +231,33 @@ as a football test for a rate, and it does; but the census cannot see it, becaus
 that a run lands inside one. A row going `OFF` in CI is reporting, not a failure. So the
 `0.0%` in that row is honest about the suite and unfair to the harness, and both halves
 of that sentence are worth remembering.
+
+### A band the suite cannot resolve belongs to the harness
+
+That rule has a second edge, and `test:nickelIsTheDefenceATeamPlays` is where it was found.
+It used to assert `row:packageNickel`'s band — 61.6–69.2% of snaps — over the forty-game
+corpus. **A sample has to be able to resolve the claim it makes**, and that one could not:
+measured on the same corpus, the between-game standard deviation of the nickel share is 3.86
+points, so the mean of forty carries a standard error of 0.61. The engine has read 68.85%
+and 69.36% either side of a single edit — 0.35 under the ceiling and 0.16 over it, both
+inside the instrument's own noise. The assertion was deciding on which forty games it drew.
+
+Three options are wrong and one is right. Retuning the engine to move the reading is rule 9.
+Widening a sourced band is rewriting the sport. Re-powering the corpus buys precision with
+suite time, which is the budget [#106](https://github.com/knissley/football-manager/issues/106)
+owns. What is right is to notice that **the precise claim is already asserted, properly, by
+`row:packageNickel` at four hundred games at two seeds** — and that the suite's copy was a
+weaker duplicate of it. So the suite keeps what forty games *can* resolve: that nickel is
+most of the snaps and outnumbers the four-back front by twenty-five points, each bound
+implied by the two sourced bands with room to spare and each sitting twenty standard errors
+or more from anything the corpus produces. Both fail when a defence answers three receivers
+from its base front even half the time, which is the shape the test exists to keep out.
+
+The general form: **when a suite test and a harness row assert the same rate, the row is the
+football test and the suite's job is the shape the row cannot see.** A suite assertion whose
+margin is comparable to its own standard error is not a weak test, it is a coin flip with a
+citation attached — and it will read as a regression the first time anything downstream
+resamples the corpus.
 
 The other four came with the dynamic kickoff (#46): a kick into the landing zone is
 returned, a penalty on the free kick changes what the kick can do, a kick that misses the

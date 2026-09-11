@@ -201,6 +201,83 @@ public struct CrudeResolver: PlayResolver {
 
     // MARK: - Pass
 
+    /// When a beaten blocker's man gets to the quarterback.
+    ///
+    /// **This is the engine's own model, and nothing sources it.** The one pressure
+    /// figure the references carry is `row:pressureRate` — pressure per dropback, pooled
+    /// over every dropback there is, 2023-24, source S2 in
+    /// docs/reference/calibration-sources.md — and it is split by nothing: not by pass
+    /// depth, not by play action, not by how long the passer held the ball. So the shape
+    /// below is a modelling decision in the sense `GameClock.readyForPlayDelay` is one,
+    /// and docs/match-engine.md states it with its consequence rather than leaving it to
+    /// be reconstructed from these numbers.
+    ///
+    /// **What the window has to do is be a comparison.** Pressure is one inequality —
+    /// did the first man home get there before the ball came out — and that question has
+    /// an answer only where the arrival can land on either side of the hold it is read
+    /// against. A window narrower than the span of `routeDepth`'s holds is not a
+    /// comparison for the holds outside it: a hold under the floor is never pressured
+    /// however the rush went, a hold over the ceiling is pressured on every snap a rep
+    /// was lost, and two holds over the ceiling are pressured on exactly the same snaps
+    /// however far apart their numbers look. That failure is silent — the shares still
+    /// come out plausible, and nothing in them says the dial is dead — so
+    /// `theArrivalWindowSpansTheRouteHolds` asserts against it directly.
+    ///
+    /// **The level is not here.** How much of the rush gets home at all is the rush win
+    /// multiplier below, which is the one constant `row:pressureRate` answers to. This
+    /// decides the *shape*: which holds an arrival can beat, not how often anybody beats
+    /// his man. They are kept apart on purpose, so that moving the rate is one number and
+    /// not a search.
+    private enum PassRushArrival {
+
+        /// The earliest a beaten blocker's man can be at the quarterback: the whole
+        /// second below the shortest hold `routeDepth` asks for, which is the screen's
+        /// 1,400 ms.
+        ///
+        /// A screen is meant to be hard to pressure. A floor at or above its hold makes
+        /// it *impossible* to pressure, which is a different claim and not one anybody
+        /// made on purpose.
+        static let floorMillis = 1_000
+
+        /// The width of the uniform core, unchanged from the window this replaced. What
+        /// moved is where the window starts and what happens past the top of it, not how
+        /// wide the bulk of it is.
+        static let coreWidthMillis = 1_400
+
+        /// A rush that has not got home has not stopped coming, so the arrival runs out
+        /// in a tail rather than stopping at a wall: every further half second, the
+        /// chance he is still coming halves.
+        ///
+        /// A wall is the thing the tail exists to avoid. Wherever one is put, a hold past
+        /// it saturates, and the next hold past it saturates in exactly the same way, so
+        /// the two concepts become one and the shares still look reasonable. A tail has
+        /// no such edge at any hold.
+        ///
+        /// Half a second is what leaves the mean arrival at 2,200 ms — `floorMillis` plus
+        /// half of `coreWidthMillis` plus one expected step — which is where the mean of
+        /// the window this replaced already sat. The shape changed and the centre did
+        /// not, deliberately: the centre is the level, and the level answers to the row
+        /// named above rather than to this.
+        static let tailStepMillis = 500
+        static let tailContinues = 0.5
+
+        /// Where the tail stops, which is a bound on the record and not on football: an
+        /// arrival is carried in a decision point's `Int16` milliseconds. Reaching it
+        /// takes sixty-one halvings in a row.
+        static let recordCeilingMillis = Int(Int16.max)
+
+        /// One arrival, in milliseconds after the snap.
+        static func draw(_ random: inout SplittableRandom) -> Int {
+            var millis = floorMillis + Int(random.next(upperBound: UInt64(coreWidthMillis)))
+            while millis + tailStepMillis <= recordCeilingMillis,
+                random.nextBool(probability: tailContinues)
+            {
+                millis += tailStepMillis
+            }
+            return millis
+        }
+    }
+
     private func pass(
         _ concept: PlayConcept,
         _ situation: Situation,
@@ -304,7 +381,7 @@ public struct CrudeResolver: PlayResolver {
             let millis: Int
             if random.nextBool(probability: winChance) {
                 result = .lost
-                millis = 1_500 + Int(random.next(upperBound: 1_400))
+                millis = PassRushArrival.draw(&random)
                 // Drawn here, conditional on having lost, so the flag and the reason for
                 // it are the same event: he held because he was beaten.
                 if penalty == nil {
@@ -406,17 +483,19 @@ public struct CrudeResolver: PlayResolver {
         // 3. The decision. Pressure that arrives before the route develops is what turns
         //    a read into a sack or a throwaway.
         //
-        // A try never gets past this line: its throw is out in 1,500 ms and the first
-        // rusher home is never there sooner, so `pressured` is false on every two-point
-        // snap whatever the reps did, and the scramble and sack exits below are
-        // unreachable for one — as is `.pressureAllowed`, which now hangs off the same
-        // comparison. They report the try anyway. A resolver whose labelling is right
-        // only because of a timing constant is one edit away from being wrong, and the
-        // constant is a tuning number rather than a rule. Two things would make that pair
-        // of exits live on a try: an earliest arrival below 1,500 ms, or a try route that
-        // needs longer than that. Either is a change to what a record can contain, so
-        // `passResultsAreWherePassesAre` and the register in docs/play-record.md move
-        // with it.
+        // A try is read here like any other dropback, and it used to be exempt by
+        // accident: its throw is out in 1,500 ms, the earliest a rusher could get home
+        // was 1,500 ms, so `pressured` came back false on every two-point snap whatever
+        // the reps did and the sack and scramble exits below were dead on one. That was
+        // never a rule — it was two constants happening to touch — and the comment here
+        // named what would end it: an arrival before 1,500 ms. `PassRushArrival` starts
+        // at 1,000 ms, so both exits are live, which is the football (a try can be
+        // sacked, and a quarterback can run one in when the pocket goes). Measured over
+        // the 19,638 tries in twenty thousand two-point passes, the rest being wiped out
+        // by a flag before the snap: 12.2% pressured, 1.8% sacked, 1.0% scrambled.
+        // Neither exit carries a pass result, because on neither did the ball leave, so
+        // `passResultsAreWherePassesAre` reads the throw decision rather than the kind
+        // and the register in docs/play-record.md carries both rows.
         let timeNeeded = depth.timeMillis
         let pressured = pressureAt.map { $0 < timeNeeded } ?? false
         // The verdict on the pocket, once, so that *was he pressured?* has one answer per

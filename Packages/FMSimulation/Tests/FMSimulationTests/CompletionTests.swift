@@ -65,13 +65,33 @@ struct CompletionTests {
     /// are `PlayKind.twoPointConversion`, so the concept on the call is what says which.
     /// Reading the kind alone made every conversion a throw, which is the rule the engine
     /// used to have wrong.
+    ///
+    /// **A called pass is not always a thrown one, and on a try the kind cannot say so.**
+    /// An ordinary dropback that ends in a sack or a scramble is recorded as a `.sack` or
+    /// a `.scramble` and never as a `.pass`, so the kind settles it. A try is one
+    /// scrimmage down and is the try however it ended (11-3-1, 11-3-2-e), so its kind
+    /// stays `.twoPointConversion` down every exit and the sacked and scrambled ones look
+    /// from the outside exactly like the thrown ones. The ball did not leave on either,
+    /// so neither has a pass result — and this reads the throw decision, which is the only
+    /// thing on the record that separates them.
+    ///
+    /// This used to say a try called as a pass always carries a pass result, which was
+    /// true of the engine and not of the sport: a beaten blocker could not reach the
+    /// quarterback before a try's 1,500 ms throw, so the pressure exits were dead on one.
+    /// They are live now. Rewritten rather than deleted, because the claim it was making
+    /// about a *thrown* try is still the claim worth making.
     @Test("Every pass attempt carries a pass result and no other play does", .tags(.contract))
     func passResultsAreWherePassesAre() {
         for play in Self.plays {
             let kind = play.outcome.kind
+            // The ball never left: the pocket broke and he went down with it or ran.
+            let neverThrown = play.decisions(ofKind: .throwDecision).contains {
+                $0.throwDecisionValue == .sack || $0.throwDecisionValue == .scramble
+            }
             let isThrow =
                 kind == .pass || kind == .spike
-                || (kind == .twoPointConversion && play.calls.offense.concept == .twoPointPass)
+                || (kind == .twoPointConversion && play.calls.offense.concept == .twoPointPass
+                    && !neverThrown)
             if isThrow {
                 #expect(
                     play.outcome.passResult != nil,
