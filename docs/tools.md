@@ -187,8 +187,8 @@ The header names the league the run was played in, as one number:
 
 ```text
 simharness — 400 games, seed 7
-  32 teams, strength offset -8.4 to 7.5
-  world checksum bb034c43d9254a63  (no target: it names the league, it does not grade it)
+  32 teams, strength offset -3.3 to 3.0
+  world checksum dcdba0bd65aef3c7  (no target: it names the league, it does not grade it)
 ```
 
 It is `WorldChecksum` in `FMGeneration` — the same function `GoldenWorldTests` pins to a

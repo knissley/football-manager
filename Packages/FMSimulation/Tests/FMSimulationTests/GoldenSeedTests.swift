@@ -422,9 +422,17 @@ struct GoldenSeedTests {
             // stream. Neither parent's constants could survive, because each was computed
             // without the other's mechanism, and no subset of the mechanisms above
             // reproduces these numbers.
-            (UInt64(1), UInt64(12_846_516_332_598_426_273)),
-            (UInt64(5), UInt64(18_162_519_760_039_925_891)),
-            (UInt64(12), UInt64(6_072_345_254_296_759_821)),
+            //
+            // And moved again by the world rather than the engine. `WorldGenerator`
+            // draws a league's talent on ±3.17 overall points where it drew it on ±8, a
+            // width that is now sourced rather than assumed. This suite simulates a game
+            // between two clubs of a generated world, so every club's offset is a
+            // different number, every roster is built to a different ceiling, and every
+            // man drawn after the first is a different man. Nothing in the engine moved:
+            // the same code plays a different pair of teams.
+            (UInt64(1), UInt64(14_429_146_066_516_608_363)),
+            (UInt64(5), UInt64(2_634_205_123_570_817_831)),
+            (UInt64(12), UInt64(9_638_010_473_330_137_867)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

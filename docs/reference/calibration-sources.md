@@ -315,6 +315,38 @@ spread and not a lower one. The band is not a gate for a second reason: four hun
 gives a club twenty-five, and at that length the estimator's own error is about as wide as
 the band.
 
+#### What the spread of team strength was set from
+
+`WorldGenerator.strengthSpread` draws each club's rating offset uniformly on ±*S*. Before
+[#116](https://github.com/knissley/football-manager/issues/116) *S* was 8, a number from an
+audit plan with no source at all. There is no way to source a *rating*: the scale is this
+project's own invention and no season publishes one
+([ADR-0005](../adr/0005-generated-fictional-content.md) and the shelf
+[below](#not-worth-computing)). What can be sourced is what a rating spread *produces*, so
+*S* is set by matching `row:betweenTeamSigma` to the sourced figure above, with the engine
+as the transfer and the target outside it.
+
+Three measurements, all from `simharness --games 400 --no-timing` with `--strength-spread`,
+which exists for this:
+
+1. **The floor.** At *S* = 0 every club is drawn from the same distribution, and the
+   between-club spread is still **4.06** — five worlds at 1,600 games each, 3.45 to 4.40,
+   against 2.87 to 5.04 over eight worlds at 400. Two rosters drawn the same way are not
+   the same roster, and that difference alone is most of a real league's spread.
+2. **The transfer.** Between-club variance above the floor is proportional to *S*²: the
+   slope is **1.065** points of differential per point of *S*, within 1.5% of itself at
+   *S* = 4, 6, 8 and 10.
+3. **The solve.** The draw must contribute √(5.28² − 4.06²) = 3.37 points, so
+   *S* = 3.37 / 1.065 = **3.17** — where 5.28 is the mean of the two sourced seasons.
+
+Checked at the answer rather than assumed: two worlds of 1,600 games at *S* = 3.17 report
+4.80 and 5.71, a pooled 5.27 against the 5.28 it was solved for.
+
+**Read the floor as a finding, not a detail.** Three quarters of the sourced spread is
+already spent on roster-draw noise before a single club is called a contender, which is why
+the sourced *S* is as narrow as it is. Narrowing the roster draw would buy back room for
+deliberate structure; that is a generation decision and nobody has taken it.
+
 ### The ten most common accepted fouls, per game, both teams
 
 | Row | Season | Source |
@@ -506,10 +538,14 @@ generation constants reproduces the mix, because the family the ages are drawn f
 wrong shape. That is a modelling decision for the owner, not a band anybody is missing. The
 line is here only to stop it being counted as a sourcing gap, which it has been.
 
-**The spread of team strength.**
-[#116](https://github.com/knissley/football-manager/issues/116) is sourcing it, from the
-published per-game point-differential figures, and will record it here under this file's own
-rules. Not duplicated here, and nobody should open a second derivation of it.
+**The spread of team strength.** Done, and it is a `row:` — `row:betweenTeamSigma` under
+[Scoreboard](#scoreboard), with the derivation of `WorldGenerator.strengthSpread` from it
+beside the row. It is listed here only so a reader who comes looking finds the answer
+rather than opening a second derivation of it. Two things to carry away if you do not read
+that section: no *rating* spread was sourced, because none can be — what was sourced is
+what a rating spread produces — and there was **no published figure to find**. The
+between-club figure is derived from S1 by this repository's own script, the way every other
+band here is, and is not a number anybody published as a number.
 
 ### Not worth computing
 

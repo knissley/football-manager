@@ -134,9 +134,28 @@ public enum WorldGenerator {
 
     /// How far the best and worst clubs sit from the middle, in overall points.
     ///
-    /// Eight either way. `RosterGenerator.Strength` already describes what the number
-    /// means; this is how wide a *league* is drawn.
-    public static let strengthSpread = 8.0
+    /// **Sourced, and the derivation is not obvious, so read it before moving this.** A
+    /// rating on this project's scale cannot be sourced — the scale is the project's own
+    /// invention and no season publishes one. What can be sourced is what a rating spread
+    /// *produces*: the standard deviation of a club's expected point differential per game,
+    /// 4.83 in 2023 and 5.73 in 2024, which `row:betweenTeamSigma` grades a generated league
+    /// against. Three measured numbers turn one into the other — a floor of 4.06 that two
+    /// rosters drawn the same way differ by anyway, a slope of 1.065 points of differential
+    /// per point of this constant, and the solve that leaves √(5.28² − 4.06²) for the draw
+    /// to supply. `calibration-sources.md` carries all three under *Scoreboard*.
+    ///
+    /// Most of a real league's spread is spent on that floor before any club is called a
+    /// contender, which is why this is as narrow as it is: the deliberate structure is the
+    /// smaller half of the difference between two clubs. Narrowing the roster draw would buy
+    /// the structure back, and nobody has taken that decision.
+    ///
+    /// It was eight before, a number with no source at all. A league drawn too wide decides
+    /// too many games by too much, and a calibration pass that then moved per-play constants
+    /// would be correcting the world from inside the engine.
+    ///
+    /// `RosterGenerator.Strength` describes what one club's number means; this is how wide a
+    /// *league* is drawn.
+    public static let strengthSpread = 3.17
 
     /// One strength per team, drawn from the seed and centred on the league.
     ///

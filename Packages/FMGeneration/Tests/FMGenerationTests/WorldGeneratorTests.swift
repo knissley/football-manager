@@ -107,14 +107,17 @@ struct WorldGeneratorTests {
             for (index, strength) in drawn.enumerated() { totals[index] += strength.offset }
         }
 
+        // Uniform on ±spread has a standard deviation of spread/√3, so the mean of sixty
+        // draws has one of spread/√(3 × 60). Five of those is the bound, which is what it
+        // was when the spread was eight and three points was the number written here. The
+        // old generator sat a whole spread away at both ends, so any bound of this shape
+        // catches it.
+        let bound = 5 * WorldGenerator.strengthSpread / (3 * Double(seeds.count)).squareRoot()
         for (index, total) in totals.enumerated() {
             let average = total / Double(seeds.count)
-            // Uniform on ±8 has a standard deviation near 4.6, so the mean of sixty draws
-            // has one near 0.6. Three points is five of those, and the old generator sat
-            // eight away at both ends.
             #expect(
-                average > -3 && average < 3,
-                "team \(index) averages \(average) across \(seeds.count) leagues")
+                average > -bound && average < bound,
+                "team \(index) averages \(average) across \(seeds.count) leagues, bound \(bound)")
         }
     }
 
@@ -144,8 +147,13 @@ struct WorldGeneratorTests {
                         && strength.offset < 2 * WorldGenerator.strengthSpread)
             }
             // And a league that came out flat would be a broken draw, not a quiet season.
+            // Thirty-two draws on a width of twice the spread span 2 × 31/33 of it on
+            // average; the bound is about four fifths of that, as `span > 6` was when the
+            // spread was eight.
             let span = (drawn.map(\.offset).max() ?? 0) - (drawn.map(\.offset).min() ?? 0)
-            #expect(span > 6, "seed \(seed) drew a league with a span of \(span)")
+            #expect(
+                span > 1.5 * WorldGenerator.strengthSpread,
+                "seed \(seed) drew a league with a span of \(span)")
         }
     }
 
