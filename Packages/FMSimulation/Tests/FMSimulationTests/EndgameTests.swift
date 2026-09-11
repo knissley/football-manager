@@ -677,13 +677,13 @@ struct EndgameTests {
 
     /// Not a rule the engine enforces, and the pin says why. A replay review after the
     /// two-minute warning that reverses a ruling, or a foul nullified after the fact,
-    /// runs ten seconds off when the correct ruling would not have stopped the clock
-    /// (2025 rulebook, 4-7-4). There is no replay system in this engine and no foul is
-    /// ever nullified after it is called, so nothing can produce that runoff: every
-    /// choice about the clock the record can carry is one of the offence's foul (4-7-1),
-    /// the last forty seconds (4-7-3) or an injury timeout (4-5-4), and every runoff
-    /// in a game is one of those. When a replay system lands, this fails and Article 4
-    /// gets its scenario.
+    /// runs ten seconds off when the ruling that should have been made would have left
+    /// the clock running (2025 rulebook, 4-7-4). There is no replay system in this engine
+    /// and no foul is ever nullified after it is called, so nothing can produce that
+    /// runoff: every choice about the clock the record can carry is one of the offence's
+    /// foul (4-7-1), the last forty seconds (4-7-3) or an injury timeout (4-5-4), and
+    /// every runoff in a game is one of those. When a replay system lands, this fails and
+    /// Article 4 gets its scenario.
     @Test(
         "pin · Rule 4-7-4 is excluded: no runoff follows a replay reversal or a nullified foul, because there is no replay system and no foul is ever nullified after the fact; every clock election the record can carry, and every runoff a game produces, is a foul's (4-7-1), the last forty seconds' (4-7-3) or an injury timeout's (4-5-4)",
         .tags(.pin)

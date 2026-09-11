@@ -1301,12 +1301,12 @@ struct RulesConformanceTests {
             "and that snap started it again, so the down after it came off the clock")
     }
 
-    /// Where the window is judged. The article's words are "inside the last five
-    /// minutes of the second half" (4-3-2-a-3), and a runner is inside them when he
-    /// steps out at 4:50 on a play snapped at 5:07: the clock is read where the ball
-    /// became dead. Read where the play *before* ended — up to a huddle and a play
-    /// earlier — the same runner is outside the window, and the clock restarts on the
-    /// ready when the book has it wait for the snap.
+    /// Where the window is judged. 4-3-2-a-3 asks whether the act was inside the closing
+    /// five minutes of the second half, not whether the down that carried it began inside
+    /// them: a runner who steps out at 4:50 on a play snapped at 5:07 is inside it,
+    /// because the clock is read where the ball became dead. Read where the play *before*
+    /// ended — up to a huddle and a play earlier — the same runner is outside the window,
+    /// and the clock restarts on the ready when the book has it wait for the snap.
     @Test(
         "football · Rule 4-3-2-a-3, 4-4-c · a runner out of bounds inside the last five minutes of the fourth quarter, on a play snapped with more than five minutes left, stops the clock until the snap: the window is judged where the ball became dead",
         .tags(.football)
