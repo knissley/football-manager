@@ -258,9 +258,9 @@ let attempts = allPlays.filter { $0.outcome.kind.isPassAttempt }
 // loss is one. Inferring it from `yards > 0` scored every catch for nothing as an
 // incompletion and read the completion row three points low while showing green.
 let completions = attempts.filter(\.isCompletion)
-// The older inference, kept for the rows whose bands were sourced against it — yards
-// per completion and the catch leaders — until the harness read-out is re-baselined as
-// a whole.
+// The older gains-only inference. No longer any row's denominator — `row:yardsPerCompletion`
+// divides by the completions, which is what its band divides by — and kept for the catch
+// leaderboard, which still ranks on it.
 let completionsThatGained = attempts.filter {
     $0.outcome.yards > 0 || $0.outcome.endedIn == .touchdown
 }
@@ -269,7 +269,15 @@ let carries = allPlays.filter { $0.outcome.kind == .rush }
 let interceptions = allPlays.filter { $0.outcome.endedIn == .intercepted }
 
 let points = results.reduce(0.0) { $0 + Double($1.homeScore + $1.awayScore) }
-let passYards = attempts.reduce(0.0) { $0 + Double(max(0, $1.outcome.yards)) }
+// Both pass-yardage sums at once, and which row uses which is `PassYardage`'s business —
+// see the register there. Summing one clamped number and handing it to every row is what
+// graded three of them against a band that counts a catch for a loss as the loss.
+let passYardage = PassYardage.over(
+    attempts.map {
+        PassAttempt(
+            yards: $0.outcome.yards, isCompletion: $0.isCompletion,
+            endedInTouchdown: $0.outcome.endedIn == .touchdown)
+    })
 let rushYards = carries.reduce(0.0) { $0 + Double($1.outcome.yards) }
 
 let thirdDowns = allPlays.filter { $0.situation.down == .third }
@@ -330,7 +338,7 @@ print("    and a row graded outside its band prints the decimals that put it out
 print("")
 header()
 report("points", points / teamGames)
-report("passingYards", passYards / teamGames)
+report("passingYards", passYardage.passingYards(perTeamGames: teamGames))
 report("rushingYards", rushYards / teamGames)
 report("yardsPerCarry", carries.isEmpty ? 0 : rushYards / Double(carries.count))
 report(
@@ -366,14 +374,13 @@ report("firstDownGain", firstDownGain)
 
 // Yards per attempt is the passing game's real efficiency number — completion rate says
 // nothing about whether the completions are worth anything.
-let attemptYards = Double(attempts.reduce(0) { $0 + Int(max(0, $1.outcome.yards)) })
-report("yardsPerAttempt", attemptYards / Double(max(1, attempts.count)))
-let scrimmageYards =
-    attemptYards + rushYards
-    + Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
-report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
-let receptionYards = attemptYards / Double(max(1, completionsThatGained.count))
-report("yardsPerCompletion", receptionYards)
+report("yardsPerAttempt", passYardage.yardsPerAttempt)
+let sackYards = Double(sacks.reduce(0) { $0 + Int($1.outcome.yards) })
+report(
+    "yardsPerPlay",
+    passYardage.yardsPerPlay(
+        rushYards: rushYards, sackYards: sackYards, scrimmagePlays: scrimmage.count))
+report("yardsPerCompletion", passYardage.yardsPerCompletion)
 
 // Why the rest were not caught. `CatchResult` is the only field that says, and everything
 // downstream repeats it — a drop rate, a pass-defensed leaderboard, the narrative layer's
@@ -515,7 +522,10 @@ var rushYardsByCarrierGame: [String: Int] = [:]
 for play in allPlays {
     let key = "\(play.game.rawValue)-\(play.situation.possession.rawValue)"
     if play.outcome.kind.isPassAttempt {
-        passYardsByGameTeam[key, default: 0] += max(0, Int(play.outcome.yards))
+        // Signed, as `row:passingYards` is: a team-game's passing yards are the same
+        // quantity whether they are being averaged or bucketed, and a catch for a loss
+        // that counts against the mean and not against the tail is two definitions.
+        passYardsByGameTeam[key, default: 0] += Int(play.outcome.yards)
         if play.outcome.endedIn == .touchdown {
             passTouchdownsByGameTeam[key, default: 0] += 1
         }
@@ -1036,20 +1046,33 @@ func countAdvantage(_ play: PlayRecord) -> Int {
     let blockers = 5 + Int(group.tightEnds) + max(0, Int(group.runningBacks) - 1)
     return blockers - (11 - Int(play.situation.defensePackage.defensiveBacks))
 }
+// A bucket with too few carries to mean anything still prints its count. Printing nothing
+// read as "this never happens", and it is what let the outnumbered bucket be diagnosed for
+// two documents and an issue as empty when it is not — it is thin. A count with no mean
+// beside it is the honest shape: the sample is named, and no average is offered that four
+// hundred games cannot support.
+let gradableCarries = 200
 var yardsByAdvantage: [Int: Double] = [:]
-for advantage in [-2, -1, 0, 1, 2] {
+for advantage in [-3, -2, -1, 0, 1, 2, 3] {
     let matching = carries.filter {
         countAdvantage($0) == advantage && $0.situation.down == .first
             && $0.situation.distance == 10
     }
-    guard matching.count > 200 else { continue }
+    guard !matching.isEmpty else { continue }
+    let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
+    guard matching.count > gradableCarries else {
+        print(
+            "      \(pad(label, 28))\(pad("—", 8))\(matching.count) carries"
+                + "  (under \(gradableCarries), no mean taken)")
+        continue
+    }
     let yards = Double(matching.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(matching.count)
     yardsByAdvantage[advantage] = yards
-    let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
     print("      \(pad(label, 28))\(pad(oneDecimal(yards), 8))\(matching.count) carries")
 }
 report("ypcEvenCount", yardsByAdvantage[0])
 report("ypcOutnumberedByOne", yardsByAdvantage[-1])
+report("ypcOutnumberingByOne", yardsByAdvantage[1])
 
 print("")
 print("  The shape of a carry")

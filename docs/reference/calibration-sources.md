@@ -89,29 +89,75 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:yardsPerPlay` — yards per play | 2023-24 | S1 |
 | `row:yardsPerCompletion` — yards per completion | 2023-24 | S1 |
 
-**`row:yardsPerPlay`'s band is stale and is knowingly left so.** Sack yardage is negative
-on every play that has any, and therefore negative in every game. The accumulator that
-folded the per-season components used `Counter` addition, which discards a key whose
-running total is not strictly positive, so the sack component never survived its first
-addition: the totals simply had no such key, it read back as 0 through the same subscript
-every metric uses, and the numerator of both yards-per-play rows lost it entirely. Nothing
-raised, and the band that came out of the derivation is the band on file.
+**`row:yardsPerPlay`'s band was derived from a corrupted total, and has been corrected.**
+Sack yardage is negative on every play that has any, and therefore negative in every game.
+The accumulator that folded the per-season components used `Counter` addition, which
+discards a key whose running total is not strictly positive, so the sack component never
+survived its first addition: the totals simply had no such key, it read back as 0 through
+the same subscript every metric uses, and the numerator of both yards-per-play rows lost it
+entirely. Nothing raised, and for the life of the tool the band on file was the one that
+came out of that derivation.
 
-Re-derived over the same release with the accumulator corrected, and rounded by the same
-band policy:
+Re-derived over the same release with the accumulator corrected (`109de07`), and rounded by
+the same band policy:
 
-| Row | 2023 | 2024 | Band as derived | On file |
+| Row | 2023 | 2024 | Band as derived | Was on file |
 | --- | --- | --- | --- | --- |
 | `row:yardsPerPlay` — the harness's definition | 5.36 → **5.08** | 5.48 → **5.22** | 5.0–5.8 → **4.8–5.5** | 5.0–5.8 |
 | yards per play, all yards over all scrimmage plays — not a row; the source of the prose figure | 5.54 → **5.27** | 5.70 → **5.44** | — | 5.5–5.7 |
 
-The band is **not** moved here. Correcting a derived source figure is not a retune, and
-moving a band is; the two are kept apart deliberately, so this records the measurement and
-leaves the move to the retune that owns it. Until then `Targets.swift` states 5.0–5.8 with
-a note giving the league's net figure as 5.5–5.7, and
-[match-engine.md](../match-engine.md)'s band table repeats that note. Both are the stale
-derivation. The rule at the top of this file decides which way the disagreement resolves:
-if a number in `Targets.swift` cannot be reproduced by the script, the script wins.
+**The band is moved, and the prose figure with it.** The rule at the top of this file is
+what decides it: if a number in `Targets.swift` cannot be reproduced by the script, the
+script wins. `yardsPerPlayOfficial` is the second row above and is **not** a row in
+`Targets.swift` — it is a script output, and the only thing that quoted it was
+`row:yardsPerPlay`'s prose note, which said 5.5–5.7 and now says 5.3–5.4.
+
+### Correcting a band and retuning to one are different things
+
+They were run together in one sentence here, which is how the correction above sat unmade
+for as long as it did. They are two cases and only the second is a retune:
+
+- **The band is numerically wrong because its derivation was corrupt.** Restoring it is a
+  **defect fix**, and it belongs to whoever found it. No engine constant moves, no engine
+  behaviour moves, and the row is being made to grade against the number its own source
+  always said. This is the case above.
+- **The band is right and the engine does not fit it.** Moving the band would be **a
+  retune**, and it belongs to the retune issue
+  ([#49](https://github.com/knissley/football-manager/issues/49)), which is owner-gated.
+  Nothing else may move it, and a fix that finds a row out of band against a *corrected*
+  target reports the residual there rather than widening anything.
+
+The test for which one you are in is not how far the band moves; it is what changed. If the
+derivation changed, it is the first. If only the engine's reading of it did, it is the
+second.
+
+**What the correction did to the engine's verdict, measured rather than argued.** The
+harness was never corrupted — only the derivation script — so the row and its band were
+measuring different quantities, the engine about 0.15 low against a band about 0.2 high.
+Correcting it removes that mismatch rather than moving a goalpost, and it does so in the
+engine's favour: on the old definition, with sack yardage dropped, seed 11 would read 5.54,
+which is *above* the corrected ceiling. Against the corrected band, at 400 games in release:
+
+| | printed | vs 5.0–5.8, the stale band | vs 4.8–5.5, the corrected one |
+| --- | --- | --- | --- |
+| seed 7 | 5.3 | ok | **ok** |
+| seed 11 | 5.4 | ok | **ok** |
+
+**Both calibration seeds are not the whole story, and the rest of it is a residual.** Read
+at 400 games at each of the thirty seeds the noise sweep uses, the row has a mean of 5.45
+against a corrected ceiling of 5.5, and **ten of the thirty grade `OFF`** — seeds 2, 3, 8,
+9, 14, 16, 17, 19, 27 and 29 — where against the stale band all thirty were `ok`. Six of
+the ten print 5.5 or 5.6 at one decimal and only give up their verdict because a row graded
+outside its band prints the decimals that put it there; reading the rounded column alone
+would have counted five and been wrong by half.
+
+**That is a residual and not a reason to widen anything.** It is case two above, and it is
+[#49](https://github.com/knissley/football-manager/issues/49)'s. Sacks are the component
+whose yardage this row was missing, and `row:sackRate` reads about 4.6 against a band of
+6.1–7.2, so the retune that raises it pushes this row down. The ten seeds sit between
+0.003 and roughly a tenth above the ceiling, which is the order a sack-rate move covers;
+how much exactly is the retune's to measure, and nothing here should be moved on the
+strength of an estimate.
 
 No other row moved. The re-derivation was run over all four seasons both ways and diffed
 in full: the script prints 130 rows — 128 metric rows and two summary rows — and three
@@ -119,6 +165,41 @@ moved, these two and the home scoring edge [below](#home-field-and-weather). The
 were identical to the digit, as were the game counts, the win-total sigma and the
 between-club sigma. `row:marginSigma` is among the unmoved, because it is carried as two
 non-negative halves written to survive exactly this.
+
+### The second place a negative play was dropped: the harness's own pass sum
+
+The fold above was in the derivation script. **There was a separate clamp in the harness**,
+and it discarded a different quantity: every pass attempt was summed as `max(0, yards)`, so
+a ball caught behind the line for a loss was accumulated as nothing. One clamped number was
+then handed to four rows — passing yards, yards per attempt, yards per play and yards per
+completion — of which only yards per play has a band derived that way. The other three were
+measured with the loss thrown away and graded against a target that counted it.
+
+The word doing the hiding was **"gross"**, which `Targets.swift` used for the clamped
+quantity in one note and for the signed one eleven lines below. It is not used for either
+now: each of the four rows says in words whether a completion for a loss is counted, the
+register that decides which is `PassYardage` in the harness, and a test in the simharness
+package reads the notes back against it.
+
+What the source does, measured over the same release, regular-season completions:
+
+| Season | Completions | For a loss | Yards discarded by the clamp |
+| --- | ---: | ---: | ---: |
+| 2023 | 11,808 | 379 (3.21%) | −1,089 |
+| 2024 | 11,629 | 337 (2.90%) | −926 |
+
+So `c["passYards"] += yards` is signed in the data as well as in the code — which was listed
+as unchecked when the defect was filed — and the two sums the script keeps side by side,
+`passYards` and `passYardsPositive`, are genuinely two quantities rather than one written
+twice. Per team-game the clamp was worth about 2.0 yards in 2023 and 1.7 in 2024 on the
+league's own numbers; what it was worth in the harness is smaller, because the engine throws
+such a catch less often than the league does, and how much less is
+[#167](https://github.com/knissley/football-manager/issues/167)'s question.
+
+`row:yardsPerCompletion` diverged twice over: the numerator was clamped and the denominator
+was the older gains-only inference, where the script divides by the completions. Both halves
+are resolved together — the row now divides signed yards by every completion the record says
+was one — and the gains-only set is kept only for the catch leaderboard, which ranks on it.
 
 ### Why the other passes were not caught
 
@@ -199,6 +280,7 @@ one hoarding them past the whistle, which is the thing the total exists to catch
 | `row:packageBase` — snaps against base | 2023-24 | S2 |
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
+| `row:ypcOutnumberingByOne` — yards per carry, outnumbering by one | 2023-24 | S2 |
 
 **No share is sourced for any grouping but eleven.** `row:personnel11` is the only
 offensive participation share in `Targets.swift`, and nothing here, in
@@ -228,13 +310,46 @@ rather than to all the heavier ones it realises less than 31.3%, which is the co
 side of a derivation with no figure behind it. Computing the real share is the same cheap
 derivation as above and is likewise not done.
 
-**`row:ypcOutnumberedByOne` is currently ungradable, and it is a property of the rows
-rather than of the source.** The harness grades it on first and ten only, counting blockers
-as the five linemen plus every tight end plus every back after the first against a box of
-eleven less the defensive backs. Minus one needs eleven personnel against a four-back front
-or four-or-more receivers against a nickel back; the caller answers the first from nickel
-and the second from a dime, so neither pairing occurs on first and ten and the row prints
-`n/a` rather than a value and a verdict. The band is sound and the sample is empty.
+### The count-advantage buckets, and which of them the engine can fill
+
+All three rows grade first and ten only, counting blockers as the five linemen plus every
+tight end plus every back after the first, against a box of eleven less the defensive backs.
+So minus one needs eleven personnel against a four-back front, or four-or-more receivers
+against a nickel back; plus one needs a tight end or a second back against five defensive
+backs.
+
+**How much of the sport each bucket is**, derived from the same participation release and
+printed by the script as `ypcShareOutnumberedByOne`, `ypcShareEvenCount` and
+`ypcShareOutnumberingByOne`. None of the three is a row: the harness reads its own shares
+off the counts it prints beside each bucket.
+
+| Bucket | 2023 | 2024 | Engine, 400 games, seeds 7 and 11 |
+| --- | ---: | ---: | ---: |
+| outnumbered by one | 12.7% | 11.1% | **0.2%** — 23 carries of 11,685 and 11,634 |
+| even count | 64.8% | 67.4% | **92.3%** |
+| outnumbering by one | 20.0% | 20.2% | **7.1%** — 827 and 779 carries |
+
+**`row:ypcOutnumberedByOne` reads `n/a`, and the reason is the engine's, not the row's.**
+It was diagnosed — in this file, in [play-calling.md](../play-calling.md) and in the issue
+that asked for it to be regraded or retired — as grading a box that modern defensive
+football has designed out. The table above is what settles that, and it says otherwise: the
+sport plays this box on one first-and-ten designed carry in eight. The bucket is not empty
+in the harness either; it holds 23 carries at both calibration seeds, which is too thin for
+a mean and is why the row prints no value. Every one of the 23 is eleven personnel against a
+four-back front, and the source runs that same pairing on 18.8% of 2023's first-and-ten
+carries from eleven personnel and 18.3% of 2024's, against the engine's 0.3%.
+
+So the band is sound, the row is sound, and what is wrong is the engine's **joint**
+personnel-and-package answer rather than either marginal: `row:personnel11`,
+`row:packageNickel` and `row:packageBase` all grade `ok` at both seeds while the pairing of
+one to the other is nearly deterministic where the sport's is not. **That is a residual for
+the retune ([#49](https://github.com/knissley/football-manager/issues/49)), and no band or
+denominator here is to be moved to accommodate it.** Retiring the row would record a claim
+about the sport that the source contradicts.
+
+`row:ypcOutnumberingByOne` is the bucket the engine's first-and-ten running has moved into,
+and it is graded: about 800 carries a seed, banded from the same source at 4.0–4.9 with
+4.33 in 2023 and 4.55 in 2024.
 
 ### Who took the snap
 
@@ -644,10 +759,12 @@ was computed for this file.
 | Fourteen of 272 games reached overtime | 2025 | `row:overtimeRate` |
 | About 345 seconds of overtime played per period, before both teams possessed | 2023-24 | `row:overtimeLength` |
 | Completion rate counting only completions that gained: 61.1–62.4 | 2023-24 | `row:completionPercentage` |
-| Yards per play, the league's net definition: 5.5–5.7 — **stale**, re-derives to 5.3–5.4, see [above](#the-passing-and-running-game-per-team-per-game) | 2023-24 | `row:yardsPerPlay` |
+| Yards per play, the league's net definition: 5.3–5.4 — corrected from 5.5–5.7, see [above](#the-passing-and-running-game-per-team-per-game) | 2023-24 | `row:yardsPerPlay` |
 | First downs per team-game including penalty first downs: 17.8–18.3 | 2023-24 | `row:firstDownsPerTeamGame` |
 | Yards per carry by defenders actually in the box: 4.5–4.7 | 2023-24 | `row:ypcEvenCount` |
 | Even against outnumbered, the sport's own gap: 4.3–4.6 against 4.5–4.7 | 2023-24 | `row:ypcOutnumberedByOne` |
+| The outnumbered box is 11.1–12.7% of first-and-ten designed carries, and the engine reaches it on 0.2% | 2023-24 | `row:ypcOutnumberedByOne` |
+| The outnumbering box is 20.0–20.2% of them, and by defenders actually in the box the carry gained 4.5–4.7 | 2023-24 | `row:ypcOutnumberingByOne` |
 | Fourth downs gone for, rising: 23.3% | 2025 | `row:fourthDownWentForIt` |
 | Fourth and one, went for it, rising: 76.3% | 2025 | `row:fourthAndOneWentForIt` |
 | Two-point conversion swung from 55% to 41% on about 130 tries a season | 2023-24 | `row:twoPointConversion` |
@@ -1170,16 +1287,34 @@ property of the row rather than of the thirty seeds it was read from.
 Generated by `scripts/harness-noise.py --report` from the committed sweep. Regenerate it
 in the same commit as any change that moves engine behaviour.
 
-**127 of the 129 rows in `Targets.swift` are here. The two that are not have no spread
-because they have no value**: `row:winTotalSigma` and `row:ypcOutnumberedByOne` print `—`
-and grade `n/a` at every one of the thirty seeds. The harness says why for the first — it
-wants a season played to a schedule rather than arbitrary matchups, and that is M3's — and
-for the second the reason is visible in the block above it, which prints a carry count for
-even and for `+1 blockers` and none at all for the outnumbered bucket. A row with no reading
-cannot have a floor; when either starts printing a number the sweep picks it up with no
-change to the tool. `row:heavyRainPoints` is a third, partial case: it prints a value at 400
-games but not at 200, so it has a seed-to-seed σ and no same-league split, which is why its
-two component columns are `—`.
+**Four rows below are stale, and the sweep is owed a re-take.** The sweep was taken at
+`367bd12`. Since then the yards-per-play band was corrected, three rows changed which
+pass-yardage sum they measure, and one row was added, so:
+
+| Row | What is stale | What is not |
+| --- | --- | --- |
+| `row:yardsPerPlay` | *edge margin* and *verdicts seen* — its band moved from 5.0–5.8 to 4.8–5.5, and ten of the thirty seeds grade `OFF` against the new one where all thirty were `ok` | every σ; the row's value is unchanged at every seed, because it is the one row that kept the clamped pass sum |
+| `row:passingYards` | every column, by about −1 a team-game | the shape; the change is a constant shift, not a change of spread |
+| `row:yardsPerCompletion` | every column, by about −0.7 | as above |
+| `row:ypcOutnumberingByOne` | **absent** — it did not exist when the sweep was taken | — |
+
+Re-taking it is eleven minutes of compute and was deliberately not done in the same branch,
+because an engine change landed on `main` between the sweep and this edit and a re-take here
+would fold that change's effect into rows this branch did not touch. The floors for every
+other row stand: no engine source is in this branch's diff.
+
+**127 of the 130 rows in `Targets.swift` are here. Of the three that are not, two have no
+spread because they have no value**: `row:winTotalSigma` and `row:ypcOutnumberedByOne` print
+`—` and grade `n/a` at every one of the thirty seeds. The harness says why for the first —
+it wants a season played to a schedule rather than arbitrary matchups, and that is M3's —
+and for the second the reason is in the block above it, which now prints a carry count for
+every bucket that has one and takes a mean only above two hundred: the outnumbered bucket
+holds 23 carries a seed, which is a sample too thin to average rather than no sample at all.
+**The third is `row:ypcOutnumberingByOne`, which postdates the sweep.** A row with no
+reading cannot have a floor; when either of the first two starts printing a number, and when
+the third is swept, the tool picks them up with no change to it. `row:heavyRainPoints` is a
+fourth, partial case: it prints a value at 400 games but not at 200, so it has a
+seed-to-seed σ and no same-league split, which is why its two component columns are `—`.
 
 <!-- harness-noise:start -->
 | row | mean | min–max | σ seed-to-seed | σ same league | σ league | σ from printing | model σ | same league / model | seed-to-seed / model | edge margin | verdicts seen |

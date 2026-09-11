@@ -519,7 +519,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | Row | Target | Season | Sensitive to | Source | Gate | Definition and notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | points | 20.6-24.1 | 2023-24 | — | S1 | yes | — |
-| passing yards | 221.7-248.1 | 2023-24 | — | S1 | yes | Gross: yards on completions, sacks not deducted, which is what the harness sums. |
+| passing yards | 221.7-248.1 | 2023-24 | — | S1 | yes | Yards on completions, with sack yardage not deducted. A completion for a loss counts as the loss. |
 | rushing yards | 94.7-110.4 | 2023-24 | — | S1 | yes | Designed runs only, as the harness counts them; the league's figure adds scrambles and kneels. |
 | yards per carry | 3.9-4.6 | 2023-24 | — | S1 | yes | Designed runs only. |
 | completion percentage | 61.2-68.6 | 2023-24 | — | S1 | yes | Completions over attempts, read from the record's pass result. Counted as a gain of a yard or more it read about three points low (2023–24 positive-only rate: 61.1–62.4); the zero-or-fewer row is the gap. |
@@ -530,9 +530,9 @@ cannot measure yet or whose sample is too thin to fail on.
 | penalties (both teams) | 10.8-13.5 | 2023-24 | — | S1 | yes | Accepted fouls per game. |
 | average third down distance | 6.6-7.4 | 2023-24 | — | S1 | yes | — |
 | yards gained on first down | 5.1-5.8 | 2023-24 | — | S1 | yes | Scrimmage plays on first down. |
-| yards per pass attempt | 6.6-7.5 | 2023-24 | — | S1 | yes | Gross. |
-| yards per play | 5.0-5.8 | 2023-24 | — | S1 | yes | The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7. |
-| yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | — |
+| yards per pass attempt | 6.6-7.5 | 2023-24 | — | S1 | yes | Yards on completions over every attempt, sack yardage not deducted. A completion for a loss counts as the loss. |
+| yards per play | 4.8-5.5 | 2023-24 | — | S1 | yes | The harness's definition: pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. A completion for a loss counts as nothing. This is the only row that counts one that way, and its band is the only one derived that way. The league's net figure was 5.3–5.4. The band read 5.0–5.8 until 109de07 fixed the derivation's accumulator, which had been dropping sack yardage — negative in every game, so the component never survived its first addition and the numerator lost it entirely. |
+| yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | Over every completion the record says was one, however far it went. A completion for a loss counts as the loss. |
 | drops per target | none | unsourced | — | — | no | Catch attempts the record calls a drop, over catch attempts. Every throw the engine resolves to a receiver has exactly one target, so this is the charting convention's denominator. Unsourced: the play-by-play does not chart a drop. |
 | passes defensed per game | none | unsourced | — | — | no | Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up. |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
@@ -551,7 +551,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | snaps against nickel | 61.6-69.2% | 2023-24 | — | S2 | yes | Five defensive backs on the field. |
 | snaps against base | 20.2-25.0% | 2023-24 | — | S2 | yes | Four defensive backs on the field. |
 | yards per carry, even count | 4.3-5.0 | 2023-24 | — | S2 | yes | First and ten, designed runs; blockers are five linemen plus tight ends plus extra backs, the box is eleven less the defensive backs, as the harness counts it. By defenders actually in the box the figure was 4.5–4.7. |
-| yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. |
+| yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. The source plays this box on 11.1–12.7% of first-and-ten designed carries; the engine reaches it on 0.2% and the row reads n/a for want of a sample, which is the engine's joint personnel-and-package answer rather than anything about this band. |
+| yards per carry, outnumbering by one | 4.0-4.9 | 2023-24 | — | S2 | yes | Same construction, one more blocker than the box — a tight end or a second back against five defensive backs. The sport runs first and ten from here on 20.0–20.2% of designed carries. By defenders actually in the box the figure was 4.5–4.7. |
 | quarterback snaps per team-game | 58.9-66.8 | 2023-24 | — | S2 | yes | Player-snaps on plays from scrimmage by roster position group, the source's participation feed scaled to plays from scrimmage. One a snap by construction on both sides. |
 | backfield snaps per team-game | 64.2-72.4 | 2023-24 | — | S2 | yes | Running backs and fullbacks. |
 | receiver snaps per team-game | 150.3-171.0 | 2023-24 | — | S2 | yes | — |

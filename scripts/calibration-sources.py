@@ -81,6 +81,11 @@ POSITION_GROUPS = [
     ("defensiveBack", {"CB", "S", "FS", "SS", "DB"}),
 ]
 
+# How many more men the offence has at the point of attack than the defence has in the box,
+# written as a component-key suffix. The harness names the same three buckets in its
+# by-advantage block, and `Targets.swift` grades the ones with a sample.
+ADVANTAGE_KEYS = {-1: "minusOne", 0: "even", 1: "plusOne"}
+
 # The ten most common accepted fouls in 2023 and 2024 combined, mapped to `Foul` cases.
 PENALTY_ROWS = [
     ("Offensive Holding", "offensiveHolding"),
@@ -410,6 +415,14 @@ def read_season(directory, season):
                 c["attempts"] += 1
                 if flag(row, "complete_pass"):
                     c["completions"] += 1
+                    # Two sums, because two different quantities are wanted and the word
+                    # "gross" was used for both. `passYards` is signed: a ball caught three
+                    # yards behind the line for a three-yard loss is -3, which is what the
+                    # passing-yards, yards-per-attempt and yards-per-completion rows are
+                    # built on, and what this release records (379 such completions in 2023
+                    # and 337 in 2024). `passYardsPositive` counts that catch as zero, and
+                    # exists for the yards-per-play row alone. Whichever a row uses, its
+                    # note in `Targets.swift` says which in words.
                     c["passYards"] += yards
                     c["passYardsPositive"] += max(0.0, yards)
                     if yards <= 0:
@@ -455,15 +468,24 @@ def read_season(directory, season):
                         blockers = 5 + ends + max(0, backs - 1)
                         box_by_package = 11 - backs_db
                         advantage = blockers - box_by_package
-                        if advantage in (-1, 0):
-                            key = "even" if advantage == 0 else "minusOne"
+                        # The denominator for the share rows: every first-and-ten designed
+                        # carry this feed could count the two sides of, whatever the count
+                        # came out at. Without it a bucket's carries can be compared to
+                        # another bucket's but not to how often the sport is in that box at
+                        # all, which is the question "is this bucket rare" asks.
+                        c["ypcFirstAndTen"] += 1
+                        # -1, 0 and +1 only. Further out the source's own sample thins to
+                        # where a band would be noise, and the harness prints no bucket
+                        # beyond +1 either.
+                        if advantage in (-1, 0, 1):
+                            key = ADVANTAGE_KEYS[advantage]
                             c["ypcCarries:" + key] += 1
                             c["ypcYards:" + key] += yards
                         box = num(part, "defenders_in_box")
                         if box is not None:
                             advantage_box = blockers - int(box)
-                            if advantage_box in (-1, 0):
-                                key = "even" if advantage_box == 0 else "minusOne"
+                            if advantage_box in (-1, 0, 1):
+                                key = ADVANTAGE_KEYS[advantage_box]
                                 c["ypcBoxCarries:" + key] += 1
                                 c["ypcBoxYards:" + key] += yards
 
@@ -708,6 +730,22 @@ METRICS = [
             )
         ),
     ),
+] + [
+    # The count-advantage buckets the two rows above this list do not cover, appended for
+    # the same reason they were: the draws below a new row in this stream belong to the
+    # rows that were already here, and inserting these beside `ypcEvenCount` would move
+    # every band under it by a digit for no reason anybody could name.
+    #
+    # `plusOne` is where first-and-ten running now happens once nickel is the base answer
+    # to eleven personnel: a tight end or a second back against five defensive backs
+    # outnumbers the box by one. The share rows say how much of the sport each bucket is,
+    # which is the only way to read a bucket's absence from a run as rare rather than as
+    # broken.
+    ("ypcOutnumberingByOne", "yards per carry, outnumbering by one, first and ten (box = 11 - DBs)", PLAY, 1, lambda c: div(c["ypcYards:plusOne"], c["ypcCarries:plusOne"])),
+    ("ypcOutnumberingByOneBox", "yards per carry, outnumbering by one by defenders in box", PLAY, 1, lambda c: div(c["ypcBoxYards:plusOne"], c["ypcBoxCarries:plusOne"])),
+    ("ypcShareOutnumberedByOne", "share of first-and-ten designed carries outnumbered by one %", PLAY, 1, share("ypcCarries:minusOne", "ypcFirstAndTen")),
+    ("ypcShareEvenCount", "share of first-and-ten designed carries at an even count %", PLAY, 1, share("ypcCarries:even", "ypcFirstAndTen")),
+    ("ypcShareOutnumberingByOne", "share of first-and-ten designed carries outnumbering by one %", PLAY, 1, share("ypcCarries:plusOne", "ypcFirstAndTen")),
 ]
 
 

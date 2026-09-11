@@ -284,7 +284,8 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "passingYards", label: "passing yards", low: 221.7, high: 248.1,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
-            note: "Gross: yards on completions, sacks not deducted, which is what the harness sums."
+            note:
+                "Yards on completions, with sack yardage not deducted. A completion for a loss counts as the loss."
         ),
         CalibrationTarget(
             id: "rushingYards", label: "rushing yards", low: 94.7, high: 110.4,
@@ -330,16 +331,21 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "yardsPerAttempt", label: "yards per pass attempt", low: 6.6, high: 7.5,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
-            note: "Gross."),
+            note:
+                "Yards on completions over every attempt, sack yardage not deducted. A completion for a loss counts as the loss."
+        ),
         CalibrationTarget(
-            id: "yardsPerPlay", label: "yards per play", low: 5.0, high: 5.8,
+            id: "yardsPerPlay", label: "yards per play", low: 4.8, high: 5.5,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7."
+                "The harness's definition: pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. A completion for a loss counts as nothing. This is the only row that counts one that way, and its band is the only one derived that way. The league's net figure was 5.3–5.4. The band read 5.0–5.8 until 109de07 fixed the derivation's accumulator, which had been dropping sack yardage — negative in every game, so the component never survived its first addition and the numerator lost it entirely."
         ),
         CalibrationTarget(
             id: "yardsPerCompletion", label: "yards per completion", low: 10.3, high: 11.5,
-            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true),
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note:
+                "Over every completion the record says was one, however far it went. A completion for a loss counts as the loss."
+        ),
 
         // Why the other passes were not caught. Both rows are printed with no band at
         // all, which is the honest output rather than a gap: the play-by-play charts
@@ -449,7 +455,14 @@ struct CalibrationTarget: Sendable {
             high: 5.1, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
             gate: true,
             note:
-                "Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7."
+                "Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. The source plays this box on 11.1–12.7% of first-and-ten designed carries; the engine reaches it on 0.2% and the row reads n/a for want of a sample, which is the engine's joint personnel-and-package answer rather than anything about this band."
+        ),
+        CalibrationTarget(
+            id: "ypcOutnumberingByOne", label: "yards per carry, outnumbering by one", low: 4.0,
+            high: 4.9, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true,
+            note:
+                "Same construction, one more blocker than the box — a tight end or a second back against five defensive backs. The sport runs first and ten from here on 20.0–20.2% of designed carries. By defenders actually in the box the figure was 4.5–4.7."
         ),
 
         // Who took the snap: player-snaps per team-game on plays from scrimmage, by the
