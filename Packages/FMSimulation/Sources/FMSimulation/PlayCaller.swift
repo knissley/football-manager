@@ -216,11 +216,13 @@ extension PlayCaller {
         }
     }
 
-    /// The answer, which is mostly a matter of counting receivers.
+    /// The answer, which is mostly a matter of counting receivers and then counting
+    /// backs.
     ///
     /// A defence substitutes to match: three receivers get a nickel back, four get a
-    /// dime. Guessing wrong is the cost of guessing, and the offence declaring first is
-    /// what makes it a decision at all.
+    /// dime, and a grouping with two backs gets the four-back front. A second tight end
+    /// is the one grouping it answers two ways. Guessing wrong is the cost of guessing,
+    /// and the offence declaring first is what makes it a decision at all.
     ///
     /// Nickel is what a modern defence lines up in, and base is the substitution rather
     /// than the other way round: `row:packageNickel` (S2, 2023-24) puts five defensive
@@ -265,7 +267,29 @@ extension PlayCaller {
         default:
             // Two or fewer: heavy personnel, and a base defence unless the down says
             // otherwise.
-            return classified.isMustPass ? .nickel : .base
+            if classified.isMustPass { return .nickel }
+            // A second tight end is not a second back. One back is one fewer man to
+            // account for in the running game and one more the defence would rather
+            // cover with a defensive back than with a linebacker, so a two-tight-end
+            // grouping draws the fifth back some of the time. Two backs draw the
+            // four-back front every time: that is the grouping the front is for.
+            //
+            // Three in ten, derived from two sourced bands rather than taken from a
+            // figure for the grouping, because the repository sources none.
+            // `row:packageBase` (S2, 2023-24) puts four defensive backs on 20.2-25.0%
+            // of snaps and `row:personnel11` puts eleven personnel on 62.3-71.9% of
+            // them, so a grouping that is not eleven personnel is on 28.1-37.7%. The
+            // four-back front cannot answer all of those and stay inside its own band:
+            // at the midpoints of the two, 32.9 snaps in a hundred are a heavier
+            // grouping against 22.6 in a four-back front, which leaves 31.3% of the
+            // heavier snaps to a fifth defensive back. Applying it to a two-tight-end
+            // grouping alone realises less than that, since the two-back groupings keep
+            // the front, and less is the conservative side of a derivation with no
+            // figure behind it.
+            if situation.offensePersonnel == .twelve {
+                return random.nextBool(probability: 0.30) ? .nickel : .base
+            }
+            return .base
         }
     }
 

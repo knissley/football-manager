@@ -184,6 +184,27 @@ Computing one is the derivation the rows above already perform — the source's
 participation feed names the grouping on every play — and it is cheap; it is simply not
 done, and this line says so rather than leaving the gap to be filled by remembering.
 
+**No share is sourced for the defensive answer to a two-tight-end grouping either.** The
+package rows band how often each front is on the field over *all* snaps; nothing here bands
+how a defence answers one grouping. What the two bands above do say, on their own, is that
+the four-back front cannot answer every heavier grouping: `row:personnel11`'s 62.3-71.9%
+leaves 28.1-37.7% of snaps in a grouping that is not eleven personnel, and the smallest
+that share can be is larger than `row:packageBase`'s largest. At the midpoints, 32.9 snaps
+in a hundred are a heavier grouping against 22.6 in a four-back front, so 31.3% of the
+heavier snaps are answered with a fifth defensive back. The caller's three-in-ten share
+against a two-tight-end grouping is that figure and nothing else; applied to one grouping
+rather than to all the heavier ones it realises less than 31.3%, which is the conservative
+side of a derivation with no figure behind it. Computing the real share is the same cheap
+derivation as above and is likewise not done.
+
+**`row:ypcOutnumberedByOne` is currently ungradable, and it is a property of the rows
+rather than of the source.** The harness grades it on first and ten only, counting blockers
+as the five linemen plus every tight end plus every back after the first against a box of
+eleven less the defensive backs. Minus one needs eleven personnel against a four-back front
+or four-or-more receivers against a nickel back; the caller answers the first from nickel
+and the second from a dime, so neither pairing occurs on first and ten and the row prints
+`n/a` rather than a value and a verdict. The band is sound and the sample is empty.
+
 ### Who took the snap
 
 Player-snaps per team-game on plays from scrimmage, by the roster position group of each
@@ -218,6 +239,32 @@ comes out of `onField` rather than out of the substitution the engine made.
 | `row:carries2orFewer` — carries of 2 or fewer | 2023-24 | S1 |
 | `row:carries10plus` — carries of 10 or more | 2023-24 | S1 |
 | `row:carries20plus` — carries of 20 or more | 2023-24 | S1 |
+
+**The middle, which is derived rather than sourced.** Those four are cumulative and they
+overlap, so a distribution that stuffs half its carries and springs the rest can satisfy
+every one of them while having nothing at all between two yards and ten — which is what
+this engine did. The claim they cannot make between them is that the *ordinary* carry is
+the largest part of the run game. Every carry falls in exactly one of three, so
+
+    three to nine = 100 − (two or fewer) − (ten or more)
+
+and with the two rows above at 40.6–46.5 and 9.6–11.2 the middle share is between **42.3
+and 49.8** wherever the truth sits inside them. Nothing was computed for this: it is
+arithmetic on two bands that are already here, and the floor is the corner that holds
+however they fall. `test:theMiddleIsTheLargestPartOfTheRunGame` asserts the floor and that
+the middle beats the ten-or-more share, both of which hold at every corner. That the middle
+also beats the two-or-fewer share holds at the bands' midpoints — 46.0 against 43.6 — and
+**not** at every corner, so it is a reading of where the bands centre and is written here
+rather than asserted. It is not a `row:` and must not be written as one.
+
+**What the mode of a carry is, nothing sources.** The most common single carry length is
+the other thing a reader of the histogram wants, and no band for it exists: the four rows
+above are cumulative shares and none of them speaks to the density at one yard. Deriving
+one is cheap — the same play-by-play the four rows come from, counted by gained yards
+instead of thresholded — and it is worth doing when somebody next opens the script, because
+a mode is the one statistic a stuff-or-break distribution and a real one differ on most
+visibly. Until then the harness prints the engine's mode with no target beside it and says
+why, and nobody should assert a range for it from memory.
 
 ### The shape of a dropback
 

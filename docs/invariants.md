@@ -677,10 +677,19 @@ what every one of them was derived from is in
      `row:penalty.unnecessaryRoughness`, `row:penalty.delayOfGame`, `row:penalty.offside`,
      `row:penalty.illegalFormation`, `row:penalty.roughingThePasser`,
      `row:penalty.neutralZoneInfraction`, `row:preSnapRoadVsHome`
-113. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
-     against heavier looks, and a run gains more into a box it does not outnumber by much. —
+113. Personnel looks like the sport's: 11 personnel against nickel most of the time, the
+     four-back front against a second back and on most but not all of the snaps with a
+     second tight end, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
-     `row:ypcOutnumberedByOne`
+     `row:ypcOutnumberedByOne`, `test:nickelIsTheDefenceATeamPlays`,
+     `test:baseIsTheSubstitutionAndNotTheAnswerToEveryHeavierGrouping`.
+     **`row:ypcOutnumberedByOne` cannot be graded as the harness builds it today and prints
+     `n/a` rather than a value**: it counts first-and-ten carries where the box holds one
+     more man than the offence has blockers, and the only two groupings that qualify are
+     eleven personnel against a four-back front and four or more receivers against a nickel
+     back, which the caller answers from nickel and from a dime. The band is sound and the
+     sample is empty; repopulating or regrading the row is
+     [#42](https://github.com/knissley/football-manager/issues/42)'s.
 114. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
@@ -696,19 +705,31 @@ what every one of them was derived from is in
      play credited him — `test:offendersAreReal`
 116. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
+117. The middle of the run distribution is its largest part: the ordinary carry gains three
+     to nine yards, and there are more of those than of any other kind. The four cumulative
+     shares of entry 97 overlap and a stuff-or-break distribution with nothing between two
+     and ten satisfies all four, so this is the claim they cannot make between them. Derived
+     from `row:carries2orFewer` and `row:carries10plus` rather than sourced on its own, so
+     the band is in the test and not in `Targets.swift`, and the harness prints the whole
+     histogram beside it. — `test:theMiddleIsTheLargestPartOfTheRunGame`
+118. A carry of twenty yards or more has a broken tackle in front of it. A long run is a man
+     beaten, not a hole measured: a tail drawn off the blocking puts the yards on the
+     offensive line and leaves the carrier's contact balance worth nothing where it should
+     show most. — `test:aBreakawayIsAlwaysABrokenTackle`, and yards do not fall as the hole
+     improves — `test:yardsRiseWithTheHole`
 
 ## What the harness cannot check yet
 
-117. A completion is a completion whether it gained a yard, none, or lost one. The record
+119. A completion is a completion whether it gained a yard, none, or lost one. The record
      says a pass was caught, and the harness reads that rather than inferring it from
      positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
      `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-118. Players miss games at about the rate they really do, and heavy rain takes points off a
+120. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
-119. Receivers drop about as many as they really do, defenders knock away about as many,
+121. Receivers drop about as many as they really do, defenders knock away about as many,
      and a defensive interference flag is thrown about as often as one is enforced. The
      first two have no band anybody has cited — the play-by-play charts neither a drop nor
      a break-up — and the third is a count of flags rather than of enforced fouls, which
@@ -720,7 +741,7 @@ what every one of them was derived from is in
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail, and the
      rates themselves are
      [#49](https://github.com/knissley/football-manager/issues/49)'s
-120. A defensive interference flag on a pass that was then completed is the engine
+122. A defensive interference flag on a pass that was then completed is the engine
      contradicting itself rather than a rate to be sourced, so `row:interferenceOnCompletions`
      carries a band of zero that no season stands behind and is graded by
      `test:interferenceMeansNoCatch` instead. `[2025 · 8-5-1]` —

@@ -349,4 +349,67 @@ struct PersonnelTests {
             "\(perSnap) tight ends a snap over \(snaps) snaps, against a floor of \(floor); twelve personnel on \(Double(twelve) / Double(snaps) * 100)% of them"
         )
     }
+
+    /// The four-back front's own band, which the package rule has to land inside rather
+    /// than merely clear.
+    ///
+    /// `row:packageBase` puts four defensive backs on 20.2-25.0% of snaps (S2, the
+    /// source's participation feed, 2023-24; `docs/reference/calibration-sources.md`).
+    /// Read against `row:personnel11`'s 62.3-71.9%, a grouping that is not eleven
+    /// personnel is on 28.1-37.7% of snaps, and the smallest that share can be is 28.1
+    /// against the four-back front's largest 25.0. The two bands therefore say, on their
+    /// own and at their least favourable corners, that base cannot be the answer to
+    /// every grouping that is not eleven personnel: some of those snaps are answered
+    /// with a fifth defensive back.
+    ///
+    /// This is the band the previous package rule cleared by six points and that its
+    /// test deliberately did not assert, because a rule that answered every heavier
+    /// grouping from base could not reach it.
+    @Test(
+        "Base takes 20.2-25.0% of snaps (row:packageBase, S2 2023-24)",
+        .tags(.football))
+    func baseIsTheSubstitutionAndNotTheAnswerToEveryHeavierGrouping() {
+        let snaps = Self.scrimmage
+        let base = Double(snaps.filter { $0.situation.defensePackage == .base }.count)
+        let share = base / Double(snaps.count) * 100
+        let heavier = Double(
+            snaps.filter { $0.situation.offensePersonnel.code != 11 }.count)
+        #expect(
+            share >= 20.2 && share <= 25.0,
+            "base on \(share)% of \(snaps.count) snaps, against \(heavier / Double(snaps.count) * 100)% of them in a grouping that is not eleven personnel"
+        )
+    }
+
+    /// A two-tight-end grouping draws the fifth defensive back sometimes, and the
+    /// four-back front most of the time.
+    ///
+    /// **A pin, not football.** What is sourced is `row:packageBase` above, which bounds
+    /// the four-back front over *every* snap and forces the rule to exist; nothing in the
+    /// repository bands how a defence answers a two-tight-end grouping in particular, and
+    /// the two bounds here are that sourced band carried onto a narrower population than
+    /// it covers. Base's ceiling of 25.0 against a non-eleven share of at least 28.1 is
+    /// what makes the share above zero; base's floor of 20.2 against a non-eleven share
+    /// of at most 37.7 leaves the four-back front at least 53.6% of those snaps, which is
+    /// what makes it a minority. Carrying either onto twelve personnel alone assumes the
+    /// heavier groupings are where the non-eleven snaps are, which is the engine's mix
+    /// rather than a figure, so this is tagged for what it is.
+    ///
+    /// First and ten, which is where the grouping is a choice rather than a situation:
+    /// the short-yardage and goal-line branches never reach it, and a defence that has to
+    /// answer a two-tight-end grouping on an ordinary down is the thing being pinned.
+    @Test(
+        "Pins that twelve personnel on first and ten draws nickel sometimes and base mostly",
+        .tags(.pin))
+    func twelvePersonnelDrawsNickelSometimesOnAnOrdinaryDown() {
+        let ordinary = Self.scrimmage.filter {
+            $0.situation.offensePersonnel.code == 12 && $0.situation.down == .first
+                && $0.situation.distance == 10
+        }
+        let nickel = Double(ordinary.filter { $0.situation.defensePackage == .nickel }.count)
+        let share = nickel / Double(max(1, ordinary.count)) * 100
+        #expect(
+            share > 0 && share < 50,
+            "nickel answered \(share)% of \(ordinary.count) first-and-ten snaps in twelve personnel"
+        )
+    }
 }

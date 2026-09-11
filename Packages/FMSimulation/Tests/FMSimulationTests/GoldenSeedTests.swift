@@ -548,24 +548,114 @@ struct GoldenSeedTests {
             // above reproduces these numbers. Checked before they were written down: all
             // three seeds differ from both parents of this merge, from each of the three
             // caller branches, and from both intermediate merges on this branch.
+            // And moved again by the run game. A carry no longer reads its yards off one
+            // line through the hole quality with a flat lottery on the end of it: the
+            // hole decides which of three things happened — the point of attack lost,
+            // the ordinary carry through it, or the play side washed — and the ordinary
+            // one gains three to nine, decided by the carrier's vision and contact
+            // balance against the second level's tackling. The long run is a tackle
+            // missed in space rather than a draw on a hole that opened. Every carry
+            // spends a different number of draws in a different order, so every game
+            // diverges from its first handoff.
+            //
+            // And the run game then met the pocket, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes and a
+            // long run is a man beaten. On the other the pocket gets one verdict a snap
+            // and it is pressure only if the rusher got there before the ball was out,
+            // so fewer rushers get home and fewer sacks and scrambles are taken. The two
+            // reach each other on the same drives: a carry that gains five where it
+            // gained one is a second and five rather than a second and nine, which is a
+            // different call, and the dropback that call produces is the one the pocket
+            // is now deciding differently; a sack no longer taken leaves a down the run
+            // game then plays. Neither parent's constants could survive, because each
+            // was computed without the other's mechanism, and no subset of the
+            // mechanisms above reproduces these numbers.
+            //
+            // And the run game then met all of that, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes — the
+            // point of attack lost, the ordinary carry through it, the play side washed
+            // — and a long run is a tackle missed in space rather than a draw on a hole
+            // that opened. On the other a bench spends its timeouts, range is the
+            // kicker's, the grouping and the front are the sport's, an interference foul
+            // settles the catch, and a poor throw is the throw's incompletion. They
+            // reach each other on the same drives and in both directions. A carry that
+            // gains five where it gained one is a second and five rather than a second
+            // and nine, which is a different call, so the throw the catch rules are now
+            // deciding is a throw that would not have been made; and a defence that
+            // answers three receivers from its nickel back meets the run with six in the
+            // box where seven used to stand, which moves the point of attack the carry
+            // is now three outcomes of. Neither parent's constants could survive,
+            // because each was computed without the other's mechanisms, and no subset of
+            // the mechanisms above reproduces these numbers. Checked before they were
+            // written down: all three seeds differ from both parents of this merge.
+            //
+            // And moved again by the defence, on one grouping. A two-tight-end grouping
+            // is no longer answered from the four-back front every time: three snaps in
+            // ten of it draw the fifth defensive back instead, because a second tight
+            // end is one fewer back to account for and one more man the defence would
+            // rather cover with a defensive back. Two backs still draw the front every
+            // time. This moves the stream two ways at once. It spends a draw on every
+            // two-tight-end snap outside a down the offence has to throw on, where the
+            // rule before it asked nothing, so every draw after that one on those snaps
+            // is a different draw; and on the snaps it answers with the fifth back it
+            // puts a different eleven men on the field, which changes what the play
+            // produced and not only what it was called. All three golden games diverge,
+            // which is what a rule that reaches about a fifth of snaps looks like from
+            // inside three games.
+            //
+            // And the run game then met the defence's answer to one grouping, in this
+            // merge, which is where the constants below come from. On one side a carry
+            // is three outcomes and a long run is a man beaten. On the other a
+            // two-tight-end grouping draws the fifth defensive back three snaps in ten
+            // where it drew the four-back front every time. They reach each other on
+            // exactly the snaps that matter to both: a carry from a two-tight-end
+            // grouping now meets a six-man box on some of the downs it used to meet a
+            // seven-man box on, and the point of attack the carry is three outcomes of
+            // is decided against whoever is standing there — so the same handoff is a
+            // different carry, and the down and distance it leaves is a different down.
+            // Run the other way, a carry that gains five where it gained one is a second
+            // and five rather than a second and nine, which is a grouping the offence
+            // would not have sent out and therefore an answer the defence was never
+            // asked for. Neither parent's constants could survive, because each was
+            // computed without the other's mechanism. Checked before they were written
+            // down: all three seeds differ from both parents of this merge.
             //
             // And then the play clock stopped being a rate and became an interval with a
-            // decision in it, which is where the constants below come from. Whether the
-            // offence gets a snap away inside the clock in force is asked once per snap,
-            // before either bench is asked for a timeout and before the eleven men are
-            // drawn — where the flag used to be drawn beside the down, after the false
-            // start and inside the resolver. That draw has moved in every snap's stream,
-            // so every game diverges from its first possession whether or not a play
-            // clock is ever lost. Three things then differ in the football as well: the
-            // offence spends a timeout on a play clock only when it has actually lost one
-            // rather than whenever the clock looked tight, which is about 0.7 fewer
-            // timeouts a game; the snap that follows a charged timeout is a prepared one,
-            // so it takes about half as many delays of game as an ordinary snap instead
-            // of rather more; and a down where nobody stopped the clock is a delay of
-            // game whatever else might have been drawn on it, since no play was run.
-            (UInt64(1), UInt64(6_826_330_890_823_354_983)),
-            (UInt64(5), UInt64(8_680_277_558_239_915_655)),
-            (UInt64(12), UInt64(1_235_323_273_292_413_922)),
+            // decision in it. Whether the offence gets a snap away inside the clock in
+            // force is asked once per snap, before either bench is asked for a timeout
+            // and before the eleven men are drawn — where the flag used to be drawn
+            // beside the down, after the false start and inside the resolver. That draw
+            // has moved in every snap's stream, so every game diverges from its first
+            // possession whether or not a play clock is ever lost. Three things then
+            // differ in the football as well: the offence spends a timeout on a play
+            // clock only when it has actually lost one rather than whenever the clock
+            // looked tight, which is about 0.7 fewer timeouts a game; the snap that
+            // follows a charged timeout is a prepared one, so it takes about half as many
+            // delays of game as an ordinary snap instead of rather more; and a down where
+            // nobody stopped the clock is a delay of game whatever else might have been
+            // drawn on it, since no play was run.
+            //
+            // And the play clock then met the run game and the defence's answer to one
+            // grouping, in this merge, which is where the constants below come from. On
+            // one side a play clock that is about to expire is a decision a bench makes
+            // rather than a flag drawn beside the down. On the other a carry is three
+            // outcomes of a point of attack, and a two-tight-end grouping draws the fifth
+            // defensive back three snaps in ten where it drew the four-back front every
+            // time. They reach each other on exactly the downs both are about. The
+            // timeout is spent on third and fourth and short, and how often an offence is
+            // *in* third and short is the run game's to decide — a carry that gains five
+            // where it gained one is a second and five, so the down the bench is asked
+            // about is a different down at a different distance. Run the other way, a
+            // timeout that stops the clock leaves a down played where five yards would
+            // have been walked off, so the distance the next carry is run at is one the
+            // run game would never have seen. And the defence's answer decides who is
+            // standing at that point of attack on the down the timeout bought. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanisms. Checked before they were written down: all three seeds
+            // differ from both parents of this merge.
+            (UInt64(1), UInt64(13_662_653_904_281_590_993)),
+            (UInt64(5), UInt64(4_471_667_699_963_928_594)),
+            (UInt64(12), UInt64(12_598_138_263_296_020_470)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

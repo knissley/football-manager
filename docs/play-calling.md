@@ -321,11 +321,26 @@ that needs a new case per call.
 
 The package is not a flavour of the call, it is who is on the field, and it follows the
 grouping the offence declared. Three receivers get a nickel back, four or five get a dime,
-and a grouping with a second back or a second tight end gets the four-back front the sport
-still calls base — which is the substitution now, not the default. `row:packageNickel` puts
-five defensive backs on 61.6-69.2% of snaps and `row:packageBase` four on 20.2-25.0%
+and a grouping with a second back gets the four-back front the sport still calls base —
+which is the substitution now, not the default. `row:packageNickel` puts five defensive
+backs on 61.6-69.2% of snaps and `row:packageBase` four on 20.2-25.0%
 ([calibration-sources.md](reference/calibration-sources.md), S2, 2023-24): the two bands do
 not overlap, and nickel's floor is above half of every snap played.
+
+A second tight end is the one grouping answered two ways: three snaps in ten of it draw the
+fifth defensive back and the rest draw the front. One back is one fewer man to account for
+in the running game and one more the defence would rather cover with a defensive back than
+with a linebacker, so it is a grouping a defence can answer either way and does.
+
+Three in ten is derived, not sourced, and
+[calibration-sources.md](reference/calibration-sources.md#who-is-on-the-field) records the
+gap. Base's own band cannot hold if the four-back front answers every heavier grouping:
+`row:personnel11` puts eleven personnel on 62.3-71.9% of snaps, so a grouping that is not
+eleven personnel is on 28.1-37.7% of them, and the smallest that share can be is larger
+than base's largest. At the midpoints of the two bands, 32.9 snaps in a hundred are a
+heavier grouping against 22.6 in a four-back front, which leaves 31.3% of the heavier snaps
+to a fifth defensive back. Applying it to a two-tight-end grouping alone realises less than
+that, because the two-back groupings keep the front.
 
 The mismatch is the point of substituting at all, and it survives where it is a bet rather
 than a habit. In short yardage a defence commits to the run against three receivers and
@@ -334,12 +349,21 @@ sixth defensive back is on offer. What it no longer does is answer eleven person
 four-back front on an ordinary down, which it used to do about a quarter of the time and
 which left four defensive backs on a third of every snap played.
 
-One cost of that is worth writing down rather than discovering. With the four-back front
-reserved to the heavier groupings, a first-and-ten carry from eleven personnel never meets
-a seven-man box, so `row:ypcOutnumberedByOne` has no carries to measure and prints `n/a`
-instead of a number. Getting it back means the defence answering a two-tight-end grouping
-from nickel some of the time — the same thesis carried one step further, and not something
-the package rule does today.
+One cost of that is worth writing down rather than discovering, and the correction to what
+this section used to say about it is worth more. Reserving the four-back front to the
+heavier groupings means a first-and-ten carry from eleven personnel never meets a seven-man
+box, so `row:ypcOutnumberedByOne` has no carries to measure and prints `n/a` instead of a
+number. This section then said that answering a two-tight-end grouping from nickel some of
+the time would get the row back. **It does not, and the arithmetic says so.** The row counts
+carries where the box has one more man in it than the offence has blockers, and the harness
+counts blockers as the five linemen plus every tight end plus every back after the first. A
+two-tight-end grouping blocks seven against nickel's six-man box, so it is not outnumbered
+by one — it outnumbers by one. The pairings that reach minus one are eleven personnel
+against a four-back front, which is the rule the paragraph above removed on ordinary downs,
+and four or five receivers against a nickel back, which the package rule answers with a
+dime instead. The engine produces neither on first and ten, so the row is structurally
+ungradable rather than off band, and getting it back is a change to one of those two rules
+rather than to this one.
 
 ### Every call gives something up
 
