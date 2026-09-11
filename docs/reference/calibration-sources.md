@@ -114,10 +114,11 @@ derivation. The rule at the top of this file decides which way the disagreement 
 if a number in `Targets.swift` cannot be reproduced by the script, the script wins.
 
 No other row moved. The re-derivation was run over all four seasons both ways and diffed
-in full: of 129 rows, three moved — these two and the home scoring edge
-[below](#home-field-and-weather) — and 126 were identical to the digit, as were the game
-counts, the win-total sigma and the between-club sigma. `row:marginSigma` is among the
-unmoved, because it is carried as two non-negative halves written to survive exactly this.
+in full: the script prints 130 rows — 128 metric rows and two summary rows — and three
+moved, these two and the home scoring edge [below](#home-field-and-weather). The other 127
+were identical to the digit, as were the game counts, the win-total sigma and the
+between-club sigma. `row:marginSigma` is among the unmoved, because it is carried as two
+non-negative halves written to survive exactly this.
 
 ### Why the other passes were not caught
 
