@@ -62,14 +62,15 @@ Which rules must be true of a game, and what checks each, is
   choice of (a) is the captain's, `PlayCaller.electsToReceive`, defaulting to receive; the
   toss itself, a deferral and the choice of goal are not modelled — the side that kicks
   off after a toss stands for the captain who lost it
-- **4-2-3** — The teams change goals at the end of the first and third periods; possession,
-  the down, the position of the ball and the line to gain are unchanged. — the change of
-  ends is not modelled, and it need not be: a spot is stored relative to whoever has the
+- **4-2-3** — The sides swap ends once the first quarter is over, and again once the third
+  is. Nothing travels with them: whose ball it is, which down comes next, where the ball
+  sits relative to the field, and the line to gain all carry over untouched. — the change
+  of ends is not modelled, and it need not be: a spot is stored relative to whoever has the
   ball, so there is no end of the field to swap. `test:ownYardConversion`,
   `test:scoreIsPossessionRelative`; that play carries on across such a boundary is
   `test:secondPostseasonOvertimePeriodCarriesOn`
-- **4-3-1** — A free kick starts the game clock when the ball is legally touched in the
-  field of play. — `test:returnedKickoffAdvancesTheClock`
+- **4-3-1** — On a free kick the clock starts on a legal touching of the ball inside the
+  field of play, and on nothing earlier. — `test:returnedKickoffAdvancesTheClock`
 - **4-3-1-a**, **4-3-1-b**, **4-3-1-c** — It does not start on a touchback, on a kick the
   kicking team recovers before any other legal touching, or on a fair catch. —
   `test:touchbackConsumesNoTime`, `test:kickoffRecoveredByTheKickersStartsNoClock`,
@@ -191,12 +192,12 @@ Which rules must be true of a game, and what checks each, is
 - **4-6-4** — When the play clock expires the ball stays dead: the whistle is the foul,
   five yards from the succeeding spot with the down unchanged (14-4-1). —
   `test:delayOfGameWhenThePlayClockExpires`
-- **4-7-1** — Neither side may conserve time after the two-minute warning of either half by
-  any of six acts: a flag between downs by either side that kills a running clock;
-  intentional grounding; an illegal forward pass; a backward pass thrown out of bounds; a
-  spike or a throw-away in the field of play once a down is over, a touchdown excepted; and
-  an illegal bat or kick out of bounds. Five yards, or more if some other penalty is
-  bigger. — `test:window`, `test:conservingActs`
+- **4-7-1** — Once a half is inside its two-minute warning, neither side may buy the clock
+  back by any of six acts: a flag between downs, by either side, that kills a running
+  clock; intentional grounding; an illegal forward pass; a backward pass thrown out of
+  bounds; a spike or a throw-away inside the field of play once a down is over, a
+  touchdown excepted; and an illegal bat or kick out of bounds. Five yards, or more where
+  some other penalty is bigger. — `test:window`, `test:conservingActs`
 - **4-7-1 Item 1** — When the offence does one of them with the clock running, ten seconds
   come off, the play clock goes back to 30, and the game clock restarts on the ready. The
   offence may spend a charged timeout instead, and then the clock starts on the snap. The
@@ -210,9 +211,10 @@ Which rules must be true of a game, and what checks each, is
   `test:deadBallFoulBeforeTheSnapChargesNoTime`
 - **4-7-2** — An illegal substitution after the two-minute warning, while the ball is dead
   and the clock running, is five yards and a runoff. — `test:window`
-- **4-7-3** — In the last 40 seconds of either half, a defensive foul that conserves time,
-  or an excess timeout for an injured defensive player, ends the half — unless the defence
-  has timeouts left or the offence would rather play on. —
+- **4-7-3** — Inside the last 40 seconds of either half the half simply ends, where the
+  defence commits one of Article 1's time-conserving acts or is charged an excess timeout
+  for an injured player — unless it still has timeouts, or the offence would rather have
+  the clock start on the snap, or play on after it starts on the ready. —
   `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`,
   `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`,
   `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft`,
@@ -549,15 +551,22 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 - **14-3-6** — The three-and-one method. A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
-  Exceptions: the offence's fouls behind the line of scrimmage are enforced from the
-  previous spot, and so are the defence's when the basic spot is behind the line — behind
-  or beyond it, the defence's foul comes off the previous spot all the same. —
+  Exceptions: an offensive foul behind the line of scrimmage comes off the previous spot
+  instead, and so does a defensive one whenever the basic spot is behind the line — behind
+  or beyond it, the defence's foul comes off the previous spot all the same. The article
+  carries three further offensive exceptions this entry does not state: the own end zone,
+  the offence fouling beyond the line when the basic spot is behind it, and a foul in the
+  defence's end zone before a touchdown. —
   `test:blockInTheBackDuringARun`, `test:blockInTheBackBehindTheLine`,
   `test:contactFoulOnALoss`, `test:holdingOnAGain`, `test:contactFoulOnAStripSack`,
   `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
-- **14-4-1** — A foul before the snap is enforced from the succeeding spot and the down
-  stays; a foul at the snap from the previous spot, and the down is repeated. —
-  `test:preSnapKillsThePlay`, `test:falseStartAtTheOwnThreeIsHalfTheDistance`
+- **14-4-1** — Two items, split by when the flag flew. A flag that comes down before the
+  ball is snapped (Item 1) walks off from the succeeding spot, and the same down is played
+  again. One that comes down as it is snapped (Item 2) walks off from the previous spot,
+  and the down is replayed. Both items carry one proviso the entry used to leave out: if
+  enforcing the penalty itself produces a first down, it is a first down, and the down
+  neither stays nor repeats. — `test:preSnapKillsThePlay`,
+  `test:falseStartAtTheOwnThreeIsHalfTheDistance`
 - **14-4-3** — When a **run** with a foul in it ends in a change of possession, the spot
   possession went is the basic spot and the three-and-one method applies: a defensive foul
   gives the ball back to the offence before enforcement (**14-4-3-a**); an offensive foul
@@ -652,9 +661,9 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   pairing repeats — a seventh period opens as a third does — which is a reading rather
   than a sentence in the book, pinned by
   `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`
-- **16-1-4-f** — The teams change goals at the end of the first and third overtime
-  periods, under 4-2-3: possession, the down, the ball and the line to gain are
-  unchanged. — `test:secondPostseasonOvertimePeriodCarriesOn`,
+- **16-1-4-f** — The sides swap ends after the first extra period and after the third, and
+  the article sends the reader to 4-2-3 for how: whose ball it is, the down, the ball and
+  the line to gain all carry over. — `test:secondPostseasonOvertimePeriodCarriesOn`,
   `test:periodResumesWithKickoffAnswers`; the change of ends itself is not modelled, for
   the reason 4-2-3 gives
 - **16-1-4-h** — Postseason overtime timing: a second overtime period ends as the first

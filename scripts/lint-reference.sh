@@ -83,20 +83,24 @@
 #
 # ## The baseline
 #
-# `scripts/lint-reference-baseline.txt` carries the runs already in the tree,
-# one line each, by file and by content key — never by content, because writing
-# the run into the repository is the thing being linted. Each carries a verdict
-# and a note in our own words.
+# `scripts/lint-reference-baseline.txt` carries any run judged irreducible, one
+# line each, by file and by content key — never by content, because writing the
+# run into the repository is the thing being linted. Each carries a verdict and a
+# note. The gate is: a run that is not in the baseline fails.
 #
-# Most of them are not copying. A sentence that has to name the previous spot,
-# the succeeding spot and the down runs out of ways to be ten words long, and the
-# book's sentence and ours collide because both describe the rule using the
-# sport's terms of art, which `docs/reference/README.md` already says are the one
-# thing that cannot be reworded. A lint demanding zero would be answered by
-# writing worse football.
-# So the gate is: a run that is not in the baseline fails. Adding a line to the
-# baseline is a deliberate act with a note attached, and `--list` prints the
-# lines to add.
+# It is empty, and it did not start that way. The tree shared twenty-three
+# ten-word runs with the book when this script was written, and the first
+# judgement was that all twenty-three were the sport's vocabulary rather than the
+# book's prose, since terms of art are the one thing `docs/reference/README.md`
+# says cannot be reworded. That was a defensible claim about two hundred files and
+# a wrong one about the six entries it mattered for: read one at a time against
+# its own article, every run had a paraphrase that cost nothing. The irreducible
+# case is real — a rule whose nouns are all defined terms can run out of ways to
+# be ten words long — it simply was not any of those twenty-three.
+#
+# So a line here is a claim that somebody opened the article and judged the run,
+# not a way to quiet the script. `--list` prints the line to add, and the baseline
+# file itself says more.
 #
 # Usage:
 #   scripts/lint-reference.sh              lint the tree
@@ -482,6 +486,19 @@ run_citations() {
     printf '%s\n' "$out"
 }
 
+# The `path <TAB> key` pairs a baseline file carries, comments and blank lines
+# dropped.
+#
+# The `|| true` is not decoration. `grep -v` exits 1 when it selects nothing, which
+# is exactly what a baseline holding only its own explanation does — and with
+# `set -o pipefail` that ends the script mid-run, so the lint died on the day its
+# baseline finally reached zero entries. The self-test pins the empty case.
+baseline_keys() {
+    local file=$1
+    { grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$file" || true; } |
+        awk -F'\t' 'NF >= 2 { print $1 "\t" $2 }' | sort -u
+}
+
 note_on_what_is_unchecked() {
     echo
     echo "lint-reference: what this did NOT check — whether a cited article actually"
@@ -527,10 +544,27 @@ if [ "$mode" = self-test ]; then
         exit 2
     fi
 
+    # A baseline that holds only its own explanation must read as no keys and must
+    # not end the run. It did end the run, once, because `grep -v` exits 1 when it
+    # selects nothing and `pipefail` passed that on — on the day the real baseline
+    # reached zero entries, which is the day the lint was working best.
+    empty_baseline="$fixtures/baseline-empty.txt"
+    if [ ! -f "$empty_baseline" ]; then
+        echo "lint-reference: $empty_baseline is missing — the empty-baseline case is unpinned" >&2
+        exit 2
+    fi
+    # Assigned, not tested inline. `[ -n "$(baseline_keys ...)" ]` would discard the
+    # status of the substitution, and the status is the whole point of this check —
+    # the bug was an abort, not a wrong answer.
+    empty_keys=$(baseline_keys "$empty_baseline")
+    if [ -n "$empty_keys" ]; then
+        echo "lint-reference: $empty_baseline is meant to hold no keys and holds some" >&2
+        exit 1
+    fi
+
     # The fixture baseline carries one of the fixture runs, so a rewrite that
     # stopped honouring the baseline fails the self-test as well as the lint.
-    carried_keys=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$fixture_baseline" |
-        awk -F'\t' 'NF >= 2 { print $1 "\t" $2 }' | sort -u)
+    carried_keys=$(baseline_keys "$fixture_baseline")
 
     actual=$(
         {
@@ -669,8 +703,7 @@ if [ ! -f "$baseline" ]; then
     exit 2
 fi
 
-carried_keys=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$baseline" |
-    awk -F'\t' 'NF >= 2 { print $1 "\t" $2 }' | sort -u)
+carried_keys=$(baseline_keys "$baseline")
 
 violations=$(printf '%s\n' "$hits" |
     awk -F'\t' -v carried="$carried_keys" -v N="$n" '

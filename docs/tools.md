@@ -673,16 +673,32 @@ against them rather than against a guess.
 ./scripts/lint-reference.sh --list        # the baseline line for every run found
 ```
 
-The tree and the book share twenty-three ten-word runs, and none of them is copying.
-`docs/reference/README.md` says terms of art cannot be reworded — a *free kick*, the
-*line to gain*, *half the distance to the goal* have no synonyms worth having — and eight
-of them in the sport's own order is a ten-word run whether or not anybody had the book
-open. A lint demanding zero would be answered by writing worse football.
+[`scripts/lint-reference-baseline.txt`](../scripts/lint-reference-baseline.txt) carries any
+run judged irreducible, one line each: path, a content key, a verdict and a note. The
+**key**, not the run — writing the run into the repository is the thing being linted. A run
+that is not in the baseline fails.
 
-So [`scripts/lint-reference-baseline.txt`](../scripts/lint-reference-baseline.txt) carries
-them, one line each: path, a content key, a verdict and a note. The **key**, not the run —
-writing the run into the repository is the thing being linted. A run that is not in the
-baseline fails the lint. Adding a line is a deliberate act with a judgement attached.
+**It is empty, and it did not start that way.** The tree shared twenty-three ten-word runs
+with the book when the script was written, and the first judgement was that all of them
+were the sport's vocabulary rather than the book's prose — `docs/reference/README.md` says
+terms of art cannot be reworded, and eight of them in the sport's own order is a ten-word
+run whether or not anybody had the book open. That is a defensible claim about two hundred
+files and a wrong one about the six entries it mattered for. Read one at a time against its
+own article, every run had a paraphrase that cost nothing: the sides swap ends after the
+first and third quarters; a flag before the snap walks off from the succeeding spot. The
+count is zero at n=10 across the tree.
+
+The irreducible case is real — a rule whose nouns are all defined terms can run out of ways
+to be ten words long — so the mechanism stays. A line in it is a claim that somebody opened
+the article and judged the run; `--list` prints the line to add. The baseline mechanism
+itself is exercised by `baselined.md` in the self-test rather than by anything carried in
+the tree.
+
+**Below ten words the shingle stops separating copying from vocabulary**, and that is why
+ten is the floor. Measured on `playing-rules.md` with everything at n=10 reworded away: 26
+runs at n=8 and 73 at n=7, and they are things like the three-and-one method's own list of
+a run, a backward pass and a fumble, or the toss choice between receiving and kicking off.
+Those are the rule, not a copy of it.
 
 It does not scan commit messages, and nothing can: a message merged to `main` cannot be
 un-written. Two sets on `main` carry book prose and are deliberately left there — see
@@ -709,6 +725,13 @@ Four fixture documents, one per direction:
 | `baselined.md` | a run whose key is in the fixture baseline is **not** reported |
 | `paraphrase.md` | the same rules in our own words yield nothing |
 | `citations.md` | a number the corpus does not have is reported, and three that it does are not |
+
+Plus `baseline-empty.txt`, a baseline holding only its own explanation, which must read as
+no keys **without ending the run**. That one is a scar: `grep -v` exits 1 when it selects
+nothing, and under `pipefail` that killed the lint the first time the real baseline was
+emptied — the one path that matters on a clean tree was the one path nothing covered. The
+check has to assign the result rather than test it inline, because a command substitution
+used as an argument throws its status away.
 
 Every hit the fixtures must produce is in `scripts/lint-reference-fixtures/expected.txt`
 as `path:line: rule-id`, and a difference either way fails. `wrapped.md` is the one worth

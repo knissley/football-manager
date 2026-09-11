@@ -1,0 +1,14 @@
+# A baseline holding nothing but its own explanation, read only by
+# scripts/lint-reference.sh --self-test.
+#
+# This is the shape the real scripts/lint-reference-baseline.txt has whenever the tree
+# carries no irreducible run — which is the state it is in, and the state it should
+# normally be in. The self-test asserts that reading this file yields no keys and does not
+# end the run.
+#
+# It is here because it did end the run. `grep -v` exits 1 when it selects nothing, and
+# with `set -o pipefail` that killed the lint the moment the real baseline was emptied:
+# the script had only ever been exercised against a baseline with entries in it, so the
+# one path that mattered on a clean tree was the one path nothing covered.
+#
+# path	key	verdict	note
