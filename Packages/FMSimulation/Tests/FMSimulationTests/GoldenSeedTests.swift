@@ -378,8 +378,26 @@ struct GoldenSeedTests {
             // to the ball and breaks a tackle on a number in the sixties where he did it
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
+            // And moved again by the benches spending their timeouts. Nothing in the
+            // rules layer changed; what changed is when a coach asks for one. A defence a
+            // single score down now stops the clock through the whole five-minute
+            // clock-burn window rather than only inside the last three and a third, an
+            // offence with the ball in the last minute of either half stops it rather
+            // than keep a timeout it cannot carry past the whistle, and an offence on
+            // third or fourth and short facing a play clock it is not going to beat
+            // spends one instead of the five yards. A charged timeout is an
+            // administrative stoppage, so each one resets the play clock to the short one
+            // and leaves the game clock waiting for the snap — which changes how much of
+            // the period the next snap costs, which changes what is called on the snap
+            // after that, and the stream diverges from there.
+            //
+            // One of the three seeds moved. Seeds 1 and 12 are byte-identical to what
+            // they were: neither game reaches a moment one of those three decisions
+            // answers differently, which is what a three-seed golden is for — it catches
+            // a change that reaches everything, and a change that reaches only the
+            // endgame of a close game reaches only the seeds that play one.
             (UInt64(1), UInt64(16_544_674_377_827_432_735)),
-            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
+            (UInt64(5), UInt64(7_034_906_910_551_191_170)),
             (UInt64(12), UInt64(3_133_720_638_961_547_474)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {

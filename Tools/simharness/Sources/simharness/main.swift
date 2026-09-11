@@ -530,13 +530,29 @@ for result in results {
 // the offence's alternative to a runoff, an injury timeout — is a clock election on it.
 var timeoutsSpent = 0
 var twoMinuteWarnings = 0
+// The same timeouts split two ways. By side: which bench asked, read off the snap the
+// timeout precedes. By half: where in the game it was spent, which is the interesting
+// split because the allotment is per half and nothing carries out of one — three a half,
+// two in a regular-season overtime period (2025 rulebook, 4-5-1 Item 1) — so a timeout
+// still in hand at a whistle was thrown away.
+var timeoutsByOffense = 0
+var timeoutsByDefense = 0
+var timeoutsByPeriod: [Int] = [0, 0, 0]  // first half, second half, overtime
+var timeoutsChargedByRule = 0
 for play in allPlays {
     let taken = play.timeoutsBeforeTheSnap
     timeoutsSpent += taken.offense + taken.defense
+    timeoutsByOffense += taken.offense
+    timeoutsByDefense += taken.defense
+    let period =
+        play.situation.quarter <= rulesInForce.quarters / 2
+        ? 0 : (play.situation.quarter <= rulesInForce.quarters ? 1 : 2)
+    timeoutsByPeriod[period] += taken.offense + taken.defense
     if play.hasTwoMinuteWarningBeforeTheSnap { twoMinuteWarnings += 1 }
     for election in play.decisions.compactMap(\.clockElectionValue)
     where election == .timeoutInsteadOfRunoff || election == .injuryTimeoutCharged {
         timeoutsSpent += 1
+        timeoutsChargedByRule += 1
     }
 }
 print("")
@@ -614,6 +630,32 @@ print(
         + "a caller contract, not a league rate: test:aKneelIsNeverFollowedByALivePlay")
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
+// The same total split by side and by half. No target on any of the four: nothing in
+// docs/reference/calibration-sources.md bands either split, and the play-by-play
+// derivation that would produce one — `timeout_team` against `posteam` for the side,
+// `qtr` for the half — is E2 (#42)'s to run, not a fix's to invent. They are printed
+// because the total alone cannot say whether a bench is spending its second-half
+// timeouts or hoarding them past the whistle, which is the thing the row exists to
+// catch. The by-side and by-half figures count the timeouts a bench asked for; the
+// remainder in the total is charged by rule and the record's election does not name a
+// side (the offence's alternative to a runoff, 4-7-1 Item 1; an injury timeout,
+// 4-5-4-a).
+let gamesPlayed = Double(max(1, results.count))
+print(
+    "    \(pad("by side: offence / defence", 30))"
+        + "\(twoDecimals(Double(timeoutsByOffense) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByDefense) / gamesPlayed))"
+        + "   (no target: unsourced, a band belongs to #42)")
+print(
+    "    \(pad("by half: first / second / OT", 30))"
+        + "\(twoDecimals(Double(timeoutsByPeriod[0]) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByPeriod[1]) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByPeriod[2]) / gamesPlayed))"
+        + "   (no target: unsourced, a band belongs to #42)")
+print(
+    "    \(pad("charged by rule, not called", 30))"
+        + "\(twoDecimals(Double(timeoutsChargedByRule) / gamesPlayed))"
+        + "   (no target: in the total above; a runoff's alternative or an injury timeout)")
 print(
     "    \(pad("two-minute warnings per game", 30))"
         + "\(twoDecimals(Double(twoMinuteWarnings) / Double(max(1, results.count))))"

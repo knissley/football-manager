@@ -382,7 +382,15 @@ struct EndgameTests {
         #expect(callsTimeout(situation(clock: 150, differential: 30), isOffense: false) == false)
     }
 
-    @Test("Nobody calls a timeout on a stopped clock or in the first quarter", .tags(.unit))
+    /// Retitled rather than rewritten: the assertions are the ones it always made, but
+    /// its old name — *nobody calls a timeout on a stopped clock* — is no longer true of
+    /// the caller and was never true of the sport. An offence does stop a play clock it
+    /// cannot beat with the game clock already stopped, which costs it nothing but the
+    /// timeout (2025 rulebook, 4-3-2); what it does not do is spend one on first and ten
+    /// in the first quarter, or on a stopped clock with the whole field in front of it.
+    @Test(
+        "A timeout is not spent on a down that nothing decides, whichever clock is stopped",
+        .tags(.unit))
     func timeoutsAreNotWasted() {
         #expect(
             callsTimeout(
@@ -485,6 +493,13 @@ struct EndgameTests {
                 situation(quarter: 3, clock: 600), isOffense: true, clockRunning: false,
                 playClock: short) == false,
             "five yards on first and ten is a down replayed, not a drive")
+        // And first and goal is not third and goal, though the situational class calls
+        // both goal to go: five yards there is a worse goal-line call, not a lost down.
+        #expect(
+            callsTimeout(
+                situation(distance: 6, ballOn: 94, quarter: 3, clock: 600), isOffense: true,
+                clockRunning: false, playClock: short) == false,
+            "first and goal from the six still has three downs behind it")
         #expect(
             callsTimeout(
                 thirdAndOne(timeouts: 0), isOffense: true, clockRunning: false, playClock: short)

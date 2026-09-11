@@ -113,6 +113,17 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:spikesPerGame` — spikes per game | 2023-24 | S1 |
 | `row:timeoutsPerGame` — timeouts spent per game | 2023-24 | S1 |
 
+The harness also prints that total split **by side** (which bench asked) and **by half**
+(the allotment is per half and nothing carries out of one — three a half, two in a
+regular-season overtime period, 2025 rulebook 4-5-1 Item 1). Neither split is banded, and
+neither is a row: nobody has computed one. What a sourcing would read is in the same
+play-by-play file every `S1` row comes from — `timeout_team` against `posteam` for the
+side, `qtr` for the half — and running it belongs to
+[#42](https://github.com/knissley/football-manager/issues/42) rather than to a fix, so the
+harness prints the two with the reason they have no target beside them. They are printed
+at all because the total alone cannot tell a bench spending its second-half timeouts from
+one hoarding them past the whistle, which is the thing the total exists to catch.
+
 ### The season, which the harness cannot play until M3
 
 | Row | Season | Source |
