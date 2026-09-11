@@ -54,9 +54,23 @@ public protocol PlayCaller: Sendable {
 
     /// Whether to keep the kickoff short and fight for it.
     ///
+    /// A preference, not a permission: whether the book allows a declaration at all is
+    /// `Rules.mayDeclareOnsideKick`, which the simulator asks first, so an answer of
+    /// `true` here from a team that may not declare one is simply not acted on.
+    ///
     /// Note the frame: the *kicking* team has possession on a kickoff, so a negative
     /// differential here is the team that just scored and is still behind.
     func kicksOnside(situation: Situation, classified: SituationClass) -> Bool
+
+    /// Whether to strike the kickoff through the end zone rather than into the landing
+    /// zone — the ordinary kickoff's one real decision under the 2025 book.
+    ///
+    /// It is a trade, not a preference for a better outcome. A touchback concedes the
+    /// receiving team's 35 (6-1-5); a kick into the landing zone has to be returned
+    /// (6-1-4) and gives up about seven yards less on average, at the price of the return
+    /// that goes the distance. Which side of that a coach comes down on is what this
+    /// answers. The frame is the kicking team's, as on any free kick.
+    func kicksForTouchback(situation: Situation, classified: SituationClass) -> Bool
 
     /// When the first choice of the two privileges of 4-2-2 is this side's — the second
     /// half, for the captain who lost the pregame toss; a third postseason overtime
@@ -246,11 +260,48 @@ extension PlayCaller {
     }
 
     public func kicksOnside(situation: Situation, classified: SituationClass) -> Bool {
-        guard situation.quarter >= 4, situation.scoreDifferential < 0 else { return false }
-        // Two scores down: any time inside the last three minutes.
-        if situation.scoreDifferential <= -9 && situation.clockRemaining <= 180 { return true }
-        // One score down with no realistic way to get the ball back and score again.
-        return situation.clockRemaining <= 50 && situation.defenseTimeouts == 0
+        // Whether the book allows one at all is `Rules.mayDeclareOnsideKick`, and the
+        // simulator asks it first. This is only whether a coach wants one, so the
+        // trailing test here is arithmetic and not the rule: a team that is level has
+        // nothing to buy with the field position it is giving away.
+        guard situation.scoreDifferential < 0 else { return false }
+
+        // Two scores down with five minutes left. Two stops and two drives is more than
+        // the clock has in it, so the possession is worth the thirty yards it costs when
+        // it fails.
+        if situation.quarter >= 4, situation.scoreDifferential <= -9,
+            situation.clockRemaining <= 300
+        {
+            return true
+        }
+        // One score down inside two minutes with nothing to stop the clock with: a stop
+        // does not get the ball back in time, so there is nothing else to try.
+        if situation.quarter >= 4, situation.clockRemaining <= 120,
+            situation.defenseTimeouts == 0
+        {
+            return true
+        }
+        // Rarely, and earlier than the endgame: three scores down with the third quarter
+        // running out is an arithmetic problem that needs a possession nobody is going to
+        // hand over. Narrow on purpose — it wants all three at once — and it is the one
+        // branch the 2025 book made reachable at all, since the 2024 book could not
+        // declare before the fourth quarter.
+        return situation.scoreDifferential <= -17 && situation.quarter == 3
+            && situation.clockRemaining <= 120
+    }
+
+    /// Kick it to the landing zone and cover it, except where certainty is worth more
+    /// than seven yards.
+    ///
+    /// The 2025 touchback hands over the receiving team's 35 (6-1-5), which is better
+    /// field position than the average return produces, so conceding one is a price paid
+    /// for something. What it buys is the removal of the return, and the return is worth
+    /// removing when a single play can undo the game: leading late, where a kick taken
+    /// back is the one thing that beats you, and backed up after a safety, where the
+    /// kick is from the 20 and a return starts the other side inside field goal range.
+    public func kicksForTouchback(situation: Situation, classified: SituationClass) -> Bool {
+        if classified.time.isEndgame && situation.scoreDifferential > 0 { return true }
+        return situation.ballOn >= 75
     }
 
     // The baseline answers to the runoff's decisions. Coaching choices, not rules;

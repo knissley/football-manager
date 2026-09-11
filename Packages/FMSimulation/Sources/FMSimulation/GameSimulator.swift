@@ -175,6 +175,24 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     /// loudly at the end of a test rather than hanging a season.
     private static var playLimit: Int { 400 }
 
+    /// Whether this free kick is kicked onside: the book has to permit one and the coach
+    /// has to want one, in that order.
+    ///
+    /// The two halves are kept apart on purpose. Whether a team **may** declare is
+    /// `Rules.mayDeclareOnsideKick` — at any time during the game, and only while
+    /// trailing (2025 rulebook, 6-1-1-c, 6-1-6) — so no caller, present or written later,
+    /// can declare one the book does not allow. Whether it **wants** one is the caller's
+    /// judgement and nothing else. The gate used to live inside the baseline caller's
+    /// judgement as a bare `quarter >= 4`, which meant the rule and the taste were the
+    /// same line and every caller inherited a rulebook.
+    static func declaresOnsideKick(
+        caller: Caller, situation: Situation, classified: SituationClass, rules: Rules
+    ) -> Bool {
+        rules.mayDeclareOnsideKick(
+            quarter: situation.quarter, scoreDifferential: situation.scoreDifferential)
+            && caller.kicksOnside(situation: situation, classified: classified)
+    }
+
     public func simulate(_ setup: GameSetup) -> GameResult {
         var state = State(setup: setup)
         let root = SplittableRandom(seed: setup.seed)
@@ -302,11 +320,22 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
 
         let calls: Calls
         if state.pendingKickoff {
-            let onside = caller.kicksOnside(situation: situation, classified: classified)
+            let onside = Self.declaresOnsideKick(
+                caller: caller, situation: situation, classified: classified,
+                rules: state.setup.rules)
+            // Three free kicks, and which one this is was called by somebody: the
+            // ordinary kick is aimed at the landing zone to be returned, the deep one is
+            // struck through the end zone for the touchback, and the onside kick is
+            // declared. None of them is the default any more, so none is `.automatic`.
+            let concept: PlayConcept =
+                onside
+                ? .onsideKick
+                : (caller.kicksForTouchback(situation: situation, classified: classified)
+                    ? .deepKickoff : .kickoff)
             calls = Calls(
-                offense: OffensiveCall(concept: onside ? .onsideKick : .kickoff),
+                offense: OffensiveCall(concept: concept),
                 defense: .preventShell,
-                offensiveCaller: onside ? .coordinator(PersonnelID(1)) : .automatic,
+                offensiveCaller: .coordinator(PersonnelID(1)),
                 defensiveCaller: .automatic)
         } else if state.pendingTry {
             calls = tryCalls(

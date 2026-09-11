@@ -55,10 +55,10 @@ public struct CrudeResolver: PlayResolver {
             return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
         case .twoPointRun:
             return run(.insideRun, situation, calls, context, personnel, &random, isTry: true)
-        case .kickoff:
-            return kickoff(situation, context, personnel, &random)
+        case .kickoff, .deepKickoff:
+            return kickoff(situation, calls, context, personnel, &random)
         case .onsideKick:
-            return onsideKick(context, personnel, &random)
+            return onsideKick(situation, context, personnel, &random)
         // A kneel and a spike are snaps somebody took. Crediting nobody would leave the
         // quarterback's snap count short and put plays in the stream that happened to
         // no one.
@@ -453,6 +453,14 @@ public struct CrudeResolver: PlayResolver {
                     spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
                     context: context, participants: &participants, random: &random)
 
+            // A sack is a play worth reacting to by anybody's reckoning, and it could not
+            // draw a word after the whistle either.
+            if penalty == nil {
+                penalty = Penalties.afterThePlay(
+                    Outcome(kind: .sack, yards: loss, endedIn: .tackled),
+                    personnel: personnel, context: context, random: &random)
+            }
+
             return (
                 Outcome(
                     kind: recorded(.sack),
@@ -567,6 +575,15 @@ public struct CrudeResolver: PlayResolver {
             let reachesEndZone: Bool = Int(situation.ballOn) - total <= 0
             var gained: Int16 = reachesEndZone ? Int16(situation.ballOn) : Int16(total)
             let kind: PlayKind = recorded(.pass)
+
+            // What somebody says once the whistle has gone. Drawn from the run path
+            // alone until now, so no completion and no sack in the league ever drew a
+            // word afterwards — two thirds of a team's snaps are dropbacks.
+            if penalty == nil, !isTry {
+                penalty = Penalties.afterThePlay(
+                    Outcome(kind: kind, yards: gained, endedIn: afterCatch.ending),
+                    personnel: personnel, context: context, random: &random)
+            }
 
             // A receiver can put it on the ground too. A try is left alone: it cannot
             // fumble into anything but a failed try.
@@ -786,50 +803,152 @@ public struct CrudeResolver: PlayResolver {
 
     /// A kickoff, and what the man back there does with it.
     ///
-    /// This used to be one line returning a touchback, unconditionally, which meant no
-    /// kick was ever returned, a kicker's leg was irrelevant on the one play it most
-    /// obviously matters, and every drive after a score started on the same yard line.
+    /// **The kick is aimed, and the spot decides what the aim is worth.** Under the
+    /// dynamic kickoff there are two kicks and they trade different things: through the
+    /// end zone concedes the receiving team's 35 for certainty (2025 rulebook, 6-1-5),
+    /// and into the landing zone — the receiving team's 20 out to its goal line
+    /// (6-1-2-e) — has to be returned (6-1-4), which is worth about seven yards of field
+    /// position and costs a return touchdown once in a while. Which one is called is
+    /// `PlayCaller.kicksForTouchback`; what the kicker then does with it is here.
+    ///
+    /// Everything reads `situation.ballOn`, which is the restraining line as a distance
+    /// penalty has moved it (6-1-2-a, 6-1-6-b). That is the whole reason a flag on a
+    /// kickoff means anything: from fifteen yards further back the end zone is fifteen
+    /// yards further away, and a kick that would have sailed through it comes down short.
+    /// This used to be a coin flip that read nothing at all, so a penalty on the kicking
+    /// team changed the yard line printed and not one thing about the kick.
     private func kickoff(
-        _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
+        _ situation: Situation, _ calls: Calls, _ context: PlayContext, _ personnel: Lineup,
         _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
+        let rules = context.rules
 
-        // How deep it goes. A strong leg buys touchbacks, which is the whole reason
-        // teams pay for one.
+        // Yards from the restraining line to the receiving team's goal line: 65 from the
+        // ordinary 35, 80 after a safety or a fifteen-yard penalty, 50 with fifteen the
+        // other way. Every chance below is written for the ordinary kick and moved from
+        // there by the difference, so the spot is a mechanism rather than a caption.
+        let carry = Int(situation.ballOn)
+        let extraCarryNeeded = Double(
+            carry - Int(rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)))
+
         let leg = rating(.kickPower, SlotLayout.specialist, personnel, context)
-        var touchbackChance = 0.50 + (leg - 68) * 0.012
-        if context.weather.windSpeed > 15 { touchbackChance -= 0.10 }
-        if context.weather.isIndoors { touchbackChance += 0.04 }
+        let placement = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
+        // Wind and thin air move a kickoff the way they move any other kick.
+        var conditions = 0.0
+        if context.weather.windSpeed > 15 { conditions -= 0.10 }
+        if context.weather.isIndoors { conditions += 0.04 }
 
-        if random.nextBool(probability: min(0.88, max(0.25, touchbackChance))) {
+        var decisions: [DecisionPoint] = []
+        let aimsDeep = calls.offense.concept == .deepKickoff
+
+        if aimsDeep {
+            // Struck to carry through the end zone. A strong leg is what buys it, and
+            // fifteen yards further back is most of the way to taking it off the table.
+            let clears =
+                0.86 + (leg - 68) * 0.010 + conditions - extraCarryNeeded * 0.030
+            if random.nextBool(probability: min(0.97, max(0.02, clears))) {
+                return (
+                    Outcome(
+                        kind: .kickoff, yards: 0, endedIn: .touchback,
+                        participants: participants),
+                    []
+                )
+            }
+            // Short of the intention: it comes down in the landing zone after all, and
+            // the coverage unit that expected to be jogging off has a return to make.
+            return returned(
+                landingAt: landingSpot(rules: rules, random: &random), situation, context,
+                personnel, &participants, &decisions, &random)
+        }
+
+        // Aimed at the landing zone. Missing it long is the common miss — the ball only
+        // has to carry twenty yards further than intended — and the kicker who can take
+        // something off it is the one who does not. Missing it short or wide is the rare
+        // one, and it is a foul (6-2-4).
+        //
+        // About one kick in six is missed long, which is where the touchback share of the
+        // 2025 season comes from: almost every kick is aimed at the zone, so the share of
+        // kickoffs that end in a touchback is very nearly this number
+        // (`row:kickoffTouchbacks.2025`). A new mechanism has to be given its constants
+        // from somewhere, and the sourced share is the only honest place for this one.
+        let tooDeep =
+            0.16 - (placement - 68) * 0.004 + (leg - 68) * 0.002 + conditions
+            - extraCarryNeeded * 0.010
+        if random.nextBool(probability: min(0.60, max(0.005, tooDeep))) {
             return (
                 Outcome(kind: .kickoff, yards: 0, endedIn: .touchback, participants: participants),
                 []
             )
         }
 
-        // Fielded and brought out. He starts around his own goal line, so the yard line
-        // he reaches *is* the return.
-        var decisions: [DecisionPoint] = []
-        let start = -Int(random.next(upperBound: 6))
+        let mishit = 0.030 - (placement - 68) * 0.0008 - conditions * 0.20
+        if random.nextBool(probability: min(0.20, max(0.004, mishit))) {
+            // Out of bounds between the goal lines, or first down on the turf short of
+            // the zone. Either way the receiving team is given the ball rather than
+            // playing from where it stopped, and the clock never starts because nobody
+            // legally touched it in the field of play (4-3-1).
+            let short = random.nextBool(probability: 0.45)
+            let shortfall = 3 + Int(random.next(upperBound: 14))
+            let deadAt = short ? Int(rules.kickoffLandingZoneOwnYard) + shortfall : shortfall
+            // Nobody carried it anywhere, so where it died is where the record says it
+            // was fielded — the same answer a downed punt gives, and what makes the
+            // kick's gross recoverable from the stream.
+            let dead = max(1, min(99, min(deadAt, carry)))
+            return (
+                Outcome(
+                    kind: .kickoff, yards: 0, endedIn: short ? .downed : .outOfBounds,
+                    participants: participants,
+                    finalSpot: UInt8(dead), fieldedAt: Int8(dead), clockRunoff: 0),
+                []
+            )
+        }
+
+        return returned(
+            landingAt: landingSpot(rules: rules, random: &random), situation, context, personnel,
+            &participants, &decisions, &random)
+    }
+
+    /// Where in the landing zone the ball comes down, as the receiving team's own yard.
+    ///
+    /// Kickers put it deep in the zone, because a ball fielded at the 3 is a longer way
+    /// home than one fielded at the 18 — but not so deep that it risks the end zone.
+    private func landingSpot(rules: Rules, random: inout SplittableRandom) -> Int {
+        let depth = Int(rules.kickoffLandingZoneOwnYard)
+        return max(1, depth - 5 - Int(random.next(upperBound: 11)))
+    }
+
+    /// A kick that came down in the zone, fielded and run out. `landingAt` is the
+    /// receiving team's own yard, which in the kicking team's frame is the same number.
+    private func returned(
+        landingAt: Int, _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
+        _ participants: inout [Participation], _ decisions: inout [DecisionPoint],
+        _ random: inout SplittableRandom
+    ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
+        // Twenty yards of return from about the 9 is a start near the 29, which is what
+        // the sport's average start under this rule looks like. The breakaway chance is
+        // the one it always was: the rule changed how many kicks are returned, not what a
+        // returner does with one.
         let run = returnRun(
-            from: start, average: 26, breakawayChance: 0.0028, personnel: personnel,
+            from: landingAt, average: 20, breakawayChance: 0.0028, personnel: personnel,
             context: context, participants: &participants, decisions: &decisions,
             random: &random)
 
+        // Where he fielded it is where it came down: a kick into the landing zone may not
+        // be fair caught, so the returner takes it at the spot rather than choosing one.
+        let fielded = Int8(max(-99, min(99, landingAt)))
         if run.scores {
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .touchdown, participants: participants,
-                    finalSpot: 100, fieldedAt: Int8(start), clockRunoff: 12),
+                    finalSpot: 100, fieldedAt: fielded, clockRunoff: 12),
                 decisions
             )
         }
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: Int8(start),
+                finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: fielded,
                 clockRunoff: UInt16(6 + run.spot / 12)),
             decisions
         )
@@ -841,36 +960,46 @@ public struct CrudeResolver: PlayResolver {
     /// absence meant the last two minutes of a two-score game had no football left in
     /// them.
     private func onsideKick(
-        _ context: PlayContext, _ personnel: Lineup, _ random: inout SplittableRandom
+        _ situation: Situation, _ context: PlayContext, _ personnel: Lineup,
+        _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
 
         // A kick everyone in the stadium knows is coming. Roughly one in nine.
         let recovered = random.nextBool(probability: 0.11)
-        // It has to travel ten yards, so it is recovered around the kicking team's
-        // forty-five whoever comes up with it.
-        let spot = 45 + Int(random.next(upperBound: 7))
+
+        // The kicking team may not legally touch it until it has reached the receiving
+        // team's restraining line, ten yards in advance of its own (2025 rulebook,
+        // 6-1-6-e, 6-1-6-g), so the pile forms there and the ball dies at or just past
+        // it. Measured from the restraining line the kick is actually taken from, which a
+        // distance penalty moves (6-1-6-b).
+        //
+        // **One spot, for both sides.** Whoever comes up with it, the ball died in the
+        // same place, and `finalSpot` is in the kicking team's frame either way. Flipping
+        // it on one branch and not the other put a failed onside kick ten yards behind
+        // where a recovered one lay and docked the receiving team the field position the
+        // rule gives it.
+        let deadAt = Int(situation.ballOn) - 10 - Int(random.next(upperBound: 7))
+        let spot = UInt8(max(1, min(99, deadAt)))
 
         if recovered {
             for slot in SlotLayout.coverageUnit.prefix(2) {
                 credit(slot.0, .other, personnel, into: &participants)
             }
             // Dead where it was fallen on, so that is where it was fielded too.
-            let fell = max(1, min(99, 100 - spot))
             return (
                 Outcome(
                     kind: .kickoff, yards: 0, endedIn: .fumbleRecovered,
-                    participants: participants,
-                    finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
+                    participants: participants, finalSpot: spot, fieldedAt: Int8(spot),
+                    clockRunoff: 5),
                 []
             )
         }
         credit(SlotLayout.returner, .returner, personnel, into: &participants)
-        let fell = max(1, min(99, spot))
         return (
             Outcome(
                 kind: .kickoff, yards: 0, endedIn: .tackled, participants: participants,
-                finalSpot: UInt8(fell), fieldedAt: Int8(fell), clockRunoff: 5),
+                finalSpot: spot, fieldedAt: Int8(spot), clockRunoff: 5),
             []
         )
     }
@@ -926,17 +1055,14 @@ public struct CrudeResolver: PlayResolver {
         var participants = participation(for: SlotLayout.specialist, personnel, role: .kicker)
         var decisions: [DecisionPoint] = []
 
-        // The rush at the punter, which the rules protect him from.
-        if let foul = Penalties.onKick(
+        // The rush at the punter, which the rules protect him from. Drawn here and
+        // carried on whatever the punt turns out to be, rather than reported as a play
+        // that never happened: the rush is over before the ball comes down, so the punt
+        // is a fact the offended team weighs the flag against (14-2, 12-2-12). It
+        // used to be `.penaltyOnly`, which gave the punting team the flag every time
+        // because there was no punt to decline in favour of.
+        let kickerFoul = Penalties.onKick(
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
-        {
-            return (
-                Outcome(
-                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
-                    participants: participants, penalties: [foul], clockRunoff: 4),
-                []
-            )
-        }
 
         // Accuracy is what turns distance into field position: the punter who can place
         // it inside the ten is worth more than the one who simply hits it a long way.
@@ -973,7 +1099,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchback, participants: participants,
-                    clockRunoff: 6),
+                    penalties: kickerFoul.map { [$0] } ?? [], clockRunoff: 6),
                 []
             )
         }
@@ -1003,11 +1129,15 @@ public struct CrudeResolver: PlayResolver {
                     foul: .illegalTouching, offender: toucher, offendingTeam: context.offense,
                     yards: 0, wasAccepted: false)
             }
+            // One flag a play, and the rush at the kicker is the one the rules layer can
+            // enforce: only the first penalty on a record is enforced, so a second would
+            // be dropped in silence.
             let dead = max(1, min(99, landing + drift))
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: roll < 6 ? .downed : .outOfBounds,
-                    participants: participants, penalties: illegal.map { [$0] } ?? [],
+                    participants: participants,
+                    penalties: (kickerFoul ?? illegal).map { [$0] } ?? [],
                     finalSpot: UInt8(dead), fieldedAt: Int8(dead), clockRunoff: 6),
                 []
             )
@@ -1024,6 +1154,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .fairCatch, participants: participants,
+                    penalties: kickerFoul.map { [$0] } ?? [],
                     finalSpot: UInt8(max(1, min(99, landing))),
                     fieldedAt: Int8(max(1, min(99, landing))), clockRunoff: 6),
                 []
@@ -1051,7 +1182,7 @@ public struct CrudeResolver: PlayResolver {
             return (
                 Outcome(
                     kind: .punt, yards: 0, endedIn: .touchdown, participants: participants,
-                    penalties: blockBack.map { [$0] } ?? [],
+                    penalties: (kickerFoul ?? blockBack).map { [$0] } ?? [],
                     finalSpot: 100, fieldedAt: fielded, clockRunoff: 12),
                 decisions
             )
@@ -1059,29 +1190,27 @@ public struct CrudeResolver: PlayResolver {
         return (
             Outcome(
                 kind: .punt, yards: 0, endedIn: .tackled, participants: participants,
-                penalties: blockBack.map { [$0] } ?? [],
+                penalties: (kickerFoul ?? blockBack).map { [$0] } ?? [],
                 finalSpot: UInt8(max(1, min(99, run.spot))), fieldedAt: fielded,
                 clockRunoff: 8),
             decisions
         )
     }
 
+    /// A place kick, and the rush at the kicker the rules protect him from.
+    ///
+    /// **The kick is resolved first and the flag drawn after it.** The rush happens while
+    /// the ball is in the air, so a foul on the kicker does not stop the kick — and
+    /// reporting one as `.penaltyOnly` said that it did: a made field goal with roughing
+    /// on it erased three points and handed the offence a first down instead. Resolved in
+    /// this order the kick is a fact and the flag is a choice on top of it, which is what
+    /// 14-2-3 and 12-2-12 need to be able to say anything.
     private func kick(
         _ concept: PlayConcept, _ situation: Situation, _ context: PlayContext,
         _ personnel: Lineup, _ random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        if let foul = Penalties.onKick(
+        let kickerFoul = Penalties.onKick(
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
-        {
-            return (
-                Outcome(
-                    kind: .penaltyOnly, yards: 0, endedIn: .penaltyEnforced,
-                    participants: participation(
-                        for: SlotLayout.specialist, personnel, role: .kicker),
-                    penalties: [foul], clockRunoff: 4),
-                []
-            )
-        }
 
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
         let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
@@ -1121,6 +1250,7 @@ public struct CrudeResolver: PlayResolver {
                 kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
                 endedIn: good ? .fieldGoalGood : .fieldGoalMissed,
                 participants: participation(for: SlotLayout.specialist, personnel, role: .kicker),
+                penalties: kickerFoul.map { [$0] } ?? [],
                 clockRunoff: concept == .extraPoint ? 0 : 5),
             []
         )

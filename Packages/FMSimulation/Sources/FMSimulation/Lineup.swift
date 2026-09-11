@@ -329,23 +329,35 @@ extension PlayConcept {
     /// eleven, and the crude engine had only ever fielded the one. Here rather than in
     /// `FMCore` because the slots are this engine's arrangement, and the spatial engine
     /// places bodies by formation.
+    ///
+    /// **Written as a switch over every case with no `default`, deliberately.** A kicking
+    /// concept that falls through to the scrimmage layout puts the wrong eleven on the
+    /// field and says nothing about it, and the snap counts then record a kickoff as a
+    /// snap for the starting offence. An exhaustive switch turns the next concept added
+    /// into a build failure here instead.
     func offenseLayout(_ group: PersonnelGroup) -> [(Position, Int)] {
         switch self {
         case .punt: return SlotLayout.puntUnit
         case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
-        case .kickoff, .onsideKick: return SlotLayout.kickoffUnit
-        default: return SlotLayout.offense(group)
+        case .kickoff, .onsideKick, .deepKickoff: return SlotLayout.kickoffUnit
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike, .twoPointPass, .twoPointRun:
+            return SlotLayout.offense(group)
         }
     }
 
     /// The return side. A crude engine does not model a return, but the men who have to
     /// be out there still take the snap — a punt is a play eleven of them were on the
     /// field for, and their snap counts should say so.
+    ///
+    /// Exhaustive for the same reason as the offence side above.
     func defenseLayout(_ package: DefensivePackage) -> [(Position, Int)] {
         switch self {
-        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick:
+        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick, .deepKickoff:
             return SlotLayout.returnUnit
-        default: return SlotLayout.defense(package)
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike, .twoPointPass, .twoPointRun:
+            return SlotLayout.defense(package)
         }
     }
 }

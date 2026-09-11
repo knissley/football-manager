@@ -239,11 +239,23 @@ struct PenaltyTests {
     }
 
     /// And it has to be *asymmetric*, or it is not home field advantage — it is weather.
+    ///
+    /// **Sixty games a side, for the reason the road-side twin above gives.** The home
+    /// offence's pre-snap draw does not read the crowd at all — `Penalties.preSnap` takes
+    /// the noise term as zero when the offence is the home team — so what is left in the
+    /// counts is the stream being reshuffled: a road false start is an extra play, every
+    /// play after it is drawn from a different split, and the home team's own flags land
+    /// in different places. Twelve games hold about fifteen of them and the reshuffle
+    /// moves more than the tolerance, so the small sample was reading the shuffle. Across
+    /// nine noise settings at twelve games the counts ran 14, 15, 15, 15, 16, 21, 25, 25,
+    /// 23; the same settings at sixty games ran 106, 111, 110, 112, 119, 122, 128, 129,
+    /// 124 — a drift of a fifth on a quantity the code cannot move, which is the size of
+    /// the shuffle and not of a mechanism.
     @Test("Noise does not punish the home team", .tags(.unit))
     func noiseSparesTheHomeTeam() {
         func homePreSnapFouls(noise: UInt8) -> Int {
             var count = 0
-            for seed in UInt64(1)...12 {
+            for seed in UInt64(1)...60 {
                 let result = game(seed: seed, noise: noise)
                 for play in result.plays {
                     for flag in play.outcome.penalties

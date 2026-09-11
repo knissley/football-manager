@@ -212,6 +212,39 @@ func conceptName(_ calls: Calls) -> String {
     case .twoPointPass: return "two-point pass"
     case .twoPointRun: return "two-point run"
     case .onsideKick: return "onside kick"
+    case .deepKickoff: return "deep kickoff"
+    }
+}
+
+/// Whether this call is a free kick — the plays that belong to the sequence between
+/// drives rather than to a drive, and that are not snapped at a down and distance
+/// (2025 rulebook, 6-1-1).
+///
+/// **Written as a switch over every case with no `default`, deliberately.** The same
+/// question used to be asked as two `==` comparisons, and when the deep kickoff became
+/// its own concept the comparisons went on answering `false` for it: a free kick was
+/// printed at first and ten, and the drive chart opened a drive on it and immediately
+/// closed it as a period boundary that was not one. An exhaustive switch turns the next
+/// concept into a build failure here instead of a trace that quietly lies about the
+/// football.
+func isFreeKickConcept(_ concept: PlayConcept) -> Bool {
+    switch concept {
+    case .kickoff, .onsideKick, .deepKickoff:
+        return true
+    case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
+        .punt, .fieldGoal, .kneel, .spike, .extraPoint, .twoPointPass, .twoPointRun:
+        return false
+    }
+}
+
+/// Whether this call is a try. Exhaustive for the same reason as the free kick above.
+func isTryConcept(_ concept: PlayConcept) -> Bool {
+    switch concept {
+    case .extraPoint, .twoPointPass, .twoPointRun:
+        return true
+    case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
+        .punt, .fieldGoal, .kneel, .spike, .kickoff, .onsideKick, .deepKickoff:
+        return false
     }
 }
 
@@ -484,9 +517,8 @@ struct Broadcast {
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
         let concept = play.calls.offense.concept
-        let isTry =
-            concept == .extraPoint || concept == .twoPointPass || concept == .twoPointRun
-        let isKickoff = concept == .kickoff || concept == .onsideKick
+        let isTry = isTryConcept(concept)
+        let isKickoff = isFreeKickConcept(concept)
 
         // A kickoff and a try belong to the sequence between drives rather than to a
         // drive, so both close whatever was open — as does the ball changing hands.
@@ -881,6 +913,14 @@ struct Broadcast {
             return text + " — recovered and carried in by \(abbreviation(offense)) — touchdown"
         case .touchdown, .tackled:
             return returnText(play, kicker: kicker, returner: returner, offense: offense)
+        case .outOfBounds:
+            // A free kick that crossed a sideline between the goal lines. The receiving
+            // team's spot is 6-2-4's award, which the next line shows; this says what the
+            // kick did.
+            return "\(kicker) out of bounds at \(yardLine(spot, offense: offense))"
+        case .downed:
+            return
+                "\(kicker) comes down short of the landing zone at \(yardLine(spot, offense: offense))"
         default:
             var text = "\(kicker), \(returner) at \(yardLine(spot, offense: offense))"
             if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }

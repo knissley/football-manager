@@ -57,16 +57,42 @@ enum TestWorld {
                     weather: weather, isPostseason: isPostseason))
     }
 
+    /// The context a single play resolves against, for the tests that want to run one
+    /// kind of play many times rather than watch a whole game.
+    static func context(
+        seed: UInt64, home homeIndex: Int = 0, away awayIndex: Int = 1,
+        weather: WeatherState = .clear, rules: Rules = .standard
+    ) -> PlayContext {
+        let setup = Self.setup(
+            seed: seed, home: homeIndex, away: awayIndex, weather: weather, rules: rules)
+        return PlayContext(
+            offense: setup.home.id,
+            defense: setup.away.id,
+            offenseRotation: setup.home.rotation(),
+            defenseRotation: setup.away.rotation(),
+            players: setup.players,
+            offenseScheme: setup.home.scheme,
+            defenseScheme: setup.away.scheme,
+            crowdNoise: setup.stadium.noise,
+            altitudeFeet: setup.stadium.altitudeFeet,
+            weather: weather,
+            rules: rules)
+    }
+
     /// The situation a snap of `concept` is taken from, in the terms the crude engine
     /// resolves it in: the try spots for the two tries, the free-kick line for a kick,
     /// fourth down for a punt and a field goal, and first and ten at midfield for
     /// everything from scrimmage.
+    ///
+    /// **Exhaustive with no `default`, deliberately.** A free kick that falls through to
+    /// the scrimmage case is set up at midfield on first and ten against a base package,
+    /// and every sweep over the concepts then measures the wrong play without saying so.
     static func situation(for concept: PlayConcept, rules: Rules = .standard) -> Situation {
         let ballOn: UInt8
         let down: Down
         let distance: UInt8
         switch concept {
-        case .kickoff, .onsideKick:
+        case .kickoff, .onsideKick, .deepKickoff:
             ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
             down = .first
             distance = rules.yardsToGain
@@ -86,7 +112,8 @@ enum TestWorld {
             ballOn = rules.twoPointSnapYard
             down = .first
             distance = max(1, rules.twoPointSnapYard)
-        default:
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike:
             ballOn = 50
             down = .first
             distance = rules.yardsToGain

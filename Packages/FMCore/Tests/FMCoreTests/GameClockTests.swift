@@ -28,7 +28,7 @@ struct RulesTests {
         #expect(rules.ballOnFromOwnYard(20) == 80)
         #expect(rules.ballOnFromOwnYard(50) == 50)
         #expect(rules.puntTouchbackSpot == 80)
-        #expect(rules.kickoffTouchbackSpot == 70)
+        #expect(rules.kickoffTouchbackSpot == 65)
     }
 
     @Test("Halves and periods follow the quarter count", .tags(.unit))

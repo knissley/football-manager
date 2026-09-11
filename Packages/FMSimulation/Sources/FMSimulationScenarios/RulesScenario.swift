@@ -149,6 +149,13 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case interferenceInTheEndZone = "interference-in-the-end-zone"
     case interferenceInTheEndZoneFromTheOne = "interference-in-the-end-zone-from-the-one"
     case onsideKickRecovered = "onside-kick-recovered"
+    case roughingTheKickerOnAMadeFieldGoal = "roughing-the-kicker-on-a-made-field-goal"
+    case roughingTheKickerOnAMissedFieldGoal = "roughing-the-kicker-on-a-missed-field-goal"
+    case runningIntoTheKickerOnAMadeFieldGoal =
+        "running-into-the-kicker-on-a-made-field-goal"
+    case runningIntoTheKickerOnAMissedFieldGoal =
+        "running-into-the-kicker-on-a-missed-field-goal"
+    case holdingOnASuccessfulTry = "holding-on-a-successful-try"
     case roughnessByTheDefenseOnARunThatEndsInAFumbleLost =
         "roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost"
     case roughnessByTheDefenseBeforeAnInterception =
@@ -320,6 +327,15 @@ extension RulesScenario {
         case .interferenceInTheEndZoneFromTheOne:
             return RulesScenarios.interferenceInTheEndZoneFromTheOne
         case .onsideKickRecovered: return RulesScenarios.onsideKickRecovered
+        case .roughingTheKickerOnAMadeFieldGoal:
+            return RulesScenarios.kickerFoul(.roughingTheKicker, good: true)
+        case .roughingTheKickerOnAMissedFieldGoal:
+            return RulesScenarios.kickerFoul(.roughingTheKicker, good: false)
+        case .runningIntoTheKickerOnAMadeFieldGoal:
+            return RulesScenarios.kickerFoul(.runningIntoTheKicker, good: true)
+        case .runningIntoTheKickerOnAMissedFieldGoal:
+            return RulesScenarios.kickerFoul(.runningIntoTheKicker, good: false)
+        case .holdingOnASuccessfulTry: return RulesScenarios.holdingOnASuccessfulTry
         case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
             return RulesScenarios.roughnessByTheDefenseOnARunThatEndsInAFumbleLost
         case .roughnessByTheDefenseBeforeAnInterception:
@@ -704,6 +720,26 @@ extension RulesScenario {
             return [
                 "football · Rule 4-3-1-b, 4-3-2 · a kickoff the kicking team recovers starts no clock, and the clock waits for the snap",
                 "football · Rule 6-1-6, 6-1-4-c, 6-1-4-d · an onside kick the kicking team recovers is its ball, first and ten, where it was recovered",
+            ]
+        case .roughingTheKickerOnAMadeFieldGoal:
+            return [
+                "football · Rule 14-2-3, 12-2-12 · roughing the kicker on a made field goal scores the three and moves the free kick fifteen yards"
+            ]
+        case .roughingTheKickerOnAMissedFieldGoal:
+            return [
+                "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down"
+            ]
+        case .runningIntoTheKickerOnAMadeFieldGoal:
+            return [
+                "football · Rule 12-2-12 Item 2, 14-2-3 · running into the kicker on a made field goal is declined and the free kick is not moved"
+            ]
+        case .runningIntoTheKickerOnAMissedFieldGoal:
+            return [
+                "football · Rule 12-2-12 Item 2 · running into the kicker on a missed field goal is five yards and the down is replayed"
+            ]
+        case .holdingOnASuccessfulTry:
+            return [
+                "football · Rule 11-3-3 Item 3-a · an offensive foul on a successful try repeats the try rather than ending it"
             ]
         case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
             return [

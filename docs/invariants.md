@@ -437,10 +437,33 @@ season is what checks one. A band is evidence about a rate and never about a rul
     double foul with no change of possession offsets and replays the down.
     `[2025 · 14-5-1]` — `test:flagsAreEnforced`
 79. A personal or unsportsmanlike foul during a down in which the opponent kicks a field
-    goal or scores a safety is enforced on the free kick, and any foul during a touchdown is
-    enforced on the try. `[2025 · 14-2-3]` — **not yet enforced**,
-    [#48](https://github.com/knissley/football-manager/issues/48): the score stands and the
-    flag is recorded declined
+    goal or scores a safety is enforced on the free kick, and one during a touchdown is
+    enforced on the try; a dead-ball foul after any score goes on whichever of the two
+    follows it. `[2025 · 14-2-3, 11-3-3 Item 1, 11-3-3 Item 7]` —
+    `test:roughingOnAMadeFieldGoalMovesTheFreeKick`,
+    `test:aPersonalFoulDuringASafetyMovesTheFreeKick`, `test:aFoulDuringATouchdownGoesOnTheTry`,
+    `test:defensiveFoulOnATouchdown`, `test:roughingOnAMadeFieldGoalMovesTheKickoff`,
+    `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:personalFoulsAreNamedByTheBook`,
+    `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
+    An offensive foul during a *successful try* repeats the try, and a defensive one
+    leaves the point and is enforced on the succeeding free kick.
+    `[2025 · 11-3-3 Item 3-a, 11-3-3 Item 4-a]` —
+    `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`,
+    `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`,
+    `test:holdingOnASuccessfulTryRepeatsIt`.
+    And the kicker on a kick from scrimmage is protected either way, by the two halves of
+    one article with a penalty apiece: roughing him (Item 1) is fifteen yards from the
+    previous spot and an automatic first down, and the article marks it a personal foul;
+    running into him (Item 2) is five from the previous spot with no automatic first down,
+    and the article marks it not one. The article says nothing about the down — five from
+    the previous spot replays it only where they leave the ball short of the line to gain,
+    because reaching it is a new series like any other `[2025 · 7-3-1-b, 3-8-4]`. That
+    marking, and not the section the foul is printed under, is what 14-2-3 turns on, so of
+    the two only roughing is carried to a succeeding spot; and neither by itself wipes a
+    kick that was already away, because the rush is over before the ball comes down.
+    `[2025 · 12-2-12]` —
+    `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
+    `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
 80. The basic spot when a **run** is followed by a change of possession is the spot where
     possession was lost, and a defensive foul there gives the ball back to the offence
     before enforcement — unless that spot is **behind the line of scrimmage**, in which
@@ -476,33 +499,43 @@ season is what checks one. A band is evidence about a rate and never about a rul
 ## Kickoffs and onside kicks
 
 81. An onside kick the kicking team legally recovers is its ball, first and ten, where the
-    play died. `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6]` — `test:onsideRecoveryKeepsPossession`,
-    `test:onsideRecovered`. And a kickoff the returner fumbles and the kicking team carries
-    in is the kicking team's touchdown, its try, and its kickoff — any player of either
-    team may advance a fumble, and a runner crossing the goal line scores.
-    `[2025 · 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4]` —
+    play died, and it may not recover before the ball reaches the receiving team's
+    restraining line ten yards on, so either side comes up with it at or beyond there.
+    `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6, 6-1-6-e, 6-1-6-g]` —
+    `test:onsideRecoveryKeepsPossession`, `test:onsideRecovered`,
+    `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`. And a kickoff the returner
+    fumbles and the kicking team carries in is the kicking team's touchdown, its try, and
+    its kickoff — any player of either team may advance a fumble, and a runner crossing the
+    goal line scores. `[2025 · 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4]` —
     `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown`; **modelling**: the crude
     resolver never fumbles a kick, so only a script reaches it
 82. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
-    any point in the game. `[2025 · 6-1-1-c, 6-1-6]` — **not yet enforced**,
-    [#41](https://github.com/knissley/football-manager/issues/41): the caller still requires
-    the fourth quarter, which was the 2024 rule, and `test:onsideJudgement` pins that
-83. A kickoff is from the kicking team's 35 and a safety kick from its 20, and the receiving
-    team's setup zone and the landing zone are where the 2025 book puts them.
-    `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e, 6-1-3-b]` — **not yet enforced**,
-    [#46](https://github.com/knissley/football-manager/issues/46): the dynamic kickoff is
-    not in the engine, which has one touchback spot and no zones at all
+    any point in the game. `[2025 · 6-1-1-c, 6-1-6]` —
+    `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`;
+    the declaration itself is not in the stream, so what the engine models is the rule's
+    two conditions and not the notice to the Referee
+83. A kickoff is from the kicking team's 35 and a safety kick from its 20 — unless a
+    distance penalty has moved that line — and the landing zone is the receiving team's 20
+    out to its goal line. `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e]` —
+    `test:theLandingZoneIsTheLastTwenty`, `test:aPenaltyMovesTheKickAndChangesIt`,
+    `test:theAwardIsMeasuredFromTheKick`. The receiving team's setup zone and everything
+    the formation article requires of it `[2025 · 6-1-2-c, 6-1-2-d, 6-1-3-b]` are
+    **not yet enforced** and no issue carries them: nobody lines up for a free kick in the
+    crude resolver, so there is no alignment to be illegal
 84. A kick that reaches the end zone without coming down in the landing zone first is a
-    touchback at the receiving team's 35; one that lands in the landing zone and then goes
-    into the end zone is a touchback at its 20. `[2025 · 6-1-5, 6-1-5-a]` —
-    **not yet enforced**, [#41](https://github.com/knissley/football-manager/issues/41) and
-    [#46](https://github.com/knissley/football-manager/issues/46): `Rules` carries one
-    touchback spot and it is still the 2024 value, the 30
+    touchback at the receiving team's 35. `[2025 · 6-1-5]` —
+    `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`. The
+    book's other touchback, at the 20 for a kick that comes down in the landing zone first
+    `[2025 · 6-1-5-a]`, is **not yet enforced** and no issue carries it: the crude resolver
+    returns every kick it puts in the landing zone, so it never reaches that case, and the
+    spatial resolver is where a kick that bounces into the end zone comes from
 85. A kick that goes out of bounds or comes down short of the landing zone hands the
-    receiving team its choice of spots, 25 yards on from the kick being the usual one, and
-    30 on a safety kick. `[2025 · 6-2-4]` — **not yet enforced**,
-    [#46](https://github.com/knissley/football-manager/issues/46): with no landing zone
-    there is no short kick either
+    receiving team its choice of spots, 25 yards on from the kick being the usual one.
+    `[2025 · 6-2-4]` — `test:aKickOutOfBoundsIsTwentyFiveYardsOn`,
+    `test:aShortKickIsSpottedWhereItLiesWhenThatIsNearer`,
+    `test:aShortOrOutOfBoundsKickIsGivenAway`. The safety kick's 30 rather than 25 is
+    **not yet enforced** and no issue carries it: `Rules.advance` is a function of the
+    situation and the outcome, and neither says which kind of free kick this was
 86. A returned kick changes hands where the return ended, and a kick returned all the way is
     a touchdown for the returning team. `[2025 · 6-1-4]` — `test:returnedKickChangesHands`,
     `test:kickReturnedForScore`

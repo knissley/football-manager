@@ -32,16 +32,19 @@ kickoff, the clock with its runoff, and the enforcement spot each have scenario 
 written from the 2025 rulebook, and the three wrong tests were rewritten; #74 then gave
 overtime its two-minute warning and postseason overtime its timing. Wave 2's record
 track closed S14 (B2 #22) and the two record gaps wave 1 left — the spot where possession
-was lost, and a kicking-team kickoff touchdown (#58). Still open is the re-try after a
-foul on a try (#48).
+was lost, and a kicking-team kickoff touchdown (#58). Wave 3's D track then made `Rules`
+the 2025 book, gave the kickoff its landing zone and its aiming points, and put a foul on
+a scoring play on the try or the free kick where the rules put it. Still open is the
+re-try after a foul on a try (#48).
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
 engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
 status table and links every open one to its issue.
 
-The target rulebook is the **2025 season**. Some defaults in `Rules` still carry 2024
-values until issue D1 lands.
+The target rulebook is the **2025 season**, and `Rules.rulebookSeason` records it. A
+later book is a different game and adopting one of its rules is a defect, not an
+improvement: moving seasons is deliberate work, because it moves engine calibration.
 
 ## The rules that matter
 

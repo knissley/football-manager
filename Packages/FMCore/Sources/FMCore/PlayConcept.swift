@@ -9,7 +9,7 @@
 /// edited, replaced, or has yet to exist. Until M6 the identifier is `nil` and the concept
 /// is the whole call; a caller decides on it and a resolver acts on it.
 ///
-/// Sixteen cases, because the crude engine resolves sixteen kinds of snap. A play format
+/// Seventeen cases, because the crude engine resolves seventeen kinds of snap. A play format
 /// with routes in it does not retire these: a concept is what a tendency table, a box
 /// score and a gameplan rule key off, and none of them wants a route tree.
 public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
@@ -39,6 +39,15 @@ public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case onsideKick = 14
     /// The other half of 11-3-1: a try carried in from the two.
     case twoPointRun = 15
+    /// A kickoff struck to carry through the end zone, conceding the receiving team's 35
+    /// (2025 rulebook, 6-1-5) rather than letting anybody return it.
+    ///
+    /// Its own concept for the same reason the onside kick is one: under the dynamic
+    /// kickoff these are two different plays with two different aiming points, and which
+    /// one the coordinator called is a fact about the call rather than a description of
+    /// what happened to the ball. `kickoff` is the other — aimed at the landing zone,
+    /// meant to be returned.
+    case deepKickoff = 16
 
     public var isRun: Bool {
         self == .insideRun || self == .outsideRun || self == .twoPointRun
@@ -71,7 +80,7 @@ public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
         case .fieldGoal: return .fieldGoal
         case .kneel: return .kneel
         case .spike: return .spike
-        case .kickoff, .onsideKick: return .kickoff
+        case .kickoff, .onsideKick, .deepKickoff: return .kickoff
         case .extraPoint: return .extraPoint
         case .twoPointPass, .twoPointRun: return .twoPointConversion
         }

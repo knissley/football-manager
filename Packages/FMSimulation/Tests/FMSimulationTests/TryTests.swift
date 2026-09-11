@@ -68,16 +68,25 @@ struct TryTests {
                     back -= 1
                 }
 
-                if flags == 0 {
-                    checked += 1
-                    #expect(
-                        play.situation.ballOn == standard,
-                        "a try snapped from the \(play.situation.ballOn) (play \(play.index))")
-                } else if net != 0 {
+                // The other way a try is not at its standard spot, and it is 11-3-3's
+                // too: a foul during the touchdown is enforced *on* the try (14-2-3), so
+                // it moves the spot with no `penaltyOnly` play of its own. The play the
+                // walk-back ends on is that touchdown, and an accepted penalty on a
+                // scoring play is the only thing it can mean.
+                let duringTheTouchdown =
+                    back >= 0 && plays[back].outcome.endedIn == .touchdown
+                    && plays[back].outcome.penalties.first?.wasAccepted == true
+
+                if net != 0 || duringTheTouchdown {
                     moved += 1
                     #expect(
                         play.situation.ballOn != standard,
                         "a flag on the try left it at the standard spot (play \(play.index))")
+                } else if flags == 0 {
+                    checked += 1
+                    #expect(
+                        play.situation.ballOn == standard,
+                        "a try snapped from the \(play.situation.ballOn) (play \(play.index))")
                 }
             }
         }

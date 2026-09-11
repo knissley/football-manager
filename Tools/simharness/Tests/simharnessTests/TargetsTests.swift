@@ -1,3 +1,4 @@
+import FMCore
 import Foundation
 import Testing
 
@@ -63,10 +64,9 @@ struct TargetsTests {
         }
     }
 
-    /// The intended state until D2 (#46): under the 2025 rulebook the rows sourced from the
-    /// 2024 kickoff season are stale, and under 2024 the 2025 ones are. A row sourced from
-    /// 2023–24 that is sensitive to the kickoff would be stale under both, which is why no
-    /// such row exists.
+    /// Under the 2025 rulebook the rows sourced from the 2024 kickoff season are stale, and
+    /// under 2024 the 2025 ones are. A row sourced from 2023–24 that is sensitive to the
+    /// kickoff would be stale under both, which is why no such row exists.
     @Test(
         "contract: rule-sensitive rows are stale under exactly the other rulebook", .tags(.contract)
     )
@@ -91,6 +91,36 @@ struct TargetsTests {
         }
         #expect(!under2025.isEmpty)
         #expect(!under2024.isEmpty)
+    }
+
+    /// The harness is told which book the engine plays by the engine, not by a constant
+    /// beside the bands, so that bumping `Rules.rulebookSeason` in a build lists the rows
+    /// that bump has made stale rather than silently grading the new game against the old
+    /// season's numbers.
+    @Test(
+        "contract: the season the bands are graded against is the season Rules plays, and bumping it lists the rows to re-source",
+        .tags(.contract))
+    func theRulebookComesFromRules() {
+        #expect(engineRulebookSeason == Rules.standard.rulebookSeason)
+        #expect(engineRulebookSeason == 2025)
+
+        // Playing the book the engine plays, the rows sourced from the season before are
+        // the ones to re-source, and vice versa. That list is what a bump prints.
+        let listedNow = CalibrationTarget.stale(under: engineRulebookSeason)
+        #expect(listedNow.keys.contains("kickoffTouchbacks.2024"))
+        #expect(!listedNow.keys.contains("kickoffTouchbacks.2025"))
+
+        let listedAfterABumpBackwards = CalibrationTarget.stale(under: 2024)
+        #expect(listedAfterABumpBackwards.keys.contains("kickoffTouchbacks.2025"))
+        #expect(listedAfterABumpBackwards.keys.contains("onsideKicks.2025"))
+        #expect(!listedAfterABumpBackwards.keys.contains("kickoffTouchbacks.2024"))
+
+        // And the variants the `--rulebook` flag plays are the rulebooks themselves, so
+        // there is no second copy of a rule value in this tool.
+        #expect(Rules.rulebook(engineRulebookSeason) == .standard)
+        for season in Rules.supportedRulebooks {
+            #expect(Rules.rulebook(season)?.rulebookSeason == season)
+        }
     }
 
     @Test(

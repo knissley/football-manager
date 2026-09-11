@@ -18,39 +18,13 @@
 
 import FMCore
 
-/// The rulebook season the engine is being calibrated to.
+/// The rulebook season the engine is being calibrated to, read off the rules it plays.
 ///
-/// D1 (#41) moves this onto `Rules` as `Rules.rulebookSeason` and deletes this constant
-/// along with `rules(forRulebook:)` below. Until then `Rules.standard` still carries 2024
-/// values, so the rows sourced under 2024 kickoff rules warn at startup by design: that is
-/// the list D2 (#46) has to make land.
-let engineRulebookSeason = 2025
-
-/// The seasons the harness can build rules for.
-let supportedRulebooks = [2024, 2025]
-
-/// The `Rules` in force under a season's rulebook, built here from data.
-///
-/// 2024 is today's `Rules.standard`. 2025 is `.standard` with the kickoff touchback at the
-/// receiving team's 35 (2025 rulebook, Rule 6). The 2025 rulebook also permits a
-/// declared onside kick whenever a team trails, at any point in the game; `Rules` has no
-/// field for when an onside kick is permitted — the fourth-quarter-only gate lives in
-/// `BaselineCaller.kicksOnside` — so the 2025 variant carries the touchback change alone.
-/// The onside rows still pair a 2024 and a 2025 variant, and one of the pair is current
-/// under each rulebook; what neither run does yet is play the 2025 onside rule, which
-/// waits for D1 (#41) to add the field.
-func rules(forRulebook season: Int) -> Rules? {
-    switch season {
-    case 2024:
-        return .standard
-    case 2025:
-        var rules = Rules.standard
-        rules.kickoffTouchbackOwnYard = 35
-        return rules
-    default:
-        return nil
-    }
-}
+/// The harness used to carry its own constant and build its own `--rulebook` variants
+/// from rule values typed in beside the bands. Both are `Rules`' now — `rulebookSeason`
+/// and `Rules.rulebook(_:)` — so a rule value has one home and a season bump in FMCore
+/// reaches this list without anybody remembering to edit it twice.
+let engineRulebookSeason = Rules.standard.rulebookSeason
 
 /// A rule area a calibration row can depend on.
 enum RuleArea: String, CaseIterable, Sendable {

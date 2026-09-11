@@ -87,19 +87,19 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on the merge of wave 2's record and ratings tracks with wave 3's small track, at
-886 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
+Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, at
+915 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
 the output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 40 — 11.1% | 31 — 8.6% | 286 — 79.4% | 3 | 360 |
+| FMCore | 54 — 14.4% | 33 — 8.8% | 286 — 76.1% | 3 | 376 |
 | FMGeneration | 1 — 0.5% | 94 — 45.9% | 110 — 53.7% | 0 | 205 |
-| FMSimulation | 105 — 38.7% | 88 — 32.5% | 70 — 25.8% | 8 | 271 |
-| simharness | 0 — 0.0% | 10 — 76.9% | 3 — 23.1% | 0 | 13 |
+| FMSimulation | 115 — 40.6% | 90 — 31.8% | 70 — 24.7% | 8 | 283 |
+| simharness | 0 — 0.0% | 11 — 78.6% | 3 — 21.4% | 0 | 14 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **146 — 16.5%** | **230 — 26.0%** | **499 — 56.3%** | **11** | **886** |
+| **all** | **170 — 18.6%** | **235 — 25.7%** | **499 — 54.5%** | **11** | **915** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -111,29 +111,33 @@ resolver**, which is what CLAUDE.md asks to watch between milestones.
 The areas are sums over named suites of the census above, so the grouping can be checked
 against `./scripts/test-census.sh` rather than taken on trust. The rules layer is *Down
 and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
-forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement* and *Tries and
-touchbacks*; the resolver is *Crude resolver*, *Contest curve*, *Out of bounds* and
-*Punting* — the last two are the resolver's own suites, split out when wave 3 gave it the
-sideline and the aimed punt.
+forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement*, *Tries and
+touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the defaults come
+from* — the last three joined when wave 3's D track put a foul on a scoring play where the
+rules put it, gave the free kick its spots, and made `Rules` say which book it is. The
+resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting* and *The dynamic
+kickoff* — the last three are the resolver's own suites, split out when wave 3 gave it the
+sideline, the aimed punt and the two kickoffs.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 37 — 37.8% | 4 | 54 | 3 | 98 |
-| Rules conformance — the scripted games (FMSimulation) | 93 — 97.9% | 0 | 0 | 2 | 95 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds and punting (FMSimulation) | 2 — 8.0% | 11 | 10 | 2 | 25 |
+| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 51 — 44.7% | 6 | 54 | 3 | 114 |
+| Rules conformance — the scripted games (FMSimulation) | 98 — 98.0% | 0 | 0 | 2 | 100 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting and the kickoff (FMSimulation) | 6 — 20.7% | 11 | 10 | 2 | 29 |
 | Generation (FMGeneration) | 1 — 0.5% | 94 | 110 | 0 | 205 |
 
 Three findings come straight off that table.
 
-**The resolver asserts almost no football.** Two of its twenty-five tests do, both added
-by wave 3: where a play ends laterally is a clock decision (4-3-2-a) and a punt from plus
-territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those two asserts only
-what its articles actually say — the *direction* of the sideline lever, and that a placed
-punt leaves the receivers short of the 20 a touchback would give them. The magnitudes
-that shipped inside them (a trailing offence reaching the sideline twice as often as a
-leading one, above a fifth of its tackles; fewer than 15% of plus-territory punts
-reaching the end zone) came from the issues that built those levers rather than from an
-article or a sourced season, so they are pinned beside the football tests instead of
+**The resolver asserts little football, and what it does assert is shape rather than
+rate.** Six of its twenty-nine tests do, every one of them added by wave 3. Two came with
+the sideline and the aimed punt: where a play ends laterally is a clock decision (4-3-2-a)
+and a punt from plus territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those
+two asserts only what its articles actually say — the *direction* of the sideline lever,
+and that a placed punt leaves the receivers short of the 20 a touchback would give them.
+The magnitudes that shipped inside them (a trailing offence reaching the sideline twice as
+often as a leading one, above a fifth of its tackles; fewer than 15% of plus-territory
+punts reaching the end zone) came from the issues that built those levers rather than from
+an article or a sourced season, so they are pinned beside the football tests instead of
 inside them, and are the two `.pin` in that row. Its parametric rates — completion
 percentage, sack rate, interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
@@ -144,8 +148,16 @@ that a run lands inside one. A row going `OFF` in CI is reporting, not a failure
 `0.0%` in that row is honest about the suite and unfair to the harness, and both halves
 of that sentence are worth remembering.
 
-**Fifty-four of the rules layer's ninety-eight tests are `.unit`, and many of them are
-football claims with no citation.** Three suites are the clearest: `Tries and touchbacks`
+The other four came with the dynamic kickoff (#46): a kick into the landing zone is
+returned, a penalty on the free kick changes what the kick can do, a kick that misses the
+zone hands over 6-2-4's spot, and an onside kick dies where the rules let it be recovered.
+They too assert the *shape* the articles require of the play rather than a rate, which is
+what a suite can do about a resolver and a harness cannot. The finding stands for
+everything the resolver draws that is only a rate.
+
+**Fifty-four of the rules layer's one hundred and fourteen tests are `.unit`, and many of
+them are football claims with no citation.** Three suites are the clearest:
+`Tries and touchbacks`
 (11 of 11 — what an extra point is worth, where a kickoff touchback is spotted), the
 uncited fourteen of `Down and possession advancement`, and five of `Clock stoppage`.
 Every one asserts something true of the sport; not one cites where it came from, so none

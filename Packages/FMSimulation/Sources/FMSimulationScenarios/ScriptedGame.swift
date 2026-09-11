@@ -63,7 +63,11 @@ public struct Snap: Sendable {
     public var isTry: Bool {
         concept == .extraPoint || concept == .twoPointPass || concept == .twoPointRun
     }
-    public var isKickoff: Bool { concept == .kickoff || concept == .onsideKick }
+    /// Every free kick, however it was aimed: a scenario scripts what the kick *did*, and
+    /// which of the three the coordinator called is not its business.
+    public var isKickoff: Bool {
+        concept == .kickoff || concept == .onsideKick || concept == .deepKickoff
+    }
 
     /// The seconds the offence takes between the end of one play and the snap of the
     /// next when the clock is running — its tempo — measured from the plays so far rather
@@ -83,7 +87,7 @@ extension Snap {
     /// Honours the call and changes nothing worth noticing.
     public var neutral: Outcome {
         switch concept {
-        case .kickoff: return .kickoffTouchback
+        case .kickoff, .deepKickoff: return .kickoffTouchback
         case .onsideKick: return .onsideKick(lostAtOwn: 45)
         case .punt: return .puntTouchback
         case .fieldGoal: return .fieldGoal(good: true)
@@ -91,7 +95,10 @@ extension Snap {
         case .twoPointPass, .twoPointRun: return .twoPoint(converted: false)
         case .kneel: return Outcome(kind: .kneel, yards: -1, endedIn: .tackled, clockRunoff: 2)
         case .spike: return .spike
-        default:
+        // Exhaustive with no `default`, for the reason the free-kick switches in
+        // `gamelog` are: a kicking concept that falls through to a one-yard gain scripts
+        // the wrong football and says nothing about it.
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction:
             // A one-yard gain of whatever kind was called, tackled in bounds: the ball
             // moves, the clock runs, and the down changes hands on downs every four plays.
             return Outcome(kind: concept.kind, yards: 1, endedIn: .tackled, clockRunoff: 6)
@@ -202,6 +209,18 @@ extension Snap {
                     enforcementSpot: UInt8(max(0, Int(ballOn) - Int(depth))))
             ],
             clockRunoff: seconds)
+    }
+
+    /// A place kick that went where it was told to, with a flag on it.
+    public func kick(
+        _ concept: PlayConcept, good: Bool, foulBy foul: Foul, seconds: UInt16 = 5
+    )
+        -> Outcome
+    {
+        Outcome(
+            kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
+            endedIn: good ? .fieldGoalGood : .fieldGoalMissed, penalties: [record(foul)],
+            clockRunoff: concept == .extraPoint ? 0 : seconds)
     }
 
     private func record(_ foul: Foul) -> PenaltyRecord {

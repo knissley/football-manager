@@ -244,11 +244,11 @@ Which rules must be true of a game, and what checks each, is
 
 ## Rule 6 — Free kicks
 
-The dynamic kickoff, made permanent for 2025. **None of Section 1's geometry is in the
-engine**: `Rules` carries one touchback spot and `Advancement` one touchback, so there is
-no landing zone, no setup zone and no second touchback spot. That is
-[#46](https://github.com/knissley/football-manager/issues/46)'s problem, and the entries
-below are what it is held to.
+The dynamic kickoff, made permanent for 2025. **The zones the kick is aimed at are in the
+engine; the formation is not.** `Rules` carries the landing zone, the touchback at the 35
+and 6-2-4's award, and the resolver aims at them — but nobody lines up, so the setup zone,
+the restraining lines and every alignment foul are absent, and so is the second touchback
+spot, which needs a kick to come down in the landing zone and then reach the end zone.
 
 - **6-1-1-a** — Each half opens with a kickoff, and so does play after a try and after a
   field goal that scores. —
@@ -260,61 +260,82 @@ below are what it is held to.
   kick. — `test:afterASafetyTheTeamScoredUponKicks`
 - **6-1-1-c**, **6-1-6** — Only a trailing team may attempt an onside kick, and it must
   declare it to the Referee before the play clock starts. It may declare at any point in
-  the game; fourth quarter only was the 2024 rule. — not yet enforced,
-  [#41](https://github.com/knissley/football-manager/issues/41)
+  the game; fourth quarter only was the 2024 rule. —
+  `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`
 - **6-1-2-a**, **6-1-2-b** — The kick is from the kicking team's 35 — its 20 for a safety
-  kick — and the other ten of the kicking team line up on the receiving team's 40. — not
-  yet enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  kick — unless a distance penalty has moved that line. — `test:aPenaltyMovesTheKickAndChangesIt`,
+  `test:theAwardIsMeasuredFromTheKick`; where the kicking team's other ten line up is not
+  modelled, since nobody lines up at all
 - **6-1-2-c**, **6-1-2-d** — The receiving team's restraining line is its own 35, and the
-  setup zone is the five yards between its 35 and its 30. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
-- **6-1-2-e** — The landing zone is the receiving team's 20 out to its goal line. — not yet
-  enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  setup zone is the five yards between its 35 and its 30. — not yet enforced and no issue
+  carries it: nobody lines up for a free kick in the crude resolver, so there is no
+  alignment to be illegal
+- **6-1-2-e** — The landing zone is the receiving team's 20 out to its goal line. —
+  `test:theLandingZoneIsTheLastTwenty`, `test:aKickIntoTheLandingZoneIsReturned`
 - **6-1-3-a**, **6-1-3-c** — The kicking team's ten put a front foot on their restraining
   line and keep both feet down, and nobody but the kicker and the men deep may move until
   the kick has come down in the end zone or the landing zone, or been touched there. — not
-  yet enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  yet enforced and no issue carries it: nobody lines up for a free kick in the crude
+  resolver, so there is no alignment to be illegal
 - **6-1-3-b** — At least nine receiving players must be in the setup zone, at least six of
   them with a foot on the restraining line — seven if the team puts more than nine in the
   zone. Its **Item 2** is the 2025 modification: three men at most may stand off that line,
-  and only one to a lane. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  and only one to a lane. — not yet enforced and no issue carries it: nobody lines up for
+  a free kick in the crude resolver, so there is no alignment to be illegal
 - **6-1-4** — A kick that comes down in the landing zone is live and gets returned; no fair
   catch is available on it, because a free kick may be fair caught only while it is still
-  in the air. — `test:returnedKickChangesHands`, `test:kickReturnedForScore`
+  in the air. — `test:returnedKickChangesHands`, `test:kickReturnedForScore`,
+  `test:aKickIntoTheLandingZoneIsReturned`
 - **6-1-4-c**, **6-1-4-d** — Once the kick has reached the end zone or the landing zone, the
   kicking team may take it, and a legal recovery is its ball where the play died. —
   `test:onsideRecoveryKeepsPossession`, `test:onsideRecovered`
 - **6-1-5** — A kick that reaches the end zone without touching down in the landing zone
   first — downed there, out of bounds behind the goal line, or off the goal post — is a
   touchback at the **35**. This is the 2025 change; it was the 30 in 2024. A kick that
-  reaches the end zone and stays inbounds is still alive. — not yet enforced,
-  [#41](https://github.com/knissley/football-manager/issues/41),
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  reaches the end zone and stays inbounds is still alive. —
+  `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`; the
+  live kick into the end zone is not yet enforced and no issue carries it: a kick the crude
+  resolver sends to the end zone is dead there for the touchback, so no ball is left alive
+  in it to return or down
 - **6-1-5-a** — Landing zone first, then the end zone: a touchback at the **20**. — not yet
-  enforced, [#46](https://github.com/knissley/football-manager/issues/46)
+  enforced and no issue carries it: the crude resolver returns every kick it puts in the
+  landing zone, so no kick reaches the end zone that way
 - **6-1-6-b**, **6-1-6-c** — On a declared onside kick the kicking team's restraining line
   is still its 35 (its 20 on a safety kick), with the rest of the unit's front feet on that
-  line and no more than five players either side of the ball. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  line and no more than five players either side of the ball. — not yet enforced and no
+  issue carries it: nobody lines up for a free kick in the crude resolver, so there is no
+  alignment to be illegal
 - **6-1-6-e**, **6-1-6-g** — The kicking team may recover only once the ball has reached the
   receiving team's restraining line, ten yards on, or a receiver has touched it first. —
-  `test:onsideRecoveryKeepsPossession`
+  `test:onsideRecoveryKeepsPossession`,
+  `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`
 - **6-1-6-h**, **6-1-6-k** — The receiving team puts eight or nine players in the onside
   setup zone, and a kick that goes untouched beyond that zone is dead, the receiving team's,
-  and costs the kicking team 15 yards. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  and costs the kicking team 15 yards. — not yet enforced and no issue carries it: nobody
+  lines up for a free kick in the crude resolver, and its onside kick is always either
+  recovered or returned, so no kick is ever left untouched beyond the zone
 - **6-1-7** — A free kick ends once a side has the ball, or once the ball is dead with
   nobody having it; from the moment the receivers secure it, a running play has begun. —
   `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
   `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
   `test:onsideRecoveryKeepsPossession`
+- **6-2-3** — A receiving-team player may not run into the **free** kicker before he
+  recovers his balance: five yards. This is Rule 6, so it governs a free kick and nothing
+  else, and the article's own cross-reference sends a personal foul against that kicker to
+  12-2-8-i. It is not 12-2-12, which is a different article protecting a different kicker
+  on a kick from scrimmage. — not yet enforced and no issue carries it: the crude resolver
+  draws a foul on the kicker on a punt and a place kick only, so nobody can run into a free
+  kicker
 - **6-2-4** — A kick that crosses a sideline before reaching a goal line, or that first hits
   the turf or a man in front of the landing zone, hands the receiving team its choice of
   three spots: the ball 25 yards on from where it was kicked, at the inbounds line; the spot
   where it left the field; or wherever it came down, but that one only when it is nearer
-  than 25 yards on. A safety kick pays 30 rather than 25. — not yet enforced,
-  [#46](https://github.com/knissley/football-manager/issues/46)
+  than 25 yards on. A safety kick pays 30 rather than 25. —
+  `test:aKickOutOfBoundsIsTwentyFiveYardsOn`,
+  `test:aShortKickIsSpottedWhereItLiesWhenThatIsNearer`,
+  `test:aShortOrOutOfBoundsKickIsGivenAway`; the safety kick's 30 is not modelled, because
+  `Rules.advance` is a function of the situation and the outcome and neither says which
+  kind of free kick this was
 
 ## Rule 7 — Ball in play, dead ball, scrimmage
 
@@ -420,13 +441,19 @@ below are what it is held to.
   `test:triesAreSnappedFromTheRightSpot`, `test:walkOffTryIsTheCallerChoice`
 - **11-3-2-b**, **11-3-2-c** — Either team can score on a try: a try that ends in a
   touchdown is two points whoever scores it, and what would be a safety on a try is one
-  point to the opponent. — not yet enforced,
-  [#48](https://github.com/knissley/football-manager/issues/48)
+  point to the opponent. — not yet enforced and no issue carries it: the resolver ends
+  every try as the offence's own success or failure, so the defence never has the ball
+  on one
 - **11-3-3** — Fouls on a try, and where the re-try is snapped from; half the distance on a
-  try is measured from the other try spot. Its **Item 2** is the one the engine leans on: a
-  foul that kills the play before the snap is treated as it would be before a scrimmage
-  play. — `test:falseStartOnTheKickMovesItBack`, `test:offsideOnTheConversionMovesItIn`,
-  `test:falseStartOnATryMovesTheTry`
+  try is measured from the other try spot. Its **Item 2** is a foul that kills the play
+  before the snap, treated as it would be before a scrimmage play; **Item 3-a** repeats the
+  try after a foul by the scoring team during a successful one; **Item 4-a** puts a foul by
+  the defending team on the ensuing kickoff. — `test:falseStartOnTheKickMovesItBack`,
+  `test:offsideOnTheConversionMovesItIn`, `test:falseStartOnATryMovesTheTry`,
+  `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`, `test:holdingOnASuccessfulTryRepeatsIt`,
+  `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; the loss-of-down exception in
+  Item 3-b is not modelled, because no foul the engine draws on a try carries a loss of
+  down
 - **11-3-4** — After a try, the team on defence for it receives the succeeding free kick. —
   `test:afterTheTryTheDefendingTeamReceives`, `test:kickoffReturnTouchdownGetsItsTry`
 - **11-4-1** — A field goal has to be place-kicked or drop-kicked, struck at or behind the
@@ -465,6 +492,15 @@ below are what it is held to.
   `test:roughingOnACompletion`, `test:roughingOnAnIncompletion`
 - **12-2-15** — Facemask: fifteen, an automatic first down if by the defence. —
   `test:facemaskAtTheEndOfARun`, `test:facemaskByTheFormerOffenseOnAReturn`
+- **12-2-12** — The kicker's protection on a kick from scrimmage, in two halves with a
+  penalty apiece. Roughing the kicker (Item 1) is fifteen yards from the previous spot and
+  an automatic first down, and the article marks it a personal foul. Running into him
+  (Item 2) is five from the previous spot with no automatic first down, and the article
+  marks it as not one. **That marking is what 14-2-3 turns on, not the section the foul is
+  printed in** — so of these two, only roughing is carried to a succeeding spot. —
+  `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
+  `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`,
+  `test:personalFoulsAreNamedByTheBook`
 - **12-2-16** — Horse-collar tackle: fifteen and an automatic first down. —
   `test:everyFoulIsCalled`
 - **12-3-1** — Unsportsmanlike conduct after the play: fifteen from the succeeding spot, and
@@ -475,11 +511,13 @@ below are what it is held to.
 - **14-2-1** — Half the distance to the goal is measured from the spot of enforcement,
   whichever spot that is. — `test:halfTheDistanceFromTheEnforcementSpot`
 - **14-2-3** — A personal or unsportsmanlike foul during a down in which the opponent kicks
-  a field goal or scores a safety is enforced on the free kick; during a touchdown, any foul
-  is enforced on the try; the offended team may instead take customary enforcement and give
-  up the points. — `test:defensiveFoulOnATouchdown` covers the score standing; enforcement
-  on the try or the kickoff is not yet enforced,
-  [#48](https://github.com/knissley/football-manager/issues/48)
+  a field goal or scores a safety is enforced on the free kick; on a touchdown it is
+  enforced on the try, whether it came during the down, after the whistle or between downs;
+  the offended team may instead take customary enforcement and give up the points. —
+  `test:defensiveFoulOnATouchdown`, `test:roughingOnAMadeFieldGoalMovesTheFreeKick`,
+  `test:aPersonalFoulDuringASafetyMovesTheFreeKick`, `test:aFoulDuringATouchdownGoesOnTheTry`,
+  `test:anOrdinaryFoulOnAMadeKickIsDeclined`, `test:roughingOnAMadeFieldGoalMovesTheKickoff`;
+  the option to give up the points is not modelled, since no caller would take it
 - **14-2-4** — A personal or unsportsmanlike foul by a team whose opponent has the ball at
   the end of the down may be enforced from the dead-ball spot. —
   `test:facemaskByTheFormerOffenseOnAReturn`

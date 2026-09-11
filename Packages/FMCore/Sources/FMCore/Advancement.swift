@@ -94,6 +94,25 @@ extension Rules {
     /// `finalSpot` is in the *kicking* team's frame like every other spot, so the flip at
     /// the end is what makes the receiving team's field position read correctly.
     private func advanceKick(from situation: Situation, outcome: Outcome) -> Advancement {
+        // A free kick that crossed a sideline between the goal lines, or that first
+        // touched the ground short of the landing zone (2025 rulebook, 6-2-4, with the
+        // zone as 3-20-7 draws it). The receiving team is *given* field position for it
+        // rather than made to play from wherever the ball stopped, which is what keeps a
+        // shanked kick from being worth more to the kicking team than a good one.
+        //
+        // Ahead of the switch because it is the kick that decides this and not the
+        // ending: a punt has no landing zone and no such award, and one that goes out of
+        // bounds or is downed is spotted where it lies like any other.
+        if outcome.kind == .kickoff,
+            outcome.endedIn == .outOfBounds || outcome.endedIn == .downed
+        {
+            let spot = freeKickAward(kickFrom: situation.ballOn, deadAt: outcome.finalSpot)
+            let downs = freshDowns(at: spot)
+            return Advancement(
+                ballOn: spot, down: downs.down, distance: downs.distance,
+                possessionChanged: true)
+        }
+
         switch outcome.endedIn {
         case .touchback:
             // A kickoff into the end zone comes out further than a punt into it.

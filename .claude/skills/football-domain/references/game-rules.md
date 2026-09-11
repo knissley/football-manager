@@ -287,11 +287,30 @@ its season and source belong to issue #2.
 - A personal or unsportsmanlike foul by a team whose opponent has the ball at the end of
   the down may be enforced from the dead-ball spot. `[2025 · 14-2-4]`
 - **A foul during a score.** A personal or unsportsmanlike foul during a down in which
-  the opponent kicks a field goal or scores a safety is enforced on the free kick; during
-  a touchdown, any foul is enforced on the try; the offended team may instead take the
-  penalty with customary enforcement and give up the points. `[2025 · 14-2-3]` The
-  engine does not enforce on the try or the kickoff yet (#48, C9): the score stands and
-  the flag is recorded declined.
+  the opponent kicks a field goal or scores a safety is enforced on the free kick; on a
+  touchdown it is enforced on the try, whether it came during the down, after the whistle
+  or between downs; the offended team may instead take the penalty with customary
+  enforcement and give up the points. `[2025 · 14-2-3]` A foul after the whistle by either
+  team goes on whichever of the two follows it. `[2025 · 11-3-3 Item 1]`,
+  `[2025 · 11-3-3 Item 7]` The engine carries all of those to the spot the rules put in
+  play next; the option to give up the points is not modelled, because no caller would
+  take it.
+- **A foul on a try.** An offensive foul during a *successful* try repeats the try, from
+  the enforced spot, and the caller may change its mind about which try it is attempting.
+  `[2025 · 11-3-3 Item 3-a]` A defensive foul leaves the point and is enforced on the
+  ensuing kickoff. `[2025 · 11-3-3 Item 4-a]`
+- **The kicker.** On a kick from scrimmage, roughing him (Item 1) is fifteen yards from
+  the previous spot and an automatic first down, and the article marks it a **personal
+  foul**; running into him (Item 2) is five from the previous spot with no automatic first
+  down, and the article marks it **not** one. `[2025 · 12-2-12]` That marking, not the
+  section the foul is printed under, is what the 14-2-3 entry above turns on, so only
+  roughing travels to a succeeding spot. The article says nothing about the down: five
+  from the previous spot replays it only where they leave the ball short of the line to
+  gain, because reaching it is a new series like any other. `[2025 · 7-3-1-b]`,
+  `[2025 · 3-8-4]` Neither foul wipes a kick that was already away by itself — the rush
+  is over before the ball comes down, so the offended team weighs the flag against what
+  the kick did. The **free** kicker is a different article with its own five yards
+  `[2025 · 6-2-3]`, and a personal foul against him is 12-2-8-i.
 - **The passing game.** Between the snap and the moment a forward pass from behind the
   line is over, a foul by either team is enforced from the previous spot; the catch is the
   boundary, and with the ball in a receiver's hands the down has become a run.
@@ -414,16 +433,20 @@ The gap between this doc and the tree, as of the September 2026 audit. Each line
 somebody's issue; none of them are decided questions. The first three were read out of the
 tree while this doc was written; the rest are the audit's findings, taken on its word.
 
-- `Rules.kickoffTouchbackOwnYard` is 30 — the 2024 value. `Rules.swift`. #41.
-- `kicksOnside` requires the fourth quarter — the 2024 rule. It is the default in the
-  `PlayCaller` protocol extension, not a method on one caller: `BaselineCaller` and every
-  other caller inherit it, so changing that guard changes them all. `PlayCaller.swift`.
-  #41, #46.
+- `Rules.kickoffTouchbackOwnYard` is the 35 and `Rules.rulebookSeason` is 2025, so the
+  defaults are one book. `Rules.swift`.
+- The onside declaration is `Rules.mayDeclareOnsideKick` — any period, trailing — and the
+  simulator asks it before it asks the caller, so no caller can declare one the book does
+  not allow. Whether a coach *wants* one is still the `PlayCaller` extension's default,
+  inherited by every caller. `Rules.swift`, `GameSimulator.swift`, `PlayCaller.swift`.
 
-The dynamic kickoff is not in the engine at all: `Rules` carries one
-`kickoffTouchbackOwnYard` and `Advancement` has one kickoff touchback spot, so there is no
-landing zone, no second touchback spot and no short-kick or out-of-bounds spot. That is
-#46's problem, and this section is what it is being held to.
+The dynamic kickoff is in the engine as far as the *aiming points* go and no further.
+`Rules` carries the landing zone, the touchback at the 35 and 6-2-4's twenty-five yards;
+the resolver calls one of two kicks — through the end zone, or into the zone to be
+returned — and reads the spot the kick is taken from, so a distance penalty changes the
+kick. What is absent is everything about *lining up*: no setup zone, no restraining lines,
+no alignment fouls, and therefore no second touchback spot, since that one needs a kick to
+come down in the landing zone and then reach the end zone.
 
 ## Injured reserve and game-day rules
 

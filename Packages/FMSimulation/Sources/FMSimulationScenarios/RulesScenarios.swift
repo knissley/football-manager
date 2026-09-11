@@ -936,13 +936,42 @@ public enum RulesScenarios {
         }
     }
 
-    /// The first snap from scrimmage, at the offence's own 30, is a run of ten yards on
-    /// which a defender is flagged for unnecessary roughness; the back is stripped at the
-    /// end of it, at his own 40, and the defence takes it back to the offence's 25.
+    /// A drive to the twenty, then a field goal with a flag on the rush at the kicker.
+    ///
+    /// Whether the kick is good and which of the two kicker fouls it was are the two axes
+    /// 14-2-3 turns on: a made kick carries a personal foul to the free kick, and a missed
+    /// one is enforced on the down like any other.
+    static func kickerFoul(_ foul: Foul, good: Bool) -> ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(offensiveConcept: { $0.ballOn == 20 ? .fieldGoal : .insideRun })
+        ) { snap in
+            if snap.index == 1 { return .rush(Int16(snap.ballOn) - 20) }
+            if snap.concept == .fieldGoal {
+                return snap.kick(.fieldGoal, good: good, foulBy: foul)
+            }
+            return plod(snap)
+        }
+    }
+
+    /// A touchdown, then a successful extra point with an offensive hold on it.
+    static var holdingOnASuccessfulTry: ScriptedGame {
+        ScriptedGame { snap in
+            if snap.index == 1 { return snap.touchdown() }
+            if snap.concept == .extraPoint {
+                return snap.kick(.extraPoint, good: true, foulBy: .offensiveHolding)
+            }
+            return plod(snap)
+        }
+    }
+
+    /// The first snap from scrimmage, at the offence's own 35 — where a kickoff
+    /// touchback leaves it under the 2025 book (6-1-5) — is a run of ten yards on which a
+    /// defender is flagged for unnecessary roughness; the back is stripped at the end of
+    /// it, at his own 45, and the defence takes it back to the offence's 25.
     ///
     /// A run followed by a change of possession takes the spot where possession went as
     /// its basic spot (14-3-5-b), and a defensive foul gives the ball back to the offence
-    /// before the walk-off (14-4-3-a): fifteen from its own 40, not fifteen from its 30.
+    /// before the walk-off (14-4-3-a): fifteen from its own 45, not fifteen from its 35.
     /// The gain is what makes the fumble the spot — a fumble behind the line would send
     /// the flag back to the previous spot (14-3-6, the exception for the defence), which
     /// is the strip-sack scenario below.
@@ -955,9 +984,9 @@ public enum RulesScenarios {
     }
 
     /// The same field position and the same flag, thrown instead of run: the first snap
-    /// from scrimmage, at the offence's own 30, is a pass a defender is flagged for
+    /// from scrimmage, at the offence's own 35, is a pass a defender is flagged for
     /// unnecessary roughness on before it is picked off ten yards downfield — at the
-    /// offence's 40 — and run back to its 25.
+    /// offence's 45 — and run back to its 25.
     ///
     /// Until a forward pass from behind the line is over, a flag on
     /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
@@ -965,13 +994,13 @@ public enum RulesScenarios {
     /// defensive personal foul before the catch takes the better of two spots for the
     /// offence — where it snapped, or where the ball was dead (14-4-5-d): the interceptor was
     /// dropped at the offence's own 25, behind where it snapped, so the previous spot is
-    /// the better of the two — fifteen from its own 30, and the interception is wiped out.
-    /// The offence throws on first down from its own 30 so that the record's concept is
+    /// the better of the two — fifteen from its own 35, and the interception is wiped out.
+    /// The offence throws on first down from its own 35 so that the record's concept is
     /// the play the script gives it.
     static var roughnessByTheDefenseBeforeAnInterception: ScriptedGame {
         ScriptedGame(
             caller: ScriptedCaller(offensiveConcept: {
-                $0.ballOn == 70 && $0.down == .first ? .mediumPass : .insideRun
+                $0.ballOn == 65 && $0.down == .first ? .mediumPass : .insideRun
             })
         ) { snap in
             snap.index == 1

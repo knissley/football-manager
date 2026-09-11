@@ -141,6 +141,35 @@ struct GoldenSeedTests {
             // penalty enforcement is charged against the thirty or the twenty-five it was
             // really taken against.
             //
+            // And moved by the rulebook. `Rules` carried the 2024 kickoff — a touchback
+            // at the receiving team's 30 — and now carries the 2025 book's 35 (6-1-5), so
+            // every drive that follows a touchback starts five yards further on and
+            // everything downstream of a drive's field position moves with it. The onside
+            // declaration moved with it too (6-1-6): the book allows one at any time
+            // while trailing rather than in the fourth quarter alone, and the baseline
+            // caller now wants one from five minutes out rather than three, from two
+            // minutes rather than fifty seconds when nothing can stop the clock, and in a
+            // narrow third-quarter case the old rule could not reach.
+            //
+            // And moved by the dynamic kickoff. The kickoff is two plays now — struck
+            // through the end zone, or into the landing zone to be returned (2025
+            // rulebook, 6-1-4, 6-1-5) — the call chooses between them, and both read the
+            // spot the kick is taken from, so a penalty on a free kick changes the kick.
+            // Three quarters of kickoffs are returned where a third were, a return starts
+            // inside the receiving team's 20 rather than in its end zone, a mishit kick
+            // can now miss the landing zone and hand over 6-2-4's spot, and an onside kick
+            // dies where the rules let it be recovered rather than ten yards past it on
+            // the branch where the receiving team came up with it.
+            // And moved by a foul on a play that scored. A place kick is resolved before
+            // the rush at the kicker is drawn, so a flag there no longer cancels the
+            // kick; a personal or unsportsmanlike foul during a field goal, a safety or a
+            // try is carried to the free kick and one during a touchdown to the try
+            // (2025 rulebook, 14-2-3, 11-3-3), so the spot the next play is made from
+            // moves; an offensive foul on a successful try brings the try back (11-3-3
+            // Item 3-a) where it used to end the sequence; and `afterThePlay` is drawn on
+            // completions and sacks as well as runs, which is a flag on plays that could
+            // not draw one at all.
+            //
             // And moved by rotation. A position the sport does not rotate — the
             // quarterback, the five line spots, the kicker, the punter and the long
             // snapper — is no longer drawn against a snap share on every snap; the man
@@ -314,9 +343,30 @@ struct GoldenSeedTests {
             // Neither parent's constants could survive, because each was computed without
             // the other's mechanisms, and no subset of the mechanisms above reproduces
             // these numbers.
-            (UInt64(1), UInt64(12_156_296_766_544_450_395)),
-            (UInt64(5), UInt64(564_713_015_476_453_462)),
-            (UInt64(12), UInt64(4_243_842_629_444_179_288)),
+            //
+            // And the rulebook track then met all of that, in this merge, which is where
+            // the constants below come from. On one side `Rules` is the 2025 book — a
+            // kickoff touchback at the receiving team's 35 and an onside kick declarable
+            // at any time while trailing (6-1-5, 6-1-6) — the kickoff is two plays the
+            // call chooses between and both read the spot the kick is taken from (6-1-4,
+            // 6-1-5), a place kick is resolved before the rush at the kicker is drawn, and
+            // a foul on a play that scored is carried to the try or the free kick
+            // (14-2-3, 11-3-3). On the other, a two-point try is a run or a pass and is
+            // substituted for, a punt from plus territory is aimed, the sideline is drawn
+            // from the concept and the clock, interference is drawn at the throw, a
+            // position the sport does not rotate is not drawn for, a flag stops the clock
+            // at the end of its down, the baseline caller decides what is snapped, every
+            // player carries every rating key, and a try's every exit is recorded as the
+            // try. The two reach each other on the same snaps: a touchback five yards
+            // further on changes what the caller calls from the drive's first snap, a
+            // returned kickoff spends draws a touchback does not and moves every stream
+            // after it, and the free kick a scoring foul moves is one the onside rule and
+            // the aiming choice both read. Neither parent's constants could survive,
+            // because each was computed without the other's mechanisms, and no subset of
+            // the mechanisms above reproduces these numbers.
+            (UInt64(1), UInt64(18_221_643_139_207_046_522)),
+            (UInt64(5), UInt64(1_879_505_917_188_062_581)),
+            (UInt64(12), UInt64(17_078_191_025_272_067_907)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
