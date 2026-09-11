@@ -582,3 +582,190 @@ struct CatchVocabularyTests {
         )
     }
 }
+
+/// What the record says about the pocket, and when it is entitled to say it.
+///
+/// The engine used to flag pressure the moment a rusher beat his blocker, which made
+/// three of every four dropbacks pressured and a screen as pressured as a deep drop.
+/// Winning a rep and getting to the quarterback are two different things, and only the
+/// second is what the statistic means.
+@Suite("The pocket")
+struct PocketTests {
+
+    private func context(seed: UInt64 = 12) -> PlayContext {
+        let (_, chart, players) = TestWorld.team(seed: seed)
+        let rotation = chart.rotation()
+        return PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: players,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: .standard)
+    }
+
+    /// First and ten near midfield, nothing about the clock or the score pulling on the
+    /// call: the pocket is the only thing under test.
+    private static let neutral = Situation(
+        quarter: 2, clockRemaining: 800, down: .first, distance: 10, ballOn: 65,
+        possession: TeamID(1), scoreDifferential: 0, offensePersonnel: .eleven,
+        defensePackage: .nickel)
+
+    private func resolved(
+        _ concept: PlayConcept, _ situation: Situation, count: Int = 3_000, seed: UInt64 = 41
+    ) -> [(outcome: Outcome, decisions: [DecisionPoint])] {
+        let context = context()
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept), defense: .nickelTwoMan,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: seed)
+        return (0..<count).map { _ in
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
+            return CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
+        }
+    }
+
+    /// Every pass concept the resolver knows, so a claim about the pocket is made across
+    /// the whole range of how long the ball is held rather than on one route.
+    private static let passConcepts: [PlayConcept] = [
+        .screen, .quickPass, .mediumPass, .playAction, .deepPass,
+    ]
+
+    /// The share of dropbacks on which the record says the quarterback was pressured.
+    private func pressureShare(
+        _ plays: [(outcome: Outcome, decisions: [DecisionPoint])]
+    ) -> Double {
+        guard !plays.isEmpty else { return 0 }
+        let pressured = plays.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
+        return Double(pressured.count) / Double(plays.count)
+    }
+
+    /// Pressure is a rusher getting there *before the ball is out*, not a rusher winning.
+    ///
+    /// The statistic this engine is calibrated against is Next Gen Stats' pressure flag
+    /// over attempts, sacks and scrambles (2023-24; `row:pressureRate`, source S2 in
+    /// `docs/reference/calibration-sources.md`). It marks the dropbacks on which the
+    /// passer was got to. A rusher who beat his blocker a beat after the ball had gone
+    /// did not get to anybody: the rep was lost and the throw was clean, and those are
+    /// two different facts about the same snap. The resolver records the first as a
+    /// `.blockResult` and only the second as `.pressureAllowed`.
+    ///
+    /// This is the claim, and it is checked against the record's own throw time rather
+    /// than against a constant, so it stays true if the pocket's timings are ever retuned.
+    @Test(
+        "football · pressure per S2 2023-24 · a rusher who arrives after the ball is gone did not pressure the passer",
+        .tags(.football))
+    func pressureMeansTheRusherGotThereFirst() {
+        var lateFlags = 0
+        var checkedPressures = 0
+        var lostReps = 0
+        var sample = ""
+        for concept in Self.passConcepts {
+            for play in resolved(concept, Self.neutral, count: 2_000) {
+                lostReps +=
+                    play.decisions.filter {
+                        $0.kind == .blockResult && $0.blockResultValue == .lost
+                    }.count
+                // A throw the quarterback made to his read carries the moment the ball
+                // came out. A sack or a scramble has no such moment — the ball never
+                // left — so those snaps cannot answer this question and are skipped.
+                guard
+                    let ballOut = play.decisions.first(where: {
+                        $0.kind == .throwDecision && $0.detail == ThrowDecision.primary.rawValue
+                    })?.value
+                else { continue }
+                for point in play.decisions where point.kind == .pressureAllowed {
+                    checkedPressures += 1
+                    if point.value >= ballOut {
+                        lateFlags += 1
+                        if sample.isEmpty {
+                            sample =
+                                "\(concept): pressure at \(point.value)ms, ball out at \(ballOut)ms"
+                        }
+                    }
+                }
+            }
+        }
+        #expect(lostReps > 0, "ten thousand dropbacks and no blocker ever lost: nothing to check")
+        #expect(checkedPressures > 0, "ten thousand dropbacks and no pressure at all")
+        #expect(
+            lateFlags == 0,
+            "\(lateFlags) of \(checkedPressures) recorded pressures arrived after the throw — \(sample)"
+        )
+    }
+
+    /// The other half of the same claim: how long the ball is held is what decides how
+    /// much of the rush gets home.
+    ///
+    /// Same source and same definition (S2, 2023-24). A screen is gone before a rusher
+    /// can cover the ground; a deep drop asks the pocket to hold for more than twice as
+    /// long against the same four men. So pressure has to rise with the time the
+    /// quarterback needs, and a model where it does not is one that is not reading the
+    /// clock at all — which is what an engine that flagged pressure on the rep alone was
+    /// doing: a screen and a deep drop came back pressured at the same rate.
+    @Test(
+        "football · pressure per S2 2023-24 · pressure rises with the time the quarterback needs",
+        .tags(.football))
+    func pressureRisesWithTimeToThrow() {
+        let shares = Self.passConcepts.map { concept in
+            (concept, pressureShare(resolved(concept, Self.neutral, count: 2_000)))
+        }
+        for (earlier, later) in zip(shares, shares.dropFirst()) {
+            #expect(
+                earlier.1 < later.1,
+                "\(earlier.0) pressured \(earlier.1) against \(later.0) at \(later.1): the pocket is not on a clock"
+            )
+        }
+    }
+
+    /// What a dropback records about its pocket, once, whatever happened in it.
+    ///
+    /// One `.blockResult` per rep resolved — the fact of the matchup — and then exactly
+    /// one verdict on the pocket: `.pressureAllowed` if somebody got there before the
+    /// ball was out, `.pressureHeld` if nobody did. A reader asking *was he pressured?*
+    /// gets one answer per snap, which is what makes the question answerable from the
+    /// stream at all.
+    ///
+    /// A snap the defence fielded no edge or interior lineman on has no rep to resolve
+    /// and gets no verdict, rather than a verdict naming a slot nobody is standing in.
+    /// That is rare, and it is the reason the count is tied to the reps rather than
+    /// asserted flat.
+    ///
+    /// **The bound is the spread and not one draw.** It read "under 2%", which was this
+    /// sample's share at the seed the probe happens to use. The share is a property of
+    /// the lineup draw rather than of anything in the pocket, and it moves with the
+    /// stream: measured over six seeds — 1, 5, 7, 11, 23 and the probe's own 41 — it is
+    /// 1.4% to 2.8% on the tree the bound was written on and 1.9% to 2.5% here, so four
+    /// of those six seeds break a 2% bound on the tree that set it. Four percent is above
+    /// every one of the twelve and still an order below anything a mechanism change would
+    /// produce: a defence that stopped fielding linemen would not land at five.
+    @Test("A dropback records one verdict on its pocket", .tags(.contract))
+    func everyDropbackHasOnePocketVerdict() {
+        var withoutARep = 0
+        var total = 0
+        for concept in Self.passConcepts {
+            for play in resolved(concept, Self.neutral, count: 500) {
+                total += 1
+                let reps = play.decisions.filter { $0.kind == .blockResult }.count
+                let allowed = play.decisions.filter { $0.kind == .pressureAllowed }.count
+                let held = play.decisions.filter { $0.kind == .pressureHeld }.count
+                if reps == 0 { withoutARep += 1 }
+                #expect(
+                    allowed + held == (reps > 0 ? 1 : 0),
+                    "\(concept): \(reps) reps, \(allowed) pressures and \(held) held verdicts on one snap"
+                )
+                // A sack or a scramble is pressure by construction: the quarterback went
+                // down or took off because somebody got there.
+                let kind: PlayKind = play.outcome.kind
+                if kind == .sack || kind == .scramble {
+                    #expect(allowed == 1, "\(concept): a \(kind.rawValue) with a clean pocket")
+                }
+            }
+        }
+        #expect(
+            withoutARep * 25 < total,
+            "\(withoutARep) of \(total) dropbacks had no pass-rush rep at all")
+    }
+}

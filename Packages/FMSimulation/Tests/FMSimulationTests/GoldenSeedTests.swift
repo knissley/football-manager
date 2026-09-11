@@ -395,6 +395,33 @@ struct GoldenSeedTests {
             // seventy-eight plays where it printed a hundred and sixty-six, with the
             // clock column reading at the snap throughout.
             //
+            // And moved again because the pocket has a clock in it. A rusher who beats
+            // his blocker is recorded as having beaten him and nothing more; the pocket
+            // gets one verdict a snap, and it is pressure only if the man got there
+            // before the ball was out. That alone moves every dropback's stream — a
+            // `.blockResult` a rep where a `.pressureAllowed` or a `.pressureHeld` used
+            // to be, and one verdict after the read instead of one point per rep — and
+            // the checksum mixes every decision point. With it, the rep win rate is the
+            // pressure rate's lever now that it is no longer the pressure rate itself,
+            // and it is set from that row, so fewer rushers win, fewer get home, fewer
+            // sacks and scrambles are taken and every drive after one of them is a
+            // different drive.
+            //
+            // And the two clocks then met in this merge, which is where the constants below
+            // come from. On one side the interval between downs is charged before the
+            // situation is built, so a period that interval alone exhausts records no down
+            // at all. On the other the pocket has a clock in it: one verdict a snap taken
+            // against the moment the ball came out, with the rep win rate as that row's
+            // lever now that it is no longer the row itself, so fewer rushers get home and
+            // fewer sacks and scrambles are taken. The two reach each other on the same
+            // snaps. A sack that is no longer taken is a different outcome with a different
+            // runoff and a different next spot, so the period reaches its end at a
+            // different whistle and a different set of intervals is the one that exhausts
+            // it; and a down the clock no longer records is a dropback whose reps are never
+            // drawn, so the pocket verdict that snap would have carried never enters the
+            // stream. Neither parent's constants could survive, because each was computed
+            // without the other's mechanism, and no subset of the mechanisms above
+            // reproduces these numbers.
             // And moved by the catch, in three ways the checksum mixes through the catch
             // decision and through the draws each one spends. A defensive interference
             // foul now settles the catch instead of sitting beside it (2025 rulebook,
@@ -414,9 +441,27 @@ struct GoldenSeedTests {
             // five interference calls that are now five incompletions accepted at the
             // spot, where all four of the defence's were completions and every one was
             // declined.
-            (UInt64(1), UInt64(11_567_896_904_328_882_484)),
-            (UInt64(5), UInt64(2_288_566_037_711_384_687)),
-            (UInt64(12), UInt64(403_327_183_926_696_884)),
+            //
+            // And the pocket and the catch then met in this merge, which is where the
+            // constants below come from. On one side the pocket gets one verdict a snap,
+            // taken against the moment the ball came out, so far fewer dropbacks are
+            // pressured. On the other a defensive interference flag settles the catch,
+            // no flag is drawn on a throw nobody could reach, and placement decides whose
+            // incompletion an uncaught ball was. The two reach each other on the same
+            // snaps, and in both directions. Pressure is what makes a throw inaccurate,
+            // so a pocket that holds puts more balls on target and fewer where they could
+            // not be caught — which moves the mix of drops, break-ups and off-target
+            // throws the other side is labelling, and the uncatchable throws it declines
+            // to flag. A sack that is no longer taken is a throw instead, so there is a
+            // catch to resolve and a matchup to draw interference on where there was
+            // neither. And a flag that now ends the catch is accepted at the spot, which
+            // keeps a drive alive and hands the pocket more dropbacks to judge. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanism, and no subset of the mechanisms above reproduces these
+            // numbers.
+            (UInt64(1), UInt64(4_939_048_633_176_101_979)),
+            (UInt64(5), UInt64(8_162_782_535_497_224_204)),
+            (UInt64(12), UInt64(9_333_661_618_843_993_380)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

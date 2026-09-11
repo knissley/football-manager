@@ -134,9 +134,10 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 ## The census as it stands
 
 Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, plus
-the two tests that came with a receiver training ball security and the two that came with
-the clock on a play record reading at the snap: **919 tests, counted with
-`./scripts/test-census.sh` on the merge of `dfbe17b` with #101.** The commit is part of the
+the two tests that came with a receiver training ball security, the two that came with the
+clock on a play record reading at the snap and the three that came with the pocket getting
+one verdict a snap: **922 tests, counted with `./scripts/test-census.sh` on the merge of
+`0a154dd` with #36.** The commit is part of the
 number. A census with no commit beside it is a claim about a tree nobody can go back to,
 which is the way a snapshot misleads — it reads as current long after it has stopped being
 true. `./scripts/test-census.sh` reprints it; if this table and that output disagree, the
@@ -147,10 +148,10 @@ output is right and this table is stale.
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 54 — 14.4% | 33 — 8.8% | 286 — 76.1% | 3 | 376 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 117 — 40.9% | 91 — 31.8% | 70 — 24.5% | 8 | 286 |
+| FMSimulation | 119 — 41.2% | 92 — 31.8% | 70 — 24.2% | 8 | 289 |
 | simharness | 0 — 0.0% | 11 — 78.6% | 3 — 21.4% | 0 | 14 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **172 — 18.7%** | **237 — 25.8%** | **499 — 54.3%** | **11** | **919** |
+| **all** | **174 — 18.9%** | **238 — 25.8%** | **499 — 54.1%** | **11** | **922** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -166,21 +167,22 @@ forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement*, *T
 touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the defaults come
 from* — the last three joined when wave 3's D track put a foul on a scoring play where the
 rules put it, gave the free kick its spots, and made `Rules` say which book it is. The
-resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting* and *The dynamic
-kickoff* — the last three are the resolver's own suites, split out when wave 3 gave it the
-sideline, the aimed punt and the two kickoffs.
+resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting*, *The dynamic
+kickoff* and *The pocket* — the last four are the resolver's own suites, split out when
+wave 3 gave it the sideline, the aimed punt, the two kickoffs and a pocket with a clock in
+it.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 51 — 44.7% | 6 | 54 | 3 | 114 |
 | Rules conformance — the scripted games (FMSimulation) | 100 — 98.0% | 0 | 0 | 2 | 102 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting and the kickoff (FMSimulation) | 6 — 20.7% | 11 | 10 | 2 | 29 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff and the pocket (FMSimulation) | 8 — 25.0% | 12 | 10 | 2 | 32 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 
 Three findings come straight off that table, and a fourth off what it cannot show.
 
 **The resolver asserts little football, and what it does assert is shape rather than
-rate.** Six of its twenty-nine tests do, every one of them added by wave 3. Two came with
+rate.** Eight of its thirty-two tests do, every one of them added by wave 3. Two came with
 the sideline and the aimed punt: where a play ends laterally is a clock decision (4-3-2-a)
 and a punt from plus territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those
 two asserts only what its articles actually say — the *direction* of the sideline lever,
@@ -189,8 +191,12 @@ The magnitudes that shipped inside them (a trailing offence reaching the sidelin
 often as a leading one, above a fifth of its tackles; fewer than 15% of plus-territory
 punts reaching the end zone) came from the issues that built those levers rather than from
 an article or a sourced season, so they are pinned beside the football tests instead of
-inside them, and are the two `.pin` in that row. Its parametric rates — completion
-percentage, sack rate, interception rate — are asserted by the harness's sourced bands
+inside them, and are the two `.pin` in that row. Two more came with the pocket and are the
+same shape: a rusher who arrived after the ball was gone pressured nobody, and pressure
+rises with how long the quarterback needs. Both assert the *direction* the definition of
+the statistic implies (`row:pressureRate`, 2023-24, source S2) and leave the rate itself to
+the band. Its parametric rates — completion percentage, sack rate, pressure rate,
+interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
 as a football test for a rate, and it does; but the census cannot see it, because
 `simharness`'s own tests check that the table matches

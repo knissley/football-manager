@@ -985,8 +985,10 @@ report("dropbackNoGain", dropbackShare { $0 == 0 })
 report("dropback10plus", dropbackShare { $0 >= 10 })
 report("dropback20plus", dropbackShare { $0 >= 20 })
 report("dropback40plus", dropbackShare { $0 >= 40 })
-// A pressured dropback is one where a blocker lost — the stream records that moment as a
-// decision point, so pressure is a query and not a counter the resolver keeps.
+// A pressured dropback is one whose pocket verdict says a rusher got there before the ball
+// was out — the stream records that verdict as a decision point, so pressure is a query and
+// not a counter the resolver keeps. A rep lost after the throw is a `.blockResult` and is
+// deliberately not counted here.
 let pressured = dropbacks.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
 report("pressureRate", Double(pressured.count) / Double(max(1, dropbacks.count)) * 100)
 // Every caught ball, including the ones that went backwards, read from the record's own
