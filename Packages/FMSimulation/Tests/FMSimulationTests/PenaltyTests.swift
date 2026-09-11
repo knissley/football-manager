@@ -198,6 +198,108 @@ struct PenaltyTests {
         #expect(checked > 10, "only \(checked) interference calls to check")
     }
 
+    // MARK: - The pocket
+
+    /// Twelve thousand deep dropbacks, walked by both tests below.
+    ///
+    /// **Deep, because the pocket has the longest to hold on one** — the read the
+    /// quarterback is waiting on takes longest to come open, so it is the concept he is
+    /// likeliest to give up on and run from. Measured on the tree this was written
+    /// against: 515 of these twelve thousand end with him out of the pocket, against 338
+    /// of eight thousand and 130 of four thousand on a medium route.
+    ///
+    /// **A forced draw rather than the corpus, because the corpus cannot reach this.**
+    /// The thirty games above hold 74 downs the quarterback left the pocket on, five flags
+    /// between them, and no illegal contact at all — so an assertion over them would have
+    /// been green before this was fixed and green after, which is an assertion about
+    /// nothing. `TestWorld.resolved` is the instrument its own documentation names for a
+    /// rare exit: the same resolver on the same stream, thousands of times, able to say
+    /// what it drew.
+    private static let deepDropbacks: [TestWorld.Resolution] =
+        TestWorld.resolved(.deepPass, count: 12_000)
+
+    /// The downs of that draw the quarterback left the pocket on, and every flag on them.
+    private static func afterLeavingThePocket() -> (downs: Int, fouls: [Foul]) {
+        var downs = 0
+        var fouls: [Foul] = []
+        for resolution in deepDropbacks {
+            guard resolution.decisions.contains(where: { $0.throwDecisionValue == .scramble })
+            else { continue }
+            downs += 1
+            fouls += resolution.outcome.penalties.map(\.foul)
+        }
+        return (downs, fouls)
+    }
+
+    /// Illegal contact is not available once the quarterback has left the pocket.
+    ///
+    /// 2025 rulebook, 8-4-7. The restriction is written against a passer who *stays*:
+    /// both halves of it — 8-4-2 inside five yards and 8-4-3 beyond them — are conditioned
+    /// on the man who took the snap still being back there holding the ball. 8-4-7 says
+    /// what happens when he is not, and is careful about which of the coverage fouls go
+    /// with him: a quarterback who carries the ball out of the pocket takes illegal
+    /// contact off the table, and the cut block with it, while the defence's holding
+    /// restriction is untouched.
+    ///
+    /// **What the engine knows about the pocket is the scramble, and nothing else.** A
+    /// `.throwDecision` of `.scramble` is the quarterback taking off with the ball, which
+    /// is 8-4-7's sentence and not a proxy for it. On a down that ended as a pass there is
+    /// no such fact anywhere in the record — nothing says where the passer was — so this
+    /// asserts the half of the article the engine can see, and the half it cannot is
+    /// written down in `docs/invariants.md` as a case the record cannot reach.
+    ///
+    /// Measured before this was fixed: of the 515 downs the quarterback ran out of the
+    /// pocket on, 6 carried illegal contact. The 31 defensive holds on the same downs are
+    /// the twin below, and they are what keeps this zero from being the zero of a draw
+    /// that quietly stopped firing.
+    @Test(
+        "football · Rule 8-4-7 · illegal contact ends when the passer leaves the pocket",
+        .tags(.football))
+    func illegalContactEndsWhenThePasserLeavesThePocket() {
+        let (downs, fouls) = Self.afterLeavingThePocket()
+        #expect(downs > 300, "only \(downs) downs the quarterback left the pocket on")
+        let called = fouls.filter { $0 == .illegalContact }.count
+        #expect(
+            called == 0,
+            "\(called) illegal-contact calls on downs the quarterback had left the pocket on")
+    }
+
+    /// And the rest of the same sentence: defensive holding is not switched off with it.
+    ///
+    /// 2025 rulebook, 8-4-7 again — the article ends one of the two coverage fouls when
+    /// the quarterback runs out of the pocket and leaves the other standing, and holding
+    /// is the one left standing. 8-4-6 is the act it keeps available: a hand on an
+    /// eligible receiver or on his jersey, or an arm put across him to steer him off his
+    /// route or wrap him up.
+    ///
+    /// So the twin above may not be satisfied by dropping the coverage rep's flag
+    /// wholesale, which is the easy way to make a count go to zero. A change that did
+    /// would fail here.
+    ///
+    /// **The engine does tell the two acts apart**, which is why both halves of the
+    /// article can be asserted rather than only the negative one:
+    /// `Penalties.whenBeatenInCoverage` draws the contact once and then names it, holding
+    /// or illegal contact, as two fouls and not one. What it does not model is holding's
+    /// own conditions — the naming is a draw, not a grasp — so nothing here turns the
+    /// contact 8-4-7 switched off into a hold instead. That would be inventing a foul to
+    /// keep a rate up.
+    ///
+    /// Measured on the tree this was written against: 31 of these on the same 515 downs.
+    /// The floor is a third of it, about four standard errors below, because what it is
+    /// guarding is a draw that stopped firing and not the rate, which is the retune's.
+    @Test(
+        "football · Rule 8-4-7 · defensive holding survives the passer leaving the pocket",
+        .tags(.football))
+    func defensiveHoldingSurvivesThePasserLeavingThePocket() {
+        let (downs, fouls) = Self.afterLeavingThePocket()
+        #expect(downs > 300, "only \(downs) downs the quarterback left the pocket on")
+        let held = fouls.filter { $0 == .defensiveHolding }.count
+        let gone =
+            "\(held) defensive holds on \(downs) downs the quarterback left the pocket on:"
+            + " 8-4-7 keeps holding available and the engine has stopped drawing it"
+        #expect(held > 10, "\(gone)")
+    }
+
     /// A flag names a slot, and the record resolves every slot: `onField` carries the
     /// twenty-two men, so a receiver running a decoy route, a rusher who never reached
     /// the kicker or a blocker on a return is as identifiable as the man who made the
