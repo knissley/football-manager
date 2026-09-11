@@ -32,14 +32,14 @@ struct EndgameTests {
             offenseTimeouts: offenseTimeouts, defenseTimeouts: defenseTimeouts)
     }
 
-    private func family(
+    private func concept(
         _ situation: Situation, clockRunning: Bool = true, seed: UInt64 = 1
-    ) -> PlayFamily? {
+    ) -> PlayConcept {
         var random = SplittableRandom(seed: seed)
         let call = caller.offensiveCall(
             for: situation, classified: SituationClass(situation),
             context: context(clockRunning: clockRunning), random: &random)
-        return CrudePlaybook.family(of: call.design)
+        return call.concept
     }
 
     // MARK: - Victory formation
@@ -50,7 +50,7 @@ struct EndgameTests {
     func kneelsWhenTheClockCanBeBurned() {
         let safe = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(safe) == .kneel)
+        #expect(concept(safe) == .kneel)
     }
 
     /// Kneeling a play too early hands the ball back. Timeouts are exactly what buys the
@@ -59,32 +59,242 @@ struct EndgameTests {
     func timeoutsPreventKneeling() {
         let withTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 3)
-        #expect(family(withTimeouts) != .kneel, "three timeouts can still get the ball back")
+        #expect(concept(withTimeouts) != .kneel, "three timeouts can still get the ball back")
 
         let noTimeouts = situation(
             down: .first, quarter: 4, clock: 80, differential: 7, defenseTimeouts: 0)
-        #expect(family(noTimeouts) == .kneel)
+        #expect(concept(noTimeouts) == .kneel)
     }
 
     @Test("A team that is behind or level never kneels", .tags(.unit))
     func neverKneelsWhenItCannotAfford() {
-        #expect(family(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
-        #expect(family(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: -3, defenseTimeouts: 0)) != .kneel)
+        #expect(concept(situation(clock: 40, differential: 0, defenseTimeouts: 0)) != .kneel)
     }
 
     @Test("Nobody kneels in the first quarter", .tags(.unit))
     func neverKneelsEarly() {
         #expect(
-            family(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0)) != .kneel)
+            concept(situation(quarter: 1, clock: 80, differential: 7, defenseTimeouts: 0))
+                != .kneel)
     }
 
-    /// Kneeling on fourth down is a turnover on downs, not a way to end a game.
-    @Test("Fourth down is not a kneel", .tags(.unit))
-    func neverKneelsOnFourth() {
+    /// A knee on fourth down gives the ball up on downs, and while the down can still be
+    /// snapped that is all it does. A down that ended in bounds leaves the game clock
+    /// running, and the next snap has to come inside the forty seconds 4-6-1 gives the
+    /// offence to put the ball in play; nothing extends a period that expires between
+    /// downs, because 4-8-1 extends one only while the ball is in play and 4-8-2 only
+    /// for a foul in the down that expired it. So with more clock than a play clock, or
+    /// with the game clock stopped and the offence free to snap when it likes, the down
+    /// is real and a knee hands it over.
+    ///
+    /// Rewritten. This used to assert that fourth down is never a kneel, and it made
+    /// that case at twenty seconds with the clock running, where the down cannot be
+    /// snapped at all. The rule was true; it was stated too widely. What the offence
+    /// does *instead* of that snap is not something these articles settle — it is the
+    /// pin below.
+    @Test(
+        "football · Rules 4-6-1, 4-8-1, 4-8-2 · a knee on fourth down is a turnover on downs whenever the down can still be snapped: more than a play clock left, or a game clock that is stopped",
+        .tags(.football))
+    func fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped() {
+        // Forty-five seconds and a running clock: the ball has to be snapped, and a knee
+        // would hand it over.
         #expect(
-            family(
-                situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0)
-            ) != .kneel)
+            concept(situation(down: .fourth, clock: 45, differential: 7, defenseTimeouts: 0))
+                != .kneel)
+        // A stopped clock is a snap whenever the offence likes, so the down is real
+        // however little is left.
+        #expect(
+            concept(
+                situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0),
+                clockRunning: false) != .kneel)
+    }
+
+    /// Not a rule, and the pin says why.
+    ///
+    /// With a running clock and less than a play clock left, 4-6-1, 4-8-1 and 4-8-2
+    /// together say only that **no fourth-down snap happens**: the offence may let the
+    /// forty seconds run out and take the delay of the game as the period expires, and
+    /// nothing extends a period that ends between downs. They do not say the offence
+    /// kneels — a knee is a snap. This engine has no outcome meaning *let the play clock
+    /// expire*, so its caller kneels instead, which is a snap that never occurred and a
+    /// down on the record that was never played. That is one extra knee in every victory
+    /// formation, and it is measurable: about a fifth of a knee a game.
+    ///
+    /// #101 owns the real fix — a down recorded that was never snapped — and #49 the
+    /// calibration it moves. When either lands this pin fails, and the football sentence
+    /// is that the period simply ends.
+    @Test(
+        "pin · a fourth-down knee inside the play clock is the engine's stand-in for declining the snap: 4-6-1 lets the offence take the delay of game as the period expires and 4-8-1 ends the period between downs, so the sport plays no down here at all",
+        .tags(.pin))
+    func fourthDownKneelStandsInForDecliningTheSnap() {
+        #expect(
+            concept(situation(down: .fourth, clock: 20, differential: 7, defenseTimeouts: 0))
+                == .kneel)
+    }
+
+    /// A half is worth ending too, and the old guard would not let the caller do it: it
+    /// asked for the endgame, which is the last five minutes of the fourth period and
+    /// nothing before the break. Up a score with the ball and half a minute to go, the
+    /// snap can only lose it; level and backed up on your own goal line it can lose it
+    /// worse. Behind, never — the half is short but the points still count.
+    @Test("A team kneels out the first half when a snap can only cost it", .tags(.unit))
+    func kneelsOutTheFirstHalf() {
+        #expect(
+            concept(situation(quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0))
+                == .kneel,
+            "up seven with thirty seconds to the break")
+        #expect(
+            concept(
+                situation(
+                    ballOn: 96, quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0)
+            ) == .kneel,
+            "level on your own four, thirty seconds to the break: a snap here can only lose it")
+        #expect(
+            concept(
+                situation(
+                    ballOn: 96, quarter: 2, clock: 30, differential: -7, defenseTimeouts: 0)
+            ) != .kneel,
+            "seven behind on your own four, the half is still worth playing")
+
+        // With the half still there to be used, nobody kneels it away.
+        #expect(
+            concept(situation(quarter: 2, clock: 110, differential: 7, defenseTimeouts: 3))
+                != .kneel)
+        // And a lead is not a reason to kneel away points: in range before the break the
+        // half is worth playing, whatever the scoreboard says.
+        #expect(
+            concept(
+                situation(
+                    distance: 3, ballOn: 3, quarter: 2, clock: 16, differential: 7,
+                    defenseTimeouts: 0)) != .kneel,
+            "first and goal at the three before the break is a play, not a knee")
+        #expect(
+            concept(
+                situation(ballOn: 40, quarter: 2, clock: 30, differential: 7, defenseTimeouts: 0)
+            ) != .kneel,
+            "a field goal from the opponent's forty is still three points")
+        // Level in the middle of the field, the half is worth playing out.
+        #expect(
+            concept(situation(quarter: 2, clock: 30, differential: 0, defenseTimeouts: 0))
+                != .kneel)
+    }
+
+    /// A knee is the offence saying the game is over, and the arithmetic behind it is
+    /// all rulebook. A down that ends in bounds leaves the clock running, so the next
+    /// snap has to come inside the forty seconds of the play clock (2025 rulebook,
+    /// 4-6-1) and every second of that is the offence's to spend; a period whose time
+    /// runs out between downs simply ends, because 4-8-1 extends one only while the ball
+    /// is in play and 4-8-2 only for a foul in the down that expired it. A charged
+    /// timeout hands one of those intervals back, since the clock then starts on the
+    /// next snap (4-3-2), and the defence has three of them a half (4-5-1 Item 1).
+    ///
+    /// So: up a score with the ball, count the intervals the defence cannot take away.
+    @Test(
+        "A one-score lead is not knelt out while the defence can still stop the clock",
+        .tags(.unit))
+    func kneelsOnlyWhenTheDefenceCannotStopTheClock() {
+        // First and ten, 1:52, two timeouts left to the defence: two of the intervals
+        // ahead can be taken away and there is far too much clock for the rest.
+        #expect(
+            concept(situation(quarter: 4, clock: 112, differential: 8, defenseTimeouts: 2))
+                != .kneel,
+            "up eight at 1:52 against two timeouts is too early")
+        // Fifty seconds, and the defence has nothing left to stop it with.
+        #expect(
+            concept(situation(quarter: 4, clock: 50, differential: 8, defenseTimeouts: 0))
+                == .kneel)
+        // And having knelt once, it kneels again: second and eleven with the clock down
+        // by the knee alone, then third and twelve a play clock later.
+        #expect(
+            concept(
+                situation(
+                    down: .second, distance: 11, quarter: 4, clock: 48, differential: 8,
+                    defenseTimeouts: 0)) == .kneel)
+        #expect(
+            concept(
+                situation(
+                    down: .third, distance: 12, quarter: 4, clock: 9, differential: 8,
+                    defenseTimeouts: 0)) == .kneel)
+    }
+
+    /// A game the leading side has to end. It scores on the opening drive, and in the
+    /// fourth quarter the trailing side hands the ball straight back on every snap it
+    /// takes, so the lead is never in doubt and the only question is what the baseline
+    /// caller does with the clock. Everything the leading side does is its own decision.
+    private func mustBeKnelt() -> Trace {
+        ScriptedGame { snap in
+            if let staged = RulesScenarios.leadBySeven(snap) { return staged }
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            return snap.differential < 0 ? .interception(to: 50) : snap.neutral
+        }
+        .run(with: caller)
+    }
+
+    /// Once a team has decided the game is over, it does not go back to running plays.
+    ///
+    /// The football is the arithmetic quoted above: the intervals a kneel-down sequence
+    /// spends are the play clock's (4-6-1), what the defence can take back is a charged
+    /// timeout's restart on the snap (4-3-2), and what ends it is the period expiring
+    /// between downs with nothing to extend it (4-8-1, 4-8-2). Count those right and the
+    /// decision is monotone by construction: the clock the next snap faces is exactly
+    /// what this knee leaves, so a lead that could be knelt out on first down can still
+    /// be knelt out on second. Count them wrong and the caller kneels twice and then
+    /// runs an ordinary play, which is what a lead gets fumbled away on.
+    ///
+    /// The window stops where fourth down starts, deliberately. Every down inside it is
+    /// a down the sport really snaps, and the articles above are what decide it. What
+    /// happens on the fourth down of a knelt-out sequence is not theirs to decide, and
+    /// the pin below is where the engine's answer to it is written down. Measured: with
+    /// the fourth-down knee removed this test still passes and that pin fails, which is
+    /// what makes this claim the sport's and that one the engine's.
+    @Test(
+        "football · Rules 4-6-1, 4-3-2, 4-8-1, 4-8-2 · a lead knelt out stays knelt out through every down that is really snapped: the play clock and the defence's timeouts decide it, and the period ends between downs",
+        .tags(.football)
+    )
+    func aKneltOutLeadStaysKnelt() {
+        let trace = mustBeKnelt()
+        guard
+            let first = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .kneel
+            })
+        else {
+            Issue.record("the leading side never took a knee in the fourth quarter")
+            return
+        }
+        let snapped = trace.plays[first.index...].prefix { $0.situation.down != .fourth }
+        #expect(snapped.count > 1, "the sequence was one down long, so nothing is asserted")
+        #expect(
+            snapped.allSatisfy { $0.outcome.kind == .kneel },
+            "after the first knee the leading side ran \(snapped.filter { $0.outcome.kind != .kneel }.count) more plays"
+        )
+        #expect(
+            snapped.allSatisfy { $0.situation.possession == first.play.situation.possession },
+            "the ball changed hands after the knee")
+    }
+
+    /// Not a rule, and the pin says why: it is the same stand-in the fourth-down pin
+    /// above records, seen at the end of a whole game. The sport ends this game between
+    /// downs — the offence lets the forty seconds of 4-6-1 run out, takes the delay of
+    /// the game, and 4-8-1 declines to extend a period whose time expired with the ball
+    /// dead. The engine has no outcome for that, so the game's last play is a
+    /// fourth-down knee: a snap that never happened, at 0:00 of the fourth period.
+    ///
+    /// #101 owns the real fix. When it lands this fails, and the sentence becomes that
+    /// the knelt-out game's last *down* is third.
+    @Test(
+        "pin · a knelt-out game's last play is a fourth-down knee, because declining the snap is not something this engine can record",
+        .tags(.pin)
+    )
+    func theKneltOutGameEndsOnAFourthDownKnee() {
+        let trace = mustBeKnelt()
+        guard let last = trace.plays.last else {
+            Issue.record("the scripted game produced no plays")
+            return
+        }
+        #expect(last.situation.quarter == 4, "the game did not end in regulation")
+        #expect(last.situation.down == .fourth, "the last down was \(last.situation.down)")
+        #expect(last.outcome.kind == .kneel, "the last play was a \(last.outcome.kind)")
     }
 
     // MARK: - Spiking
@@ -95,14 +305,14 @@ struct EndgameTests {
     func spikesWithNoTimeouts() {
         let racing = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(racing, clockRunning: true) == .spike)
+        #expect(concept(racing, clockRunning: true) == .spike)
     }
 
     @Test("A team with a timeout uses it rather than burning a down", .tags(.unit))
     func doesNotSpikeWithTimeouts() {
         let hasTimeouts = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 2)
-        #expect(family(hasTimeouts, clockRunning: true) != .spike)
+        #expect(concept(hasTimeouts, clockRunning: true) != .spike)
     }
 
     /// Spiking on a stopped clock wastes a down for nothing.
@@ -110,14 +320,14 @@ struct EndgameTests {
     func doesNotSpikeOnAStoppedClock() {
         let stopped = situation(
             down: .second, quarter: 4, clock: 22, differential: -4, offenseTimeouts: 0)
-        #expect(family(stopped, clockRunning: false) != .spike)
+        #expect(concept(stopped, clockRunning: false) != .spike)
     }
 
     @Test("A spike on fourth down is a turnover with extra steps", .tags(.unit))
     func neverSpikesOnFourth() {
         let fourth = situation(
             down: .fourth, quarter: 4, clock: 20, differential: -4, offenseTimeouts: 0)
-        #expect(family(fourth, clockRunning: true) != .spike)
+        #expect(concept(fourth, clockRunning: true) != .spike)
     }
 
     // MARK: - Timeouts
@@ -149,6 +359,23 @@ struct EndgameTests {
         #expect(
             callsTimeout(situation(clock: 150, differential: -6), isOffense: false) == false,
             "a defence that is ahead wants the clock to run")
+    }
+
+    /// Three scores down with two minutes left, the ball is not coming back to any
+    /// purpose, and burning all three timeouts to shorten the loss is not football. The
+    /// timeout is spent to get the ball back in a game that is still there to win.
+    @Test("A defence more than two scores behind keeps its timeouts", .tags(.unit))
+    func defenceOutOfReachKeepsItsTimeouts() {
+        // `scoreDifferential` is the offence's, so a positive number means the team
+        // without the ball is the one behind.
+        #expect(callsTimeout(situation(clock: 150, differential: 8), isOffense: false))
+        #expect(
+            callsTimeout(situation(clock: 150, differential: 16), isOffense: false),
+            "two scores down is still a game")
+        #expect(
+            callsTimeout(situation(clock: 150, differential: 17), isOffense: false) == false,
+            "three scores down with two and a half minutes left")
+        #expect(callsTimeout(situation(clock: 150, differential: 30), isOffense: false) == false)
     }
 
     @Test("Nobody calls a timeout on a stopped clock or in the first quarter", .tags(.unit))
@@ -195,6 +422,42 @@ struct EndgameTests {
             // Somebody starts the second half with a full complement.
             let secondHalf = plays.first { $0.situation.quarter == 3 }
             #expect(secondHalf?.situation.offenseTimeouts == 3, "timeouts did not reset")
+        }
+    }
+
+    /// The other half of the same promise, over seeded games rather than a script: a
+    /// possession that has started kneeling never produces another kind of snap.
+    @Test(
+        "contract · once the baseline kneels, every later snap of that possession is a kneel",
+        .tags(.contract))
+    func aKneelIsNeverFollowedByALivePlay() {
+        for seed in UInt64(1)...60 {
+            var possession: TeamID?
+            var quarter: UInt8 = 0
+            var kneeled = false
+            for play in game(seed: seed).plays {
+                // A flag before the snap is not a snap: the down is replayed, and a false
+                // start on a knee changes nothing about the decision.
+                if play.outcome.kind == .penaltyOnly { continue }
+                // A free kick and a new period each start a sequence of their own, and the
+                // side that kneels a half out can be the side that kicks off to open the
+                // next one — the kicking team has possession on a kickoff, so nothing else
+                // marks that boundary.
+                if play.outcome.kind == .kickoff || play.situation.quarter != quarter
+                    || play.situation.possession != possession
+                {
+                    quarter = play.situation.quarter
+                    possession = play.situation.possession
+                    kneeled = false
+                }
+                let isKneel = play.outcome.kind == .kneel
+                if kneeled && !isKneel {
+                    Issue.record(
+                        "seed \(seed), play \(play.index): a \(play.outcome.kind) followed a knee on the same possession"
+                    )
+                }
+                kneeled = kneeled || isKneel
+            }
         }
     }
 

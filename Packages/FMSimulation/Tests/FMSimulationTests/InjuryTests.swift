@@ -114,7 +114,12 @@ struct InjuryTests {
                 physical: PhysicalProfile(
                     heightInches: 71, weightPounds: 215, fortyYardDash: 452, verticalJump: 350,
                     broadJump: 1200, threeCone: 690, benchReps: 18),
-                ratings: [.injuryResistance: resistance, .carrying: 70],
+                ratings: {
+                    var ratings = Ratings.uniform(60)
+                    ratings[.injuryResistance] = resistance
+                    ratings[.carrying] = 70
+                    return ratings
+                }(),
                 traits: [],
                 hidden: HiddenAttributes(
                     ceiling: 85, developmentTrait: .normal, workEthic: 60,
@@ -134,7 +139,7 @@ struct InjuryTests {
                     quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 60,
                     possession: TeamID(1)),
                 calls: Calls(
-                    offense: CrudePlaybook.call(.insideRun), defense: .runStuff,
+                    offense: OffensiveCall(concept: .insideRun), defense: .runStuff,
                     offensiveCaller: .automatic, defensiveCaller: .automatic),
                 outcome: Outcome(
                     kind: .rush, yards: 4, endedIn: .tackled,
@@ -181,7 +186,12 @@ struct NonContactInjuryTests {
             physical: PhysicalProfile(
                 heightInches: 73, weightPounds: 200, fortyYardDash: 445, verticalJump: 350,
                 broadJump: 1200, threeCone: 690, benchReps: 14),
-            ratings: [.speed: 90, .routeRunning: 82, .injuryResistance: 60],
+            ratings: {
+                var ratings = Ratings.uniform(60)
+                ratings[.speed] = 90
+                ratings[.routeRunning] = 82
+                return ratings
+            }(),
             traits: [],
             hidden: HiddenAttributes(
                 ceiling: 88, developmentTrait: .normal, workEthic: 60, durability: 60),
@@ -203,7 +213,7 @@ struct NonContactInjuryTests {
                 quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 60,
                 possession: TeamID(1)),
             calls: Calls(
-                offense: CrudePlaybook.call(.mediumPass), defense: .baseCoverThree,
+                offense: OffensiveCall(concept: .mediumPass), defense: .baseCoverThree,
                 offensiveCaller: .automatic, defensiveCaller: .automatic),
             outcome: Outcome(
                 kind: kind, yards: 0, endedIn: ending,

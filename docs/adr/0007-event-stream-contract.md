@@ -58,3 +58,22 @@ exactly the thing scheduled to be rewritten.
 avoids a derivation pass. Rejected because two sources of truth diverge — and the bug
 where the box score disagrees with the play-by-play is both inevitable and corrosive to
 a game whose selling point is that you can trust its explanations.
+
+## Amendment 2026-09-10 — every slot a record names is a player the record identifies
+
+The decision says the stream is the engine's entire public output, and the consequence
+it did not spell out is that a record has to be able to name everybody it points at. For
+a while it could not. A `PenaltyRecord` names the offender by `PlayerSlot`, and the only
+way a reader could resolve a slot to a player was `outcome.participants` — the sparse
+credits of [decision 97](../design-decisions.md#foundational). A foul by a man the play
+never credited — a decoy route runner, a rusher who never reached the kicker, a blocker
+on a return — therefore named somebody nobody downstream could identify: 29 of 1104 flags
+over eighty games, on eight fouls. The test that asserted otherwise passed by luck over
+six seeds, and was made a pin on the gap with the eight fouls registered.
+
+The gap closed when presence went on the record: `PlayRecord.onField` carries the
+twenty-two men on every play, and `player(at:rosters:)` resolves any slot through it
+([play-record.md](../play-record.md#who-was-on-the-field)). So the contract is now the
+stronger sentence this ADR always meant: **every slot a record names — an offender, a
+decision point's subject, a credit — is a player the record identifies**, and
+`PenaltyTests.offendersAreReal` asserts it for flags, register gone.

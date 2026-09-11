@@ -556,7 +556,13 @@ two-minute warning is charged as a team timeout or, with none left, is an excess
 whose runoff is the defence's to take (4-5-4 Note 3). Eight more scenarios cover them,
 and every election a side makes about the clock is in the play's decision log. Article
 4, the runoff after a replay reversal, stays a labelled exclusion until there is a
-replay system to reverse anything.
+replay system to reverse anything. A15 ([#94](https://github.com/knissley/football-manager/issues/94)),
+which #76's reviewer found, closed the last gap in the restart: a flag during a down
+stops the clock as the down ends (4-4-e) and the enforcement is charged nothing, where
+before only a flag between downs stopped it, so an accepted foul on a tackle in bounds
+cost the offence the whole interval to the next snap. One predicate now decides the
+restart for both, and it is told which kind of flag it is, because 4-3-2-e-3 reaches a
+foul between downs alone.
 
 ## S13 — Live-ball fouls are enforced from the previous spot — **fixed**
 
@@ -595,7 +601,7 @@ touchdown and to the free kick after a field goal, a safety or a try (14-2-3, 11
 Items 1, 4-a and 7), and a live-ball foul by the scorer on a successful try brings the
 try back (11-3-3 Item 3-a).
 
-## S14 — The completion-percentage row is a false pass — **open**
+## S14 — The completion-percentage row is a false pass — **fixed**
 
 `PlayEnding` cannot express a completed pass: a catch for a loss ends `.tackled`, exactly
 like a run. The harness therefore counts a completion as `yards > 0 || touchdown`, so every
@@ -614,10 +620,11 @@ the issue: across every package, test suite and tool the only occurrences of
 `pointsScored` are its declaration, its default of `0`, and the assignment of that
 default.
 
-Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22), which makes a
-completion a fact in the record, and
-[E2 · #42](https://github.com/knissley/football-manager/issues/42), which makes the harness
-read that fact instead of inferring one.
+Closed by [B2 · #22](https://github.com/knissley/football-manager/issues/22): a
+completion is a fact in the record (`Outcome.passResult`) and the row reads it, and the
+points are written onto the play by the game so the scoreboard is the stream summed. The
+rows still on the older inference — yards per completion's denominator and the catch
+leaders — are [E2 · #42](https://github.com/knissley/football-manager/issues/42)'s.
 
 ## S15 — A flag on a try is recorded and never enforced — **fixed**
 
@@ -641,10 +648,10 @@ extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
 ## Where this leaves the engine
 
-**Fifteen findings: fourteen fixed, one open.** S1 through S8 are the original pass and
-are fixed. S9 through S15 were added by the September 2026 external audit; the seven
-rules-layer findings among them were fixed by wave 1 of the backlog, and S14 — the
-harness row, not the engine — is the one still open. The backlog in
+**Fifteen findings: fifteen fixed.** S1 through S8 are the original pass and are fixed.
+S9 through S15 were added by the September 2026 external audit; the seven rules-layer
+findings among them were fixed by wave 1 of the backlog, and S14 — the harness row, not
+the engine — by wave 2's record track. The backlog in
 [#1](https://github.com/knissley/football-manager/issues/1) is the live state of each; this
 table is a snapshot. The wave 1 fixes deferred three gaps to their own issues:
 [A11 · #74](https://github.com/knissley/football-manager/issues/74) (the overtime
@@ -657,9 +664,13 @@ out-of-bounds window is judged where the runner stepped out, not at the previous
 and [A14 · #86](https://github.com/knissley/football-manager/issues/86) (postseason
 overtime halves: a third period, and a fifth, put back in play with a kick at the toss
 loser's first choice, three timeouts a half, and the kickoff that opens a half settled
-before it is played whichever way the half before it ended);
-and [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
-possession was lost, and a kicking-team kickoff touchdown, neither in the record), open.
+before it is played whichever way the half before it ended); and
+[A15 · #94](https://github.com/knissley/football-manager/issues/94) (a flag during a down
+stops the clock, and the enforcement is not free). Wave 2's record track then closed
+[B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
+possession was lost, and a kicking-team kickoff touchdown, neither in the record).
+[C9 · #48](https://github.com/knissley/football-manager/issues/48) (fouls after a score
+and on a kick) is open; wave 3's D track carries the enforcement half of it.
 
 | finding | status | closed by |
 | --- | --- | --- |
@@ -676,7 +687,7 @@ possession was lost, and a kicking-team kickoff touchdown, neither in the record
 | S11 The team that scored the safety kicks off | fixed | [A3 · #16](https://github.com/knissley/football-manager/issues/16) |
 | S12 The clock runs through a change of possession, and there is no runoff | fixed | [A4 · #17](https://github.com/knissley/football-manager/issues/17), [A5 · #32](https://github.com/knissley/football-manager/issues/32), [A10 · #56](https://github.com/knissley/football-manager/issues/56) |
 | S13 Live-ball fouls are enforced from the previous spot | fixed | [A6 · #18](https://github.com/knissley/football-manager/issues/18) |
-| S14 The completion-percentage row is a false pass | **open** | [B2 · #22](https://github.com/knissley/football-manager/issues/22), [E2 · #42](https://github.com/knissley/football-manager/issues/42) |
+| S14 The completion-percentage row is a false pass | fixed | [B2 · #22](https://github.com/knissley/football-manager/issues/22) |
 | S15 A flag on a try is recorded and never enforced | fixed | [A7 · #19](https://github.com/knissley/football-manager/issues/19) |
 
 These fifteen are not the whole backlog. The engine findings that did not earn a section of
@@ -700,10 +711,10 @@ comfortably outside them.
 | first downs per team-game | 17.9 | — | 18.5–22 | Follows from the first two. |
 | three-and-out rate | 18.8% | — | 20–27 | Partly definitional: 32% of drives are three plays or fewer, but only the ones that *punt* count here. |
 
-Fourteen of the fifteen headline calibration rows land on seed 7 and third-down conversion
-is the one that does not — but one of the fourteen is not a pass at all. Completion
-percentage sits inside its 61.0–68.0 band only because the harness cannot see a completion
-that gained nothing (S14). Thirteen rows land honestly.
+Fourteen of the fifteen headline calibration rows landed on seed 7 when this was written
+and third-down conversion was the one that did not — but one of the fourteen was not a
+pass at all. Completion percentage sat inside its band only because the harness could not
+see a completion that gained nothing (S14); it reads the record's pass result now.
 
 **The engine-wide retune is the next piece of work**, and its brief is that one sentence:
 the calibration bands were established against a defence that never substituted and a
@@ -736,27 +747,35 @@ chase individual rows.
   against a real rate near a third. Anything that reads it as pressure will explain three
   of every four stalled drives the same way.
   ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
-- **Interference is drawn before the throw.** Both kinds are drawn per read in the coverage
-  loop, so in 40 games 4 of 58 defensive interference flags were on sacks and 26 on
-  receivers nobody threw to. Interference requires a pass toward that receiver.
+- **Interference is drawn before the throw** — **fixed.** Both kinds were drawn per read
+  in the coverage loop, so in 40 games 4 of 58 defensive interference flags were on sacks
+  and 26 on receivers nobody threw to. Interference requires a pass toward that receiver
+  (2025 rulebook, 8-5-1), and both kinds are now drawn at the throw on the target's
+  matchup; holding and illegal contact stay in the coverage loop where they belong.
   ([C2 · #38](https://github.com/knissley/football-manager/issues/38))
 - **A blitz rushes four.** Rushers come from `Lineup.front`, which holds four men in
   nickel, so five- and six-man calls rush four on 93% of snaps and protection is always the
   five linemen. A blitz in this engine changes the label and not the count.
   ([C5 · #45](https://github.com/knissley/football-manager/issues/45))
-- **The backup quarterback takes about 4% of dropbacks, at random.** `Lineup.fill` draws
-  every slot per snap against rotation shares, so the quarterback changed 125 times between
-  consecutive dropbacks in 40 games with nobody hurt. Any per-player number off this engine
-  is measured on a team that substitutes mid-drive for no reason.
+- **The backup quarterback takes about 4% of dropbacks, at random** — **fixed.**
+  `Lineup.fill` drew every slot per snap against rotation shares, so the quarterback
+  changed 125 times between consecutive dropbacks in 40 games with nobody hurt. Rotation
+  is now a property of the position: the quarterback, the five line spots and the three
+  specialists are not drawn at all, and the probe counts zero changes with nobody hurt.
   ([C6 · #27](https://github.com/knissley/football-manager/issues/27))
-- **ADR-0013's rating premise is inverted.** It assumes `overall(at:)` penalises a player
-  for the ratings he lacks; `PositionWeights.overall` drops the missing weight and
-  renormalises, so absence is a bonus. The issue's measurement at seed 7: receivers average
-  59.7 at receiver and 64.8 at quarterback, and a kicker rates a 67 quarterback. Do not
-  trust an out-of-position overall until this lands.
-  ([F1 · #25](https://github.com/knissley/football-manager/issues/25), with
-  [F3 · #35](https://github.com/knissley/football-manager/issues/35) amending the ADR to
-  say so)
+- **ADR-0013's rating premise was inverted, and is now true.** It assumed `overall(at:)`
+  penalised a player for the ratings he lacked; `PositionWeights.overall` dropped the
+  missing weight and renormalised, so absence was a bonus. The issue's measurement at seed
+  7: receivers averaged 59.7 at receiver and 64.8 at quarterback, and a kicker rated a 67
+  quarterback. **Fixed** by [F1 · #25](https://github.com/knissley/football-manager/issues/25):
+  every player carries every key, a rating his position does not train is drawn low from
+  the untrained table in `PlayerGenerator`, and `overall(at:)` weighs it. The same probe on
+  the tree before and after the fix, both after #67 had moved the ages: receivers 62.2 at
+  receiver and 66.7 at quarterback, now 36.5; kickers 64.2 at quarterback, now 33.8; backs
+  65.9 at linebacker against natives at 61.6, now 35.7; and no mover out-rates the best
+  native at any of the four positions probed. Own-position overall did not move by a
+  digit. [F3 · #35](https://github.com/knissley/football-manager/issues/35) amends the ADR
+  to say so.
 
 #### The open engine findings that have no section above
 
@@ -772,28 +791,29 @@ argument for watching a game.
 - **A8** — half and overtime boundaries are hardcoded quarter literals, and
   `Situation.isValid` rejects a sixth period, which a postseason game can reach.
   ([#20](https://github.com/knissley/football-manager/issues/20))
-- **B1** — the stream cannot say who was on the field. Credits are sparse by decision 97,
-  so linemen are credited on 3 to 5 of every 5 snaps, safeties on 17% of run plays, and a
-  snap count is not a query the record can answer.
-  ([#21](https://github.com/knissley/football-manager/issues/21))
-- **B3** — the record carries no schema version, and `OffensiveCall.design` points into a
-  fake identifier space built from `PlayFamily.rawValue + 1` that will dangle the day a real
-  playbook exists. ([#33](https://github.com/knissley/football-manager/issues/33))
-- **B4** — the weather is copied onto every play, about 150 times a game, although it is a
-  fact about the afternoon. ([#23](https://github.com/knissley/football-manager/issues/23))
-- **B5** — nothing fails when a decision-detail case becomes unreachable. The engine
-  produces 3 of 5 `ThrowDecision` cases, 2 of 5 `TackleResult`, 2 of 5 `BlockResult` and 2
-  of 6 `CoverageTechnique`, and the coverage suite does not look at
-  `DecisionPoint.detail`. ([#24](https://github.com/knissley/football-manager/issues/24))
-- **B6** — a flag can name a slot the stream cannot resolve to a player, because a reader
-  resolves a slot only through `outcome.participants` and a decoy or a cover man is not
-  credited. Eight fouls are affected, on 29 of 1104 flags over eighty games. The test that
-  asserted the contract passed by luck and is now a pin listing the eight.
+- **B1**, **B3**, **B4** and **B5** landed with wave 2's record track: who was on the
+  field is twenty-two roster indices on every play
+  ([#21](https://github.com/knissley/football-manager/issues/21)); the record carries a
+  schema version and the concept called is on it by value, with the design reference
+  `nil` until a playbook exists rather than pointing into a stand-in identifier space
+  that would have dangled ([#33](https://github.com/knissley/football-manager/issues/33));
+  the weather is on the game's result and no longer on a hundred and fifty situations
+  ([#23](https://github.com/knissley/football-manager/issues/23)); and the enums behind
+  `DecisionPoint.detail` have a two-directional coverage register — the twelve cases the
+  engine cannot reach are named with the issue that closes each, and the suite fails the
+  moment one is reached ([#24](https://github.com/knissley/football-manager/issues/24)).
+- **B6** landed with B1: a flag names a slot, and every slot resolves through `onField`
+  whether or not the play credited the man, so the eight fouls on uncredited slots — 29 of
+  1104 flags over eighty games — name a player a reader can identify. The pin that listed
+  the eight is the contract again, with no register.
   ([#54](https://github.com/knissley/football-manager/issues/54))
-- **B7** — the record does not carry where a kick was fielded, so gross punt distance, net
-  punt distance and return yardage cannot be recovered from a returned kick; nor does it
-  carry timeouts or the two-minute warning, which are inferences from two consecutive
-  situations. ([#58](https://github.com/knissley/football-manager/issues/58))
+- **B7** landed with wave 2's record track: the record carries where a kick was fielded,
+  so gross, return and net are read off it and the net punt row stopped spotting a
+  touchback at the goal line; where possession was lost on a takeaway, so a defensive
+  foul on one is enforced from there; a kickoff the kicking team carries in as the
+  kicking team's touchdown; and a charged timeout with its side and the two-minute
+  warning as decision points on the snap they preceded, which `gamelog` prints.
+  ([#58](https://github.com/knissley/football-manager/issues/58))
 - **C3** — the quarterback always throws to the best-separated receiver on the field. He
   never locks onto his first read, never checks down, never throws it away, and never
   attempts a throw he cannot make.
@@ -803,10 +823,13 @@ argument for watching a game.
   emitted even on a play where a fumble was forced.
   ([#39](https://github.com/knissley/football-manager/issues/39))
 - **C7** — every two-point try is a pass, and the defensive call's package disagrees with
-  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable.
+  the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable —
+  **fixed.** The caller chooses run or pass for the try and the package on a call is the
+  substitution the caller made; the probe counts zero mismatches over forty games.
   ([#40](https://github.com/knissley/football-manager/issues/40))
 - **C8** — a tackle ends out of bounds 14% of the time, flat, whatever the play and
-  whatever the clock is doing.
+  whatever the clock is doing — **fixed.** The sideline is drawn against the concept and
+  the clock now, and a breakaway is no longer written out of bounds.
   ([#28](https://github.com/knissley/football-manager/issues/28))
 - **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
   it, `afterThePlay` is called from the run path only, and roughing the kicker on a made
@@ -818,7 +841,9 @@ argument for watching a game.
   description: `isPassingDown` includes second and 8 and third and 4, and the caller never
   runs on them. ([#37](https://github.com/knissley/football-manager/issues/37))
 - **C11** — a punt is always hit at full distance, so from inside the opponent's 45 it is a
-  touchback 78 to 86% of the time and no punter's touch decides anything.
+  touchback 78 to 86% of the time and no punter's touch decides anything — **fixed.** The
+  caller asks for a pooch or the corner from there, the punter's accuracy is the scatter
+  around it, and a touchback is a miss.
   ([#26](https://github.com/knissley/football-manager/issues/26))
 - **C12** — a team up eight kneels once at 1:52 with the defence holding timeouts, then
   runs two ordinary plays and kicks a field goal. Too early to kneel, and a team that has
@@ -835,9 +860,13 @@ argument for watching a game.
   restraining line the kick is taken from. What is still absent is the formation: nobody
   lines up, so there is no setup zone and no alignment foul.
   ([#46](https://github.com/knissley/football-manager/issues/46))
-- **F2** — `PlayContext.effective` substitutes `player.overall` for any rating the player
-  lacks, so a running back's route running is his overall.
-  ([#34](https://github.com/knissley/football-manager/issues/34))
+- **F2** — `PlayContext.effective` substituted `player.overall` for any rating the player
+  lacked, so a running back's route running was his overall. **Fixed** by
+  [#34](https://github.com/knissley/football-manager/issues/34): both fallbacks are gone,
+  a missing key is a debug assertion naming the player and the key and the untrained
+  floor in release, and the unknown-player fallback stays as the separate case it is.
+  Once F1 had given every player every key there was nothing left to fall back from, so
+  the harness after this change is byte-identical to the harness after F1.
 
 ### Still deferred, deliberately
 

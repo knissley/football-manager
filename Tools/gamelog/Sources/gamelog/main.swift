@@ -194,9 +194,8 @@ func downAndDistance(_ situation: Situation) -> String {
     return situation.isGoalToGo ? "\(ordinal) & goal" : "\(ordinal) & \(situation.distance)"
 }
 
-func concept(_ calls: Calls) -> String {
-    guard let family = CrudePlaybook.family(of: calls.offense.design) else { return "unknown" }
-    switch family {
+func conceptName(_ calls: Calls) -> String {
+    switch calls.offense.concept {
     case .insideRun: return "inside run"
     case .outsideRun: return "outside run"
     case .quickPass: return "quick pass"
@@ -210,7 +209,8 @@ func concept(_ calls: Calls) -> String {
     case .spike: return "spike"
     case .kickoff: return "kickoff"
     case .extraPoint: return "extra point"
-    case .twoPointConversion: return "two-point try"
+    case .twoPointPass: return "two-point pass"
+    case .twoPointRun: return "two-point run"
     case .onsideKick: return "onside kick"
     case .deepKickoff: return "deep kickoff"
     }
@@ -222,25 +222,25 @@ func concept(_ calls: Calls) -> String {
 ///
 /// **Written as a switch over every case with no `default`, deliberately.** The same
 /// question used to be asked as two `==` comparisons, and when the deep kickoff became
-/// its own family the comparisons went on answering `false` for it: a free kick was
+/// its own concept the comparisons went on answering `false` for it: a free kick was
 /// printed at first and ten, and the drive chart opened a drive on it and immediately
 /// closed it as a period boundary that was not one. An exhaustive switch turns the next
-/// family into a build failure here instead of a trace that quietly lies about the
+/// concept into a build failure here instead of a trace that quietly lies about the
 /// football.
-func isFreeKickFamily(_ family: PlayFamily) -> Bool {
-    switch family {
+func isFreeKickConcept(_ concept: PlayConcept) -> Bool {
+    switch concept {
     case .kickoff, .onsideKick, .deepKickoff:
         return true
     case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
-        .punt, .fieldGoal, .kneel, .spike, .extraPoint, .twoPointConversion:
+        .punt, .fieldGoal, .kneel, .spike, .extraPoint, .twoPointPass, .twoPointRun:
         return false
     }
 }
 
 /// Whether this call is a try. Exhaustive for the same reason as the free kick above.
-func isTryFamily(_ family: PlayFamily) -> Bool {
-    switch family {
-    case .extraPoint, .twoPointConversion:
+func isTryConcept(_ concept: PlayConcept) -> Bool {
+    switch concept {
+    case .extraPoint, .twoPointPass, .twoPointRun:
         return true
     case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen, .playAction,
         .punt, .fieldGoal, .kneel, .spike, .kickoff, .onsideKick, .deepKickoff:
@@ -516,9 +516,9 @@ struct Broadcast {
         // kickoff is a `penaltyOnly` play that is still part of the kicking sequence —
         // and printing it as first and ten from the offence's own thirty-five is exactly
         // the sort of thing this tool exists to stop.
-        let family = CrudePlaybook.family(of: play.calls.offense.design)
-        let isTry = family.map(isTryFamily) ?? false
-        let isKickoff = family.map(isFreeKickFamily) ?? false
+        let concept = play.calls.offense.concept
+        let isTry = isTryConcept(concept)
+        let isKickoff = isFreeKickConcept(concept)
 
         // A kickoff and a try belong to the sequence between drives rather than to a
         // drive, so both close whatever was open — as does the ball changing hands.
@@ -568,6 +568,20 @@ struct Broadcast {
         let advancement = advancement(for: play)
         applyScore(advancement, offense: offense)
 
+        // What happened while the ball was dead before this snap, in the order it
+        // happened, above the snap it preceded: the warning, and each charged timeout
+        // with the side that took it and what it has left — which the situation of this
+        // snap already reads, the timeout having been charged before it was written.
+        for decision in play.decisions {
+            if decision.isTwoMinuteWarning {
+                emit("        two-minute warning")
+            } else if let byOffense = decision.timeoutByOffense {
+                let team = byOffense ? offense : (offense == home.id ? away.id : home.id)
+                let left = byOffense ? situation.offenseTimeouts : situation.defenseTimeouts
+                emit("        timeout: \(abbreviation(team)) (\(left) left)")
+            }
+        }
+
         var line = padLeft("\(play.index)", 4) + "  "
         line += pad(
             clockLabel(
@@ -581,7 +595,7 @@ struct Broadcast {
         // Fourteen, not thirteen: "two-point try" is thirteen characters exactly, and a
         // conversion printed as `two-point tryconversion good` is the one play in the
         // sport whose line nobody could read.
-        line += pad(concept(play.calls), 14)
+        line += pad(conceptName(play.calls), 15)
         line += describe(play)
 
         if advancement.scoring != nil, advancement.points != 0 { line += "   [\(scoreline())]" }
@@ -751,8 +765,13 @@ struct Broadcast {
         let offender = name(at: penalty.offender, in: play.outcome)
         var text = "        flag: \(foulName(penalty.foul)) on \(offender) "
         text += "(\(abbreviation(penalty.offendingTeam))), "
-        text +=
-            penalty.foul.isSpotFoul ? "spot foul \(penalty.yards) yards" : "\(penalty.yards) yards"
+        if penalty.foul.isSpotFoul, let spot = penalty.enforcementSpot {
+            // A spot foul carries no yardage — the spot *is* the penalty — so printing
+            // its zero said nothing. Where the foul happened is the number a reader wants.
+            text += "spot foul at \(spot == 0 ? "the goal line" : ownOrOpponent(spot))"
+        } else {
+            text += "\(penalty.yards) yards"
+        }
         text += penalty.wasAccepted ? " — accepted" : " — declined"
         if penalty.awardedFirstDown { text += ", automatic first down" }
         return text
@@ -779,8 +798,22 @@ struct Broadcast {
             let kicker = credited(outcome, .kicker) ?? "the kicker"
             text = outcome.endedIn == .fieldGoalGood ? "\(kicker) — good" : "\(kicker) — no good"
         case .twoPointConversion:
-            text = outcome.endedIn == .touchdown ? "conversion good" : "conversion failed"
-            if let target = credited(outcome, .target) { text += ", to \(target)" }
+            // How it failed, and not only that it did. A try the defence intercepts is
+            // the try (2025 rulebook, 11-3-2-e) and the record says so, so the line has
+            // to say what a watcher saw, or a pick on the conversion reads the same as a
+            // drop in the end zone.
+            if outcome.endedIn == .touchdown {
+                text = "conversion good"
+                if let target = credited(outcome, .target) { text += ", to \(target)" }
+            } else if outcome.endedIn == .intercepted {
+                let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+                let thief = credited(outcome, .tackler) ?? "the defender"
+                text = "conversion INTERCEPTED by \(thief), returned to "
+                text += yardLine(spot, offense: play.situation.possession)
+            } else {
+                text = "conversion failed"
+                if let target = credited(outcome, .target) { text += ", to \(target)" }
+            }
         case .rush: text = describeRun(play)
         case .pass: text = describePass(play)
         case .sack: text = describeSack(play)
@@ -830,11 +863,41 @@ struct Broadcast {
         group.code < 10 ? "0\(group.code)" : "\(group.code)"
     }
 
+    /// Where a kick was fielded, in the words the sport uses: `the own 3`, or `3 deep`
+    /// for a kick caught in the end zone.
+    private func fieldedText(_ fielded: Int8, offense: TeamID) -> String {
+        fielded < 0 ? "\(-Int(fielded)) deep" : yardLine(Int(fielded), offense: offense)
+    }
+
+    /// A kick that was fielded and run back: how far the kick went, where it was caught,
+    /// and how far it came back. The record carries all three spots, so the gross of a
+    /// returned kick and the return are both read off it rather than one inferred from
+    /// the other.
+    private func returnText(
+        _ play: PlayRecord, kicker: String, returner: String, offense: TeamID
+    ) -> String {
+        let outcome = play.outcome
+        guard let fielded = outcome.fieldedAt, let gross = play.kickDistance,
+            let back = play.returnYards
+        else {
+            let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+            return "\(kicker), \(returner) returns it to \(yardLine(spot, offense: offense))"
+        }
+        var text = "\(kicker) \(yardText(gross)) to \(fieldedText(fielded, offense: offense)), "
+        if outcome.endedIn == .touchdown {
+            return text + "\(returner) returns it \(back) all the way — touchdown"
+        }
+        let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
+        text += "\(returner) returns it \(back) to \(yardLine(spot, offense: offense))"
+        if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
+        return text
+    }
+
     private func describeKickoff(_ play: PlayRecord) -> String {
         let outcome = play.outcome
         let offense = play.situation.possession
         let kicker = credited(outcome, .kicker) ?? "the kicker"
-        let returner = credited(outcome, .returner)
+        let returner = credited(outcome, .returner) ?? "the returner"
         let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
 
         switch outcome.endedIn {
@@ -842,8 +905,14 @@ struct Broadcast {
             return "\(kicker) into the end zone — touchback"
         case .fumbleRecovered:
             return "recovered by \(abbreviation(offense)) at \(yardLine(spot, offense: offense))"
-        case .touchdown:
-            return "\(returner ?? "the returner") returns it all the way — touchdown"
+        case .touchdown where outcome.isKickingTeamTouchdown:
+            var text = "\(kicker)"
+            if let fielded = outcome.fieldedAt {
+                text += " to \(fieldedText(fielded, offense: offense)), fumbled by \(returner)"
+            }
+            return text + " — recovered and carried in by \(abbreviation(offense)) — touchdown"
+        case .touchdown, .tackled:
+            return returnText(play, kicker: kicker, returner: returner, offense: offense)
         case .outOfBounds:
             // A free kick that crossed a sideline between the goal lines. The receiving
             // team's spot is 6-2-4's award, which the next line shows; this says what the
@@ -853,8 +922,7 @@ struct Broadcast {
             return
                 "\(kicker) comes down short of the landing zone at \(yardLine(spot, offense: offense))"
         default:
-            var text = "\(returner ?? "the returner") returns it to "
-            text += yardLine(spot, offense: offense)
+            var text = "\(kicker), \(returner) at \(yardLine(spot, offense: offense))"
             if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
             return text
         }
@@ -865,11 +933,9 @@ struct Broadcast {
         let offense = play.situation.possession
         let punter = credited(outcome, .kicker) ?? "the punter"
         let spot = Int(outcome.finalSpot ?? play.situation.ballOn)
-        // Where the ball came to rest, so this is the gross punt when nobody ran it back
-        // and the **net** when somebody did — the stream does not record where a returned
-        // punt was fielded, so the gross of a returned punt cannot be recovered from it.
-        // Saying "net" on those is the honest version of printing the same subtraction.
-        let distance = yardText(Int(play.situation.ballOn) - spot)
+        // The gross: from the line to where the ball was fielded, which on a punt nobody
+        // ran back is also where it came to rest.
+        let distance = yardText(play.kickDistance ?? (Int(play.situation.ballOn) - spot))
 
         switch outcome.endedIn {
         case .touchback:
@@ -880,17 +946,11 @@ struct Broadcast {
             return "\(punter) \(distance), downed at \(yardLine(spot, offense: offense))"
         case .outOfBounds:
             return "\(punter) \(distance), out of bounds at \(yardLine(spot, offense: offense))"
-        case .touchdown:
-            let returner = credited(outcome, .returner) ?? "the returner"
-            return "\(punter) is returned all the way by \(returner) — touchdown"
         case .blocked:
             return "\(punter) — blocked"
         default:
             let returner = credited(outcome, .returner) ?? "the returner"
-            var text = "\(punter) net \(distance), returned by \(returner) to "
-            text += yardLine(spot, offense: offense)
-            if let tackler = credited(outcome, .tackler) { text += " (\(tackler))" }
-            return text
+            return returnText(play, kicker: punter, returner: returner, offense: offense)
         }
     }
 
@@ -1023,7 +1083,7 @@ func playByPlayLines(
 ) -> [String] {
     var lines = [
         padLeft("#", 4) + "  " + pad("clock", 9) + pad("off", 5) + pad("down", 11)
-            + pad("ball", 10) + pad("concept", 14) + "what happened",
+            + pad("ball", 10) + pad("concept", 15) + "what happened",
         "",
     ]
 

@@ -60,13 +60,22 @@ struct VocabularyCoverageTests {
     /// it once field position improved enough to make being backed up rare. Simulated
     /// once and shared, because six assertions over one stream costs what one used to.
     ///
-    /// Ninety is not comfortable for the rarest case in here. Illegal touching needs a
-    /// punt that is downed or run out of bounds — about 1.1 a game — and then a 1.8%
-    /// roll on top, so ninety games expect two of them and see none about one time in
-    /// six. Measured on this sample: 101 such punts and two flags. It is the case to
-    /// widen the sample for if this suite goes red on it again, and widening means more
-    /// fixtures rather than only more seeds.
-    private static let sampled: [PlayRecord] = (UInt64(1)...90).flatMap { result(seed: $0).plays }
+    /// Ninety was not comfortable for the rarest cases in here, and two of them are
+    /// rarer than illegal touching. Illegal touching needs a punt that is downed or run
+    /// out of bounds — about 1.1 a game — and then a 1.8% roll on top, so ninety games
+    /// expect two of them and see none about one time in six.
+    ///
+    /// The blindside block is thinner still. It is one fifth of the downfield-block
+    /// draw, which is itself about a 1.4% roll on a run that got into space or a kick
+    /// that got returned: measured over 400 games of this fixture walk, sixty-one
+    /// downfield-block fouls, of which eleven were blindside blocks — about one every
+    /// thirty-six games. Ninety of them is a coin flip that any change to the play mix
+    /// re-tosses, and this suite duly went red on it. Two hundred and forty is where the
+    /// expected count is comfortably above one. (The eleven were not evenly spread
+    /// across the four hundred, which nothing here explains and which is worth a look of
+    /// its own; a dedicated fixture that forces the draw would settle it for good, and
+    /// is what this sample should eventually be replaced by for the rare cases.)
+    private static let sampled: [PlayRecord] = (UInt64(1)...240).flatMap { result(seed: $0).plays }
 
     private static func plays() -> [PlayRecord] { sampled }
 
@@ -161,7 +170,7 @@ struct VocabularyCoverageTests {
         let context = TestWorld.context(seed: 5)
         var setUp = SplittableRandom(seed: 1)
         let personnel = Lineup.onField(
-            context, family: .punt,
+            context, concept: .punt,
             situation: Situation(
                 quarter: 1, clockRemaining: 900, down: .fourth, distance: 10, ballOn: 60,
                 possession: context.offense),
@@ -285,5 +294,110 @@ struct VocabularyCoverageTests {
                 !seen.contains(role),
                 "\(role) is credited now — take it out of the register (was: \(reason))")
         }
+    }
+
+    // MARK: - The detail behind a decision point
+
+    /// The enums behind `DecisionPoint.detail`, which are the cases play-record.md says
+    /// the spatial engine must emit with the same meaning — so a case the crude engine
+    /// cannot reach is a case nothing downstream has ever seen. Each register names the
+    /// cases the engine cannot produce today and the issue that will make them reachable,
+    /// and each test reads both directions: an unregistered case never seen fails, and a
+    /// registered case that turns up fails too, so the register cannot rot.
+    ///
+    /// Measured with every register empty: the engine reaches 3 of 5 throw decisions,
+    /// 2 of 5 tackle results, 2 of 5 block results and 2 of 6 coverage techniques, and
+    /// every catch result and ball placement. The issue that closes each gap is the one
+    /// named beside it, and deleting an entry is how it reports that it landed.
+    static let unreachableThrowDecisions: [ThrowDecision: String] = [
+        .checkdown:
+            "C3 (#44) — the quarterback throws to the best-separated read on the field; he never takes the checkdown.",
+        .throwaway:
+            "C3 (#44) — pressure becomes a sack, a scramble or a throw; nothing is ever thrown away.",
+    ]
+    static let unreachableCatchResults: [CatchResult: String] = [:]
+    static let unreachableTackleResults: [TackleResult: String] = [
+        .assisted: "C4 (#39) — the crude resolver credits a single tackler, so nobody assists.",
+        .missed:
+            "C4 (#39) — a tackle is made or broken; a defender never misses a man who was not carrying the ball past him.",
+        .forcedFumble:
+            "C4 (#39) — a fumble is drawn in Fumbles after the tackle decision is written, so the decision never says it was forced.",
+    ]
+    static let unreachableBlockResults: [BlockResult: String] = [
+        .stalemate: "C4 (#39) — a block is won or lost; there is no stalemate.",
+        .pancake: "C4 (#39) — a block is won or lost; nobody is put on the ground.",
+        .whiffed: "C4 (#39) — a block is won or lost; nobody misses his man entirely.",
+    ]
+    static let unreachableCoverageTechniques: [CoverageTechnique: String] = [
+        .press: "C4 (#39) — man coverage is recorded as off-man whatever the call's alignment.",
+        .zoneFlat: "C4 (#39) — zone coverage is recorded as deep zone whatever the drop.",
+        .bracket: "C4 (#39) — every receiver is covered by one defender.",
+        .spy: "C4 (#39) — nobody is ever assigned to the quarterback.",
+    ]
+    static let unreachableBallPlacements: [BallPlacement: String] = [:]
+
+    /// Every value of one detail enum the sample's decision points carry, read through
+    /// the typed accessor so a byte belonging to another kind is never reinterpreted.
+    private static func details<Detail: Hashable>(
+        _ read: (DecisionPoint) -> Detail?
+    ) -> Set<Detail> {
+        Set(plays().flatMap(\.decisions).compactMap(read))
+    }
+
+    private func checkRegister<Detail: Hashable & CaseIterable>(
+        _ name: String, seen: Set<Detail>, register: [Detail: String]
+    ) {
+        for detail in Detail.allCases where register[detail] == nil {
+            #expect(seen.contains(detail), "no decision in ninety games carried \(name).\(detail)")
+        }
+        for (detail, reason) in register {
+            #expect(
+                !seen.contains(detail),
+                "\(name).\(detail) is produced now — take it out of the register (was: \(reason))")
+        }
+    }
+
+    @Test("Every throw decision is reached, and the register says which are not", .tags(.contract))
+    func everyThrowDecisionIsReachable() {
+        checkRegister(
+            "ThrowDecision", seen: Self.details(\.throwDecisionValue),
+            register: Self.unreachableThrowDecisions)
+    }
+
+    @Test("Every catch result is reached, and the register says which are not", .tags(.contract))
+    func everyCatchResultIsReachable() {
+        checkRegister(
+            "CatchResult", seen: Self.details(\.catchResult),
+            register: Self.unreachableCatchResults)
+    }
+
+    @Test("Every tackle result is reached, and the register says which are not", .tags(.contract))
+    func everyTackleResultIsReachable() {
+        checkRegister(
+            "TackleResult", seen: Self.details(\.tackleResult),
+            register: Self.unreachableTackleResults)
+    }
+
+    @Test("Every block result is reached, and the register says which are not", .tags(.contract))
+    func everyBlockResultIsReachable() {
+        checkRegister(
+            "BlockResult", seen: Self.details(\.blockResultValue),
+            register: Self.unreachableBlockResults)
+    }
+
+    @Test(
+        "Every coverage technique is reached, and the register says which are not",
+        .tags(.contract))
+    func everyCoverageTechniqueIsReachable() {
+        checkRegister(
+            "CoverageTechnique", seen: Self.details(\.coverageTechnique),
+            register: Self.unreachableCoverageTechniques)
+    }
+
+    @Test("Every ball placement is reached, and the register says which are not", .tags(.contract))
+    func everyBallPlacementIsReachable() {
+        checkRegister(
+            "BallPlacement", seen: Self.details(\.ballPlacement),
+            register: Self.unreachableBallPlacements)
     }
 }

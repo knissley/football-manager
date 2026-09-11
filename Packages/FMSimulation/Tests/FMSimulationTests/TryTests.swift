@@ -36,33 +36,53 @@ struct TryTests {
         var checked = 0
         var moved = 0
         for plays in (UInt64(1)...30).map({ Self.game(seed: $0).plays }) {
-            for (previous, play) in zip(plays, plays.dropFirst()) {
+            for index in plays.indices {
+                let play = plays[index]
                 let standard: UInt8
                 switch play.outcome.kind {
                 case .extraPoint: standard = rules.extraPointSnapYard
                 case .twoPointConversion: standard = rules.twoPointSnapYard
                 default: continue
                 }
-                // Two ways a try is not at its standard spot, and both are 11-3-3's.
-                // A flag before the snap replays it from the enforced spot, and the play
-                // before it is the flag. A foul during the touchdown is enforced *on*
-                // the try (14-2-3), and the play before it is the touchdown with an
-                // accepted penalty on it — which is the only thing an accepted penalty
-                // on a scoring play can mean.
-                let flagBeforeTheSnap =
-                    previous.outcome.kind == .penaltyOnly
-                    && previous.situation.possession == play.situation.possession
-                    && previous.calls.offense == play.calls.offense
-                let foulDuringTheTouchdown =
-                    previous.outcome.endedIn == .touchdown
-                    && previous.outcome.penalties.first?.wasAccepted == true
-                let flagOnTheTry = flagBeforeTheSnap || foulDuringTheTouchdown
-                if flagOnTheTry {
+
+                // Every flag that preceded this try, walking back, with what each did to
+                // the spot: a foul by the offence pushes the try out, one by the defence
+                // brings it in. More than one can fly before the same try, and two that
+                // cancel — a neutral zone infraction and then a false start — put the ball
+                // back on the standard yard line honestly. "Not the standard spot" is the
+                // wrong question to ask of that one, so it is counted and skipped rather
+                // than asserted on either way.
+                var net = 0
+                var flags = 0
+                var back = index - 1
+                while back >= 0, plays[back].outcome.kind == .penaltyOnly,
+                    plays[back].situation.possession == play.situation.possession,
+                    plays[back].calls.offense == play.calls.offense
+                {
+                    flags += 1
+                    for penalty in plays[back].outcome.penalties where penalty.wasAccepted {
+                        net +=
+                            penalty.foul.committedBy == .offense
+                            ? Int(penalty.yards) : -Int(penalty.yards)
+                    }
+                    back -= 1
+                }
+
+                // The other way a try is not at its standard spot, and it is 11-3-3's
+                // too: a foul during the touchdown is enforced *on* the try (14-2-3), so
+                // it moves the spot with no `penaltyOnly` play of its own. The play the
+                // walk-back ends on is that touchdown, and an accepted penalty on a
+                // scoring play is the only thing it can mean.
+                let duringTheTouchdown =
+                    back >= 0 && plays[back].outcome.endedIn == .touchdown
+                    && plays[back].outcome.penalties.first?.wasAccepted == true
+
+                if net != 0 || duringTheTouchdown {
                     moved += 1
                     #expect(
                         play.situation.ballOn != standard,
                         "a flag on the try left it at the standard spot (play \(play.index))")
-                } else {
+                } else if flags == 0 {
                     checked += 1
                     #expect(
                         play.situation.ballOn == standard,
@@ -128,6 +148,68 @@ struct TryTests {
         trace.expectScore(scorer, 8)
     }
 
+    /// A two-point try is a scrimmage down like any other, and the sport lets it be a run.
+    ///
+    /// 2025 rulebook, 11-3-1: the team that scored puts the ball in play 15 yards from the
+    /// defence's goal line for a try-kick, or **two yards from it for a try by pass or
+    /// run**. Every conversion this engine attempted was a pass, so half the play the rule
+    /// describes did not exist — and with it went the heavy grouping a team sends out for
+    /// it and the goal-line defence that answers.
+    @Test(
+        "football · Rule 11-3-1 · a two-point try may be a run, and some of them are",
+        .tags(.football))
+    func twoPointTriesCanBeRuns() {
+        let tries = Self.plays(1...80).filter { $0.outcome.kind == .twoPointConversion }
+        #expect(tries.count > 10, "only \(tries.count) conversions were attempted")
+        let carried = tries.filter { play in
+            play.outcome.participants.contains { $0.role == .rusher }
+        }
+        let thrown = tries.filter { play in
+            play.outcome.participants.contains { $0.role == .passer }
+        }
+        #expect(!carried.isEmpty, "every conversion was a pass: \(tries.count) of them")
+        #expect(!thrown.isEmpty, "every conversion was a run: \(tries.count) of them")
+    }
+
+    // MARK: - A two-point try the defence takes away
+
+    /// A two-point try the defence intercepts is still the try, and the whole of the
+    /// try: it is one scrimmage down (11-3-1), the whistle closes it out whether or not
+    /// anybody scored on it (11-3-2-e), and the side that was on defence for it receives
+    /// the free kick that follows (11-3-4). So nothing is scored, nothing is replayed, and the ball does
+    /// not change hands for the kickoff however far the interceptor carried it — the
+    /// side that scored the touchdown kicks off, exactly as it would have after a
+    /// conversion or an incompletion.
+    ///
+    /// Driven through the crude resolver rather than scripted, because the defect this
+    /// was written for is the resolver's: it labelled the pick an ordinary pass, and the
+    /// rules layer, which reads the kind, then walked the ordinary scrimmage path and
+    /// handed the ball to the interceptors for the kickoff.
+    @Test(
+        "football · Rule 11-3-1, 11-3-2-e, 11-3-4 · a two-point try that is intercepted is still the try, and the side that defended it receives the kickoff",
+        .tags(.football)
+    )
+    func aTwoPointTryThatIsInterceptedIsStillTheTry() {
+        let rules = Rules.standard
+        let resolutions = TestWorld.resolved(.twoPointPass, count: 2_000)
+        let picks = resolutions.filter { $0.outcome.endedIn == .intercepted }
+        #expect(
+            picks.count >= 20,
+            "\(picks.count) intercepted two-point tries in \(resolutions.count): too few to assert on"
+        )
+
+        for pick in picks {
+            let advancement = rules.advance(from: pick.situation, outcome: pick.outcome)
+            #expect(advancement.points == 0, "an intercepted try scored something")
+            #expect(advancement.scoring == nil, "an intercepted try was a scoring play")
+            #expect(
+                advancement.possessionChanged == false,
+                "the interceptors were given the ball for the kickoff")
+            #expect(advancement.requiresKickoff, "no kickoff was owed after the try")
+            #expect(advancement.requiresTry == false, "the try was replayed")
+        }
+    }
+
     /// The point of a rule that can be satisfied: sometimes it is, and sometimes it is
     /// not. A conversion rate of zero and one of a hundred are equally wrong.
     @Test("Conversions are sometimes made and sometimes missed", .tags(.unit))
@@ -141,31 +223,36 @@ struct TryTests {
     /// The scoreboard has to be reconstructible from the stream, because everything above
     /// the engine is a query over it ([ADR-0007]). If the plays say one thing and the
     /// final score says another, one of them is lying.
+    ///
+    /// Summed from what the record says — the points on the play and who scored them —
+    /// and never by running the rules again. This test used to call `Rules.advance` and
+    /// `Rules.enforce` on every play to find out what it scored, which proved the rules
+    /// agree with themselves and nothing about the stream; `pointsScored` sat on every
+    /// record at zero while it passed.
     @Test("The score on the board is the sum of the scoring plays", .tags(.contract))
     func scoreboardMatchesTheStream() {
-        let rules = Rules.standard
         for seed in UInt64(1)...20 {
             let result = Self.game(seed: seed)
             var home: Int16 = 0
             var away: Int16 = 0
+            var scoringPlays = 0
 
             for play in result.plays {
-                let advancement =
-                    play.outcome.penalties.isEmpty
-                    ? rules.advance(from: play.situation, outcome: play.outcome)
-                    : rules.enforce(
-                        play.outcome.penalties[0], on: play.situation, outcome: play.outcome,
-                        offendingTeamHadBall: play.outcome.penalties[0].offendingTeam
-                            == play.situation.possession
-                    ).advancement
-                guard let scoring = advancement.scoring, advancement.points != 0 else { continue }
+                guard let scoring = play.outcome.scoring else {
+                    #expect(play.outcome.pointsScored == 0, "points on a play that did not score")
+                    continue
+                }
+                scoringPlays += 1
+                let points = Int16(play.outcome.pointsScored)
+                #expect(points > 0, "a \(scoring) worth nothing")
 
                 // A safety and a return touchdown pay the side that did not have the ball.
                 let defensive = scoring == .safety || scoring == .defensiveTouchdown
                 let scoredByHome = (play.situation.possession == TeamID(1)) != defensive
-                if scoredByHome { home += advancement.points } else { away += advancement.points }
+                if scoredByHome { home += points } else { away += points }
             }
 
+            #expect(scoringPlays > 0, "seed \(seed): nobody scored")
             #expect(
                 home == result.homeScore && away == result.awayScore,
                 "stream says \(home)-\(away), scoreboard says \(result.homeScore)-\(result.awayScore)"

@@ -263,6 +263,8 @@ Simulates one game out of the same world `simharness` plays and prints it as a b
 log. One line per play: quarter and clock, the offence, down and distance, field position
 in own or opponent terms, the concept, what happened and who did it, the personnel
 matchup, any flag and how it was enforced, and the score after anything that scored. A
+spot foul prints the spot it is enforced from rather than a yardage, because it does not
+have one. A
 drive summary at each change of possession and a scoreboard at the end of each period.
 
 Options: `--seed <n>` `--home <i>` `--away <i>` `--week <n>` `--season <n>`
@@ -319,6 +321,14 @@ Watch for the things a table of means cannot show: who kicks off after a safety,
 a touchdown gets its try, whether a tie plays overtime, how much clock burns between the
 last snap of one possession and the first of the next, whether the same quarterback takes
 every snap of a drive, and whether a penalty leaves the ball where the rule puts it.
+
+What happened while the ball was dead is printed above the snap it preceded, read off
+that snap's record: `two-minute warning` on its own line, and `timeout: NRW (2 left)` for
+each charged timeout with the side that took it and what it has left. A kick line carries
+its three spots — `D. Dockery 40 yards to GRH 34, L. Wrenfield returns it 7 to GRH 41` —
+so the gross of a returned punt and its return are both there, and a kickoff fielded in
+the end zone says how deep (`67 yards to 2 deep`). A timeout the rules charged after a
+play — instead of a runoff, or for an injury — is still a `clock:` line under that play.
 
 Aggregates hid every rules bug the September audit found. Each of them is obvious in
 thirty seconds of this output, which is why it exists.
@@ -391,6 +401,65 @@ swift run gamelog --scenario injury-inside-two-minutes-with-no-timeouts-left | g
 
 # The same injury with a timeout in hand: charged, and the clock waits for the snap.
 swift run gamelog --scenario injury-inside-two-minutes-with-a-timeout-left | grep -B3 -A2 "injury timeout"
+
+# The basic spot on a takeaway (14-3-5-b, 14-4-3-a). A run from the offence's own 30 to
+# its 40 with a defender flagged, stripped there, returned to the offence's 25: the ball
+# reverts to the offence and the fifteen comes off the 40, not off the 30 — play 2 is
+# first and ten at the opponents' 45.
+swift run gamelog --scenario roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost | head -15
+
+# The same flag on a pass, which is a different rule (14-4-5-d, 8-6-1-d). The offence
+# gets the better of two spots, where it snapped or where the ball was dead; here the
+# interceptor was dropped behind where the ball was snapped, so it is the previous spot,
+# the offence keeps it at its own 45, and the interception is wiped out. Read the two
+# side by side: same field position, same foul, two answers, and the difference is what
+# kind of play the foul was during.
+swift run gamelog --scenario roughness-by-the-defense-before-an-interception | head -15
+
+# The exception the strip sack makes common (14-3-6 Exception 1, 14-4-6-b). The ball
+# comes loose behind the line, so the basic spot is behind the line and the fifteen comes
+# off the previous spot wherever the foul was: the offence snapped from its own 40, was
+# stripped at its own 34, and play 3 is first and ten at the opponents' 45 — not the 51
+# that measuring from the fumble gives.
+swift run gamelog --scenario roughness-by-the-defense-on-a-strip-sack | head -14
+
+# And the other arm of 14-4-5-d, where the dead-ball spot is the better of the two. The
+# pick is at the opponents' 20 and the interceptor is dropped at the opponents' 30, still
+# downfield of the snap at the opponents' 45: play 3 is first and ten at the opponents'
+# 15. Read it against the scenario above — one exception, two answers, and what decides
+# is where the man with the ball was when he went down.
+swift run gamelog --scenario roughness-by-the-defense-before-a-deep-interception | head -14
+
+# A kickoff the returner fumbles and the kicking team carries in (8-7-3 Item 1, 11-2-1,
+# 11-3-1, 11-3-4): the kickers' touchdown, the kickers' try, and the kickers kicking off
+# again. The opening kickoff, so the first three lines of play are the whole rule.
+swift run gamelog --scenario kickoff-fumbled-and-returned-by-the-kickers | head -14
+
+# The article's second clause: an excess timeout for an injured *defender* inside the last
+# forty seconds ends the half on the same terms a defensive foul does.
+swift run gamelog --scenario injury-to-a-defender-in-the-last-forty-seconds | tail -8
+
+# A flag during a down stops the clock at the end of it and enforcement is not free
+# (4-4-e, 4-3-2-e). The second snap of the game draws a defensive holding; the down after
+# the enforcement is snapped six seconds earlier than a clock that never stopped allows.
+swift run gamelog --scenario defensive-holding-on-a-play-ending-in-bounds | head -18
+
+# The same flag inside five minutes of the fourth quarter, where the clock waits for the
+# snap instead (4-3-2-e-2) — and an offensive one outside every window in the same period,
+# which restarts on the ready, because 4-3-2-e-3 reaches only a flag between downs.
+swift run gamelog --scenario defensive-holding-inside-five-minutes-of-the-fourth-quarter | grep -B1 -A2 "defensive holding"
+swift run gamelog --scenario offensive-holding-in-the-fourth-quarter-outside-five-minutes | grep -B1 -A2 "offensive holding"
+
+# What a spike costs (4-4-f, 8-2-1 Item 3). **Read the clock at the snap, not at the line.**
+# A play's printed clock is the previous whistle's, and the offence's interval between
+# downs is charged at the snap: the spike printed at 0:13 was snapped at 0:05, left 0:04,
+# and the fourth down is snapped at 0:04 and played. Reading the printed clock as the snap
+# clock is what makes a spike look like it costs nine seconds. The spike is play 300 of
+# 354, so grep for it — the tail of this scripted game is the overtime a 0–0 tie runs into.
+swift run gamelog --scenario spike-snapped-at-five-seconds-on-third-down | grep -B1 -A1 "spikes it to stop the clock"
+
+# The same read twenty seconds out: printed at 0:28, snapped at 0:20, fourth down at 0:19.
+swift run gamelog --scenario spike-snapped-at-twenty-seconds | grep -B1 -A1 "spikes it to stop the clock"
 
 # A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
 # play snapped outside 5:00 of the fourth quarter carries him out inside it, and the

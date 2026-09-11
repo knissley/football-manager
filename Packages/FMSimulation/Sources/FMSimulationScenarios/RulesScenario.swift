@@ -27,6 +27,7 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case touchdownTryKickoff = "touchdown-try-kickoff"
     case fieldGoalThenKickoff = "field-goal-then-kickoff"
     case kickoffReturnTouchdown = "kickoff-return-touchdown"
+    case twoPointTryIntercepted = "two-point-try-intercepted"
 
     // A touchdown on the last play of a period
     case lastPlayTouchdownDownSeven = "last-play-touchdown-down-seven"
@@ -101,6 +102,17 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case neutralZoneInfractionOnATrailingOffense = "neutral-zone-infraction-on-a-trailing-offense"
     case trailingByAPickSix = "trailing-by-a-pick-six"
 
+    // Fouls during a down
+    case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
+    case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
+        "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
+    case offensiveHoldingInTheFourthQuarterOutsideFiveMinutes =
+        "offensive-holding-in-the-fourth-quarter-outside-five-minutes"
+
+    // The spike
+    case spikeSnappedAtTwentySeconds = "spike-snapped-at-twenty-seconds"
+    case spikeSnappedAtFiveSecondsOnThirdDown = "spike-snapped-at-five-seconds-on-third-down"
+
     // The play clock
     case delayOfGameOnARunningClock = "delay-of-game-on-a-running-clock"
     case delayOfGameAfterATurnoverOnDowns = "delay-of-game-after-a-turnover-on-downs"
@@ -119,6 +131,7 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "injury-inside-two-minutes-with-no-timeouts-left"
     case injuryInsideTwoMinutesAgainstATrailingDefense =
         "injury-inside-two-minutes-against-a-trailing-defense"
+    case injuryToADefenderInTheLastFortySeconds = "injury-to-a-defender-in-the-last-forty-seconds"
 
     // The kickoff that opens a half
     case secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf =
@@ -143,6 +156,14 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case runningIntoTheKickerOnAMissedFieldGoal =
         "running-into-the-kicker-on-a-missed-field-goal"
     case holdingOnASuccessfulTry = "holding-on-a-successful-try"
+    case roughnessByTheDefenseOnARunThatEndsInAFumbleLost =
+        "roughness-by-the-defense-on-a-run-that-ends-in-a-fumble-lost"
+    case roughnessByTheDefenseBeforeAnInterception =
+        "roughness-by-the-defense-before-an-interception"
+    case roughnessByTheDefenseOnAStripSack = "roughness-by-the-defense-on-a-strip-sack"
+    case roughnessByTheDefenseBeforeADeepInterception =
+        "roughness-by-the-defense-before-a-deep-interception"
+    case kickoffFumbledAndReturnedByTheKickers = "kickoff-fumbled-and-returned-by-the-kickers"
 }
 
 // MARK: - Naming
@@ -169,6 +190,7 @@ extension RulesScenario {
         case .touchdownTryKickoff: return RulesScenarios.touchdownTryKickoff
         case .fieldGoalThenKickoff: return RulesScenarios.fieldGoalThenKickoff
         case .kickoffReturnTouchdown: return RulesScenarios.kickoffReturnTouchdown
+        case .twoPointTryIntercepted: return RulesScenarios.twoPointTryIntercepted
 
         case .lastPlayTouchdownDownSeven: return RulesScenarios.lastPlayTouchdownDownSeven
         case .lastPlayTouchdownDownSix: return RulesScenarios.lastPlayTouchdownDownSix
@@ -258,6 +280,16 @@ extension RulesScenario {
             return RulesScenarios.neutralZoneInfractionOnATrailingOffense
         case .trailingByAPickSix: return RulesScenarios.trailingByAPickSix
 
+        case .defensiveHoldingOnAPlayEndingInBounds:
+            return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
+        case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter
+        case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
+            return RulesScenarios.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes
+
+        case .spikeSnappedAtTwentySeconds: return RulesScenarios.spikeSnapped(at: 20)
+        case .spikeSnappedAtFiveSecondsOnThirdDown: return RulesScenarios.spikeSnapped(at: 5)
+
         case .delayOfGameOnARunningClock: return RulesScenarios.delayOfGameOnARunningClock
         case .delayOfGameAfterATurnoverOnDowns:
             return RulesScenarios.delayOfGameAfterATurnoverOnDowns
@@ -276,6 +308,8 @@ extension RulesScenario {
             return RulesScenarios.injuryInsideTwoMinutesWithNoTimeoutsLeft
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return RulesScenarios.injuryInsideTwoMinutesAgainstATrailingDefense
+        case .injuryToADefenderInTheLastFortySeconds:
+            return RulesScenarios.injuryToADefenderInTheLastFortySeconds
 
         case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
             return RulesScenarios.injuryRunoffEndsTheFirstHalf(kick: .kickoffTouchback)
@@ -302,6 +336,16 @@ extension RulesScenario {
         case .runningIntoTheKickerOnAMissedFieldGoal:
             return RulesScenarios.kickerFoul(.runningIntoTheKicker, good: false)
         case .holdingOnASuccessfulTry: return RulesScenarios.holdingOnASuccessfulTry
+        case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
+            return RulesScenarios.roughnessByTheDefenseOnARunThatEndsInAFumbleLost
+        case .roughnessByTheDefenseBeforeAnInterception:
+            return RulesScenarios.roughnessByTheDefenseBeforeAnInterception
+        case .roughnessByTheDefenseOnAStripSack:
+            return RulesScenarios.roughnessByTheDefenseOnAStripSack
+        case .roughnessByTheDefenseBeforeADeepInterception:
+            return RulesScenarios.roughnessByTheDefenseBeforeADeepInterception
+        case .kickoffFumbledAndReturnedByTheKickers:
+            return RulesScenarios.kickoffFumbledAndReturnedByTheKickers
         }
     }
 
@@ -349,6 +393,10 @@ extension RulesScenario {
         case .kickoffReturnTouchdown:
             return [
                 "football · Rule 11-3-1, 11-3-4 · a kickoff returned for a touchdown gets its try, and the returning team then kicks off"
+            ]
+        case .twoPointTryIntercepted:
+            return [
+                "football · Rule 11-3-2-e, 11-3-4 · a two-point try the defence intercepts scores nothing, and the side that scored the touchdown still kicks off"
             ]
 
         case .lastPlayTouchdownDownSeven:
@@ -559,10 +607,32 @@ extension RulesScenario {
             return [
                 "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap"
             ]
+        case .defensiveHoldingOnAPlayEndingInBounds:
+            return [
+                "football · Rule 4-4-e, 4-3-2-e · an accepted foul during a down that ends in bounds stops the clock at the end of it, and the clock restarts on the ready as though the flag had never flown"
+            ]
+        case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half an accepted foul during a down has the clock start on the snap"
+            ]
+        case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
+            return [
+                "football · Rule 4-3-2-e-3, 4-4-e · e-3 reaches only an offensive foul that stops the clock before a snap, so an offensive foul during a fourth-quarter down outside every window restarts the clock on the ready"
+            ]
+
         case .trailingByAPickSix:
             return [
                 "football · Rule 4-4-f, 4-3-2 · an incomplete pass, here a spike, stops the clock until the snap",
                 "pin · the baseline caller spikes at hurry-up tempo, and a hurry-up snap takes less clock than a huddle (PlayCaller.swift:224; the interval is a modelling convention, not a rule)",
+            ]
+
+        case .spikeSnappedAtTwentySeconds:
+            return [
+                "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left"
+            ]
+        case .spikeSnappedAtFiveSecondsOnThirdDown:
+            return [
+                "football · Rule 4-4-f, 8-2-1 Item 3 · a third-down spike snapped with five seconds left does not end the period: the fourth down is snapped a second later"
             ]
 
         case .delayOfGameOnARunningClock:
@@ -598,6 +668,10 @@ extension RulesScenario {
         case .injuryInsideTwoMinutesAgainstATrailingDefense:
             return [
                 "football · Rule 4-5-4 Note 3, 4-5-4 Note 1 · the defence may decline the injury runoff; a trailing defence does, and the clock then waits for the snap"
+            ]
+        case .injuryToADefenderInTheLastFortySeconds:
+            return [
+                "football · Rule 4-7-3, 4-5-4-b · in the last forty seconds an excess timeout for an injured defender with the clock running ends the half when the defence has no timeouts left and the offence, leading, elects to end it"
             ]
 
         case .secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf:
@@ -666,6 +740,26 @@ extension RulesScenario {
         case .holdingOnASuccessfulTry:
             return [
                 "football · Rule 11-3-3 Item 3-a · an offensive foul on a successful try repeats the try rather than ending it"
+            ]
+        case .roughnessByTheDefenseOnARunThatEndsInAFumbleLost:
+            return [
+                "football · Rule 14-3-5-b, 14-4-3-a, 12-2-8 · a defensive personal foul during a run that ends in a fumble lost gives the ball back to the offence fifteen yards past the spot of the fumble, and a first down"
+            ]
+        case .roughnessByTheDefenseBeforeAnInterception:
+            return [
+                "football · Rule 14-4-5-d, 8-6-1-d, 12-2-8 · a defensive personal foul before a forward pass is intercepted and returned behind the previous spot is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down"
+            ]
+        case .roughnessByTheDefenseOnAStripSack:
+            return [
+                "football · Rule 14-3-6 Exception 1, 14-4-6-b, 12-2-8 · a defensive personal foul on a sack that ends in a fumble lost behind the line is enforced from the previous spot and not from the fumble, and a first down"
+            ]
+        case .roughnessByTheDefenseBeforeADeepInterception:
+            return [
+                "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the snap is enforced from the dead-ball spot, which is the better of the two spots the offence may have"
+            ]
+        case .kickoffFumbledAndReturnedByTheKickers:
+            return [
+                "football · Rule 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4 · a kickoff fumbled by the returner and carried in by the kicking team is the kicking team's touchdown, its try, and its kickoff"
             ]
         }
     }

@@ -24,24 +24,27 @@ struct KickoffTests {
             scoreDifferential: -7)
     }
 
-    /// Resolve `count` free kicks of one family and hand back the ones that were actually
+    /// Resolve `count` free kicks of one concept and hand back the ones that were actually
     /// kicked. A pre-snap flag kills the play before the kick, and a play that never
     /// happened says nothing about the kick.
     private func kicks(
-        _ family: PlayFamily = .kickoff, from ownYard: UInt8 = 35, count: Int = 3_000,
+        _ concept: PlayConcept = .kickoff, from ownYard: UInt8 = 35, count: Int = 3_000,
         seed: UInt64 = 4, weather: WeatherState = .clear
     ) -> [Outcome] {
         let context = TestWorld.context(seed: 5, weather: weather)
         let calls = Calls(
-            offense: CrudePlaybook.call(family), defense: .preventShell,
+            offense: OffensiveCall(concept: concept), defense: .preventShell,
             offensiveCaller: .automatic, defensiveCaller: .automatic)
         let situation = kickoff(from: ownYard)
         let root = SplittableRandom(seed: seed)
         var kicked: [Outcome] = []
         for index in 0..<count {
             var random = root.split(UInt64(index))
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
             let resolved = CrudeResolver().resolve(
-                situation: situation, calls: calls, context: context, random: &random)
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
             guard resolved.outcome.kind == .kickoff else { continue }
             kicked.append(resolved.outcome)
         }

@@ -79,6 +79,92 @@ enum TestWorld {
             rules: rules)
     }
 
+    /// The situation a snap of `concept` is taken from, in the terms the crude engine
+    /// resolves it in: the try spots for the two tries, the free-kick line for a kick,
+    /// fourth down for a punt and a field goal, and first and ten at midfield for
+    /// everything from scrimmage.
+    ///
+    /// **Exhaustive with no `default`, deliberately.** A free kick that falls through to
+    /// the scrimmage case is set up at midfield on first and ten against a base package,
+    /// and every sweep over the concepts then measures the wrong play without saying so.
+    static func situation(for concept: PlayConcept, rules: Rules = .standard) -> Situation {
+        let ballOn: UInt8
+        let down: Down
+        let distance: UInt8
+        switch concept {
+        case .kickoff, .onsideKick, .deepKickoff:
+            ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
+            down = .first
+            distance = rules.yardsToGain
+        case .punt:
+            ballOn = 65
+            down = .fourth
+            distance = 8
+        case .fieldGoal:
+            ballOn = 25
+            down = .fourth
+            distance = 8
+        case .extraPoint:
+            ballOn = rules.extraPointSnapYard
+            down = .first
+            distance = max(1, rules.extraPointSnapYard)
+        case .twoPointPass, .twoPointRun:
+            ballOn = rules.twoPointSnapYard
+            down = .first
+            distance = max(1, rules.twoPointSnapYard)
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike:
+            ballOn = 50
+            down = .first
+            distance = rules.yardsToGain
+        }
+        return Situation(
+            quarter: 4, clockRemaining: 300, down: down, distance: distance, ballOn: ballOn,
+            possession: TeamID(1), offensePersonnel: .eleven,
+            defensePackage: concept.kind == .twoPointConversion || concept == .extraPoint
+                ? .goalLine : .base)
+    }
+
+    /// `count` snaps of `concept`, resolved by the crude resolver against one lineup.
+    ///
+    /// A whole game is the wrong instrument for a rare exit. An ending that takes a few
+    /// per cent of a play that is itself called in a third of games needs hundreds of
+    /// games before it appears at all, and a suite that simulates hundreds of games to
+    /// see one is a suite nobody runs. This is the same resolver on the same stream,
+    /// thousands of times, in a couple of seconds — and it can say what it drew, so a
+    /// test over it never passes because the rare thing did not happen.
+    static func resolved(
+        _ concept: PlayConcept, count: Int, seed: UInt64 = 88, worldSeed: UInt64 = 12,
+        rules: Rules = .standard
+    ) -> [(situation: Situation, outcome: Outcome, decisions: [DecisionPoint])] {
+        let (_, chart, players) = team(seed: worldSeed)
+        let rotation = chart.rotation()
+        let context = PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: players,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: rules)
+        let situation = situation(for: concept, rules: rules)
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept),
+            defense: concept.kind == .twoPointConversion ? .goalLineStop : .baseCoverThree,
+            offensiveCaller: .coordinator(PersonnelID(1)), defensiveCaller: .automatic)
+
+        var random = SplittableRandom(seed: seed)
+        var resolutions: [(situation: Situation, outcome: Outcome, decisions: [DecisionPoint])] = []
+        resolutions.reserveCapacity(count)
+        for _ in 0..<count {
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
+            let resolved = CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
+            resolutions.append((situation, resolved.outcome, resolved.decisions))
+        }
+        return resolutions
+    }
+
     /// One team's roster and depth chart, for the tests that need a rotation rather than
     /// a game.
     static func team(

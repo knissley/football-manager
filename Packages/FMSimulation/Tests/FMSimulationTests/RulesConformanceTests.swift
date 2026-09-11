@@ -149,6 +149,37 @@ struct RulesConformanceTests {
         trace.expectScore(scorer, 7)
     }
 
+    /// The try the defence takes away. A try is one scrimmage down, and 11-3-2-e closes
+    /// it out at the whistle whether or not anybody scored on it, so a pick finishes it:
+    /// nothing is scored, nothing is
+    /// replayed, and the side that scored the touchdown still kicks off to the side that
+    /// defended the try — the ball does not change hands for the kickoff however far the
+    /// interceptor carried it.
+    ///
+    /// `afterTheTryTheDefendingTeamReceives` above runs a *kick* try, so 11-3-4 was only
+    /// ever asserted on the try that ends in the kicker's own hands.
+    @Test(
+        "football · Rule 11-3-2-e, 11-3-4 · a two-point try the defence intercepts scores nothing, and the side that scored the touchdown still kicks off",
+        .tags(.football)
+    )
+    func aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer() {
+        let trace = RulesScenario.twoPointTryIntercepted.run()
+        guard let scorer = trace[1]?.situation.possession else {
+            Issue.record("no first snap")
+            return
+        }
+        trace.expectSequence([.kickoff, .rush, .twoPointConversion, .kickoff, .rush], from: 0)
+        trace.expectPlay(
+            2, kind: .twoPointConversion, endedIn: .intercepted, possession: scorer,
+            "the side that scored goes for two and the defence takes it away")
+        trace.expectPlay(
+            3, kind: .kickoff, possession: scorer, "the try is over, and the scorer kicks off")
+        trace.expectPlay(
+            4, possession: trace.opponent(of: scorer), "the side that defended the try receives")
+        trace.expectScore(scorer, 6, "the touchdown and nothing else")
+        trace.expectScore(trace.opponent(of: scorer), 0, "an interception on a try is not a score")
+    }
+
     @Test(
         "football · Rule 11-4-6 · after a successful field goal the team scored upon receives the kickoff",
         .tags(.football)
@@ -1564,6 +1595,259 @@ struct RulesConformanceTests {
             "the spike took \(hurried) seconds to snap against \(huddle) from a huddle")
     }
 
+    // MARK: Fouls during a down
+
+    /// The first accepted foul in `quarter` on a down that was actually run and ended in
+    /// bounds — the down 4-4-e is about, as against a flag before the snap, which stops
+    /// the clock the moment it flies (4-4-g).
+    private func foulDuringADown(
+        in trace: Trace, quarter: UInt8
+    ) -> (index: Int, play: PlayRecord)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == quarter && $0.outcome.kind != .penaltyOnly
+                    && $0.outcome.endedIn == .tackled
+                    && $0.outcome.penalties.first?.wasAccepted == true
+            })
+        else {
+            Issue.record(
+                "the script never drew an accepted foul on a down that ended in bounds in quarter \(quarter)"
+            )
+            return nil
+        }
+        #expect(
+            trace.clockRunning(into: found.index) == true,
+            "the scenario meant the clock to be running into the flagged down")
+        return found
+    }
+
+    /// What the game clock was charged getting to the snap after play `index`: the clock
+    /// where that play left it, less the clock where the play after it left it, less that
+    /// play's own time.
+    private func chargedBeforeTheSnap(after index: Int, in trace: Trace) -> Int? {
+        guard let next = trace[index + 1], let following = trace[index + 2] else {
+            Issue.record("the scenario needs two downs after the flag to show what the wait cost")
+            return nil
+        }
+        return Int(next.situation.clockRemaining) - Int(following.situation.clockRemaining)
+            - Int(next.outcome.clockRunoff)
+    }
+
+    /// What the offence would be charged before the snap after an enforcement if the
+    /// clock had never stopped, against the play clock an enforcement leaves (4-6-2-e).
+    /// A clock that restarts on the ready costs `GameClock.readyForPlayDelay` less than
+    /// this: the officials' spot is what buys those seconds back.
+    private func intervalAfterAnEnforcement(_ trace: Trace, after index: Int) -> Int? {
+        guard let next = trace[index + 1] else { return nil }
+        return Int(
+            Rules.standard.playClockAfterAnAdministrativeStoppage.intendedSnap(
+                at: next.calls.offense.tempo))
+    }
+
+    /// A foul during a down stops the clock at the end of that down (4-4-e), and the
+    /// enforcement is not free: the clock is dead through it and starts again as though
+    /// the foul had not occurred (4-3-2-e) — on the ready-for-play signal, since it was
+    /// running — so the offence keeps the seconds between the whistle and the spot.
+    @Test(
+        "football · Rule 4-4-e, 4-3-2-e · an accepted foul on a down that ends in bounds stops the clock for enforcement, and it restarts on the ready",
+        .tags(.football)
+    )
+    func acceptedFoulDuringADownStopsTheClockForEnforcement() {
+        let trace = RulesScenario.defensiveHoldingOnAPlayEndingInBounds.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 1),
+            let charged = chargedBeforeTheSnap(after: flag.index, in: trace),
+            let running = intervalAfterAnEnforcement(trace, after: flag.index)
+        else { return }
+        let onTheReady = running - Int(GameClock.readyForPlayDelay)
+        #expect(
+            charged == onTheReady,
+            "the snap after the enforcement cost \(charged) seconds of game clock, and a clock stopped for the flag and restarted on the ready costs \(onTheReady)"
+        )
+    }
+
+    /// Inside the last five minutes of the second half the clock does not restart on the
+    /// ready after a foul: it waits for the snap (4-3-2-e-2), the same window the
+    /// out-of-bounds rule uses, judged where the ball was dead.
+    @Test(
+        "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half an accepted foul during a down has the clock start on the snap",
+        .tags(.football)
+    )
+    func acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap() {
+        let trace = RulesScenario.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 4), let next = trace[flag.index + 1]
+        else { return }
+        #expect(
+            next.situation.clockRemaining <= 300 && next.situation.clockRemaining > 120,
+            "the scenario meant the down to be dead inside five minutes and outside the warning")
+        trace.expectPlay(
+            flag.index + 1, clockRunning: false,
+            "inside five minutes of the second half the clock waits for the snap")
+    }
+
+    /// 4-3-2-e-3 is about a foul that stops the clock *before a snap*: the offence fouls
+    /// between downs, after the ball has been made ready. A foul during a down stops the
+    /// clock at the end of the down instead (4-4-e), so e-3's words do not reach it, and
+    /// the fourth quarter restarts such a clock on the ready as any other period does.
+    @Test(
+        "football · Rule 4-3-2-e-3, 4-4-e · e-3 reaches only an offensive foul that stops the clock before a snap, so an offensive foul during a fourth-quarter down outside every window restarts the clock on the ready",
+        .tags(.football)
+    )
+    func offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady() {
+        let trace = RulesScenario.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes.run()
+        guard let flag = foulDuringADown(in: trace, quarter: 4), let next = trace[flag.index + 1],
+            let charged = chargedBeforeTheSnap(after: flag.index, in: trace),
+            let running = intervalAfterAnEnforcement(trace, after: flag.index)
+        else { return }
+        #expect(
+            flag.play.outcome.penalties.first?.offendingTeam == flag.play.situation.possession,
+            "the scenario meant the offence to commit it")
+        #expect(
+            next.situation.clockRemaining > 300,
+            "the scenario meant the down to be dead outside every late window")
+        trace.expectPlay(
+            flag.index + 1, clockRunning: true, "the clock is not held to the snap by e-3")
+        let onTheReady = running - Int(GameClock.readyForPlayDelay)
+        #expect(
+            charged == onTheReady,
+            "the snap after the enforcement cost \(charged) seconds of game clock, and a clock restarted on the ready costs \(onTheReady)"
+        )
+    }
+
+    /// 4-7-3 has two clauses, and this is the second: an excess timeout for an injured
+    /// *defensive* player in the last forty seconds of a half, with the clock running,
+    /// ends the half on the same terms a defensive foul that conserves time does — unless
+    /// the defence still has a timeout, or the offence would rather play on. The defence
+    /// here has spent its second-half timeouts, so the excess timeout is charged to it
+    /// (4-5-4-b) and the leading offence takes the half.
+    @Test(
+        "football · Rule 4-7-3, 4-5-4-b · in the last forty seconds an excess timeout for an injured defender with the clock running ends the half when the defence has no timeouts left and the offence, leading, elects to end it",
+        .tags(.football)
+    )
+    func injuryToADefenderInTheLastFortySecondsEndsTheHalf() {
+        let trace = RulesScenario.injuryToADefenderInTheLastFortySeconds.run()
+        guard let hurt = trace.result.injuries.first, let play = trace[Int(hurt.occurredOn.index)]
+        else {
+            Issue.record("the scenario never hurt anybody")
+            return
+        }
+        let index = Int(hurt.occurredOn.index)
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return
+        }
+        // The clock where the ball was dead, which is where 4-7-3's window is read: the
+        // recorded clock is the previous whistle's, less the interval charged at the snap
+        // when the clock was running into it, less the play's own time.
+        let charged = trace.clockRunning(into: index) == true ? Int(huddle) : 0
+        let deadAt =
+            Int(play.situation.clockRemaining) - charged - Int(play.outcome.clockRunoff)
+        #expect(
+            play.situation.quarter == 4 && deadAt <= 40 && deadAt > 0,
+            "the scenario meant the injury on a down that ended inside the last forty seconds")
+        let elections = play.decisions.compactMap(\.clockElectionValue)
+        #expect(
+            elections.contains(.excessInjuryTimeout),
+            "a defence with no timeouts left is charged an excess timeout, not a team timeout")
+        #expect(
+            elections.contains(.halfEnded),
+            "the offence, leading, ends the half rather than play the last forty seconds")
+        #expect(
+            trace[index + 1] == nil, "the half ended, so there is no snap after it")
+        #expect(
+            trace.result.plays.last?.index == play.index,
+            "the injury timeout ended the game on that play")
+    }
+
+    // MARK: The spike
+
+    /// The scenario's spike and the clock it was snapped on.
+    ///
+    /// A play's recorded situation is the clock at the previous whistle, and the offence's
+    /// interval between downs is charged at the snap when the clock is running, so the
+    /// clock the spike is *snapped* on is the recorded one less that interval — measured
+    /// from the game, never assumed. The two facts a reader of a play-by-play must hold
+    /// together to read a spike at all.
+    private func spikeSnappedOn(
+        _ trace: Trace, expecting seconds: UInt16
+    ) -> (index: Int, play: PlayRecord, snappedOn: UInt16)? {
+        guard
+            let spike = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .spike
+            })
+        else {
+            Issue.record("the scenario never spiked the ball")
+            return nil
+        }
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return nil
+        }
+        guard trace.clockRunning(into: spike.index) == true else {
+            Issue.record("the clock was not running into the spike, so there was nothing to stop")
+            return nil
+        }
+        let snappedOn = spike.play.situation.clockRemaining - huddle
+        guard snappedOn == seconds else {
+            Issue.record(
+                "the scenario meant the spike snapped with \(seconds) left; it was snapped with \(snappedOn)"
+            )
+            return nil
+        }
+        return (spike.index, spike.play, snappedOn)
+    }
+
+    /// A quarterback who takes the snap and throws the ball straight into the ground stops
+    /// the clock legally (8-2-1 Item 3): the pass is incomplete, and an incomplete pass
+    /// stops the clock until the snap (4-4-f, 4-3-2). So the down after a spike is snapped
+    /// on the clock the spike left — one second later, that being what the spike itself
+    /// takes — and none of the offence's interval between downs is charged to it.
+    ///
+    /// What is charged *before* the spike is a different question with a different answer:
+    /// the clock was running from the play before, nothing had stopped it, and the seconds
+    /// the offence spends getting to the line come off it.
+    ///
+    /// The one second is staged input, not a claim about the resolver: a scenario dictates
+    /// each play's outcome, so `clockRunoff == 1` here reads `ScriptedGame`'s own spike
+    /// constant and never `CrudeResolver`'s, which carries the same second separately. What
+    /// this asserts is the clock the rules layer runs on a spike, given that a spike took a
+    /// second — not that a second is what a spike takes.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3, 4-3-2 · a spike is an incomplete forward pass thrown to stop the clock, so it costs its own second and the next snap comes at the clock it left",
+        .tags(.football)
+    )
+    func spikeCostsItsOwnSecondAndStopsTheClock() {
+        let trace = RulesScenario.spikeSnappedAtTwentySeconds.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 20) else { return }
+        #expect(spike.play.outcome.endedIn == .incomplete, "a spike is an incomplete forward pass")
+        #expect(
+            spike.play.outcome.clockRunoff == 1,
+            "the snap and the throw into the ground are one second of game clock")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 19,
+            "the down after the spike is snapped on the clock the spike left")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false, "and the clock is dead until that snap")
+    }
+
+    /// A spike on third down inside ten seconds is an ordinary call, and the down after it
+    /// is an ordinary down: the clock the spike stopped is the clock the fourth down is
+    /// snapped on, and the period does not end on it.
+    @Test(
+        "football · Rule 4-4-f, 8-2-1 Item 3 · a third-down spike snapped with five seconds left does not end the period: the fourth down is snapped a second later",
+        .tags(.football)
+    )
+    func spikeAtFiveSecondsIsFollowedByTheNextDown() {
+        let trace = RulesScenario.spikeSnappedAtFiveSecondsOnThirdDown.run()
+        guard let spike = spikeSnappedOn(trace, expecting: 5) else { return }
+        #expect(spike.play.situation.down == .third, "the scenario meant a third-down spike")
+        trace.expectPlay(
+            spike.index + 1, quarter: 4, clock: 4, down: .fourth,
+            "the fourth down is played, one second after the spike was snapped")
+        trace.expectPlay(
+            spike.index + 1, clockRunning: false,
+            "and it is snapped on a clock the spike stopped, not one still running into it")
+    }
+
     // MARK: The kickoff that opens a half
 
     /// The play that ended the first half between downs: the one somebody was hurt on,
@@ -2078,7 +2362,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.onsideKickRecovered.run()
         guard
             let onside = trace.first(where: {
-                CrudePlaybook.family(of: $0.calls.offense.design) == .onsideKick
+                $0.calls.offense.concept == .onsideKick
             })
         else {
             Issue.record("the trailing side never kicked onside")
@@ -2219,5 +2503,159 @@ struct RulesConformanceTests {
             try1.index + 1, kind: .extraPoint, possession: scorer, ballOn: 25,
             "the try is repeated from the enforced spot")
         trace.expectScore(scorer, 6, "the touchdown alone until the try is made")
+    }
+
+    // MARK: A foul on a takeaway, and a kickoff the kickers carry in
+
+    /// A run is a run until somebody else has the ball. The basic spot for a foul during
+    /// a run followed by a change of possession is the spot where possession was lost
+    /// (14-3-5-b), and a defensive foul reverts the ball to the offence before
+    /// enforcement (14-4-3-a); unnecessary roughness by the defence is fifteen and an
+    /// automatic first down (12-2-8). The offence snapped from its 35 — where a kickoff
+    /// touchback leaves it (6-1-5) — ran to its 45 with a defender flagged on the way,
+    /// and lost the ball there, so it gets it back fifteen past its own 45, at the
+    /// opponents' 40, first and ten. Not fifteen past the 35, which is what enforcing
+    /// from the previous spot gives.
+    ///
+    /// The gain is what makes the fumble the spot. A fumble *behind* the line is the
+    /// exception in 14-3-6, and `defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
+    /// below is that case; this one does not reach it.
+    ///
+    /// Written from the book, but green the day it was written: it pins the engine's
+    /// answer here rather than having driven it.
+    @Test(
+        "football · Rule 14-3-5-b, 14-4-3-a, 12-2-8 · a defensive personal foul during a run that ends in a fumble lost gives the ball back to the offence fifteen yards past the spot of the fumble, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble() {
+        let trace = RulesScenario.roughnessByTheDefenseOnARunThatEndsInAFumbleLost.run()
+        guard let strip = trace[1] else {
+            Issue.record("the script never put the ball on the ground")
+            return
+        }
+        #expect(strip.situation.ballOn == 65, "the scenario meant the snap from the own 35")
+        #expect(strip.outcome.possessionLostAt == 55, "stripped at the own 45")
+        trace.expectPlay(1, kind: .rush, endedIn: .fumbleLost)
+        trace.expectPlay(
+            2, possession: strip.situation.possession, down: .first, distance: 10, ballOn: 40,
+            "the offence's ball, fifteen past where it lost possession, first and ten")
+    }
+
+    /// The same flag on a pass is a different rule, and a narrower one than the article's
+    /// opening sentence. Until a forward pass from behind the line is over, a flag on
+    /// either side comes off the previous spot (14-4-5, and the same sentence as 8-6-1),
+    /// and the down does not turn into a running play until somebody catches the ball — so
+    /// the catch is never the basic spot for a foul that came before it. But a *personal*
+    /// foul by the defence before the pass is completed has its own answer: the offence
+    /// gets the better of two spots — where it snapped, or where the ball was dead
+    /// (14-4-5-d, and the same sentence as 8-6-1-d). An interception is not a completion
+    /// (8-1-3), which is what puts a foul that preceded it inside that exception rather
+    /// than outside it.
+    ///
+    /// Here the two arms differ and the previous spot is the better of them: the
+    /// interceptor was dropped at the offence's own 25, behind where it snapped. So the
+    /// offence gets its own 35 plus fifteen, at midfield, first and ten (12-2-8), and
+    /// the interception is wiped out.
+    /// `defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot` below is the
+    /// other arm, where the dead-ball spot wins.
+    @Test(
+        "football · Rule 14-4-5-d, 8-6-1-d, 12-2-8 · a defensive personal foul before a forward pass is intercepted and returned behind the previous spot is enforced from the previous spot, so the offence keeps the ball fifteen yards past where it snapped, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseBeforeAnInterception.run()
+        guard let pick = trace[1] else {
+            Issue.record("the script never threw the interception")
+            return
+        }
+        #expect(pick.situation.ballOn == 65, "the scenario meant the snap from the own 35")
+        #expect(pick.outcome.possessionLostAt == 55, "picked off at the own 45")
+        trace.expectPlay(1, kind: .pass, endedIn: .intercepted)
+        trace.expectPlay(
+            2, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 50,
+            "the offence's ball, fifteen past the previous spot, first and ten")
+    }
+
+    /// The exception the sack makes common. A basic spot behind the line puts a defensive
+    /// foul back on the previous spot, and where the foul itself was makes no difference:
+    /// behind the line or beyond it, it comes off the snap (14-3-6, the exception for
+    /// fouls by the defence), and 14-4-6-b says the same of a foul during the fumble. The
+    /// offence snapped from its own 40 and the quarterback was stripped six yards behind
+    /// it, at his own 34; unnecessary roughness by the defence is fifteen and an automatic
+    /// first down (12-2-8). So the walk-off is from the own 40 — first and ten at the
+    /// opponents' 45 — and not from the own 34, which would take the sack's six yards off
+    /// the offence a second time on its way to the opponents' 49.
+    @Test(
+        "football · Rule 14-3-6 Exception 1, 14-4-6-b, 12-2-8 · a defensive personal foul on a sack that ends in a fumble lost behind the line is enforced from the previous spot and not from the fumble, and a first down",
+        .tags(.football)
+    )
+    func defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseOnAStripSack.run()
+        guard let strip = trace[2] else {
+            Issue.record("the script never put the ball on the ground")
+            return
+        }
+        #expect(strip.situation.ballOn == 60, "the scenario meant the snap from the own 40")
+        #expect(strip.outcome.possessionLostAt == 66, "stripped six yards behind the line")
+        trace.expectPlay(2, kind: .sack, endedIn: .fumbleLost)
+        trace.expectPlay(
+            3, possession: strip.situation.possession, down: .first, distance: 10, ballOn: 45,
+            "the offence's ball, fifteen past the previous spot, first and ten")
+    }
+
+    /// The other arm of 14-4-5-d. A personal foul by the defence before a forward pass
+    /// thrown from behind the line is completed is walked off from the better of two spots
+    /// for the offence — where it snapped, or where the ball was dead (14-4-5-d, and the
+    /// same sentence as 8-6-1-d); an interception is not a completion (8-1-3), so a foul that
+    /// preceded it is inside that exception. Here the dead-ball spot is the better of the
+    /// two: the offence snapped at the opponents' 45, the pass was picked off at the
+    /// opponents' 20, and the interceptor was dropped at the opponents' 30, still fifteen
+    /// yards nearer the goal line than the snap. So the fifteen comes off the opponents'
+    /// 30 — first and ten at the opponents' 15 — and not off the opponents' 45.
+    @Test(
+        "football · Rule 14-4-5-d, 8-6-1-d, 8-1-3 · a defensive personal foul before a forward pass is intercepted and downed downfield of the snap is enforced from the dead-ball spot, which is the better of the two spots the offence may have",
+        .tags(.football)
+    )
+    func defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot() {
+        let trace = RulesScenario.roughnessByTheDefenseBeforeADeepInterception.run()
+        guard let pick = trace[2] else {
+            Issue.record("the script never threw the interception")
+            return
+        }
+        #expect(pick.situation.ballOn == 45, "the scenario meant the snap from the opponents' 45")
+        #expect(pick.outcome.possessionLostAt == 20, "picked off at the opponents' 20")
+        #expect(pick.outcome.finalSpot == 30, "and dropped at the opponents' 30")
+        trace.expectPlay(2, kind: .pass, endedIn: .intercepted)
+        trace.expectPlay(
+            3, possession: pick.situation.possession, down: .first, distance: 10, ballOn: 15,
+            "the offence's ball, fifteen past the dead-ball spot, first and ten")
+    }
+
+    /// Any player of either team may recover a fumble and advance it (8-7-3 Item 1), and
+    /// a runner carrying the ball into the opponents' end zone scores (11-2-1) — so a
+    /// kickoff fumbled by the returner and carried in by the kicking team is the kicking
+    /// team's touchdown, its try (11-3-1), and the receivers of that try receive the
+    /// kickoff after it (11-3-4). The record used to read every kickoff touchdown as the
+    /// receivers', so this scored for the wrong side and gave them the try.
+    @Test(
+        "football · Rule 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4 · a kickoff fumbled by the returner and carried in by the kicking team is the kicking team's touchdown, its try, and its kickoff",
+        .tags(.football)
+    )
+    func kickoffFumbledAndCarriedInIsTheKickersTouchdown() {
+        let trace = RulesScenario.kickoffFumbledAndReturnedByTheKickers.run()
+        guard let kicker = trace[0]?.situation.possession else {
+            Issue.record("no opening kickoff")
+            return
+        }
+        let receiver = trace.opponent(of: kicker)
+        trace.expectPlay(0, kind: .kickoff, endedIn: .touchdown)
+        trace.expectPlay(
+            1, kind: .extraPoint, possession: kicker, "the try belongs to the side that scored")
+        trace.expectPlay(2, kind: .kickoff, possession: kicker, "and it kicks off again")
+        trace.expectPlay(3, kind: .rush, possession: receiver, "to the side it took the ball from")
+        trace.expectScore(kicker, 7)
+        trace.expectScore(receiver, 0)
+        #expect(trace[0]?.outcome.pointsScored == 6, "six points on the kickoff's own record")
+        #expect(trace[0]?.outcome.scoring == .touchdown, "paid to the side that had the ball")
     }
 }

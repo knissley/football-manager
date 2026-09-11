@@ -321,6 +321,47 @@ enum SlotLayout {
     static let specialist = PlayerSlot(0)
 }
 
+extension PlayConcept {
+
+    /// The unit the offence sends out for this concept.
+    ///
+    /// A kick is not eleven starters plus a placeholder for the ball: it is a different
+    /// eleven, and the crude engine had only ever fielded the one. Here rather than in
+    /// `FMCore` because the slots are this engine's arrangement, and the spatial engine
+    /// places bodies by formation.
+    ///
+    /// **Written as a switch over every case with no `default`, deliberately.** A kicking
+    /// concept that falls through to the scrimmage layout puts the wrong eleven on the
+    /// field and says nothing about it, and the snap counts then record a kickoff as a
+    /// snap for the starting offence. An exhaustive switch turns the next concept added
+    /// into a build failure here instead.
+    func offenseLayout(_ group: PersonnelGroup) -> [(Position, Int)] {
+        switch self {
+        case .punt: return SlotLayout.puntUnit
+        case .fieldGoal, .extraPoint: return SlotLayout.fieldGoalUnit
+        case .kickoff, .onsideKick, .deepKickoff: return SlotLayout.kickoffUnit
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike, .twoPointPass, .twoPointRun:
+            return SlotLayout.offense(group)
+        }
+    }
+
+    /// The return side. A crude engine does not model a return, but the men who have to
+    /// be out there still take the snap — a punt is a play eleven of them were on the
+    /// field for, and their snap counts should say so.
+    ///
+    /// Exhaustive for the same reason as the offence side above.
+    func defenseLayout(_ package: DefensivePackage) -> [(Position, Int)] {
+        switch self {
+        case .punt, .fieldGoal, .extraPoint, .kickoff, .onsideKick, .deepKickoff:
+            return SlotLayout.returnUnit
+        case .insideRun, .outsideRun, .quickPass, .mediumPass, .deepPass, .screen,
+            .playAction, .kneel, .spike, .twoPointPass, .twoPointRun:
+            return SlotLayout.defense(package)
+        }
+    }
+}
+
 extension Lineup {
 
     /// Fill the field from both rotations.
@@ -329,15 +370,15 @@ extension Lineup {
     /// there and his backup sometimes is. Over a season that is what makes snap counts
     /// and backup statistics real rather than a starter taking everything.
     static func onField(
-        _ context: PlayContext, family: PlayFamily, situation: Situation,
+        _ context: PlayContext, concept: PlayConcept, situation: Situation,
         random: inout SplittableRandom
     ) -> Lineup {
         var personnel = Lineup()
         fill(
-            &personnel, layout: family.offenseLayout(situation.offensePersonnel),
+            &personnel, layout: concept.offenseLayout(situation.offensePersonnel),
             from: context.offenseRotation, players: context.players, random: &random)
         fill(
-            &personnel, layout: family.defenseLayout(situation.defensePackage),
+            &personnel, layout: concept.defenseLayout(situation.defensePackage),
             from: context.defenseRotation, players: context.players, random: &random)
         return personnel
     }
@@ -367,12 +408,23 @@ extension Lineup {
             }
             guard !candidates.isEmpty else { continue }
 
-            // Weighted by snap share, so the man who plays most usually plays. A
-            // depleted group falls through to whoever is left, which is the point of
-            // next-man-up.
-            let weights = candidates.map { max(0.01, $0.snapShare) }
-            let index = random.weightedIndex(weights) ?? 0
-            let chosen = candidates[index]
+            let chosen: DepthChart.Rotation
+            switch RotationProfile.kind(for: position) {
+            case .starterOnly:
+                // No draw at all: the man highest on the chart who is still available
+                // takes it. The quarterback, the five line spots and the specialists come
+                // off for an injury and for nothing else, and drawing them against a share
+                // made the backup's share a per-snap chance — a substitution mid-drive,
+                // undone on the next snap, with the starter perfectly fit.
+                chosen = candidates.min { $0.depth < $1.depth } ?? candidates[0]
+            case .rotates:
+                // Weighted by snap share, so the man who plays most usually plays. A
+                // depleted group falls through to whoever is left, which is the point of
+                // next-man-up.
+                let weights = candidates.map { max(0.01, $0.snapShare) }
+                let index = random.weightedIndex(weights) ?? 0
+                chosen = candidates[index]
+            }
             used.insert(chosen.player)
             personnel.place(chosen.player, position: position, at: slot)
         }

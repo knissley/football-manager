@@ -43,6 +43,15 @@ public protocol PlayCaller: Sendable {
     /// it and trailing by five means it cuts the lead to a field goal.
     func goesForTwo(situation: Situation, classified: SituationClass) -> Bool
 
+    /// Whether the two-point try is carried rather than thrown.
+    ///
+    /// A separate question from `goesForTwo`, and asked after the offence has sent out
+    /// the grouping it wants: 11-3-1 puts the try in play two yards out for a try by pass
+    /// **or run**, and which of the two it is follows from who is on the field.
+    func runsTheTwoPointTry(
+        situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> Bool
+
     /// Whether to keep the kickoff short and fight for it.
     ///
     /// A preference, not a permission: whether the book allows a declaration at all is
@@ -113,7 +122,7 @@ public protocol PlayCaller: Sendable {
     /// This is the first half of the sport's oldest chess match: personnel is public
     /// information, and the defence answers it.
     func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup
 
@@ -154,7 +163,7 @@ extension PlayCaller {
 
     /// The conventional groupings, by what the play is asking for.
     public func personnel(
-        for family: PlayFamily, situation: Situation, classified: SituationClass,
+        for concept: PlayConcept, situation: Situation, classified: SituationClass,
         random: inout SplittableRandom
     ) -> PersonnelGroup {
         // Short yardage and the goal line are where the extra bodies go — though the
@@ -230,6 +239,19 @@ extension PlayCaller {
             // otherwise.
             return classified.isMustPass ? .nickel : .base
         }
+    }
+
+    /// The conventional split. Rather more than a third of conversions are runs, and a
+    /// team that sent out a heavy grouping to snap it from the two did so for a reason.
+    ///
+    /// A modelling convention, not a sourced rate: `docs/reference/calibration-sources.md`
+    /// bands how often a team goes for two and how often it converts, and neither of
+    /// those says how it went about it.
+    public func runsTheTwoPointTry(
+        situation: Situation, classified: SituationClass, random: inout SplittableRandom
+    ) -> Bool {
+        let heavy = situation.offensePersonnel.wideReceivers <= 1
+        return random.nextBool(probability: heavy ? 0.62 : 0.30)
     }
 
     /// Receive, which is what nearly every captain does with the choice.
@@ -327,6 +349,58 @@ extension PlayCaller {
     }
 }
 
+/// What a punt is *for*, decided before anybody kicks it.
+///
+/// Intent and execution are two things and the engine had only the second: every punt was
+/// struck at full distance, so from inside the opponent's 45 the ball reached the end
+/// zone, 11-6-2-c made it a touchback and 9-5-1 Note (a) handed the receivers the 20 —
+/// four times in five, from the one part of the field where a punter is paid for his
+/// touch rather than his leg.
+///
+/// It lives with the play caller because it is a call rather than a physical fact, and it
+/// is a pure decision rather than a `PlayCaller` method because `Calls` is the only
+/// channel from a caller to a resolver and it is stored by value in every `PlayRecord`
+/// ([ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md)). A real caller at M6
+/// chooses a punt concept the way it chooses any other design.
+public enum PuntPlan: Sendable, Hashable, CaseIterable {
+
+    /// Nothing to aim at. The goal line is further away than the punter can reach, so
+    /// every yard he hits it is a yard of field position.
+    case maximumDistance
+    /// Land it short of the goal line and let the coverage down it.
+    case pooch
+    /// Aim inside the 5. The reward is a ball downed on the doorstep; the risk is the
+    /// touchback that gives twenty of it straight back (9-5-1 Note a).
+    case coffinCorner
+
+    /// Where the ball is meant to come down, as yards from the receiving team's goal
+    /// line, or `nil` when the plan is simply to hit it as far as it will go.
+    public var aimedAt: ClosedRange<Int>? {
+        switch self {
+        case .maximumDistance: return nil
+        case .pooch: return 5...10
+        case .coffinCorner: return 3...5
+        }
+    }
+
+    /// The touch a caller wants to see before it asks for the corner. Below it the corner
+    /// is a touchback with extra steps.
+    public static let coffinCornerTouch = 78.0
+
+    /// The call, given where the ball is — `ballOn` is yards from the receiving team's
+    /// goal — and what this punter's touch is worth today.
+    public static func chosen(from ballOn: UInt8, touch: Double) -> PuntPlan {
+        // Inside the opponent's 45 the end zone is in range, so the punt is aimed.
+        // Outside it, the yards are worth more than the risk and he simply hits it —
+        // which is not quite the same as saying he cannot reach the end zone: a strong
+        // leg from the opponent's 48 can still overkick it into a touchback, and does,
+        // about three times in a hundred punts.
+        guard ballOn <= 45 else { return .maximumDistance }
+        if ballOn >= 35, touch >= coffinCornerTouch { return .coffinCorner }
+        return .pooch
+    }
+}
+
 /// A caller with no memory, no gameplan and no opinion about the opponent.
 ///
 /// The floor from [play-calling.md](../../../../docs/play-calling.md)'s benchmark: any
@@ -363,16 +437,16 @@ public struct BaselineCaller: PlayCaller {
         random: inout SplittableRandom
     ) -> OffensiveCall {
         if shouldKneel(situation, classified, context) {
-            return CrudePlaybook.call(.kneel, tempo: .bleedClock)
+            return OffensiveCall(concept: .kneel, tempo: .bleedClock)
         }
         if shouldSpike(situation, classified, context) {
-            return CrudePlaybook.call(.spike, tempo: .hurryUp)
+            return OffensiveCall(concept: .spike, tempo: .hurryUp)
         }
         if situation.down == .fourth, let kick = fourthDown(situation, classified, context) {
-            return CrudePlaybook.call(kick)
+            return OffensiveCall(concept: kick)
         }
-        return CrudePlaybook.call(
-            family(for: classified, random: &random), tempo: tempo(for: classified))
+        return OffensiveCall(
+            concept: concept(for: classified, random: &random), tempo: tempo(for: classified))
     }
 
     /// Kick, punt, or go. Returns `nil` when the answer is to run a play.
@@ -382,7 +456,7 @@ public struct BaselineCaller: PlayCaller {
     /// hiring a coordinator matter.
     private func fourthDown(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
-    ) -> PlayFamily? {
+    ) -> PlayConcept? {
         let kickLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
 
         // A long kick is worth attempting when the alternative is nothing — the end of a
@@ -424,6 +498,16 @@ public struct BaselineCaller: PlayCaller {
     ) -> Bool {
         let ballOn = Int(situation.ballOn)
 
+        // Fourth and goal from inside the three is a yard or so for a touchdown against
+        // the safest three points in the sport, and taking the kick every single time is
+        // what made a third of this caller's field goal attempts chip shots — against a
+        // sourced 19.1-25.3% of attempts inside thirty yards (2023-24, nflverse
+        // play-by-play; `row:fieldGoalAttemptsUnder30`).
+        if classified.downAndDistance == .goalToGo && ballOn <= 3 {
+            // Unless the lead and the clock make three points worth more than four.
+            return !(inRange && classified.isClockBurn)
+        }
+
         // Backed up inside your own thirty, a stop is worth more to them than the down is
         // to you, whatever the distance.
         if ballOn > 70 { return false }
@@ -445,13 +529,21 @@ public struct BaselineCaller: PlayCaller {
         }
     }
 
-    private func family(
+    private func concept(
         for situation: SituationClass, random: inout SplittableRandom
-    ) -> PlayFamily {
+    ) -> PlayConcept {
         // Short yardage is a run unless the clock says otherwise; long yardage is a
         // throw. Everything in between leans on the down.
-        if situation.isMustPass {
-            return passFamily(for: situation, random: &random)
+        //
+        // The clock shrinks the menu further than any distance does, and it outranks the
+        // down: forty seconds behind by four, third and two is a throw. Never all the
+        // way to nothing, though. The classification is a description of the moment, and
+        // a caller that reads it as an instruction — no run at all, ever, from here — is
+        // one a defence can play the pass against for free.
+        if situation.isMustPass && situation.time.isTwoMinute {
+            return random.nextBool(probability: 0.05)
+                ? (random.nextBool(probability: 0.62) ? .insideRun : .outsideRun)
+                : passConcept(for: situation, random: &random)
         }
         if situation.downAndDistance.isShortYardage {
             // Short yardage on the goal line is not the same as short yardage at
@@ -466,28 +558,39 @@ public struct BaselineCaller: PlayCaller {
                 ? (random.nextBool(probability: 0.65) ? .insideRun : .outsideRun) : .quickPass
         }
 
+        // A lean per bucket, and **every bucket is nonzero**: the sport runs on third and
+        // eight often enough that a defence has to keep a body in the box for it, and a
+        // caller whose third-and-long share is exactly zero is a caller a tendency table
+        // can read off a single snap. These are modelling conventions rather than sourced
+        // rates; the run and pass rows in `Tools/simharness` are what grade the balance.
         let runShare: Double
         switch situation.downAndDistance {
         case .firstDown: runShare = 0.61
-        // Near the goal line the field is short and the throw is the higher-value call
-        // more often than a run-first lean suggests. A run-heavy goal line put too many
-        // touchdowns on the ground and left the passing distribution without a mean high
-        // enough to have a tail.
-        case .goalToGo: runShare = 0.38
-        case .secondShort, .thirdShort, .fourthShort: runShare = 0.70
+        case .secondShort: runShare = 0.70
         case .secondMedium: runShare = 0.53
-        case .secondLong, .thirdMedium, .thirdLong, .fourthLong: runShare = 0.22
+        case .secondLong: runShare = 0.22
+        // Third and five is a down the sport runs on constantly; third and eight is one
+        // it hardly ever does, and the gap between them is the whole point of splitting
+        // the bucket at six.
+        case .thirdMedium, .fourthMedium: runShare = 0.20
+        case .thirdLong, .fourthLong: runShare = 0.08
+        // Unreachable. `isShortYardage` is these three buckets exactly, and the branch
+        // above answers all of them and returns; the switch has to be exhaustive, so
+        // they carry the same lean that branch does rather than a second number nobody
+        // can reach. A goal-line lean that disagreed with it sat here for a while and
+        // could be tuned all day without moving a single snap.
+        case .goalToGo, .thirdShort, .fourthShort: runShare = 0.72
         }
 
         if random.nextBool(probability: runShare) {
             return random.nextBool(probability: 0.62) ? .insideRun : .outsideRun
         }
-        return passFamily(for: situation, random: &random)
+        return passConcept(for: situation, random: &random)
     }
 
-    private func passFamily(
+    private func passConcept(
         for situation: SituationClass, random: inout SplittableRandom
-    ) -> PlayFamily {
+    ) -> PlayConcept {
         // Desperation throws deep because there is no time for anything else; ordinary
         // downs spread across the tree.
         if situation.isDesperation && situation.field != .redZone {
@@ -511,25 +614,125 @@ public struct BaselineCaller: PlayCaller {
 
     // MARK: - The endgame
 
+    /// The seconds between the snap of a knee and the whistle.
+    ///
+    /// A modelling convention about how long a quarterback takes to go down, not a rule,
+    /// and the same two seconds the resolver charges the play.
+    private static let secondsToTakeAKnee = 2
+
     /// Victory formation: the lead is safe if the clock can be exhausted.
     ///
-    /// Three kneels from first down, each burning the play clock and a couple of seconds
-    /// of live ball — less whatever the defence can claw back with its timeouts. A team
-    /// that kneels a play too early hands the ball back, and one that runs a play it did
-    /// not need to can fumble the game away.
+    /// Every term of the arithmetic is a rule. A knee ends the down in bounds, so the
+    /// clock keeps running and the next snap has to come inside the forty seconds of the
+    /// play clock (2025 rulebook, 4-6-1) — all of which an offence in victory formation
+    /// spends. A charged timeout stops it until the next snap instead (4-3-2), so every
+    /// timeout the defence still holds erases one of those intervals; it has three a half
+    /// (4-5-1 Item 1). And nothing extends a period that expires between downs: 4-8-1
+    /// extends one only while the ball is in play, 4-8-2 only for a foul in the down that
+    /// expired it.
+    ///
+    /// So from this down: one knee per remaining down and one on fourth, an interval
+    /// before each of those snaps after the first, and one more before the snap this
+    /// offence is already standing over if the clock is running into it. The fourth
+    /// down's interval counts because the fourth down is a knee too — see below — and a
+    /// sequence that stopped a down short would hand the ball to a punter with half a
+    /// play clock left on the game clock.
+    ///
+    /// What the count does not do is round anything up. Getting it wrong upwards hands
+    /// the other side the ball; getting it wrong downwards costs one ordinary snap.
+    ///
+    /// Counted this way the decision is monotone, which is what makes a knee stick. The
+    /// clock the next snap faces is exactly what this knee leaves — one interval and one
+    /// knee, or one knee alone if the defence stops the clock — and the count falls by
+    /// exactly as much, so a lead that could be knelt out on first down can still be knelt
+    /// out on second. A count that shrinks faster than the clock kneels twice and then
+    /// runs an ordinary play, which is what a won game gets fumbled away on.
     private func shouldKneel(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
     ) -> Bool {
-        guard classified.score.isLeading, classified.time.isEndgame else { return false }
-        guard situation.down != .fourth else { return false }
+        guard endingIsWorthMoreThanASnap(classified) else { return false }
 
-        let kneelsAvailable = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
-        guard kneelsAvailable > 0 else { return false }
+        // The interval before the snap the offence is standing over runs against the play
+        // clock actually in force — twenty-five from the whistle after a stoppage, forty
+        // from the end of a play, forty again from the whistle after a defensive act that
+        // conserved time (4-6-1, 4-6-2, 4-6-3-b) — and those are not the same length.
+        // Every interval after it runs against the forty from the end of the play,
+        // because a knee is an ordinary play that ends and nothing about it is one of the
+        // stoppages 4-6-2 lists. Counting the first at the second's length is how a caller
+        // kneels on a twenty-five, gets nine seconds less than it counted on, and has to
+        // play the next down after all.
+        //
+        // A clock that starts on the ready rather than at the whistle costs the game clock
+        // the officials' spot less than the play clock says, because the play clock has
+        // not started yet while they set the ball. Count what the *game* clock loses, and
+        // never more: counting high hands the ball over, counting low costs one snap.
+        //
+        // The quantity wanted is whether the *game* clock restarts on the ready, and what
+        // is read is whether the *play* clock does. The two agree everywhere this
+        // arithmetic can be reached, and the coupling is worth stating because nothing
+        // else does. They part company on one ending: a runner out of bounds outside the
+        // late windows leaves the game clock waiting for the ready (4-3-2-a) while the
+        // next snap is against the ordinary forty from the end of the play (4-6-1), so
+        // the game clock loses the spot and the play clock does not — and a spot counted
+        // at zero there would count six seconds high, the direction that hands the ball
+        // over. It cannot arise: kneeling at all needs `time.isTwoMinute`, and inside two
+        // minutes of a half 4-3-2-a-2 and a-3 hold the clock until the snap after a
+        // runner goes out, which is `clockIsRunning == false` and no count at all. Every
+        // other ending that stops the clock on the ready — an enforced penalty — puts the
+        // snap against a clock that starts on the whistle too (4-6-2, 4-6-3), so the two
+        // agree. If the late windows or the play clock after an ending ever move, this is
+        // what moves with them.
+        let inForce = context.playClock
+        let spotting = inForce.startsOnTheReady ? Int(GameClock.readyForPlayDelay) : 0
+        let standing = max(0, Int(inForce.intendedSnap(at: .bleedClock)) - spotting)
+        let ordinary = Int(context.rules.playClockAfterAPlay.intendedSnap(at: .bleedClock))
 
-        let secondsPerKneel = Int(context.rules.playClock) + 2
-        let clawedBack = Int(situation.defenseTimeouts) * secondsPerKneel
-        let burnable = kneelsAvailable * secondsPerKneel - clawedBack
-        return Int(situation.clockRemaining) <= burnable
+        // A knee on fourth down is a turnover on downs — unless the period cannot survive
+        // the play clock in front of it, in which case there is no fourth-down snap to
+        // give away and the knee is the offence standing on the ball while the clock runs
+        // out.
+        guard situation.down != .fourth else {
+            return context.clockIsRunning && Int(situation.clockRemaining) <= standing
+        }
+
+        let knees = Int(Down.fourth.rawValue) - Int(situation.down.rawValue)
+        guard knees > 0 else { return false }
+
+        // A charged timeout erases an interval, since the clock then starts on the next
+        // snap (4-3-2). The longest go first, which is the ordinary ones.
+        let timeouts = Int(situation.defenseTimeouts)
+        let ordinaries = max(0, knees - timeouts)
+        let inHand = context.clockIsRunning && timeouts <= knees ? standing : 0
+        let exhaustible = knees * Self.secondsToTakeAKnee + ordinaries * ordinary + inHand
+        return Int(situation.clockRemaining) <= exhaustible
+    }
+
+    /// Whether a snap can only cost this offence, so that ending the period is the
+    /// better outcome.
+    ///
+    /// Inside two minutes of a half, and no earlier.
+    ///
+    /// The two-minute warning is a stoppage the defence is handed for nothing (2025
+    /// rulebook, 4-4: the clock stops when the Referee signals it), so above it a lead is
+    /// never safe — the warning is a fourth timeout, and one the count below cannot see.
+    /// Kneeling into it also truncates the interval it was counting on, which is how a
+    /// team kneels at 2:01 and then finds it has to play the down after all.
+    ///
+    /// Behind, never: a snap is the only thing that can still change the scoreboard, and
+    /// that goes for the half as much as the game.
+    ///
+    /// Ending the *game* then needs a lead — level, the snap can still win it. Ending the
+    /// *half* is a different question, because the half is not the game and the points
+    /// still count: a team in field goal range plays for them however comfortable the
+    /// lead is, and a knee there throws away three or seven for nothing. What is left is
+    /// a lead with the ball too far out to do anything with before the break, or your own
+    /// goal line right behind you, where the only points a snap can produce are the other
+    /// side's.
+    private func endingIsWorthMoreThanASnap(_ classified: SituationClass) -> Bool {
+        guard classified.time.isTwoMinute, !classified.score.isTrailing else { return false }
+        guard classified.time == .twoMinuteFirstHalf else { return classified.score.isLeading }
+        guard !classified.isFieldGoalRange else { return false }
+        return classified.score.isLeading || classified.field == .ownDeep
     }
 
     /// Throw it at the ground to stop the clock.
@@ -562,9 +765,13 @@ public struct BaselineCaller: PlayCaller {
             return situation.clockRemaining <= 100
         }
 
-        // The defence spends them to get the ball back. `scoreDifferential` is the
-        // offence's, so a positive number means the team without the ball is behind.
-        guard classified.time.isEndgame, situation.scoreDifferential > 0 else { return false }
+        // The defence spends them to get the ball back — in a game it can still win.
+        // `scoreDifferential` is the offence's, so `score.isLeading` means the team
+        // without the ball is the one behind, and three scores down is further than a
+        // timeout can reach: it buys a possession nobody can use, and burning all three
+        // to shorten a loss is not football.
+        guard classified.time.isEndgame, classified.score.isLeading else { return false }
+        guard classified.score != .leadingThreeScores else { return false }
         return situation.clockRemaining <= 200
     }
 

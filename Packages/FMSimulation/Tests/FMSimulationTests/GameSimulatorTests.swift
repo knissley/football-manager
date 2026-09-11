@@ -15,7 +15,8 @@ struct ScriptedResolver: PlayResolver {
     let script: [Outcome]
 
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
         let index = min(callCount.value, script.count - 1)
         callCount.value += 1
@@ -40,15 +41,16 @@ struct ScriptedResolver: PlayResolver {
 /// contradict the outcome ([ADR-0012](../../../../docs/adr/0012-play-resolver-seam.md)).
 struct StalemateResolver: PlayResolver {
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        switch family {
+        let concept = calls.offense.concept
+        switch concept {
         case .kickoff:
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])
@@ -57,7 +59,7 @@ struct StalemateResolver: PlayResolver {
                 Outcome(kind: .fieldGoal, yards: 0, endedIn: .fieldGoalMissed, clockRunoff: 5), []
             )
         default:
-            return (Outcome(kind: family.kind, yards: 1, endedIn: .tackled, clockRunoff: 6), [])
+            return (Outcome(kind: concept.kind, yards: 1, endedIn: .tackled, clockRunoff: 6), [])
         }
     }
 }
@@ -66,15 +68,16 @@ struct StalemateResolver: PlayResolver {
 /// kicking decision exists. A stalemate never leaves its own end and cannot exercise it.
 struct GrinderResolver: PlayResolver {
     func resolve(
-        situation: Situation, calls: Calls, context: PlayContext, random: inout SplittableRandom
+        situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
+        random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let family = CrudePlaybook.family(of: calls.offense.design) ?? .insideRun
-        switch family {
+        let concept = calls.offense.concept
+        switch concept {
         case .kickoff:
             return (Outcome(kind: .kickoff, yards: 0, endedIn: .touchback), [])
         case .extraPoint:
             return (Outcome(kind: .extraPoint, yards: 0, endedIn: .fieldGoalGood), [])
-        case .twoPointConversion:
+        case .twoPointPass, .twoPointRun:
             return (Outcome(kind: .twoPointConversion, yards: 0, endedIn: .incomplete), [])
         case .punt:
             return (Outcome(kind: .punt, yards: 0, endedIn: .touchback, clockRunoff: 6), [])
@@ -89,11 +92,11 @@ struct GrinderResolver: PlayResolver {
             if Int(situation.ballOn) - Int(gain) <= 0 {
                 return (
                     Outcome(
-                        kind: family.kind, yards: Int16(situation.ballOn), endedIn: .touchdown,
+                        kind: concept.kind, yards: Int16(situation.ballOn), endedIn: .touchdown,
                         clockRunoff: 6), []
                 )
             }
-            return (Outcome(kind: family.kind, yards: gain, endedIn: .tackled, clockRunoff: 6), [])
+            return (Outcome(kind: concept.kind, yards: gain, endedIn: .tackled, clockRunoff: 6), [])
         }
     }
 }
@@ -253,7 +256,7 @@ struct GameSimulatorTests {
             for (index, play) in plays.enumerated() {
                 // Asked of the call rather than the outcome: a flag before the kick is a
                 // `penaltyOnly` play that is still the kicking sequence.
-                let called = CrudePlaybook.family(of: play.calls.offense.design)
+                let called = play.calls.offense.concept
                 if index > 0, play.situation.quarter != plays[index - 1].situation.quarter,
                     rules.periodResumesWithKickoff(quarter: play.situation.quarter)
                 {
@@ -447,13 +450,10 @@ struct GameSimulatorTests {
         for seed in UInt64(1)...4 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
             for play in result.plays {
-                guard let family = CrudePlaybook.family(of: play.calls.offense.design) else {
-                    Issue.record("play \(play.index) referenced a design outside the playbook")
-                    continue
-                }
+                let concept = play.calls.offense.concept
                 #expect(
-                    play.outcome.kind == family.kind,
-                    "called \(family) and resolved \(play.outcome.kind)")
+                    play.outcome.kind == concept.kind,
+                    "called \(concept) and resolved \(play.outcome.kind)")
             }
         }
     }
@@ -462,17 +462,15 @@ struct GameSimulatorTests {
     /// until an outcome-matches-the-call test surfaced it.
     @Test("The caller punts, kicks and goes for it in the right places", .tags(.unit))
     func fourthDownDecisions() {
-        var families: Set<PlayFamily> = []
+        var concepts: Set<PlayConcept> = []
         for seed in UInt64(1)...8 {
             let result = simulate(GrinderResolver(), setup(seed: seed))
             for play in result.plays where play.situation.down == .fourth {
-                if let family = CrudePlaybook.family(of: play.calls.offense.design) {
-                    families.insert(family)
-                }
+                concepts.insert(play.calls.offense.concept)
             }
         }
-        #expect(families.contains(.punt), "never punted in eight games")
-        #expect(families.contains(.fieldGoal), "never attempted a field goal")
+        #expect(concepts.contains(.punt), "never punted in eight games")
+        #expect(concepts.contains(.fieldGoal), "never attempted a field goal")
     }
 
     /// Nobody kicks a seventy-yarder. The baseline's range is flat and generous; a real
@@ -483,7 +481,7 @@ struct GameSimulatorTests {
         for seed in UInt64(1)...8 {
             let result = simulate(GrinderResolver(), setup(seed: seed))
             for play in result.plays
-            where CrudePlaybook.family(of: play.calls.offense.design) == .fieldGoal {
+            where play.calls.offense.concept == .fieldGoal {
                 let length = rules.fieldGoalDistance(ballOn: play.situation.ballOn)
                 #expect(
                     length <= BaselineCaller.maximumFieldGoal,
@@ -493,23 +491,42 @@ struct GameSimulatorTests {
     }
 
     /// The situational vocabulary is shared, so a caller and a tendency table mean the
-    /// same thing by "must pass". If the caller ran on those downs it would be reading
-    /// something else.
-    @Test("The caller throws when the situation says it must", .tags(.unit))
-    func mustPassIsHonoured() {
+    /// same thing by "third and long". What the caller does with it is a *lean*.
+    ///
+    /// Rewritten: this used to assert that the caller ran **zero** times on a must-pass
+    /// down, which asserted the bug rather than the sport. The classification decides
+    /// nothing; a caller with literally no run in it on third and eight is one a defence
+    /// can play the pass against for free, and the sport draws from that bucket every
+    /// week. The ceiling here is a modelling convention rather than a sourced band — the
+    /// sourced run and pass rows in `Tools/simharness` are what grade the balance — so
+    /// this is a contract on the caller, not a football claim.
+    @Test(
+        "contract · third and seven or more is a lean and not a law: the baseline throws the great majority of them and still runs some",
+        .tags(.contract)
+    )
+    func thirdAndLongIsALeanNotALaw() {
         var passes = 0
         var runs = 0
         for seed in UInt64(1)...6 {
             let result = simulate(StalemateResolver(), setup(seed: seed))
-            for play in result.plays where SituationClass(play.situation).isMustPass {
-                guard let family = CrudePlaybook.family(of: play.calls.offense.design),
-                    family.isRun || family.isPass
+            for play in result.plays {
+                // Ordinary third and longs. The endgame is its own question — a leading
+                // team runs on third and twelve on purpose, to keep the clock moving —
+                // and it is `isClockBurn` that answers it.
+                let classified = SituationClass(play.situation)
+                let concept = play.calls.offense.concept
+                guard classified.downAndDistance == .thirdLong, !classified.time.isEndgame,
+                    concept.isRun || concept.isPass
                 else { continue }
-                if family.isPass { passes += 1 } else { runs += 1 }
+                if concept.isPass { passes += 1 } else { runs += 1 }
             }
         }
-        #expect(passes > 0)
-        #expect(runs == 0, "ran \(runs) times on a must-pass down")
+        let snaps = passes + runs
+        #expect(snaps > 0, "six games and not one third and seven or more")
+        #expect(runs > 0, "never ran on any of \(snaps) of them")
+        #expect(
+            Double(runs) / Double(snaps) < 0.15,
+            "ran \(runs) of \(snaps) third and longs")
     }
 
     // MARK: - Overtime
@@ -537,5 +554,28 @@ struct GameSimulatorTests {
             regular.plays.contains { $0.situation.quarter > 5 } == false,
             "the period is never extended: one, and no more")
         #expect(regular.isTie, "level at the end of it, the game is a tie")
+    }
+
+    /// The defence on the field and the defence the call names are the same eleven.
+    ///
+    /// [ADR-0010](../../../../docs/adr/0010-plays-designs-and-calls.md) holds both calls
+    /// by value in the record precisely so a reader years later can ask what was called;
+    /// a record whose call says nickel while the situation says base cannot answer the
+    /// question at all. The preset calls each carried their own package label and the
+    /// situation carried the substitution the caller actually made, so the two disagreed
+    /// on about half the snaps in a game.
+    @Test(
+        "The package the defence has on the field is the package the call names", .tags(.contract))
+    func theCallAndTheFieldAgreeOnThePackage() {
+        var mismatches = 0
+        var checked = 0
+        for seed in UInt64(1)...40 {
+            for play in TestWorld.game(seed: seed, game: GameID(seed)).plays {
+                checked += 1
+                if play.calls.defense.package != play.situation.defensePackage { mismatches += 1 }
+            }
+        }
+        #expect(checked > 1_000, "only \(checked) snaps to check")
+        #expect(mismatches == 0, "\(mismatches) of \(checked) snaps disagreed about the package")
     }
 }

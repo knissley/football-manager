@@ -66,10 +66,11 @@ extension Rules {
     /// off against it from the spot its family names — the previous spot, the spot of
     /// the foul, or the dead-ball spot with the gain counting — and the possessor keeps
     /// the ball. A foul by the team that took the ball away during the play gives it
-    /// back (14-4-3-a, 8-6-1-d), and a personal foul by the team that lost it leaves
-    /// the new possessor in possession, walked off from the dead-ball spot in its own
-    /// frame (14-4-3-b). Half the distance is measured from whichever spot the foul is
-    /// enforced from (14-2-1).
+    /// back (14-4-3-a, 8-6-1-d), from the basic spot on a run and from the better of the
+    /// previous and dead-ball spots on a pass, and a personal foul by the team that lost
+    /// it leaves the new possessor in possession, walked off from the dead-ball spot in
+    /// its own frame (14-4-3-b). Half the distance is measured from whichever spot the
+    /// foul is enforced from (14-2-1).
     public func enforce(
         _ penalty: PenaltyRecord,
         on situation: Situation,
@@ -168,9 +169,21 @@ extension Rules {
             guard !offenderScored else { return nil }
             return penalty.foul.isPersonalOrUnsportsmanlike ? .theTry : nil
         case .extraPoint, .twoPointConversion:
-            // Every foul by the defending team on a try goes on the kickoff (11-3-3
-            // Item 4-a), not only the personal ones. The scoring team's own live-ball
-            // foul brings the try back instead (Item 3-a), which is not a deferral.
+            // A foul by the defending team on a try has its distance penalty assessed on
+            // the ensuing kickoff — every foul, not only the personal ones (11-3-3
+            // Item 4-a). **Except defensive pass interference**, which the article's own
+            // exception makes a spot foul instead and sends the reader to Rule 8 Section
+            // 5 for. The scoring team's live-ball foul brings the try back (Item 3-a),
+            // which is not a deferral.
+            //
+            // **The exception has no branch here, because the engine cannot draw that
+            // foul on a try and an unreachable branch is untested code.** Two numbers put
+            // it out of reach, and they live in two other files: a try's route is fixed
+            // at 1 yard deep in the crude resolver's pass path — the mutation that would
+            // deepen it is guarded on the play not being a try — and interference is only
+            // called from a route depth of 10 or more. Raise the first or lower the
+            // second and this line starts sending a spot foul to the free kick, which is
+            // not what the article says; the coverage model is where that would happen.
             if offenderScored && !afterTheWhistle { return nil }
             return .theFreeKick
         case .fieldGoal, .safety:
@@ -315,10 +328,47 @@ extension Rules {
                 // (12-2-8, 12-2-10, 12-2-11, 12-2-15, 12-2-16, 12-3-1).
                 awardsFirstDown = true
                 if lostDuringThePlay {
-                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d). The spot
-                    // where possession was lost is not in the record, so the previous
-                    // spot stands in for it.
-                    (ballOn, moved) = walk(from: previous, yards: yards, towardOpponentGoal: true)
+                    // The ball reverts to the offence (14-4-3-a, 8-6-1-d). Where it is
+                    // walked off from depends on what kind of play the foul was during.
+                    //
+                    // A *run* is measured from the takeaway: a run followed by a change of
+                    // possession has the spot where possession was lost as its basic spot
+                    // (14-3-5-b). But only when that spot is in advance of the line — a
+                    // basic spot behind the line of scrimmage puts a defensive foul back
+                    // on the previous spot wherever the foul itself was (14-3-6, the
+                    // exception for fouls by the defence; 14-4-6-b says the same of every
+                    // foul during a fumble that came loose behind the line). The strip
+                    // sack is the case that makes the difference, and it is the common
+                    // one: measuring from where the ball came loose charges the offence
+                    // for the sack twice, once in the yards and again in the walk-off.
+                    //
+                    // A forward pass is a different rule. Until a pass thrown from behind
+                    // the line is over, a flag on either side comes off the previous spot,
+                    // and the down turns into a running play only once somebody catches
+                    // the ball (14-4-5) — so the catch is never the basic spot for a foul
+                    // that came before it. The personal foul has its own answer inside
+                    // that article: before such a pass is *completed*, the offence gets
+                    // the better of two spots — where it snapped, or where the ball was
+                    // dead (14-4-5-d, 8-6-1-d). An interception is a catch and is not a
+                    // completion (8-1-3), which puts a foul that preceded it inside that
+                    // exception rather than outside it, so the offence takes the better of
+                    // the two spots — the dead-ball spot when the interceptor was dropped
+                    // downfield of the snap, the previous spot when he was dropped behind
+                    // it.
+                    //
+                    // A kick carries no takeaway spot, and neither does a fumble written
+                    // by a resolver that recorded none; the previous spot stands in.
+                    let spot: Int
+                    switch outcome.endedIn {
+                    case .fumbleLost:
+                        let lost = outcome.possessionLostAt.map(Int.init) ?? previous
+                        spot = min(lost, previous)
+                    case .intercepted:
+                        spot = min(deadBallSnapFrame, previous)
+                    default:
+                        spot = previous
+                    }
+                    (ballOn, moved) = walk(from: spot, yards: yards, towardOpponentGoal: true)
                 } else {
                     // The offence's play stands: from the dead-ball spot or the previous
                     // spot, whichever is better for the offence (8-6-1-d) — which is

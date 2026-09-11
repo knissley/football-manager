@@ -53,16 +53,14 @@ struct PlayerGeneratorTests {
         }
     }
 
-    @Test("Ratings match exactly the keys the position uses", .tags(.unit))
+    @Test("Ratings are complete at every position", .tags(.unit))
     func ratingKeys() {
         var random = SplittableRandom(seed: 88)
         for position in Position.allCases {
             let player = PlayerGenerator.player(
                 id: PlayerID(1), position: position, targetCeiling: 75, age: 26,
                 season: season, colleges: [], using: &random)
-            #expect(
-                player.ratings.matchesKeys(for: position),
-                "\(position) carries the wrong rating set")
+            #expect(player.ratings.isComplete, "\(position) is missing a rating")
         }
     }
 
@@ -73,13 +71,15 @@ struct PlayerGeneratorTests {
     @Test("Generated overall lands on the requested level", .tags(.unit))
     func overallHitsTarget() {
         var random = SplittableRandom(seed: 99)
+        var untrained = SplittableRandom(seed: 100)
         for position in Position.allCases {
             var errors: [Int] = []
             for _ in 0..<200 {
                 let target = PlayerGenerator.currentOverall(
                     ceiling: 82, age: 28, trait: .normal, group: position.group, rookieGap: 14)
                 let ratings = PlayerGenerator.ratings(
-                    position: position, targetOverall: target, using: &random)
+                    position: position, targetOverall: target, using: &random,
+                    untrained: &untrained)
                 errors.append(
                     Int(PositionWeights.overall(ratings, at: position)) - Int(target))
             }

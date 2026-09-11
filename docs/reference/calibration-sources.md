@@ -136,6 +136,32 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
 
+### Who took the snap
+
+Player-snaps per team-game on plays from scrimmage, by the roster position group of each
+man on the field. The source's participation feed lists every man on every play by his
+roster position; the engine counts the roster position of each man `PlayRecord.onField`
+names, so the two measure the same thing. The defence's front is one group because the
+feed writes a four-man front's edge rushers as DE and a three-man front's as OLB, and a
+line and a linebacker corps would be split by scheme rather than by job. Plays the feed
+has no row for still had twenty-two men on them, so the per-snap count over the plays it
+covers is scaled to the plays from scrimmage a team runs.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:snaps.quarterback` — quarterback player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.backfield` — backfield player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.receiver` — receiver player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.tightEnd` — tight end player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.offensiveLine` — offensive line player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.frontSeven` — front seven player-snaps per team-game | 2023-24 | S2 |
+| `row:snaps.defensiveBack` — defensive back player-snaps per team-game | 2023-24 | S2 |
+
+Per snap, that is one quarterback and five linemen, 1.1 backs, 1.3 tight ends and 2.6
+receivers on offence, and 6.1 in the front seven against 4.9 defensive backs — which is the
+personnel rows above said another way, and the check on the record is that the count
+comes out of `onField` rather than out of the substitution the engine made.
+
 ### The shape of a carry
 
 | Row | Season | Source |
@@ -183,6 +209,8 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:ownHalfStarts.2024` — drives starting in own half | 2024 | S1 |
 | `row:puntsPerTeamGame` — punts per team-game | 2023-24 | S1 |
 | `row:netPunt` — net punt (yards) | 2023-24 | S1 |
+| `row:grossPunt` — gross punt (yards) | 2023-24 | S1 |
+| `row:puntReturnYards` — yards per punt return | 2023-24 | S1 |
 | `row:twoPointTries` — two-point tries per team-game | 2023-24 | S1 |
 | `row:twoPointConversion` — two-point conversion rate | 2023-24 | S1 |
 
@@ -232,6 +260,8 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:onsideRecovery.2024` — onside kicks recovered | 2024 | S1 |
 | `row:kickoffsReturned.2025` — kickoffs returned | 2025 | S1 |
 | `row:kickoffsReturned.2024` — kickoffs returned | 2024 | S1 |
+| `row:kickoffReturnYards.2025` — yards per kickoff return | 2025 | S1 |
+| `row:kickoffReturnYards.2024` — yards per kickoff return | 2024 | S1 |
 | `row:puntsReturned` — punts returned | 2023-24 | S1 |
 
 ### Backed up
@@ -343,19 +373,30 @@ None of the three is banded: a number nobody asserts is a note, not a target.
 
 ## Where the harness measures something else
 
-Three rows measure a definition of their own rather than the source's, and the difference
+Two rows measure a definition of their own rather than the source's, and the difference
 is written into the row's note rather than corrected by moving the band. They are listed
 here so nobody reads a gap as an engine finding:
 
-- `row:completionPercentage` — the harness counts a completion only when it gained, so the
-  row reads about three points low. That is S14 in the
-  [audit](../audit-is-this-football.md), closed by
-  [#22](https://github.com/knissley/football-manager/issues/22) and
-  [#42](https://github.com/knissley/football-manager/issues/42).
-- `row:netPunt` — the harness spots a punt touchback at the goal line rather than the 20,
-  so its net reads high on touchbacks. A harness fix, not a retune.
 - `row:yardsPerPlay` and `row:rushingYards` — designed runs only, scrambles excluded, which
   is not how the league counts either.
+- `row:grossPunt` — the harness measures a touchback's gross to the goal line. That the
+  source did the same is **assumed, not read from it**: the published figure is a mean over
+  punts and does not say how a touchback entered it. The band is sourced; the measurement
+  convention behind it is our reading, and if the reading is wrong the row is biased by
+  whatever share of punts are touchbacks. Settling it means going back to the source,
+  which is a retune's job and not a fix's.
+
+`row:netPunt` used to be here: the harness spotted a punt touchback at the goal line
+rather than the 20, so its net read high on touchbacks. The record now carries where
+every punt was fielded, the net is read off it with a touchback netted to the 20 as the
+source nets one, and the row fell about two yards when it stopped flattering itself.
+
+A third used to be here. `row:completionPercentage` counted a completion only when it
+gained, so it read about three points low while showing green — S14 in the
+[audit](../audit-is-this-football.md). The record carries `Outcome.passResult` now and the
+row reads it ([#22](https://github.com/knissley/football-manager/issues/22)); the rows
+still on the older inference — `row:yardsPerCompletion`'s denominator and the catch
+leaders — are [#42](https://github.com/knissley/football-manager/issues/42)'s.
 
 ## Adding or moving a row
 

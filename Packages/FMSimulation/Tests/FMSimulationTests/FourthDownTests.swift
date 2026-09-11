@@ -20,7 +20,7 @@ struct FourthDownTests {
     private func decision(
         distance: UInt8, ballOn: UInt8, quarter: UInt8 = 2, clock: UInt16 = 600,
         differential: Int16 = 0
-    ) -> PlayFamily? {
+    ) -> PlayConcept {
         let situation = Situation(
             quarter: quarter, clockRemaining: clock, down: .fourth, distance: distance,
             ballOn: ballOn, possession: TeamID(1), scoreDifferential: differential)
@@ -34,12 +34,11 @@ struct FourthDownTests {
                 defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
                 rules: .standard),
             random: &random)
-        return CrudePlaybook.family(of: call.design)
+        return call.concept
     }
 
-    private func goesForIt(_ family: PlayFamily?) -> Bool {
-        guard let family else { return false }
-        return family != .punt && family != .fieldGoal
+    private func goesForIt(_ concept: PlayConcept) -> Bool {
+        concept != .punt && concept != .fieldGoal
     }
 
     @Test("Fourth and one is a play, not a formality", .tags(.unit))
@@ -124,6 +123,30 @@ struct FourthDownTests {
             decision(distance: 6, ballOn: 30, quarter: 2, clock: 90, differential: -4)
                 == .fieldGoal,
             "in range before the half, take the points")
+    }
+
+    /// The chip shot is the safest three points in the sport and the most expensive
+    /// four. Fourth and goal from inside the three is a yard or so for a touchdown, and
+    /// a caller that takes the kick every single time turns a third of its field goal
+    /// attempts into chip shots: the sourced share of attempts from inside thirty yards
+    /// is 19.1-25.3% (2023-24, nflverse play-by-play; `row:fieldGoalAttemptsUnder30` in
+    /// `docs/reference/calibration-sources.md`), and the harness row is what grades it.
+    @Test("Fourth and goal inside the three is a play, not a formality", .tags(.unit))
+    func fourthAndGoalInsideTheThree() {
+        #expect(goesForIt(decision(distance: 1, ballOn: 1)), "fourth and goal from the one")
+        #expect(goesForIt(decision(distance: 2, ballOn: 2)), "fourth and goal from the two")
+        #expect(goesForIt(decision(distance: 3, ballOn: 3)), "fourth and goal from the three")
+
+        // Protecting a lead with the clock running out, the three points are worth more
+        // than the down.
+        #expect(
+            decision(distance: 2, ballOn: 2, quarter: 4, clock: 200, differential: 4)
+                == .fieldGoal,
+            "up four inside the last five minutes: take the points")
+
+        // And it is inside the three, not anywhere goal-to-go: fourth and goal from the
+        // eight is a kick.
+        #expect(decision(distance: 8, ballOn: 8) == .fieldGoal)
     }
 
     /// The conversion chart, on both sides of the scoreboard. The differential is read

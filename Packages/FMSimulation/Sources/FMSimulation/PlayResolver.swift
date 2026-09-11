@@ -26,8 +26,9 @@ public struct PlayContext: Sendable {
     /// Thin air carries a kick. Generated for every stadium since the world existed, and
     /// until now it reached no game.
     public let altitudeFeet: Int16
-    /// The conditions. On the context as well as the situation because facts about the
-    /// afternoon belong to the game, not to the down.
+    /// The conditions. On the context and not on the situation, because facts about the
+    /// afternoon belong to the game, not to the down: the game's result carries them once
+    /// for whoever reads the stream, and this is where the resolver reads them.
     public let weather: WeatherState
     public let offenseIsHome: Bool
     /// Whether the clock is running into this snap.
@@ -86,6 +87,23 @@ public struct PlayContext: Sendable {
 
     public func player(_ id: PlayerID) -> Player? { players[id] }
 
+    /// A player's rating as generated: no scheme on it, no day.
+    ///
+    /// A generated player carries every key, so one he lacks means a hand-built player
+    /// and a mistake to catch — in debug an assertion naming him and the key, in release
+    /// `Ratings.untrainedFloor`, a man who has never done the thing. It used to be his
+    /// overall, which made a back's route running his overall and let the best receiver
+    /// in the league bring an 83 run block to a tight end slot.
+    public func rating(_ key: RatingKey, of player: Player) -> Double {
+        guard let value = player.ratings[key] else {
+            assertionFailure(
+                "\(player.name.given) \(player.name.family) (\(player.position)) carries no \(key)"
+            )
+            return Double(Ratings.untrainedFloor)
+        }
+        return Double(value)
+    }
+
     /// A player's effective rating today: what he is, how he fits what he is being
     /// asked to do, and what kind of day he is having.
     ///
@@ -93,9 +111,14 @@ public struct PlayContext: Sendable {
     /// mentioned a scheme, so a player in a system built around him performed exactly as
     /// he would in one that wasted him. That made `SchemeFit` an elaborate no-op and
     /// removed the whole reason a team has an identity.
+    ///
+    /// An identifier the context has no player for reads as an ordinary player: a slot
+    /// nobody is standing in is a hole in a lineup, and a play can be resolved around
+    /// one. That is a different case from a key the player lacks, which `rating(_:of:)`
+    /// catches — and it is read first, so that the complaint names him.
     public func effective(_ key: RatingKey, for id: PlayerID?, onOffense: Bool) -> Double {
         guard let id, let player = players[id] else { return 60 }
-        let base = Double(player.ratings[key] ?? player.overall)
+        let base = rating(key, of: player)
         let scheme = onOffense ? offenseScheme : defenseScheme
         // Fit moves a player a few points either way, which is enough to matter over a
         // season without overturning talent.
@@ -124,12 +147,16 @@ public protocol PlayResolver: Sendable {
     /// - Parameters:
     ///   - situation: the state before the ball is snapped.
     ///   - calls: what each side chose.
-    ///   - context: who is on the field, and the rules in force.
+    ///   - onField: the twenty-two men standing there, by slot. Who plays is
+    ///     substitution, which the game decides and the record carries; the resolver
+    ///     is handed the eleven a side and asks nothing about who else was available.
+    ///   - context: the rotations, the rules in force, and the conditions.
     ///   - random: the play's own stream, already split from the game's seed.
     /// - Returns: the outcome and the decision points that explain it.
     func resolve(
         situation: Situation,
         calls: Calls,
+        onField: Lineup,
         context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint])

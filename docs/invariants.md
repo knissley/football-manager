@@ -36,7 +36,7 @@ so, then what checks it:
   sport. The rule is still the rule; the note says what we do instead.
 
 A rule is not a rate. Entries 1 to 88 are rules, and a scenario is what checks one. Entries
-89 to 110 are what a league of games has to *look* like, and a harness band over a sourced
+89 to 111 are what a league of games has to *look* like, and a harness band over a sourced
 season is what checks one. A band is evidence about a rate and never about a rule.
 
 ## Game length and overtime
@@ -146,7 +146,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:triesAreSnappedFromTheRightSpot`
 18. A made kick is one point and a converted pass or run is two; a failed try of either kind
     is nothing. `[2025 · 11-1-2-d]` — `test:extraPointIsOnePoint`, `test:twoPointIsTwoPoints`,
-    `test:missedExtraPoint`, `test:failedTwoPoint`, `test:conversionsGoBothWays`
+    `test:missedExtraPoint`, `test:failedTwoPoint`, `test:conversionsGoBothWays`;
+    a two-point try is thrown *or carried*, and both happen —
+    `test:twoPointTriesCanBeRuns`
 19. A foul before the snap on a try is treated as it would be before a scrimmage play, so a
     false start on an extra point re-kicks from five yards back — the 20, a 37-yard kick.
     `[2025 · 11-3-3 Item 2, 7-4-2]` — `test:falseStartOnTheKickMovesItBack`,
@@ -177,9 +179,16 @@ season is what checks one. A band is evidence about a rate and never about a rul
 27. Either team can score on a try: a try that ends in a touchdown is two points to whoever
     scored it, and what would be a safety on a try is one point to the opponent.
     `[2025 · 11-3-2-b, 11-3-2-c]` — **not yet enforced**,
-    [#48](https://github.com/knissley/football-manager/issues/48)
-28. After the try, the team that was on defence for it receives the kickoff.
-    `[2025 · 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`
+    [#48](https://github.com/knissley/football-manager/issues/48). Until it is, the crude
+    resolver does not put the ball on the ground during a try at all: a fumble it could
+    only resolve as a failed try would be a wrong outcome dressed as a right one.
+28. After the try, the team that was on defence for it receives the kickoff — however the
+    try ended, including one the defence intercepts, because the whistle closes the try out
+    whether or not anybody scored on it, and the ball does not change hands for the free
+    kick that follows.
+    `[2025 · 11-3-2-e, 11-3-4]` — `test:afterTheTryTheDefendingTeamReceives`,
+    `test:aTwoPointTryTheDefenceInterceptsStillEndsInAKickoffByTheScorer`,
+    `test:aTwoPointTryThatIsInterceptedIsStillTheTry`
 29. A kickoff returned for a touchdown gets its try, and the returning team then kicks off.
     `[2025 · 11-3-1, 11-3-4]` — `test:kickoffReturnTouchdownGetsItsTry`
 
@@ -187,7 +196,8 @@ season is what checks one. A band is evidence about a rate and never about a rul
 
 30. The scoreboard is the scoring plays in the stream, summed, and never a number kept
     beside it. `[2025 · 11-1-2]` — `test:scoreMatchesTheStream`,
-    `test:scoreboardMatchesTheStream`, `test:pointsMatchScoring`, `test:scoreboardArithmetic`
+    `test:scoreboardMatchesTheStream`, `test:pointsSitOnScoringPlays`,
+    `test:pointsMatchScoring`, `test:scoreboardArithmetic`
 31. A field goal is three points, and after one the team scored upon receives the kickoff.
     `[2025 · 11-1-2-b, 11-4-6]` — `test:fieldGoal`,
     `test:afterAFieldGoalTheTeamScoredUponReceives`
@@ -221,9 +231,17 @@ season is what checks one. A band is evidence about a rate and never about a rul
     recovers. `[2025 · 4-4-i, 4-3-2-a-1]` — `test:changeOfPossessionStops`,
     `test:turnoverOnDownsStopsTheClock`, `test:puntReturnedAndTackledStopsTheClock`,
     `test:fumbleRecoveredByTheDefenseStopsTheClock`
-40. An incomplete pass stops the clock until the snap, a spike included.
-    `[2025 · 4-4-f, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
-    `test:deadBallStops`; the caller's own habit — a spike at hurry-up tempo — is pinned by
+40. An incomplete pass stops the clock until the snap, a spike included. A quarterback
+    who throws the ball into the ground straight off the snap stops it legally, so a spike
+    costs the second the snap and the throw take and no more: the next down is snapped on
+    the clock the spike left, whatever that clock reads, and a spike inside ten seconds
+    does not end the period. What is charged *before* the spike is a separate question the
+    clock rules answer separately — nothing had stopped the clock, so the seconds the
+    offence spends reaching the line come off it.
+    `[2025 · 4-4-f, 8-2-1 Item 3, 4-3-2]` — `test:spikeStopsTheClock`, `test:incompletion`,
+    `test:deadBallStops`, `test:spikeCostsItsOwnSecondAndStopsTheClock`,
+    `test:spikeAtFiveSecondsIsFollowedByTheNextDown`; the caller's own habit — a spike at
+    hurry-up tempo — is pinned by
     `test:spikeIsCalledAtHurryUpTempo`, which is a modelling convention and not a rule
 41. A ball dead on or behind a goal line stops the clock until the snap, so a kickoff
     touchback consumes no time. `[2025 · 4-4-d, 4-3-1]` — `test:touchbackConsumesNoTime`
@@ -246,26 +264,50 @@ season is what checks one. A band is evidence about a rate and never about a rul
     half the boundary is the warning's own, taken as the down that crosses 2:00 ends
     (3-41), so the window and the warning give one answer there —
     `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`;
-    **modelling**: a tackle ends out of bounds at a flat rate whatever the play and
-    whatever the clock is doing, [#28](https://github.com/knissley/football-manager/issues/28)
+    **modelling**: where a play ends laterally is drawn against the concept and the clock
+    — an outside run reaches the boundary and an inside run does not, a trailing offence
+    inside two minutes seeks it and one protecting a lead late stays in —
+    `test:theSidelineIsAClockDecision`, `test:theSidelineDependsOnTheCall`,
+    `test:breakawaysAreNotSidelineByConstruction`
 45. The two-minute warning stops a running clock at exactly 2:00 without anyone asking, and
     the snap restarts it. It belongs to the second and fourth periods, once each.
-    `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`,
+    `[2025 · 3-41, 4-4-h]` — `test:warningBetweenDowns`, and the record says it was
+    taken, on the first snap after it — `test:warningIsOnTheRecord`;
     `test:twoMinuteWarningStopsAtTwoMinutes`, `test:noWarningMidHalf`, `test:warningTakenOnce`,
     `test:warningResets`
 46. A down under way when the clock runs past 2:00 finishes, and the clock is dead after it.
     `[2025 · 3-41]` — `test:warningDuringADown`, `test:downUnderWayAtTwoMinutesFinishes`,
     `test:twoMinuteWarningDetection`
-47. Outside the late-game windows a foul restarts the clock as though the flag had never
-    flown. `[2025 · 4-4-e, 4-3-2-e]` — `test:falseStartInTheThirdQuarterCostsNoTime`
+47. A foul stops the clock, and where it stops it depends on when it flew: a foul during a
+    down stops the clock at the end of that down (4-4-e), and one with the ball already
+    dead stops it as it flies (4-4-g). Enforcement is not free either way. Outside the
+    late-game windows the clock then restarts as though the flag had never flown — on the
+    ready-for-play signal, if it was running — and inside the window after the first half's
+    warning or the last five minutes of the second it waits for the snap.
+    `[2025 · 4-4-e, 4-4-g, 4-3-2-e, 4-3-2-e-1, 4-3-2-e-2]` —
+    `test:falseStartInTheThirdQuarterCostsNoTime`,
+    `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
+    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`; **modelling**: only the
+    accepted branch is read. 4-4-e stops the clock for a foul during a down whether or not
+    the penalty is taken, and 4-3-2-e restarts it once the penalty is settled either way,
+    but `State.runClock` gates the whole restart on `penalty.wasAccepted`, so a foul the
+    non-offending side turns down leaves the clock as the play's ending left it. That is
+    not a rare corner: the harness's `declined` line under Penalties reads 12.3% at seed 7
+    and 12.7% at seed 11 over four hundred games.
+    [#102](https://github.com/knissley/football-manager/issues/102) owns it
 48. An offensive foul that stops the clock before the snap anywhere in the fourth period
-    restarts it on the snap. `[2025 · 4-3-2-e-3]` —
-    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`
+    restarts it on the snap, and e-3 reaches no further than that: an offensive foul during
+    a fourth-quarter down stops the clock at the end of the down rather than before a snap,
+    so it restarts on the ready like any other period's. `[2025 · 4-3-2-e-3, 4-4-e]` —
+    `test:offensiveFoulInTheFourthQuarterStartsTheClockOnTheSnap`,
+    `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
 49. A foul before the snap charges no play time, because no play happened.
-    `[2025 · 4-4-e]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
+    `[2025 · 4-4-g]` — `test:deadBallFoulBeforeTheSnapChargesNoTime`,
     `test:preSnapKillsThePlay`, `test:elapsedDependsOnThePreviousStoppage`
 50. Three charged timeouts per team per half, they do not carry over, and they never go
-    negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`
+    negative. `[2025 · 4-5-1]` — `test:timeoutsStayLegal`, `test:timeoutsAreSpentAndVisible`;
+    and every one charged is on the record of the snap it preceded, with the side that took
+    it — `test:timeoutsAreOnTheRecord`
 51. The play clock is 40 seconds from the end of the previous play and 25 from the whistle
     after an administrative stoppage — 30 after a runoff, and back to 40 after a defensive
     act that conserves time — and letting it expire with the ball not snapped is delay of
@@ -314,7 +356,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:defensiveFoulInTheLastFortySecondsEndsTheHalfAtTheOffensesElection`,
     `test:defensiveFoulInTheLastFortySecondsWhenTheOffenseWouldRatherPlayOn`,
     `test:defensiveFoulInTheLastFortySecondsWithADefensiveTimeoutLeft`,
-    `test:lastFortySeconds`, `test:conservingActs`; the election is the offence's, a
+    `test:lastFortySeconds`, `test:conservingActs`; the article's second clause, an excess
+    timeout for an injured defender, ends the half on the same terms (4-5-4-b) —
+    `test:injuryToADefenderInTheLastFortySecondsEndsTheHalf`; the election is the offence's, a
     `PlayCaller` decision written into the play's decision log; **modelling**: the
     defence's option to spend a timeout in lieu of the clock starting (4-7-1 Item 2) is
     not modelled — a defence with a timeout keeps the half alive by having one, and spends
@@ -408,16 +452,49 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`,
     `test:holdingOnASuccessfulTryRepeatsIt`.
     And the kicker on a kick from scrimmage is protected either way, by the two halves of
-    one article: roughing him is fifteen yards and an automatic first down, running into
-    him is five with the down replayed, and neither cancels a kick that was already away.
-    Only the first is a personal foul — the article says so of each — so only the first is
-    carried anywhere when the kick was good. `[2025 · 12-2-12]` —
+    one article with a penalty apiece: roughing him (Item 1) is fifteen yards from the
+    previous spot and an automatic first down, and the article marks it a personal foul;
+    running into him (Item 2) is five from the previous spot with no automatic first down,
+    and the article marks it not one. The article says nothing about the down — five from
+    the previous spot replays it only where they leave the ball short of the line to gain,
+    because reaching it is a new series like any other `[2025 · 7-3-1-b, 3-8-4]`. That
+    marking, and not the section the foul is printed under, is what 14-2-3 turns on, so of
+    the two only roughing is carried to a succeeding spot; and neither by itself wipes a
+    kick that was already away, because the rush is over before the ball comes down.
+    `[2025 · 12-2-12]` —
     `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
     `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
-80. The basic spot when a run is followed by a change of possession is the spot where
-    possession was lost. `[2025 · 14-3-5]` — **not yet enforced**,
-    [#58](https://github.com/knissley/football-manager/issues/58): the record does not carry
-    that spot
+80. The basic spot when a **run** is followed by a change of possession is the spot where
+    possession was lost, and a defensive foul there gives the ball back to the offence
+    before enforcement — unless that spot is **behind the line of scrimmage**, in which
+    case a defensive foul, whether it was behind the line or beyond it, comes off the
+    previous spot instead. The strip sack is what makes the exception the common half of
+    this invariant rather than the rare one: measuring from where the ball came loose
+    would take the sack's yards off the offence a second time.
+    `[2025 · 14-3-5-b, 14-4-3-a, 14-3-6 Exception 1, 14-4-6-b]` —
+    `test:defensiveFoulOnARunThatEndsInAFumbleIsEnforcedFromTheSpotOfTheFumble` for the
+    gain, `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot` and
+    `test:contactFoulOnAStripSack` for the loss; the record's half of it — every takeaway
+    says where possession was lost — is `test:takeawaysCarryTheSpot`. The same flag on a
+    **pass** is a different rule: until a forward pass from behind the line is over, a flag
+    on either side comes off the previous spot, and the down turns into a running play only
+    once somebody catches the ball; and a defensive **personal** foul before that pass is
+    completed is walked off from the better of two spots for the offence — where it
+    snapped, or where the ball was dead. An interception is not a completion, which puts a
+    foul that preceded
+    one inside that exception rather than outside it, so the offence takes the better of
+    the two spots: where it snapped when the interceptor was dropped behind that, and where
+    he was dropped when he was dropped in front of it.
+    `[2025 · 14-4-5-d, 8-6-1-d, 8-1-3]` —
+    `test:defensiveFoulBeforeAnInterceptionIsEnforcedFromThePreviousSpot` for the first arm,
+    `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot` for the second;
+    **modelling**, and both cases unreachable by the crude resolver today: the record says
+    nothing about *when* in a down a flag flew, so a foul by the intercepting team during
+    its own return is the same record as one before the catch and is walked off the same
+    way, which is right for the second and wrong for the first; and a pass **completed and
+    then fumbled away** is enforced from the fumble, where 14-4-5-d gives the previous spot
+    if the foul preceded the catch — the record cannot tell the two apart.
+    [#58](https://github.com/knissley/football-manager/issues/58) carries both
 
 ## Kickoffs and onside kicks
 
@@ -426,7 +503,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
     restraining line ten yards on, so either side comes up with it at or beyond there.
     `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6, 6-1-6-e, 6-1-6-g]` —
     `test:onsideRecoveryKeepsPossession`, `test:onsideRecovered`,
-    `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`
+    `test:anOnsideKickIsRecoveredAtTheReceiversRestrainingLine`. And a kickoff the returner
+    fumbles and the kicking team carries in is the kicking team's touchdown, its try, and
+    its kickoff — any player of either team may advance a fumble, and a runner crossing the
+    goal line scores. `[2025 · 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4]` —
+    `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown`; **modelling**: the crude
+    resolver never fumbles a kick, so only a script reaches it
 82. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
     any point in the game. `[2025 · 6-1-1-c, 6-1-6]` —
     `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`;
@@ -469,6 +551,11 @@ season is what checks one. A band is evidence about a rate and never about a rul
 88. Every ball is on a legal spot, in a legal down and distance, in a period the rules
     define. `[2025 · 1-1-1, 3-8-2, 4-1-1]` — `test:spotsAreAlwaysLegal`,
     `test:situationsAreValid`, `test:streamIsOrdered`
+89. **Contract**, not a rule: the package a defensive call names is the package the
+    situation says is on the field. Both are held by value in the record so a reader
+    years later can ask what was called ([ADR-0010](adr/0010-plays-designs-and-calls.md)),
+    and a record that answers the question two ways cannot be read. —
+    `test:theCallAndTheFieldAgreeOnThePackage`
 
 ## What a season of games looks like
 
@@ -477,88 +564,101 @@ The band and the season are in the [calibration table](match-engine.md#calibrati
 what every one of them was derived from is in
 [`reference/calibration-sources.md`](reference/calibration-sources.md).
 
-89. A team scores about what a real team scores, and the game's points come mostly from
+90. A team scores about what a real team scores, and the game's points come mostly from
     touchdowns and then from field goals. — `row:points`, `row:pointsFromTouchdowns`,
     `row:pointsFromFieldGoals`, `row:gamesWithin3`, `row:gamesWithin7`
-90. Games end tied about as rarely as they really do, reach overtime about as often, and
+91. Games end tied about as rarely as they really do, reach overtime about as often, and
     play about as much of the overtime period. — `row:tiesPerGame`, `row:overtimeRate`,
     `row:overtimeLength`
-91. A team throws for and runs for about what a real team does, at about the same yards a
+92. A team throws for and runs for about what a real team does, at about the same yards a
     carry, a completion, an attempt and a play. — `row:passingYards`, `row:rushingYards`,
     `row:yardsPerCarry`, `row:yardsPerAttempt`, `row:yardsPerCompletion`, `row:yardsPerPlay`
-92. Passes are completed, pressured, sacked and intercepted at about the real rates. —
+93. Passes are completed, pressured, sacked and intercepted at about the real rates. —
     `row:completionPercentage`, `row:sackRate`, `row:interceptionRate`, `row:pressureRate`,
     `row:completionsZeroOrFewer`
-93. A game holds about as many snaps as a real one, and a team runs about as many plays from
+94. A game holds about as many snaps as a real one, and a team runs about as many plays from
     scrimmage. — `row:playsPerGame`, `row:playsFromScrimmage`
-94. Third down comes up at about the real distance and is converted at about the real rate,
+95. Third down comes up at about the real distance and is converted at about the real rate,
     and first down gains about what it really gains. — `row:thirdDownDistance`,
     `row:thirdDownConversion`, `row:firstDownGain`, `row:firstDownsPerTeamGame`
-95. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
+96. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
     or fewer, reach ten, and break twenty. — `row:carriesStuffed`, `row:carries2orFewer`,
     `row:carries10plus`, `row:carries20plus`
-96. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
+97. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
     `row:dropbackLoss`, `row:dropbackNoGain`, `row:dropback10plus`, `row:dropback20plus`,
     `row:dropback40plus`
-97. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
+98. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
     about as many of them a game. — `row:driveEndPunt`, `row:driveEndTouchdown`,
     `row:driveEndDowns`, `row:drivesPerTeamGame`, `row:playsPerDrive`
-98. The shape of a drive is right: three-and-outs, short drives, middling ones and long
+99. The shape of a drive is right: three-and-outs, short drives, middling ones and long
     ones. — `row:drives3orFewer`, `row:drives4to7`, `row:drives8plus`, `row:threeAndOut`
-99. A trip inside the 20 ends in a touchdown about as often as it really does. —
+100. A trip inside the 20 ends in a touchdown about as often as it really does. —
     `row:redZoneTouchdownRate`
-100. Drives start about where they really start, and about as often inside their own half. —
+101. Drives start about where they really start, and about as often inside their own half. —
      `row:averageStart.2025`, `row:averageStart.2024`, `row:ownHalfStarts.2025`,
      `row:ownHalfStarts.2024`, `row:snapsInsideOwn10`
-101. Teams punt about as often, for about the real net, and about as many punts come back. —
-     `row:puntsPerTeamGame`, `row:netPunt`, `row:puntsReturned`
-102. Field goals are attempted about as often, from about the real spread of distances, and
+102. Teams punt about as often, for about the real gross and net, about as many punts come
+     back, and a returned kick comes back about as far. — `row:puntsPerTeamGame`,
+     `row:netPunt`, `row:grossPunt`, `row:puntsReturned`, `row:puntReturnYards`,
+     `row:kickoffReturnYards.2025`, `row:kickoffReturnYards.2024`; all four distances are
+     read off the record, which says where every kick was fielded —
+     `test:kickDistancesAreDerivable`, `test:onlyKicksAreFielded`
+103. Field goals are attempted about as often, from about the real spread of distances, and
      made at about the real rate from each. — `row:fieldGoalsPerTeamGame`,
      `row:fieldGoalsUnder30`, `row:fieldGoals30to39`, `row:fieldGoals40to49`,
      `row:fieldGoals50plus`, `row:fieldGoalAttemptsUnder30`, `row:fieldGoalAttempts30to39`,
      `row:fieldGoalAttempts40to49`, `row:fieldGoalAttempts50plus`
-103. Extra points are made, and two-point tries taken and converted, at about the real
+104. Extra points are made, and two-point tries taken and converted, at about the real
      rates. — `row:extraPointsMade`, `row:twoPointTries`, `row:twoPointConversion`
-104. Fourth down is punted, kicked and gone for at about the real rates, and converted at
+105. Fourth down is punted, kicked and gone for at about the real rates, and converted at
      about the real one. — `row:fourthDownPunted`, `row:fourthDownKicked`,
      `row:fourthDownWentForIt`, `row:fourthDownAttempts`, `row:fourthDownConversion`,
      `row:fourthAndOneWentForIt`
-105. The ball is turned over, lost and fallen on at about the real rates, and about as many
+106. The ball is turned over, lost and fallen on at about the real rates, and about as many
      touchdowns are scored by somebody other than the offence. — `row:turnovers`,
      `row:fumblesLost`, `row:fumblesKept`, `row:defensiveReturnTouchdowns`,
      `row:nonOffensiveTouchdowns.2025`, `row:nonOffensiveTouchdowns.2024`,
      `row:kickReturnTouchdowns.2025`, `row:kickReturnTouchdowns.2024`, `row:safeties`
-106. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
+107. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
      produces, and onside kicks are attempted and recovered at about the real rates. —
      `row:kickoffsReturned.2025`, `row:kickoffsReturned.2024`, `row:kickoffTouchbacks.2025`,
      `row:kickoffTouchbacks.2024`, `row:onsideKicks.2025`, `row:onsideKicks.2024`,
      `row:onsideRecovery.2025`, `row:onsideRecovery.2024`
-107. About as many flags fly as really do, spread over the fouls that really get called, and
+108. About as many flags fly as really do, spread over the fouls that really get called, and
      the road team commits a few more pre-snap fouls than the home team. —
      `row:penaltiesPerGame`, `row:penalty.offensiveHolding`, `row:penalty.falseStart`,
      `row:penalty.defensivePassInterference`, `row:penalty.defensiveHolding`,
      `row:penalty.unnecessaryRoughness`, `row:penalty.delayOfGame`, `row:penalty.offside`,
      `row:penalty.illegalFormation`, `row:penalty.roughingThePasser`,
      `row:penalty.neutralZoneInfraction`, `row:preSnapRoadVsHome`
-108. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
+109. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
      against heavier looks, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
      `row:ypcOutnumberedByOne`
-109. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
+110. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
-110. Over a season, team win totals spread about as widely as they really do. —
+111. Every man on the field is in the record, and each position group takes about as many
+     snaps a game as it really does: one quarterback and five linemen a snap, a back and a
+     tight end and change, close to three receivers, a front seven of six or seven and
+     four or five defensive backs. — `row:snaps.quarterback`, `row:snaps.backfield`,
+     `row:snaps.receiver`, `row:snaps.tightEnd`, `row:snaps.offensiveLine`,
+     `row:snaps.frontSeven`, `row:snaps.defensiveBack`; the record's half of it is
+     `test:everyPlayCarriesTwentyTwoSlots`, `test:creditsAgreeWithTheField`,
+     `test:quarterbackSnapsSumToScrimmagePlays`; and every flag names a player the record
+     identifies, on the offending team and on its side of the ball, whether or not the
+     play credited him — `test:offendersAreReal`
+112. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
 
 ## What the harness cannot check yet
 
-111. A completion is a completion whether it gained a yard, none, or lost one. The record
-     cannot say a pass was caught, so the harness infers one from positive yards and reads
-     several points low while showing green. — **not yet enforced**,
-     [#22](https://github.com/knissley/football-manager/issues/22) and
-     [#42](https://github.com/knissley/football-manager/issues/42); S14 in the
+113. A completion is a completion whether it gained a yard, none, or lost one. The record
+     says a pass was caught, and the harness reads that rather than inferring it from
+     positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
+     `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-112. Players miss games at about the rate they really do, and heavy rain takes points off a
+114. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail

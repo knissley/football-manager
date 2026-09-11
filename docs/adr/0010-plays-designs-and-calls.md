@@ -90,3 +90,32 @@ directly.
 matches the loose way the sport uses the word. Rejected because the three have different
 lifetimes — seasons, one snap, forever — and a type whose fields are meaningful only in
 certain combinations pushes that distinction into every call site.
+
+## Amendment 2026-09-10 — the concept is stored by value beside the design reference
+
+The decision above keeps the concept queryable through the `PlayDesignID` a call carries.
+For the first months no playbook existed, and the reference was filled from a stand-in:
+`CrudePlaybook` in `FMSimulation` minted an identifier from `PlayFamily.rawValue + 1`, so
+every record in the M1 stream pointed at a design that did not exist, in an identifier
+space that would have dangled — or resolved to the wrong design — the day a real playbook
+was authored. The contract that is supposed not to move would have moved with M6.
+
+So a call now carries what the reference always stood for: `OffensiveCall.concept`, a
+`PlayConcept` in `FMCore`, held by value, and `OffensiveCall.design` is `PlayDesignID?`,
+`nil` until there is a playbook to name a design in. The concept is the coarse vocabulary
+a caller decides on and a resolver acts on — the kinds of snap the crude engine resolves,
+sixteen of them when this amendment was written, the sixteenth being the two-point run
+that 11-3-1 makes a different play from the two-point pass, and seventeen since the
+dynamic kickoff gave the kick struck through the end zone a case of its own — and it is
+what a tendency table, a box score and a gameplan rule key off; the design is the authored
+artifact the concept was run from. Both stay on the call
+once designs exist: editing a design changes the playbook, and the record still says what
+kind of play was called. `PlayRecord.schemaVersion`, set to 1, landed alongside so that a
+reader can tell the shapes apart when the record moves again.
+
+The consequence that landed differently is the size. The body says storing the calls by
+value was close to free — two bytes smaller. Measured, an optional eight-byte identifier
+is nine bytes aligned to eight: `OffensiveCall` goes 10 → 17 bytes, `Calls` 41 → 49, the
+record's fixed part 136 → 144, and a realistic play 494 → 502. The version byte is
+absorbed by padding after the index; the design reference's optionality is not. Eight
+bytes a play for a record that no longer names a design nobody wrote.

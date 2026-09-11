@@ -30,6 +30,23 @@ enum Penalties {
     /// delays of one snapping at normal tempo, which is what the flat bonus used to say.
     static let playClockOverrunSurvival = 0.917
 
+    /// The share of a beaten-in-coverage draw that stays a contact foul now that
+    /// interference is drawn at the throw instead (`onTheThrow`).
+    static let contactShareOfCoverage = 0.68
+
+    /// What one draw on the target's matchup has to carry to replace a draw on each of
+    /// the four reads the coverage loop used to make.
+    static let throwsPerCoverageRead = 4.0
+
+    /// How much of that draw is the receiver's foul rather than the defender's.
+    ///
+    /// Lower than the share the single coverage-loop draw carried, and for a reason the
+    /// move itself creates: the man this is drawn on is the *most open* receiver on the
+    /// play, because he is the one the quarterback threw to. Interference by a defender
+    /// scales with how badly he is beaten; a push-off is what a receiver does when he is
+    /// not winning, so drawing it against the winner at the old share tripled it.
+    static let offensiveShareOfInterference = 0.075
+
     // MARK: - Discipline
 
     /// A foul before the snap, which kills the play.
@@ -180,46 +197,102 @@ enum Penalties {
         return record(foul, by: [blocker], personnel, context, &random, offense: true)
     }
 
-    /// A defender who has been beaten in coverage.
+    /// A defender who has been beaten in coverage, before anybody has thrown anything.
     ///
-    /// Separation is the input, so interference is drawn against exactly the receivers
-    /// who won — and the deep ones, where the spot foul hurts most.
+    /// Separation is the input, so the flag is drawn against exactly the defenders who
+    /// lost. What it *can* be is limited by when it happens: these are the fouls whose
+    /// restrictions begin at the snap and do not need a pass in the air — grabbing a
+    /// receiver, or getting hands on him past the legal window. Interference is not one
+    /// of them and is drawn at the throw instead (`onTheThrow`), because 8-5-1 makes a
+    /// forward pass thrown from behind the line the thing interference needs to exist.
     static func whenBeatenInCoverage(
-        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
-        lineOfScrimmage: UInt8, personnel: Lineup, context: PlayContext,
+        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int,
+        personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> PenaltyRecord? {
         guard separationCentimetres > 120 else { return nil }
         let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
         let beatenBy = Double(separationCentimetres - 120) * 0.0006
-        let chance = 0.014 + beatenBy + (62 - discipline) * 0.0009
-        guard random.nextBool(probability: max(0.004, min(0.14, chance))) else { return nil }
+        // The same curve this draw always had, scaled by the share of it that stays here.
+        // Roughly half of what it used to produce left as interference, which now has its
+        // own draw at the throw; without the share, moving interference out doubles the
+        // defensive-holding rate as a side effect of a change that is not about holding.
+        // Measured over 400 games at seeds 7 and 11: 1.55 and 1.32 calls a game before
+        // interference moved, 3.32 and 3.04 with it moved and this share not applied.
+        // Where the rate *should* be is the retune's question, not this draw's.
+        let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * contactShareOfCoverage
+        guard random.nextBool(probability: max(0.002, min(0.07, chance))) else { return nil }
+
+        // Illegal contact is a rare call in the modern game; grabbing is the usual one.
+        let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
+        return record(foul, by: [defender], personnel, context, &random, offense: false)
+    }
+
+    /// Interference, on the matchup the ball was thrown into.
+    ///
+    /// 8-5-1: interference needs a forward pass thrown from behind the line to exist, the
+    /// defence's restrictions run from the throw until the ball is touched, and the foul
+    /// itself is hindering an eligible receiver's chance at the ball. So a down with no
+    /// throw in it has no interference at all. It used to be drawn per read in the
+    /// coverage loop, before the quarterback had decided anything, which put it on sacks
+    /// and on receivers nobody looked at.
+    ///
+    /// **Drawing it on the target's matchup and on no other is this engine's
+    /// simplification, not 8-5-1's.** The article protects *any* eligible receiver and
+    /// gives both sides the same right to the ball, so a real foul is available on a
+    /// receiver the throw was never going to — a defender hooking the man on the far
+    /// side, or an offensive pick well away from the catch. The engine picks one target
+    /// and keeps no separation for anybody else after the throw, so the target's is the
+    /// only matchup it has to draw on. What that loses is interference away from the
+    /// ball, which a resolver that carried every matchup through the throw would have.
+    ///
+    /// `catchPoint` is where the ball is going, in the offence's frame with zero meaning
+    /// the end zone: the defence's is a spot foul (8-6-1-b) and this is the spot.
+    static func onTheThrow(
+        defender: PlayerSlot, receiver: PlayerSlot, separationCentimetres: Int, routeDepth: Int,
+        catchPoint: Int, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        guard separationCentimetres > 120 else { return nil }
+        let discipline = context.effective(.discipline, for: personnel[defender], onOffense: false)
+        let beatenBy = Double(separationCentimetres - 120) * 0.0006
+        // One matchup a play rather than one per read, so the per-matchup rate has to
+        // carry what four reads used to. The coverage loop read four route runners and
+        // drew on each of them; this draws once. Four is the whole of the multiplier and
+        // nothing in it is fitted to a band.
+        //
+        // It does not put the interference rate back where it was, and it is not meant
+        // to: the old draw fired on every dropback including the ones nobody threw, and
+        // the first flag in the loop stopped the three reads behind it, so one draw at
+        // four times the rate is not four draws. Measured over 400 games at seeds 7 and
+        // 11: 0.84 and 0.82 defensive interference calls a game, against 0.71 and 0.67
+        // before the foul moved here. Both sit under the sourced band, and where the rate
+        // belongs is the retune's question rather than this draw's.
+        let chance = (0.014 + beatenBy + (62 - discipline) * 0.0009) * throwsPerCoverageRead
+        guard random.nextBool(probability: max(0.004, min(0.45, chance))) else { return nil }
 
         // Sometimes the separation was made with a hand in the chest and the flag goes
-        // the other way. Offensive interference is the third most common foul in the sport
-        // that this engine had never once called.
-        if random.nextBool(probability: 0.16) {
+        // the other way. 8-5-2 lists a shove or a push-off that buys a receiver room
+        // among the acts either side can be flagged for while the ball is in the air.
+        // Charging it to the target rather than to whichever receiver did it is the
+        // simplification described above, not something the article says.
+        if random.nextBool(probability: offensiveShareOfInterference) {
             return record(
                 .offensivePassInterference, by: [receiver], personnel, context, &random,
                 offense: true)
         }
 
-        // Deep, it is interference and enforced from the spot. Underneath, it is holding
-        // or illegal contact and costs five.
-        // Anything past the sticks is deep enough for the spot foul to be the call. The
-        // spot is measured — the route's depth, give or take — and reported in the
-        // offence's frame, with zero meaning the end zone (8-6-1-b).
-        if routeDepth >= 10 {
-            let depth = max(1, routeDepth + Int(random.next(upperBound: 6)) - 3)
-            let spot = max(0, Int(lineOfScrimmage) - depth)
-            return PenaltyRecord(
-                foul: .defensivePassInterference, offender: defender,
-                offendingTeam: context.defense, yards: UInt8(min(99, depth)),
-                wasAccepted: false, enforcementSpot: UInt8(spot))
-        }
-        // Illegal contact is a rare call in the modern game; grabbing is the usual one.
-        let foul: Foul = random.nextBool(probability: 0.86) ? .defensiveHolding : .illegalContact
-        return record(foul, by: [defender], personnel, context, &random, offense: false)
+        // Underneath, contact past the first yard downfield is still interference, but a
+        // crude engine cannot tell a hook at eight yards from a hand-fight at one,
+        // so a route short of the line to gain draws nothing here: contact on it is the
+        // coverage loop's holding or illegal contact, which is what 8-5-1 says the acts
+        // that are not interference could be. Calling it here as well counted the same
+        // contact twice and put defensive holding at 2.64 a game against 1.55 before.
+        guard routeDepth >= 10 else { return nil }
+        return PenaltyRecord(
+            foul: .defensivePassInterference, offender: defender,
+            offendingTeam: context.defense, yards: Foul.defensivePassInterference.yards,
+            wasAccepted: false, enforcementSpot: UInt8(max(0, min(99, catchPoint))))
     }
 
     /// Contact fouls, drawn where the contact actually happened.

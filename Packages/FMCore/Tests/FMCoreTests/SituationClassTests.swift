@@ -18,20 +18,31 @@ struct SituationClassTests {
 
     // MARK: - Down and distance
 
-    @Test("Distance buckets split at three and seven yards", .tags(.unit))
+    /// One to three, four to six, seven or more — on every down that has the buckets,
+    /// fourth included. Seven is where the ground stops being a realistic answer, and a
+    /// bucket that ran to seven put third and seven in with third and four, which is a
+    /// different down entirely.
+    @Test("Distance buckets split at three and six yards, on fourth down too", .tags(.unit))
     func distanceBuckets() {
         #expect(classify(down: .second, distance: 3).downAndDistance == .secondShort)
         #expect(classify(down: .second, distance: 4).downAndDistance == .secondMedium)
-        #expect(classify(down: .second, distance: 7).downAndDistance == .secondMedium)
-        #expect(classify(down: .second, distance: 8).downAndDistance == .secondLong)
+        #expect(classify(down: .second, distance: 6).downAndDistance == .secondMedium)
+        #expect(classify(down: .second, distance: 7).downAndDistance == .secondLong)
 
         #expect(classify(down: .third, distance: 3).downAndDistance == .thirdShort)
         #expect(classify(down: .third, distance: 4).downAndDistance == .thirdMedium)
-        #expect(classify(down: .third, distance: 7).downAndDistance == .thirdMedium)
-        #expect(classify(down: .third, distance: 8).downAndDistance == .thirdLong)
+        #expect(classify(down: .third, distance: 6).downAndDistance == .thirdMedium)
+        #expect(classify(down: .third, distance: 7).downAndDistance == .thirdLong)
 
         #expect(classify(down: .fourth, distance: 3).downAndDistance == .fourthShort)
-        #expect(classify(down: .fourth, distance: 4).downAndDistance == .fourthLong)
+        #expect(classify(down: .fourth, distance: 7).downAndDistance == .fourthLong)
+        // Fourth and five is neither: it is the bucket in between, and it exists so that
+        // "fourth and seven or more" can be said at all.
+        #expect(classify(down: .fourth, distance: 4).downAndDistance != .fourthShort)
+        #expect(classify(down: .fourth, distance: 6).downAndDistance != .fourthLong)
+        #expect(
+            classify(down: .fourth, distance: 5).downAndDistance
+                == classify(down: .fourth, distance: 4).downAndDistance)
     }
 
     /// First down is one bucket at any distance: first and twenty after a hold
@@ -60,10 +71,13 @@ struct SituationClassTests {
         #expect(DownAndDistanceClass.thirdLong.isLastDown == false)
         #expect(DownAndDistanceClass.goalToGo.isLastDown == false)
 
+        // A passing down is third or fourth and seven or more, and nothing else. Second
+        // and eight is a down with a whole extra play behind it, and third and four is a
+        // down the sport runs on all the time.
         #expect(DownAndDistanceClass.thirdLong.isPassingDown)
-        #expect(DownAndDistanceClass.thirdMedium.isPassingDown)
-        #expect(DownAndDistanceClass.secondLong.isPassingDown)
         #expect(DownAndDistanceClass.fourthLong.isPassingDown)
+        #expect(DownAndDistanceClass.thirdMedium.isPassingDown == false)
+        #expect(DownAndDistanceClass.secondLong.isPassingDown == false)
         #expect(DownAndDistanceClass.thirdShort.isPassingDown == false)
         #expect(DownAndDistanceClass.firstDown.isPassingDown == false)
 
@@ -147,11 +161,27 @@ struct SituationClassTests {
 
     // MARK: - Reads shared by both sides of the ball
 
+    /// Only the distances that really do take the run off the menu. Third and four and
+    /// second and eight are downs a defence still has to play honest against, and a
+    /// caller that reads them as a throw is one the defence can bet against for nothing.
     @Test("Distance alone makes a passing down obvious", .tags(.unit))
     func mustPassOnDistance() {
         #expect(classify(down: .third, distance: 9, quarter: 2, clock: 600).isMustPass)
+        #expect(classify(down: .fourth, distance: 9, quarter: 2, clock: 600).isMustPass)
+        #expect(classify(down: .third, distance: 4, quarter: 2, clock: 600).isMustPass == false)
+        #expect(classify(down: .second, distance: 8, quarter: 2, clock: 600).isMustPass == false)
         #expect(classify(down: .third, distance: 2, quarter: 2, clock: 600).isMustPass == false)
         #expect(classify(down: .first, distance: 10, quarter: 2, clock: 600).isMustPass == false)
+    }
+
+    /// A passing down is a passing down whenever it happens. The endgame qualifier used
+    /// to switch the read off in the last five minutes, so third and fifteen with four
+    /// minutes left classified as an ordinary down.
+    @Test("A passing down reads the same in the endgame as anywhere else", .tags(.unit))
+    func passingDownIsNotSwitchedOffLate() {
+        #expect(
+            classify(down: .third, distance: 12, quarter: 4, clock: 240, differential: 7)
+                .isMustPass)
     }
 
     /// Trailing inside two minutes, the clock forces the throw even on first and
@@ -291,7 +321,6 @@ struct SituationClassTests {
         situation.possession = TeamID(9)
         situation.offenseTimeouts = 0
         situation.defensePackage = .dime
-        situation.weather = .dome
 
         #expect(SituationClass(situation) == before)
     }

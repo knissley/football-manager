@@ -14,9 +14,12 @@ struct PenaltyTests {
     /// The stadium is fixed rather than the home team's, because noise is the variable
     /// under test: a generated ground brings its own, and the quiet-versus-loud comparison
     /// below would then be measuring two grounds instead of one mechanism.
-    private func game(seed: UInt64, noise: UInt8 = 50) -> GameResult {
+    private func game(
+        seed: UInt64, noise: UInt8 = 50, home: Int = 0, away: Int = 1
+    ) -> GameResult {
         TestWorld.game(
-            seed: seed, stadium: Stadium(name: "Test Field", capacity: 68_000, noise: noise))
+            seed: seed, home: home, away: away,
+            stadium: Stadium(name: "Test Field", capacity: 68_000, noise: noise))
     }
 
     private func flags(
@@ -83,77 +86,115 @@ struct PenaltyTests {
         #expect(checked > 0, "no interference calls to check")
     }
 
-    /// Fouls the engine can charge to a slot the play never credits, and why.
+    /// There is no such thing as interference on a play nobody threw.
     ///
-    /// A flag names a `PlayerSlot`, and the only way the stream resolves a slot to a
-    /// player is `outcome.participants` — so a foul by somebody who was on the field and
-    /// did nothing the play credited names a man nobody downstream can identify. A
-    /// receiver running a decoy route, a rusher who did not reach the kicker, a blocker on
-    /// a return: all real fouls, none of them credited.
+    /// 2025 rulebook, 8-5-1. Interference of either kind needs a forward pass thrown
+    /// from behind the line to exist at all, legal or not and whether or not it gets
+    /// past the line. The article fixes the window too — the defence's restrictions run
+    /// from the throw until the ball is touched — and says what contact nearer the line
+    /// than a yard is instead, which is holding by one side or the other.
     ///
-    /// This is a gap in the event-stream contract
-    /// ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)), not a property of
-    /// the sport, and it belongs to the penalties track (#54) rather than here.
-    ///
-    /// **Read off the code, not off a sample.** These are exactly the fouls the four
-    /// draws in `Penalties` that do not pick from the play's credited slots can produce:
-    /// `onDownfieldBlock` (blockers on a return), `onLineRelease` (linemen who released
-    /// on a pass), `onKick` (rushers who never reached the kicker) and `afterThePlay`
-    /// (route runners and coverage defenders once the whistle has gone). Deriving it
-    /// from eighty games instead would have missed `.lowBlock`, which is a fifth of a
-    /// sixth of the downfield-block draw and simply did not come up — and it would then
-    /// have failed here as a false ninth the first time it did.
-    ///
-    /// Measured at 2.6% of flags: 29 of 1104 over eighty games at fixed noise.
-    static let foulsChargedToUncreditedSlots: Set<Foul> = [
-        // onDownfieldBlock
-        .illegalBlockInTheBack,
-        .illegalBlindsideBlock,
-        .lowBlock,
-        // onLineRelease
-        .ineligibleReceiverDownfield,
-        .illegalManDownfield,
-        // onKick
-        .roughingTheKicker,
-        .runningIntoTheKicker,
-        // afterThePlay
-        .unsportsmanlikeConduct,
-        .taunting,
-    ]
-
-    /// Pins the uncredited-slot gap: what the engine does today, not what it should.
-    ///
-    /// This test used to be called "Every flag is charged to a player on the play" and
-    /// asserted exactly that over six seeds, where it passed by luck. The same check over
-    /// sixty games of the world this branch replaced finds twenty-seven flags it does not
-    /// hold for. So it asserted a contract the engine does not keep, and it is now a pin
-    /// on the gap instead, with the register above naming it.
-    ///
-    /// Two directions, and the range is eighty seeds so that both are armed. A foul from
-    /// outside the register turning up uncredited is a new gap and fails. Every flag
-    /// resolving to a credited player means #54 landed, which fails too — and the whole
-    /// register comes out along with this test. The one thing that does hold for every
-    /// flag, and is asserted as a plain expectation, is the side of the ball.
+    /// So a sack, a scramble and a throwaway can carry defensive holding or illegal
+    /// contact and cannot carry interference of either kind.
     @Test(
-        "pin: every flag outside the known uncredited-slot register names a credited player (#54)",
-        .tags(.pin))
-    func offendersAreReal() {
-        var uncreditable: Set<Foul> = []
-        for (play, flag) in flags(seeds: 1...80) {
-            if !play.outcome.participants.contains(where: { $0.slot == flag.offender }) {
-                uncreditable.insert(flag.foul)
+        "football · Rule 8-5-1 · interference cannot be called on a down with no forward pass",
+        .tags(.football))
+    func noInterferenceWithoutAThrow() {
+        var withoutAThrow = 0
+        var flagged = 0
+        for (play, flag) in flags(seeds: 1...30) {
+            let noThrow = play.outcome.kind == .sack || play.outcome.kind == .scramble
+            guard noThrow else { continue }
+            withoutAThrow += 1
+            if flag.foul == .defensivePassInterference || flag.foul == .offensivePassInterference {
+                flagged += 1
             }
-            let offenceCommitted = flag.offendingTeam == play.situation.possession
-            #expect(
-                flag.offender.isOffense == offenceCommitted,
-                "\(flag.foul) charged to the wrong side of the ball")
         }
-        let unregistered = uncreditable.subtracting(Self.foulsChargedToUncreditedSlots)
-        #expect(unregistered.isEmpty, "new fouls charged to an uncredited slot: \(unregistered)")
-        #expect(
-            !uncreditable.isEmpty,
-            "no flag names an uncredited slot any more — #54 landed: delete the register and restore the contract this test used to assert"
-        )
+        // The count itself falls when the fix lands, because the interference flags on
+        // these downs stop being drawn rather than becoming some other foul. It is here
+        // to prove the case was exercised at all, not as a rate.
+        #expect(withoutAThrow > 10, "only \(withoutAThrow) flags on downs with no throw")
+        #expect(flagged == 0, "\(flagged) interference calls on downs where nobody threw it")
+    }
+
+    /// And interference is on the man the ball was thrown to.
+    ///
+    /// 8-5-1 again: interference is hindering an eligible receiver's chance at the ball,
+    /// and 8-5-4's version of the offence's is a block near whoever the pass is going to.
+    /// A flag on a receiver the quarterback never looked at is a flag with no ball near
+    /// it.
+    @Test("Interference is on the target's matchup, not on somebody else's", .tags(.contract))
+    func interferenceIsOnTheTarget() {
+        var checked = 0
+        for (play, flag) in flags(seeds: 1...30) {
+            guard
+                flag.foul == .defensivePassInterference
+                    || flag.foul == .offensivePassInterference
+            else { continue }
+            guard
+                let target = play.outcome.participants.first(where: { $0.role == .target })
+            else {
+                Issue.record("interference on a play with no target at all")
+                continue
+            }
+            checked += 1
+            if flag.foul == .offensivePassInterference {
+                #expect(
+                    flag.offender == target.slot,
+                    "offensive interference by a receiver who was not the target")
+                continue
+            }
+            let covering = play.decisions.first {
+                $0.kind == .coverageAssignment && $0.secondary == target.slot
+            }
+            #expect(
+                covering?.primary == flag.offender,
+                "interference by a defender who was covering somebody else")
+        }
+        #expect(checked > 10, "only \(checked) interference calls to check")
+    }
+
+    /// A flag names a slot, and the record resolves every slot: `onField` carries the
+    /// twenty-two men, so a receiver running a decoy route, a rusher who never reached
+    /// the kicker or a blocker on a return is as identifiable as the man who made the
+    /// tackle. For a while he was not. The only way to resolve a slot was
+    /// `outcome.participants`, a flag on a man the play never credited named nobody, and
+    /// this test carried a register of the eight fouls that could do it — it had asserted
+    /// the contract over six seeds and passed by luck, then pinned the gap instead. The
+    /// register is gone with the gap, and the contract is asserted the way a reader of
+    /// the stream would use it: through `player(at:rosters:)`, over the six seeds the
+    /// original asked and three more between a different pair of clubs.
+    ///
+    /// Three things per flag: the record names the offender, he is on the offending
+    /// team's roster, and the slot is on the side of the ball the team was.
+    @Test("Every flag names a player the record identifies", .tags(.contract))
+    func offendersAreReal() {
+        let games =
+            (UInt64(1)...6).map { game(seed: $0) }
+            + (UInt64(1)...3).map { game(seed: $0, home: 3, away: 6) }
+        var checked = 0
+        for result in games {
+            for play in result.plays {
+                for flag in play.outcome.penalties {
+                    checked += 1
+                    let offender = play.player(at: flag.offender, rosters: result.rosters)
+                    #expect(
+                        offender != nil,
+                        "\(flag.foul) charged to slot \(flag.offender), whom the record cannot name"
+                    )
+                    if let offender {
+                        #expect(
+                            result.rosters[flag.offendingTeam]?.contains(offender) == true,
+                            "\(flag.foul) charged to a man not on the offending team")
+                    }
+                    let offenceCommitted = flag.offendingTeam == play.situation.possession
+                    #expect(
+                        flag.offender.isOffense == offenceCommitted,
+                        "\(flag.foul) charged to the wrong side of the ball")
+                }
+            }
+        }
+        #expect(checked > 100, "nine games and \(checked) flags to check")
     }
 
     // MARK: - Home field as a mechanism
@@ -198,11 +239,23 @@ struct PenaltyTests {
     }
 
     /// And it has to be *asymmetric*, or it is not home field advantage — it is weather.
+    ///
+    /// **Sixty games a side, for the reason the road-side twin above gives.** The home
+    /// offence's pre-snap draw does not read the crowd at all — `Penalties.preSnap` takes
+    /// the noise term as zero when the offence is the home team — so what is left in the
+    /// counts is the stream being reshuffled: a road false start is an extra play, every
+    /// play after it is drawn from a different split, and the home team's own flags land
+    /// in different places. Twelve games hold about fifteen of them and the reshuffle
+    /// moves more than the tolerance, so the small sample was reading the shuffle. Across
+    /// nine noise settings at twelve games the counts ran 14, 15, 15, 15, 16, 21, 25, 25,
+    /// 23; the same settings at sixty games ran 106, 111, 110, 112, 119, 122, 128, 129,
+    /// 124 — a drift of a fifth on a quantity the code cannot move, which is the size of
+    /// the shuffle and not of a mechanism.
     @Test("Noise does not punish the home team", .tags(.unit))
     func noiseSparesTheHomeTeam() {
         func homePreSnapFouls(noise: UInt8) -> Int {
             var count = 0
-            for seed in UInt64(1)...12 {
+            for seed in UInt64(1)...60 {
                 let result = game(seed: seed, noise: noise)
                 for play in result.plays {
                     for flag in play.outcome.penalties
@@ -245,9 +298,9 @@ struct PenaltyTests {
                 quarter: 1, clockRemaining: 600, down: .first, distance: 10, ballOn: 60,
                 possession: TeamID(1))
             let personnel = Lineup.onField(
-                context, family: .insideRun, situation: situation, random: &random)
+                context, concept: .insideRun, situation: situation, random: &random)
             let calls = Calls(
-                offense: CrudePlaybook.call(.quickPass, tempo: tempo), defense: .baseCoverThree,
+                offense: OffensiveCall(concept: .quickPass, tempo: tempo), defense: .baseCoverThree,
                 offensiveCaller: .automatic, defensiveCaller: .automatic)
 
             var count = 0
