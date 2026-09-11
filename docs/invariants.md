@@ -395,8 +395,8 @@ season is what checks one. A band is evidence about a rate and never about a rul
     somewhere convenient. `[2025 · 14-3-4]` — `test:enforcementFamilies`
 66. A flag that comes down before the ball is snapped walks off from the succeeding spot
     and the same down is played again; one that comes down as it is snapped walks off from
-    the previous spot and the down is replayed. Either way, if enforcing the penalty
-    produces a first down, it is a first down instead. `[2025 · 14-4-1]` —
+    the previous spot instead, and the down is played over. Either way, if enforcing the
+    penalty produces a first down, it is a first down instead. `[2025 · 14-4-1]` —
     `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `test:preSnapKillsThePlay`
 67. The basic spot for a foul during a run not followed by a change of possession is the
     dead-ball spot, so a facemask at the end of a 20-yard run is fifteen more from where the

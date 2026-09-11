@@ -562,8 +562,8 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:defensiveFoulOnAStripSackIsEnforcedFromThePreviousSpot`
 - **14-4-1** — Two items, split by when the flag flew. A flag that comes down before the
   ball is snapped (Item 1) walks off from the succeeding spot, and the same down is played
-  again. One that comes down as it is snapped (Item 2) walks off from the previous spot,
-  and the down is replayed. Both items carry one proviso the entry used to leave out: if
+  again. One that comes down as it is snapped (Item 2) walks off from the previous spot
+  instead, and the down is played over. Both items carry one proviso the entry left out: if
   enforcing the penalty itself produces a first down, it is a first down, and the down
   neither stays nor repeats. — `test:preSnapKillsThePlay`,
   `test:falseStartAtTheOwnThreeIsHalfTheDistance`

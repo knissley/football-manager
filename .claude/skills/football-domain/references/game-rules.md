@@ -270,8 +270,8 @@ its season and source belong to issue #2.
   spot that is. `[2025 · 14-2-1]`
 - A flag that comes down before the ball is snapped walks off from the succeeding spot and
   the same down is played again; one that comes down as it is snapped walks off from the
-  previous spot and the down is replayed. Either way, if enforcing the penalty produces a
-  first down, it is a first down instead. `[2025 · 14-4-1]`
+  previous spot instead, and the down is played over. Either way, if enforcing the penalty
+  produces a first down, it is a first down instead. `[2025 · 14-4-1]`
 - **The basic spot.** A run with no change of possession in it takes the dead-ball spot;
   a run that ends in one takes the spot where possession went; a backward pass or a fumble
   takes the spot of the pass or the fumble. `[2025 · 14-3-5]`
