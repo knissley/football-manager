@@ -23,12 +23,15 @@ enum HarnessWorld {
 
     static let season = 2030
 
+    /// `strengthSpread` is how wide to draw the league's talent. The shipped league's width
+    /// by default; `--strength-spread` passes something else so a run can measure what the
+    /// width does to every row, which is how the shipped one was settled.
     static func generate(
-        seed: UInt64
+        seed: UInt64, strengthSpread: Double = WorldGenerator.strengthSpread
     ) -> Result<WorldGenerator.GeneratedWorld, WorldGenerator.GenerationFailure> {
         WorldGenerator.generate(
             seed: seed, shape: .standard, season: season, parts: parts,
-            collegeCount: collegeCount)
+            collegeCount: collegeCount, strengthSpread: strengthSpread)
     }
 
     /// `world checksum <sixteen hex digits>` — the line the header prints, the whole of

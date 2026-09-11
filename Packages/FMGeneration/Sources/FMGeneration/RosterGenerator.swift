@@ -23,9 +23,14 @@ public enum RosterGenerator {
     /// How good a team is meant to be, roughly in overall points either side of
     /// the league's middle.
     ///
-    /// Rebuilding teams sit near -8, contenders near +8. The spread across a
-    /// league is what produces a believable range of win totals, so it is a
-    /// generation input rather than something to hope for.
+    /// How wide a real league is drawn is `WorldGenerator.strengthSpread`, which
+    /// is sourced and much narrower than the two named values below. Those two
+    /// are deliberately outside it: they exist so a test can hold a good club
+    /// against a bad one and see the difference, not to describe a club the world
+    /// generator draws.
+    ///
+    /// The spread across a league is what produces a believable range of win
+    /// totals, so it is a generation input rather than something to hope for.
     public struct Strength: Sendable, Hashable {
         public let offset: Double
 

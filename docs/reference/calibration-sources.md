@@ -379,6 +379,158 @@ why, and nobody should assert a range for it from memory.
 | --- | --- | --- |
 | `row:gamesWithin3` — games within 3 | 2023-24 | S1 |
 | `row:gamesWithin7` — games within 7 | 2023-24 | S1 |
+| `row:gamesBy14plus` — games decided by 14 or more | 2023-24 | S1 |
+| `row:marginSigma` — spread of the point differential | 2023-24 | S1 |
+| `row:betweenTeamSigma` — spread of it that is the clubs | 2023-24 | S1 |
+
+The first two say how often a game is close. The last three say how far apart the scores
+get, and how much of that distance is the clubs rather than the afternoon — which is what
+tells a league drawn too wide from an engine that is simply wild.
+
+`row:marginSigma` is the standard deviation of the home side's points less the road
+side's, over games: 14.40 in 2023 and 14.43 in 2024. `row:gamesBy14plus` is the share
+decided by two scores or more: 37.5% and 33.1%. Both come off the same finals the two
+`gamesWithin` rows read and add nothing to the derivation but arithmetic.
+
+`row:betweenTeamSigma` is the club part of `row:marginSigma`, and it is the one that took
+a decision. Each club's point differential is gathered by club and split the way a one-way
+random-effects model splits any repeated measure: the variance of the club season means,
+less the pooled within-club variance divided by the games each club played. The
+subtraction is the whole point — a season is short, so the spread of the club *means* is
+inflated by exactly that much, and without the correction a league of identical clubs
+reports a spread it does not have. That gives **4.83 in 2023 and 5.73 in 2024**, and
+`scripts/calibration-sources.py` prints it beside the win-total sigma on every run.
+
+What it assumes is in the script's own doc comment, and all of it is listed there because
+the number sets a generation constant: a roughly balanced schedule, home field as a
+constant rather than a club trait, and a club's strength not moving during the season.
+Each of those, violated, pushes the estimate **up** — schedule imbalance and in-season
+drift both read as between-club spread — so it is an upper estimate of a club's true
+spread and not a lower one. The band is not a gate for a second reason: four hundred games
+gives a club twenty-five, and at that length the estimator's own error is about as wide as
+the band.
+
+#### What the spread of team strength was set from
+
+`WorldGenerator.strengthSpread` draws each club's rating offset uniformly on ±*S*. Before
+[#116](https://github.com/knissley/football-manager/issues/116) *S* was 8, a number from an
+audit plan with no source at all. There is no way to source a *rating*: the scale is this
+project's own invention and no season publishes one
+([ADR-0005](../adr/0005-generated-fictional-content.md) and the shelf
+[below](#not-worth-computing)). What can be sourced is what a rating spread *produces*, so
+*S* is set by matching `row:betweenTeamSigma` to the sourced figure above, with the engine
+as the transfer and the target outside it.
+
+Three measurements, all from `simharness --strength-spread`, which exists for this. **Take
+them at 1,600 games and eight worlds per setting, and do not mix lengths**: a 400-game run
+reads the between-club spread about 2% high, which is harmless in a row and is not harmless
+in a slope.
+
+1. **The floor.** At *S* = 0 every club is drawn from the same distribution, and the
+   between-club spread is still **4.23** — eight worlds of 1,600 games. Two rosters drawn
+   the same way are not the same roster, and that difference alone is most of a real
+   league's spread.
+2. **The transfer.** Between-club variance above the floor is proportional to *S*²: the
+   slope is **1.211** points of differential per point of *S*, from 1.2208 at *S* = 4 and
+   1.2005 at *S* = 8.
+3. **The solve.** The draw must contribute √(5.28² − 4.23²) = 3.16 points, so
+   *S* = 3.16 / 1.211 = **2.61** — where 5.28 is the mean of the two sourced seasons.
+
+Checked at the answer rather than assumed: eight worlds of 1,600 games at the shipped width
+report a pooled **5.33** against the 5.28 it was solved for.
+
+**The shipped constant is 2.63, not the 2.61 this tree solves to, and the difference is the
+rule below doing its job.** 2.63 was derived on the tree before this one; re-measuring here
+gives 2.61, a drift of 0.8% against a measured noise floor of 2%, so the constant was held
+and the drift recorded rather than moved by less than the instrument resolves. Any reader
+checking the arithmetic will land on 2.61 and should: that is the re-measurement, and this
+paragraph is where it is written down.
+
+**The floor and the slope belong to the engine, so re-measure them rather than inheriting
+them.** They were 4.06 and 1.065 when this was first derived, which solved to 3.17; the run
+game then grew a middle ([#118](https://github.com/knissley/football-manager/issues/118))
+and both moved — a carry that gains its ordinary yards rather than its extreme ones makes
+the better club's advantage travel further, so the slope rose and the width needed fell. The
+same three steps against the same sourced target gave 2.55. Then the defence learned to
+answer two tight ends with a fifth defensive back some of the time
+([#130](https://github.com/knissley/football-manager/issues/130)), the floor fell from 4.28
+to 4.16 and the slope rose again, and the same three steps gave 2.63. Twice in one day, from
+two engine changes neither of which was about the world. Anything that changes what a snap
+does can move this constant without anybody touching it, which is the argument for
+`row:betweenTeamSigma` existing at all: it is what notices.
+
+#### When to move the constant, and when to leave it
+
+Re-measuring on every engine change and *shipping* on every engine change are different
+things, and without the second rule written down the constant never converges: each landing
+reopens it, and the value chases the last thing that moved rather than settling on what the
+sport says. The rule is the deliverable; this is it.
+
+**The noise floor is about 2%, and it is measured rather than asserted.** Two independent
+handles give the same figure. The check at the answer lands a pooled 5.38 against the 5.28
+it was solved for, which is 2%. And the same quantity read at 400 games rather than 1,600
+comes back about 2% high, which is why a derivation must not mix run widths. Take 2% of the
+constant as the smallest difference worth acting on.
+
+So, after re-measuring the floor and the slope on the tree in front of you and solving:
+
+- **Within 2% of the constant already in the tree — keep it, and record the drift.** Both
+  numbers, and the floor and slope that produced each, go in the pull request. This is not
+  laziness or chasing avoided by fiat: it is declining to move a constant by less than the
+  instrument can resolve, which would be fitting noise.
+  *Worked example:* 2.63 against a re-solve of 2.61 is 0.8%, inside the floor, so the
+  constant was held and the drift written into the three steps above.
+- **Beyond it — move it**, and say which engine change moved the slope or the floor, in the
+  same terms the rest of this section uses.
+  *Worked example:* 2.55 against a re-solve of 2.63 is 3.2%, past the floor, so the
+  constant moved and the engine change that moved it was named.
+
+Two things this rule is not. It is **not** a licence to skip the measurement: the drift is
+only reportable because somebody measured it, and an unmeasured "probably still fine" is
+the failure this whole file exists to prevent. And it is **not** a tolerance on the *band* —
+`row:betweenTeamSigma` grades what a generated league actually does, at whatever width is
+shipped, and a row out of band is a finding whether or not the constant was left alone.
+
+#### When re-derivation stops
+
+The rule above says whether to move once you have re-derived. On its own that is an
+infinite loop, because the thing it measures keeps moving.
+
+**This constant is provisional by construction.** It is derived from engine measurements,
+so it drifts whenever the engine lands. Re-derive when the branch that owns it lands, and
+apply the rule above on the tree it ships on. Do **not** re-derive again because a later
+branch moved the engine: record the drift instead, and let the retune own the final value.
+`row:betweenTeamSigma` is what makes that drift visible rather than silent — which is the
+whole reason it is graded rather than left as a note.
+
+**E3 ([#49](https://github.com/knissley/football-manager/issues/49)) owns the final
+derivation.** It is the pass that settles what a snap does, so it is the only place the
+floor and the slope stop moving underneath the solve, and it should re-derive once at the
+end against whatever engine it leaves behind.
+
+**How much does it actually move?** Measured in one day, across three engine landings, each
+by the same three steps against the same sourced target of 5.28:
+
+| after | floor | slope | solve | what moved the engine |
+| --- | --- | --- | --- | --- |
+| the tree before the run game had a middle | 4.06 | 1.065 | **3.17** | — |
+| [#118](https://github.com/knissley/football-manager/issues/118) | 4.28 | 1.212 | **2.55** | a carry became three outcomes rather than a draw on a hole |
+| [#130](https://github.com/knissley/football-manager/issues/130) | 4.16 | 1.237 | **2.63** | a two-tight-end grouping began drawing the fifth defensive back |
+| [#133](https://github.com/knissley/football-manager/issues/133) | 4.23 | 1.211 | 2.61 — **held at 2.63** | when a pre-snap foul is drawn, which is not how yards are gained |
+
+That table is worth more than any one of the three values. It is the measured answer to
+*how far does this constant move when the engine changes*, which nobody had before, and it
+is the argument for both halves of the rule: the moves are real rather than noise — two of
+the three are past the floor — and they are small enough that waiting for the retune costs
+little. A reader who wants to know whether a stale width matters should read the rows here
+rather than re-run the derivation.
+
+**Read the floor as a finding, not a detail.** Four fifths of the sourced spread — two
+thirds of its variance — is already spent on roster-draw noise before a single club is
+called a contender, which is why the sourced *S* is as narrow as it is: what the league
+deliberately draws is the smaller part of what separates two clubs. Narrowing the roster
+draw would buy back room for deliberate structure; that is a generation decision and nobody
+has taken it.
 
 ### The ten most common accepted fouls, per game, both teams
 
@@ -608,10 +760,14 @@ generation constants reproduces the mix, because the family the ages are drawn f
 wrong shape. That is a modelling decision for the owner, not a band anybody is missing. The
 line is here only to stop it being counted as a sourcing gap, which it has been.
 
-**The spread of team strength.**
-[#116](https://github.com/knissley/football-manager/issues/116) is sourcing it, from the
-published per-game point-differential figures, and will record it here under this file's own
-rules. Not duplicated here, and nobody should open a second derivation of it.
+**The spread of team strength.** Done, and it is a `row:` — `row:betweenTeamSigma` under
+[Scoreboard](#scoreboard), with the derivation of `WorldGenerator.strengthSpread` from it
+beside the row. It is listed here only so a reader who comes looking finds the answer
+rather than opening a second derivation of it. Two things to carry away if you do not read
+that section: no *rating* spread was sourced, because none can be — what was sourced is
+what a rating spread produces — and there was **no published figure to find**. The
+between-club figure is derived from S1 by this repository's own script, the way every other
+band here is, and is not a number anybody published as a number.
 
 ### Not worth computing
 

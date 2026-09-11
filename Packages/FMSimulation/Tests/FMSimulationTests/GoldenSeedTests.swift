@@ -677,15 +677,36 @@ struct GoldenSeedTests {
             // while the routes asked for 1,400 through 3,400, so three of the five pass
             // concepts sat outside the window and their pressure verdict was a constant.
             // He now arrives from 1,000 ms on a core of the same width with a tail that
-            // halves every half second. All three seeds move, and every one of them has
-            // to: the draw is a different draw on the first lost rep of the game, the
-            // number of values it consumes is itself random now, and both the verdict and
-            // the stream diverge from there. There is no snap in any of the three that
-            // could have come out the same by luck, so — unlike the warning above — a
-            // seed that did *not* move would be the thing worth investigating.
-            (UInt64(1), UInt64(6_815_553_386_457_547_323)),
-            (UInt64(5), UInt64(6_467_780_222_937_450_596)),
-            (UInt64(12), UInt64(2_014_329_887_637_027_649)),
+            // halves every half second. All three seeds move for that alone, and every one
+            // of them has to: the draw is a different draw on the first lost rep of the
+            // game, the number of values it consumes is itself random now, and both the
+            // verdict and the stream diverge from there. There is no snap in any of the
+            // three that could have come out the same by luck, so — unlike the warning
+            // above — a seed that did *not* move would be the thing worth investigating.
+            //
+            // And moved by the world rather than by the engine, which is the other half of
+            // where the constants below come from. `WorldGenerator` draws a league's talent
+            // on a width that is sourced now rather than assumed, so every club's offset is
+            // a different number, every roster is built to a different ceiling, and every
+            // man drawn after the first is a different man. Nothing in `FMSimulation`
+            // changed for that reason: the same code plays a different pair of teams.
+            //
+            // The width did **not** move in this merge, and `GoldenWorldTests` is the
+            // evidence — it did not move either, because nothing here reaches `FMGeneration`.
+            // Engine source did move, in the pass rush above, and the width was deliberately
+            // not re-derived for it: the width is derived from engine measurements and is
+            // provisional by construction, so it is re-derived when the branch that owns it
+            // lands and not again because a later branch moved the engine. The drift is
+            // recorded instead, and `row:betweenTeamSigma` is what keeps it visible.
+            //
+            // So the three below are a third set rather than either parent's, and both
+            // mechanisms are in every one of them: a different eleven men, drawn to a
+            // different ceiling, playing under a pass rush that arrives on a different
+            // window. Checked against both parents before they were written down — all
+            // three differ from both.
+            (UInt64(1), UInt64(13_153_807_975_940_597_992)),
+            (UInt64(5), UInt64(9_139_961_247_156_091_205)),
+            (UInt64(12), UInt64(13_259_479_467_292_385_971)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
