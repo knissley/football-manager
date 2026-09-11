@@ -688,8 +688,28 @@ struct GoldenSeedTests {
             // recorded instead, and `row:betweenTeamSigma` is what keeps it visible. Both
             // parents' constants fall to the pair of mechanisms together, and all three
             // below were checked against both before they were written down.
+            //
+            // And moved by half the distance, on one seed only and only once the two
+            // mechanisms above were put together. The ceiling of 14-2-1 caps a walk-off
+            // at the midpoint between the spot of enforcement and the goal line the
+            // offending team defends, and it now does so whenever the walk-off would
+            // carry the ball past that midpoint rather than only when it would reach the
+            // goal line itself. On its own branch that changed no golden at all: across
+            // the three games there, forty-five accepted penalties all walked their
+            // nominal yardage and none met the ceiling.
+            //
+            // The talent width above makes seed 5 a different game, and that game has a
+            // taunting foul enforced from around the 26 — fifteen yards where thirteen is
+            // half the distance, which the old reading walked in full and this one stops
+            // on the midpoint. Seeds 1 and 12 still meet the ceiling nowhere and are
+            // unchanged from this merge's first parent. Checked rather than assumed, by
+            // walking every accepted penalty in all three games and reading the distance
+            // assessed against the foul's nominal yardage: seed 5's other two shortened
+            // records are a spot foul, which carries no nominal yardage and never reaches
+            // the helper, and a fifteen from the 15, where the walk-off would have reached
+            // the goal line and both readings give the same seven.
             (UInt64(1), UInt64(12_939_006_183_879_276_582)),
-            (UInt64(5), UInt64(10_961_565_527_291_462_682)),
+            (UInt64(5), UInt64(16_849_145_678_717_754_854)),
             (UInt64(12), UInt64(5_587_817_126_695_655_428)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {

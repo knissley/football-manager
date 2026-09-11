@@ -400,26 +400,30 @@ extension Rules {
         return (record, advancement)
     }
 
-    /// Walk a penalty off from a spot, in the frame of whoever has the ball, and never
-    /// into an end zone: more than half the distance to the goal line is half the
-    /// distance, measured from the spot of enforcement (14-2-1).
+    /// Walk a penalty off from a spot, in the frame of whoever has the ball.
+    ///
+    /// Half the distance is a ceiling on every distance penalty and not a guard on the
+    /// end zone: when the walk-off would carry the ball past the midpoint between the
+    /// spot of enforcement and the goal line the offending team defends, the ball goes
+    /// to that midpoint instead, and 14-2-1 states itself as overriding every other
+    /// enforcement of a distance penalty. **The gotcha is that it bites well short of a
+    /// goal line** — five yards from the 7 is more than half of seven — so a walk-off
+    /// that would have stopped inside the field is no evidence the ceiling is idle. The
+    /// band it governs and the goal line meet only when the penalty is as long as the
+    /// distance.
+    ///
+    /// Modelling: the field is whole yards here and the midpoint frequently is not, so
+    /// the walk-off is rounded down and the ball is left on the nearer whole yard the
+    /// ceiling still allows — the 4 from the 7, where the article's own midpoint is the
+    /// three and a half. The article says nothing about rounding; we spot on whole
+    /// yards and this is the side of the midpoint that never overshoots it.
     private func walk(
         from spot: Int, yards: Int, towardOpponentGoal: Bool
     ) -> (ballOn: UInt8, moved: Int) {
-        if towardOpponentGoal {
-            let raw = spot - yards
-            if raw <= 0 {
-                let moved = spot / 2
-                return (UInt8(max(1, spot - moved)), moved)
-            }
-            return (UInt8(raw), yards)
-        }
-        let raw = spot + yards
-        if raw >= 100 {
-            let moved = (100 - spot) / 2
-            return (UInt8(min(99, spot + moved)), moved)
-        }
-        return (UInt8(raw), yards)
+        let toGoal = towardOpponentGoal ? spot : 100 - spot
+        let moved = yards * 2 > toGoal ? toGoal / 2 : yards
+        let ballOn = towardOpponentGoal ? max(1, spot - moved) : min(99, spot + moved)
+        return (UInt8(ballOn), moved)
     }
 
     /// The down replayed from a new spot with the marker where it was — moving back

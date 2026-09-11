@@ -485,7 +485,8 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; the loss-of-down exception in
   Item 3-b is not modelled, because no foul the engine draws on a try carries a loss of
   down. Nothing in the article exempts a try from the half-distance ceiling of 14-2-1;
-  its interference exception applies that ceiling itself, in two places
+  its interference exception applies that ceiling itself, in two places —
+  `test:offsideOnATryFromTheSevenIsHalfTheDistance`
 - **11-3-4** — After a try, the team on defence for it receives the succeeding free kick. —
   `test:afterTheTryTheDefendingTeamReceives`, `test:kickoffReturnTouchdownGetsItsTry`
 - **11-4-1** — A field goal has to be place-kicked or drop-kicked, struck at or behind the
@@ -548,14 +549,20 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   intentional grounding (8-2-1) and a palpably unfair act (12-3-4). The measurement starts
   at whichever spot the foul is enforced from, the other try spot included (14-3-4-f), and
   nothing in 11-3-3 lifts the ceiling for a try — that article leans on the same
-  half-distance twice inside its own interference exception. —
-  `test:halfTheDistanceFromTheEnforcementSpot`; the ceiling *short of* a goal line is
-  **not yet enforced**, [#143](https://github.com/knissley/football-manager/issues/143).
-  Measured at branch head: the engine applies the ceiling only where the walk-off would
-  reach the goal line itself, so five yards against the defence from the 7 walk all five to
-  the 2, fifteen from the 20 walk all fifteen to the 5, and a false start six yards out from
-  the offence's own goal line walks back to its own 1 — each of them a spot the article puts
-  on the midpoint instead
+  half-distance twice inside its own interference exception. **The ceiling bites well short
+  of a goal line**: five yards from the 7 and fifteen from the 20 are both more than half,
+  and neither would have reached the goal line. —
+  `test:halfTheDistanceFromTheEnforcementSpot`,
+  `test:defensiveHoldingAtTheSevenIsHalfTheDistance`,
+  `test:facemaskAtTheTwentyIsHalfTheDistance`,
+  `test:falseStartAtTheOwnSevenIsHalfTheDistance`,
+  `test:offsideOnATryFromTheSevenIsHalfTheDistance`,
+  `test:roughingOnAMissedFieldGoalIsAFirstDown`,
+  `test:facemaskByTheFormerOffenseOnAReturn`; **modelling**: the engine spots on whole
+  yards and the article's midpoint often is not one, so the walk-off is rounded down and
+  the ball is left on the nearer whole yard the ceiling still allows — the 4 from the 7,
+  where the article's midpoint is the three and a half. The article says nothing about
+  rounding
 - **14-2-3** — A personal or unsportsmanlike foul during a down in which the opponent kicks
   a field goal or scores a safety is enforced on the free kick; on a touchdown it is
   enforced on the try, whether it came during the down, after the whistle or between downs;
