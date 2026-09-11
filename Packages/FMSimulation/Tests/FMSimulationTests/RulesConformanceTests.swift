@@ -2838,8 +2838,15 @@ struct RulesConformanceTests {
     /// The other branch of the same draw. Nothing scored, so nothing is carried anywhere:
     /// a personal foul on the kicker is fifteen yards and a first down from the previous
     /// spot, and the offence keeps the ball.
+    ///
+    /// The kick is from the 20, and fifteen from the 20 is past the midpoint of it, so
+    /// 14-2-1's ceiling cuts the walk-off to half the distance and first-and-goal is at
+    /// the 10. This assertion read "the 5, fifteen on from the 20" until the ceiling was
+    /// understood to govern every distance penalty and not only one that would reach a
+    /// goal line; the fifteen and the automatic first down, which is what 12-2-12 is
+    /// asserted for here, are unchanged.
     @Test(
-        "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down",
+        "football · Rule 12-2-12, 14-2-1 · roughing the kicker on a missed field goal is a first down, the fifteen capped at half the distance from the 20",
         .tags(.football)
     )
     func roughingOnAMissedFieldGoalIsAFirstDown() {
@@ -2852,9 +2859,12 @@ struct RulesConformanceTests {
         trace.expectScore(kicker, 0)
         #expect(kick.play.outcome.penalties.first?.wasAccepted == true)
         #expect(kick.play.outcome.penalties.first?.awardedFirstDown == true)
+        #expect(
+            kick.play.outcome.penalties.first?.yards == 10,
+            "the record carries the distance assessed, which the ceiling cut from fifteen")
         trace.expectPlay(
-            kick.index + 1, possession: kicker, down: .first, ballOn: 5,
-            "first and goal at the 5, fifteen on from the 20")
+            kick.index + 1, possession: kicker, down: .first, ballOn: 10,
+            "first and goal at the 10: half the distance from the 20 caps the fifteen")
     }
 
     /// The same foul on the kick that went over. 12-2-12's second penalty marks running

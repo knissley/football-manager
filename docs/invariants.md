@@ -156,8 +156,10 @@ season is what checks one. A band is evidence about a rate and never about a rul
 20. Defensive offside on a two-point try is half the distance to the goal, so the replay
     comes from the 1. `[2025 · 11-3-3 Item 2, 7-4-5, 14-2-1]` —
     `test:offsideOnTheConversionMovesItIn`. This is one case of the general ceiling in 65,
-    which a try is not exempt from; 65 also records where the engine falls short of it, so
-    a try walked in from further out is not the same question answered twice.
+    which a try is not exempt from, and it is the case where every reading of the ceiling
+    agrees because five yards from the 2 would reach the goal line. A try walked out to
+    the 7 first and then brought back in is the case where they do not, and it is
+    `test:offsideOnATryFromTheSevenIsHalfTheDistance` under 65.
 21. A touchdown on the last play of a period still gets its try, and the period is extended
     by that untimed down: the try belongs to the period the touchdown ended, at 0:00.
     `[2025 · 4-8-1, 4-8-2, 4-8-2-c]` — `test:touchdownAsTheFirstQuarterExpires`,
@@ -432,14 +434,19 @@ season is what checks one. A band is evidence about a rate and never about a rul
     the enforcement spot and the goal line the offending team defends. A try is no
     exception — the article overrides every other enforcement of a distance penalty bar
     intentional grounding and a palpably unfair act, and 11-3-3 lifts nothing.
-    `[2025 · 14-2-1, 11-3-3, 14-3-4-f]` — `test:halfTheDistanceFromTheEnforcementSpot`,
+    `[2025 · 14-2-1, 11-3-3, 14-3-4-f]` — the walk-offs that would reach a goal line:
+    `test:halfTheDistanceFromTheEnforcementSpot`,
     `test:defensiveHoldingAtTheThreeIsHalfTheDistance`,
-    `test:falseStartAtTheOwnThreeIsHalfTheDistance` cover the walk-offs that would reach a
-    goal line; the ceiling short of one is **not yet enforced**,
-    [#143](https://github.com/knissley/football-manager/issues/143). Measured at branch
-    head: five yards against the defence from the 7 walk all five to the 2, fifteen from
-    the 20 walk all fifteen to the 5, and a false start six yards out from the offence's
-    own goal line walks back to its own 1.
+    `test:falseStartAtTheOwnThreeIsHalfTheDistance`; the ceiling short of one, which is
+    the wider half of it: `test:defensiveHoldingAtTheSevenIsHalfTheDistance`,
+    `test:facemaskAtTheTwentyIsHalfTheDistance`,
+    `test:falseStartAtTheOwnSevenIsHalfTheDistance`,
+    `test:offsideOnATryFromTheSevenIsHalfTheDistance`,
+    `test:roughingOnAMissedFieldGoalIsAFirstDown`,
+    `test:facemaskByTheFormerOffenseOnAReturn`; **modelling**: the engine spots on whole
+    yards and the midpoint often is not one, so the walk-off is rounded down and the ball
+    is left on the nearer whole yard the ceiling allows — the 4 from the 7, where the
+    article's midpoint is the three and a half. The article says nothing about rounding.
 66. Every foul is enforced from one of the spots the book lists — the previous spot, the
     spot of the foul, the succeeding spot, the dead-ball spot and the rest — and never from
     somewhere convenient. `[2025 · 14-3-4]` — `test:enforcementFamilies`

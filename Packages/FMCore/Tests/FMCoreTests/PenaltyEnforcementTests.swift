@@ -431,8 +431,16 @@ struct PenaltyEnforcementTests {
     /// The frame rule: enforcement is computed in the frame of the team that will snap
     /// next. A personal foul by the offence during a play on which it loses the ball
     /// leaves the defence in possession, enforced from the dead-ball spot (14-4-3-b).
+    ///
+    /// The dead-ball spot here is the 25, and fifteen from the 25 is past the midpoint
+    /// of it, so 14-2-1's ceiling cuts the walk-off to half the distance — the twelve
+    /// and a half, which whole yards round down to twelve walked and the ball on the 13.
+    /// This assertion read "the 10, the 25 and fifteen more" until the ceiling was
+    /// understood to govern every distance penalty and not only one that would reach a
+    /// goal line; the spot it is measured from, which is what this test is here for, is
+    /// unchanged.
     @Test(
-        "football · Rule 12-2-15, 14-4-3-b · a facemask by the former offence on an interception return is 15 from the dead-ball spot in the returning team's frame, first down",
+        "football · Rule 12-2-15, 14-4-3-b, 14-2-1 · a facemask by the former offence on an interception return is enforced from the dead-ball spot in the returning team's frame, and half the distance caps the fifteen, first down",
         .tags(.football)
     )
     func facemaskByTheFormerOffenseOnAReturn() {
@@ -444,7 +452,11 @@ struct PenaltyEnforcementTests {
             offendingTeamHadBall: true)
         #expect(decision.accepted)
         #expect(decision.advancement.possessionChanged, "the returning team keeps the ball")
-        #expect(decision.advancement.ballOn == 10, "the 25, and fifteen more")
+        #expect(decision.penalty.yards == 12, "half of the 25, and not the whole fifteen")
+        #expect(
+            2 * Int(decision.advancement.ballOn) >= 25,
+            "never past the midpoint of the 25: \(decision.advancement.ballOn)")
+        #expect(decision.advancement.ballOn == 13, "the 25, and half the distance from it")
         #expect(decision.advancement.down == .first)
     }
 
