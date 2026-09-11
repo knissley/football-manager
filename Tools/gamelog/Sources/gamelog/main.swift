@@ -992,12 +992,19 @@ struct Broadcast {
             guard let attempt, let result = attempt.catchResult else {
                 return "\(passer) throws it away"
             }
+            // Three men can be at fault and the line says which, because that is the
+            // whole of what a reader watching cannot get from the outcome: the receiver
+            // dropped one he could have had, the defender got to it, or the throw was
+            // never a catchable ball. `off target` and `out of reach` are both the
+            // passer's and are not the same throw — one arrived and was not catchable,
+            // the other never arrived at all.
             switch result {
             case .dropped: return "\(passer) — dropped by \(target ?? "the receiver")"
             case .brokenUp:
                 return "\(passer) — broken up by \(defender ?? "the defender") "
                     + "on \(target ?? "the receiver")"
-            case .uncatchable: return "\(passer) — off target for \(target ?? "the receiver")"
+            case .offTarget: return "\(passer) — off target for \(target ?? "the receiver")"
+            case .uncatchable: return "\(passer) — out of reach of \(target ?? "the receiver")"
             default: return "\(passer) incomplete to \(target ?? "the receiver")"
             }
 

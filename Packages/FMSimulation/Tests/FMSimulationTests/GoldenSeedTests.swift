@@ -423,6 +423,44 @@ struct GoldenSeedTests {
             // without the other's mechanism, and no subset of the mechanisms above
             // reproduces these numbers.
             //
+            // And moved by the catch, in three ways the checksum mixes through the catch
+            // decision and through the draws each one spends. A defensive interference
+            // foul now settles the catch instead of sitting beside it (2025 rulebook,
+            // 8-5-1): the flag is drawn at the throw and the catch is resolved with it in
+            // hand, so the pass is incomplete and the result is the defender's, where two
+            // thirds of those flags used to fly on passes that were then completed. No
+            // interference of either kind is drawn on a throw the record calls
+            // uncatchable, which 8-5-3-c makes legal contact. And placement now decides
+            // whose incompletion an uncaught ball was: a poor one is the throw's, and
+            // `CatchResult` has a case for it, where every failed catch with the receiver
+            // open used to be charged to him as a drop. Each interference draw that ends
+            // a catch early leaves the catch and interception draws unspent, and each
+            // uncatchable throw leaves the interference draw unspent, so every stream
+            // after the first of them in a game diverges. `Tools/gamelog --seed 7
+            // --home 3 --away 11` prints a hundred and sixty-five plays where it printed
+            // a hundred and seventy-eight, with nine drops where it printed eighteen and
+            // five interference calls that are now five incompletions accepted at the
+            // spot, where all four of the defence's were completions and every one was
+            // declined.
+            //
+            // And the pocket and the catch then met in this merge, which is where the
+            // constants below come from. On one side the pocket gets one verdict a snap,
+            // taken against the moment the ball came out, so far fewer dropbacks are
+            // pressured. On the other a defensive interference flag settles the catch,
+            // no flag is drawn on a throw nobody could reach, and placement decides whose
+            // incompletion an uncaught ball was. The two reach each other on the same
+            // snaps, and in both directions. Pressure is what makes a throw inaccurate,
+            // so a pocket that holds puts more balls on target and fewer where they could
+            // not be caught — which moves the mix of drops, break-ups and off-target
+            // throws the other side is labelling, and the uncatchable throws it declines
+            // to flag. A sack that is no longer taken is a throw instead, so there is a
+            // catch to resolve and a matchup to draw interference on where there was
+            // neither. And a flag that now ends the catch is accepted at the spot, which
+            // keeps a drive alive and hands the pocket more dropbacks to judge. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanism, and no subset of the mechanisms above reproduces these
+            // numbers.
+            //
             // And moved again by the benches spending their timeouts. Nothing in the
             // rules layer changed; what changed is when a coach asks for one. A defence a
             // single score down now stops the clock through the whole five-minute
@@ -448,13 +486,14 @@ struct GoldenSeedTests {
             // and the fourth downs that fall outside it are gone for or punted by the
             // chart that was already there. On the tree this mechanism was written on,
             // the first snap that differed in each of the three games was a fourth down
-            // that was a kick and is now a play. Measured here, it reaches none of the
-            // three: no fourth-down decision and no attempt in those three games comes
+            // that was a kick and is now a play. Measured again on the three callers
+            // assembled, before the catch below joined them, it reached none of the
+            // three: no fourth-down decision and no attempt in those three games came
             // out differently, which is what a median leg's range being exactly where
-            // the two flat numbers were looks like from inside three games. So the
-            // constants below are the ones the benches left, unmoved by the kicker —
-            // this mechanism is measured in the harness's kicking rows, and a golden of
-            // three games is not where it shows.
+            // the two flat numbers were looks like from inside three games. So this
+            // mechanism is measured in the harness's kicking rows, where it moves
+            // attempts from fifty and beyond by three points of share; a golden of three
+            // games is not where it shows.
             //
             // And moved by the caller, which is the engine. Who each side sends out
             // changed on three counts: the offence's ordinary-down grouping is eleven
@@ -488,12 +527,30 @@ struct GoldenSeedTests {
             // Neither parent's constants could survive, and none of the three branches'
             // could either: each was computed on a tree without the other two, and all
             // three were computed before the interval was charged at the snap and the
-            // pocket got one verdict. Measured, not inferred — all three seeds here
-            // differ from `main`, from each of the three branches, and from both
-            // intermediate merges.
-            (UInt64(1), UInt64(13_867_949_726_705_134_045)),
-            (UInt64(5), UInt64(11_131_384_483_688_191_318)),
-            (UInt64(12), UInt64(5_132_592_281_361_854_766)),
+            // pocket got one verdict.
+            //
+            // And the three callers then met the catch, in this merge, which is where
+            // the constants below come from. On one side a bench spends its timeouts,
+            // range is the kicker's and the grouping and the front are the sport's. On
+            // the other an interference foul settles the catch rather than sitting
+            // beside it, no flag is drawn on a throw nobody could reach, and a poor
+            // throw is the throw's incompletion rather than the receiver's drop. They
+            // reach each other on the same snaps and in both directions: a flag that now
+            // ends a catch and is accepted at the spot keeps a drive alive, so the
+            // fourth down the kicker's range would have been asked about never arrives
+            // and the clock a bench reads at the two-minute warning is a different one;
+            // run the other way, a defence that answers three receivers from its nickel
+            // back covers those throws with a fifth defensive back, so which balls are
+            // catchable at all — and therefore which flags are drawn and which
+            // incompletions are whose — is decided by a secondary that was not on the
+            // field before. Neither parent's constants could survive, because each was
+            // computed without the other's mechanisms, and no subset of the mechanisms
+            // above reproduces these numbers. Checked before they were written down: all
+            // three seeds differ from both parents of this merge, from each of the three
+            // caller branches, and from both intermediate merges on this branch.
+            (UInt64(1), UInt64(18_059_936_834_785_840_009)),
+            (UInt64(5), UInt64(450_664_120_030_719_106)),
+            (UInt64(12), UInt64(12_428_643_440_527_402_903)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

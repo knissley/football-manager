@@ -465,6 +465,124 @@ struct OutOfBoundsTests {
     }
 }
 
+/// Whose incompletion it was.
+///
+/// `CatchResult` is the only field that says why a pass fell incomplete, and everything
+/// downstream — a drop rate, a pass-defensed leaderboard, the narrative layer's sentence
+/// about the play — repeats whatever it says. So the label has to name the man who
+/// actually caused it: the receiver on a ball he could have caught, the defender on a
+/// ball he got to, and the passer on a ball he put where it could not be caught.
+///
+/// **These are promises the record makes about its own vocabulary, not claims about the
+/// rules.** The sport has no article on what a drop is — a drop is charting vocabulary
+/// rather than a rule, and nothing in this repository sources a drop rate — so they are
+/// `.contract` under CLAUDE.md rule 11 rather than `.football` with a citation that would
+/// have to be stretched to fit. What the rules *do* say about a ball nobody could catch
+/// is asserted in `PenaltyTests`, from 8-5-3-c.
+@Suite("The catch, and whose incompletion it was")
+struct CatchVocabularyTests {
+
+    /// The shared forty-game corpus: 2,505 catch attempts and 662 incompletions on the
+    /// tree this was written against, which is two orders more than either assertion
+    /// below needs and costs nothing, because six other suites have already played it.
+    private struct Attempt {
+        let placement: BallPlacement
+        let result: CatchResult
+        let separation: Int
+        let wasInterfered: Bool
+    }
+
+    private static let attempts: [Attempt] =
+        TestWorld.corpus.flatMap(\.plays).compactMap { play in
+            guard let attempt = play.decisions(ofKind: .catchAttempt).last,
+                let result = attempt.catchResult,
+                let placement = play.decisions(ofKind: .ballArrival).last?.ballPlacement
+            else { return nil }
+            return Attempt(
+                placement: placement, result: result, separation: Int(attempt.value),
+                wasInterfered: play.outcome.penalties.contains {
+                    $0.foul == .defensivePassInterference
+                })
+        }
+
+    /// A drop is a catchable ball the receiver did not catch.
+    ///
+    /// The engine used to call every failed catch with the receiver open a drop, whatever
+    /// the ball's placement was, so a throw the quarterback put where nobody could be
+    /// expected to catch it was charged to the man it was thrown at. `BallPlacement` is
+    /// already on the record one decision earlier and says which kind of throw it was.
+    @Test(
+        "contract: a drop is only ever recorded on a ball the receiver could have caught",
+        .tags(.contract))
+    func dropsAreOnCatchableBalls() {
+        let drops = Self.attempts.filter { $0.result == .dropped }
+        #expect(drops.count > 50, "only \(drops.count) drops in the corpus: nothing to check")
+        let uncatchable = drops.filter {
+            $0.placement == .poor || $0.placement == .uncatchable
+        }.count
+        #expect(
+            uncatchable == 0,
+            "\(uncatchable) of \(drops.count) drops were charged to the receiver on a ball placed poor or uncatchable"
+        )
+    }
+
+    /// A break-up is the defender's act, so he has to have been able to make it.
+    ///
+    /// Either he was inside the contested distance and knocked it away, or he committed
+    /// interference and the flag is the reason the ball was not caught — which is the
+    /// one way a receiver with separation ends the play with no catch and the defender
+    /// named for it (2025 rulebook, 8-5-1).
+    ///
+    /// Green before the change and after it, and it is the second half that needs it: a
+    /// break-up drawn from a flag lands on a receiver who was open by construction, since
+    /// the foul is drawn on separation. Without the second clause this would fail the
+    /// moment interference starts causing incompletions.
+    @Test(
+        "contract: a break-up is recorded only where the defender was in reach or fouled the receiver",
+        .tags(.contract))
+    func breakUpsAreTheDefendersAct() {
+        let brokenUp = Self.attempts.filter { $0.result == .brokenUp }
+        #expect(brokenUp.count > 20, "only \(brokenUp.count) break-ups in the corpus")
+        let unexplained = brokenUp.filter { $0.separation >= 110 && !$0.wasInterfered }.count
+        #expect(
+            unexplained == 0,
+            "\(unexplained) of \(brokenUp.count) break-ups were credited to a defender who was neither in reach nor flagged"
+        )
+    }
+
+    /// And the passer's incompletions are his: a ball placed poorly that is not caught is
+    /// nobody's failure at the catch point.
+    ///
+    /// Written without naming the case that carries it, because *which* case does is a
+    /// vocabulary question — a new one, or the existing `.uncatchable` widened — and the
+    /// promise is the same either way: the two labels that name a player at the catch
+    /// point are not the ones a poor ball gets. Which case the engine actually uses is
+    /// pinned by `VocabularyCoverageTests`' register and printed by `gamelog`.
+    ///
+    /// The exception is the defender's foul, and it is the same one the break-up test
+    /// carries. A poor ball is still a catchable one — 8-5-3-c exempts only the throw
+    /// nobody could reach — so a defender who spoiled the receiver's chance at it caused
+    /// the incompletion whatever the placement was, and the record names him.
+    @Test(
+        "contract: an uncaught poor ball is recorded against the throw, not against either player at the catch point",
+        .tags(.contract))
+    func poorBallsAreTheThrowsOwn() {
+        let poor = Self.attempts.filter { $0.placement == .poor }
+        #expect(poor.count > 100, "only \(poor.count) poor balls in the corpus")
+        let uncaught = poor.filter {
+            $0.result != .caught && $0.result != .contestedCatch && $0.result != .intercepted
+        }
+        #expect(uncaught.count > 50, "only \(uncaught.count) uncaught poor balls")
+        let blamedAtTheCatchPoint = uncaught.filter {
+            ($0.result == .dropped || $0.result == .brokenUp) && !$0.wasInterfered
+        }.count
+        #expect(
+            blamedAtTheCatchPoint == 0,
+            "\(blamedAtTheCatchPoint) of \(uncaught.count) uncaught poor balls were charged to the receiver or the defender"
+        )
+    }
+}
+
 /// What the record says about the pocket, and when it is entitled to say it.
 ///
 /// The engine used to flag pressure the moment a rusher beat his blocker, which made
@@ -612,8 +730,17 @@ struct PocketTests {
     ///
     /// A snap the defence fielded no edge or interior lineman on has no rep to resolve
     /// and gets no verdict, rather than a verdict naming a slot nobody is standing in.
-    /// That is rare — this probe measures it at under 2% of dropbacks — but it is the
-    /// reason the count is tied to the reps rather than asserted flat.
+    /// That is rare, and it is the reason the count is tied to the reps rather than
+    /// asserted flat.
+    ///
+    /// **The bound is the spread and not one draw.** It read "under 2%", which was this
+    /// sample's share at the seed the probe happens to use. The share is a property of
+    /// the lineup draw rather than of anything in the pocket, and it moves with the
+    /// stream: measured over six seeds — 1, 5, 7, 11, 23 and the probe's own 41 — it is
+    /// 1.4% to 2.8% on the tree the bound was written on and 1.9% to 2.5% here, so four
+    /// of those six seeds break a 2% bound on the tree that set it. Four percent is above
+    /// every one of the twelve and still an order below anything a mechanism change would
+    /// produce: a defence that stopped fielding linemen would not land at five.
     @Test("A dropback records one verdict on its pocket", .tags(.contract))
     func everyDropbackHasOnePocketVerdict() {
         var withoutARep = 0
@@ -638,7 +765,7 @@ struct PocketTests {
             }
         }
         #expect(
-            withoutARep * 50 < total,
+            withoutARep * 25 < total,
             "\(withoutARep) of \(total) dropbacks had no pass-rush rep at all")
     }
 }
