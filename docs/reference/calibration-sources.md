@@ -184,6 +184,27 @@ Computing one is the derivation the rows above already perform — the source's
 participation feed names the grouping on every play — and it is cheap; it is simply not
 done, and this line says so rather than leaving the gap to be filled by remembering.
 
+**No share is sourced for the defensive answer to a two-tight-end grouping either.** The
+package rows band how often each front is on the field over *all* snaps; nothing here bands
+how a defence answers one grouping. What the two bands above do say, on their own, is that
+the four-back front cannot answer every heavier grouping: `row:personnel11`'s 62.3-71.9%
+leaves 28.1-37.7% of snaps in a grouping that is not eleven personnel, and the smallest
+that share can be is larger than `row:packageBase`'s largest. At the midpoints, 32.9 snaps
+in a hundred are a heavier grouping against 22.6 in a four-back front, so 31.3% of the
+heavier snaps are answered with a fifth defensive back. The caller's three-in-ten share
+against a two-tight-end grouping is that figure and nothing else; applied to one grouping
+rather than to all the heavier ones it realises less than 31.3%, which is the conservative
+side of a derivation with no figure behind it. Computing the real share is the same cheap
+derivation as above and is likewise not done.
+
+**`row:ypcOutnumberedByOne` is currently ungradable, and it is a property of the rows
+rather than of the source.** The harness grades it on first and ten only, counting blockers
+as the five linemen plus every tight end plus every back after the first against a box of
+eleven less the defensive backs. Minus one needs eleven personnel against a four-back front
+or four-or-more receivers against a nickel back; the caller answers the first from nickel
+and the second from a dime, so neither pairing occurs on first and ten and the row prints
+`n/a` rather than a value and a verdict. The band is sound and the sample is empty.
+
 ### Who took the snap
 
 Player-snaps per team-game on plays from scrimmage, by the roster position group of each

@@ -548,9 +548,23 @@ struct GoldenSeedTests {
             // above reproduces these numbers. Checked before they were written down: all
             // three seeds differ from both parents of this merge, from each of the three
             // caller branches, and from both intermediate merges on this branch.
-            (UInt64(1), UInt64(18_059_936_834_785_840_009)),
-            (UInt64(5), UInt64(450_664_120_030_719_106)),
-            (UInt64(12), UInt64(12_428_643_440_527_402_903)),
+            //
+            // And moved again by the defence, on one grouping. A two-tight-end grouping
+            // is no longer answered from the four-back front every time: three snaps in
+            // ten of it draw the fifth defensive back instead, because a second tight
+            // end is one fewer back to account for and one more man the defence would
+            // rather cover with a defensive back. Two backs still draw the front every
+            // time. This moves the stream two ways at once. It spends a draw on every
+            // two-tight-end snap outside a down the offence has to throw on, where the
+            // rule before it asked nothing, so every draw after that one on those snaps
+            // is a different draw; and on the snaps it answers with the fifth back it
+            // puts a different eleven men on the field, which changes what the play
+            // produced and not only what it was called. All three golden games diverge,
+            // which is what a rule that reaches about a fifth of snaps looks like from
+            // inside three games.
+            (UInt64(1), UInt64(13_817_977_595_755_906_669)),
+            (UInt64(5), UInt64(2_555_470_834_088_223_154)),
+            (UInt64(12), UInt64(3_107_376_191_460_556_839)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
