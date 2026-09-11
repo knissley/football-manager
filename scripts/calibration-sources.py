@@ -410,6 +410,14 @@ def read_season(directory, season):
                 c["attempts"] += 1
                 if flag(row, "complete_pass"):
                     c["completions"] += 1
+                    # Two sums, because two different quantities are wanted and the word
+                    # "gross" was used for both. `passYards` is signed: a ball caught three
+                    # yards behind the line for a three-yard loss is -3, which is what the
+                    # passing-yards, yards-per-attempt and yards-per-completion rows are
+                    # built on, and what this release records (379 such completions in 2023
+                    # and 337 in 2024). `passYardsPositive` counts that catch as zero, and
+                    # exists for the yards-per-play row alone. Whichever a row uses, its
+                    # note in `Targets.swift` says which in words.
                     c["passYards"] += yards
                     c["passYardsPositive"] += max(0.0, yards)
                     if yards <= 0:

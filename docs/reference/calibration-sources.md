@@ -120,6 +120,41 @@ were identical to the digit, as were the game counts, the win-total sigma and th
 between-club sigma. `row:marginSigma` is among the unmoved, because it is carried as two
 non-negative halves written to survive exactly this.
 
+### The second place a negative play was dropped: the harness's own pass sum
+
+The fold above was in the derivation script. **There was a separate clamp in the harness**,
+and it discarded a different quantity: every pass attempt was summed as `max(0, yards)`, so
+a ball caught behind the line for a loss was accumulated as nothing. One clamped number was
+then handed to four rows — passing yards, yards per attempt, yards per play and yards per
+completion — of which only yards per play has a band derived that way. The other three were
+measured with the loss thrown away and graded against a target that counted it.
+
+The word doing the hiding was **"gross"**, which `Targets.swift` used for the clamped
+quantity in one note and for the signed one eleven lines below. It is not used for either
+now: each of the four rows says in words whether a completion for a loss is counted, the
+register that decides which is `PassYardage` in the harness, and a test in the simharness
+package reads the notes back against it.
+
+What the source does, measured over the same release, regular-season completions:
+
+| Season | Completions | For a loss | Yards discarded by the clamp |
+| --- | ---: | ---: | ---: |
+| 2023 | 11,808 | 379 (3.21%) | −1,089 |
+| 2024 | 11,629 | 337 (2.90%) | −926 |
+
+So `c["passYards"] += yards` is signed in the data as well as in the code — which was listed
+as unchecked when the defect was filed — and the two sums the script keeps side by side,
+`passYards` and `passYardsPositive`, are genuinely two quantities rather than one written
+twice. Per team-game the clamp was worth about 2.0 yards in 2023 and 1.7 in 2024 on the
+league's own numbers; what it was worth in the harness is smaller, because the engine throws
+such a catch less often than the league does, and how much less is
+[#167](https://github.com/knissley/football-manager/issues/167)'s question.
+
+`row:yardsPerCompletion` diverged twice over: the numerator was clamped and the denominator
+was the older gains-only inference, where the script divides by the completions. Both halves
+are resolved together — the row now divides signed yards by every completion the record says
+was one — and the gains-only set is kept only for the catch leaderboard, which ranks on it.
+
 ### Why the other passes were not caught
 
 Both print with **no band at all**, which is the honest output rather than a gap. The

@@ -284,7 +284,8 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "passingYards", label: "passing yards", low: 221.7, high: 248.1,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
-            note: "Gross: yards on completions, sacks not deducted, which is what the harness sums."
+            note:
+                "Yards on completions, with sack yardage not deducted. A completion for a loss counts as the loss."
         ),
         CalibrationTarget(
             id: "rushingYards", label: "rushing yards", low: 94.7, high: 110.4,
@@ -330,16 +331,21 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "yardsPerAttempt", label: "yards per pass attempt", low: 6.6, high: 7.5,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
-            note: "Gross."),
+            note:
+                "Yards on completions over every attempt, sack yardage not deducted. A completion for a loss counts as the loss."
+        ),
         CalibrationTarget(
             id: "yardsPerPlay", label: "yards per play", low: 5.0, high: 5.8,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7."
+                "The harness's definition: pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. A completion for a loss counts as nothing. This is the only row that counts one that way, and its band is the only one derived that way. The league's net figure was 5.5–5.7."
         ),
         CalibrationTarget(
             id: "yardsPerCompletion", label: "yards per completion", low: 10.3, high: 11.5,
-            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true),
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note:
+                "Over every completion the record says was one, however far it went. A completion for a loss counts as the loss."
+        ),
 
         // Why the other passes were not caught. Both rows are printed with no band at
         // all, which is the honest output rather than a gap: the play-by-play charts
