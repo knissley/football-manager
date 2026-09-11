@@ -97,8 +97,27 @@ PENALTY_ROWS = [
 
 
 def sum_components(parts):
-    """Add per-game component dicts together."""
-    return sum((Counter(part) for part in parts), Counter())
+    """Add per-game component dicts together, keeping signed components.
+
+    **Do not fold these with `Counter` addition.** `Counter.__add__` — which is what
+    `sum(parts, Counter())` calls — discards every key whose running total is not strictly
+    positive. That is documented, deliberate and right for counting, and silently wrong for
+    summing a signed quantity: the home side's points less the road side's swings either
+    way, and sack yardage is negative in every game, so one is understated by each partial
+    sum that dipped below zero and the other vanishes from the result altogether. Nothing
+    raises; the key is simply absent and reads back as 0.
+
+    `Counter.update` does *not* drop, so a fold written that way is sound — but it reads
+    exactly like the fold that is not, and the difference is invisible at the call site.
+    One accumulator, a plain dict, and no way to get it wrong.
+
+    A component no part mentions reads 0, which the metric functions rely on.
+    """
+    total = defaultdict(float)
+    for part in parts:
+        for key, value in part.items():
+            total[key] += value
+    return total
 
 
 def flag(row, key):
@@ -194,12 +213,14 @@ def read_season(directory, season):
                 c["tie"] = 1 if margin == 0 else 0
                 # The spread of the point differential, as component sums, so it resamples
                 # with every other row. Var(D) = E[D**2] - E[D]**2 wants the sum of D and
-                # the sum of D squared -- but **a signed component cannot be summed here**:
-                # `totals` folds the per-game Counters with `+`, and Counter addition drops
-                # a running total the moment it goes non-positive. So the mean is carried as
-                # two non-negative halves, the margin when the home side won and the margin
-                # when the road side did, and E[D] is their difference. The square is never
-                # negative and needs no such care.
+                # the sum of D squared. The mean is carried as two non-negative halves, the
+                # margin when the home side won and the margin when the road side did, and
+                # E[D] is their difference; the square is never negative. The halves were
+                # written that way to survive an accumulator that dropped signed components,
+                # which `sum_components` no longer does -- they stay because the recorded
+                # band was derived from them and collapsing them into one signed component
+                # would move a row's arithmetic outside a retune, not because they are still
+                # needed.
                 c["marginHomeWon"] = max(0.0, home - away)
                 c["marginAwayWon"] = max(0.0, away - home)
                 c["differentialSquared"] = (home - away) ** 2
@@ -694,9 +715,10 @@ def bootstrap_error(games, metric, rng):
     ids = list(games.keys())
     values = []
     for _ in range(BOOTSTRAP_REPS):
-        total = Counter()
-        for _ in range(HARNESS_GAMES):
-            total.update(games[rng.choice(ids)])
+        # `sum_components`, not a Counter fold, for the reason given there. The generator
+        # draws exactly `HARNESS_GAMES` times in the order it always did, so the stream
+        # this rng hands the rows below it is unchanged.
+        total = sum_components(games[rng.choice(ids)] for _ in range(HARNESS_GAMES))
         value = metric(total)
         if not math.isnan(value):
             values.append(value)
