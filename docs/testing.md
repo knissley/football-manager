@@ -210,6 +210,18 @@ test claims about a game and nothing sources* in
 turns out to cite nothing is worth one less than a `.contract` that holds, and the share
 falling is the honest reading of that.
 
+A third has since joined them, and it is the one that found the defect underneath: the
+rush's arrival window has to span every hold it is compared against. That is worth reading
+as a lesson about what a `.contract` is for. The monotone claim above was green while three
+of the five pass concepts had no signal at all — a screen un-pressurable by construction,
+and the two longest holds pressured on exactly the same snaps — because a superset claim
+is satisfied by a comparison that never happens. The new one asserts that the comparison
+*happens*: arrivals on both sides of every hold, no concept's verdict a constant, and no
+two concepts pressured on the same snaps. Both are needed, and neither implies the other:
+with the arrival's tail removed the first stays green and the second fails, and with a hold
+moved outside the window the same. The suite's football about pressure is unchanged —
+`row:pressureRate` in the harness, and `pressureMeansTheRusherGotThereFirst` here.
+
 Its parametric rates — completion percentage, sack rate, pressure rate,
 interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
