@@ -475,6 +475,15 @@ gate**: an `OFF` row is a finding to read, not a red build. The `Gate` column be
 what a gating step would read when one exists; making a row gating is a per-row decision,
 taken in a retune issue, and no row fails CI yet.
 
+**A row's verdict follows from the two numbers printed beside it.** The grade is taken on
+the unrounded value with both endpoints in the band, and the table prints a rounded one —
+so a row whose value would print as one of its own endpoints while the grade puts it
+outside prints the extra decimals that show it outside, value and band together. A value
+printed as an endpoint is therefore in band, and no row's standing rests on digits the
+table dropped. What varies row to row and what a parser can rely on are in
+[tools.md](tools.md#what-a-row-prints-and-how-to-read-it);
+`scripts/harness-compare.sh` reads two captures and reports what moved.
+
 **Every band names the real-league season it was derived from and the source it came
 from.** Nothing in the table is remembered. The sourced rows were computed by
 `scripts/calibration-sources.py` from the nflverse play-by-play data set (built from the
