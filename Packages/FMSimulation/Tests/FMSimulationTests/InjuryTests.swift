@@ -84,24 +84,38 @@ struct InjuryTests {
         }
     }
 
-    /// Contact is what hurts people. A kneel or a spike should almost never do it.
-    @Test("Injuries happen on contact, not on administrative plays", .tags(.unit))
+    /// Contact is what hurts people, and a down nobody was hit on hurts nobody at all.
+    ///
+    /// This used to allow one injury on a snap with no contact for every ten with, which
+    /// is a bound rather than a claim: it passes whether the rate is a tenth or a
+    /// thousandth, and it passed for as long as a quarterback taking a knee could tear an
+    /// achilles. The claim is zero, and the reason is in
+    /// `test:noInjuryOnADownNobodyWasHitOn` — a knee, a spike and a down that was never
+    /// snapped have no tackler, no blocker and nobody who ran.
+    ///
+    /// A kick keeps its exposure and is not in the list: a field goal and a try are
+    /// scrimmage downs with a rush to block.
+    ///
+    /// Twelve games is a floor, not the measurement. A draw this forbids is rare enough
+    /// that a sample this size would miss it most of the time either way, which is
+    /// exactly why the claim is asserted over forced draws next door rather than here.
+    @Test("contract · no injury comes off a down nobody was hit on", .tags(.contract))
     func injuriesFollowContact() {
-        var administrative = 0
+        var administrative: [PlayKind] = []
         var contact = 0
         for (result, injury) in injuries(1...12) {
             guard let play = result.plays.first(where: { $0.id == injury.occurredOn }) else {
                 continue
             }
             switch play.outcome.kind {
-            case .kneel, .spike, .penaltyOnly, .extraPoint: administrative += 1
+            case .kneel, .spike, .penaltyOnly: administrative.append(play.outcome.kind)
             default: contact += 1
             }
         }
-        #expect(contact > 0)
+        #expect(contact > 0, "twelve games and nobody was hurt on a play with contact")
         #expect(
-            administrative * 10 < contact,
-            "\(administrative) injuries on plays with no contact against \(contact) with")
+            administrative.isEmpty,
+            "hurt on a down nobody was hit on: \(administrative.map(String.init(describing:)))")
     }
 
     /// Durability and injury resistance are what separate a player who misses a quarter
@@ -336,6 +350,78 @@ struct NonContactInjuryTests {
                     on: passerPlay(kind: .pass), context: context, random: &random) == nil,
                 "a quarterback pulled up standing in the pocket")
         }
+    }
+
+    /// The same phone booth, one step further out: a man standing on the ball.
+    ///
+    /// A knee and a spike are snaps taken to stop the game rather than to play it, and
+    /// the record credits one man on each. On a knee it is the quarterback as a
+    /// `.rusher`, because he carried the ball — not because he ran; on a spike it is the
+    /// quarterback as a `.passer`. Neither record carries a tackler, a blocker or a pass
+    /// rusher, so there is nobody on it to have hit him, and neither carries anybody who
+    /// changed direction at speed. A dead-ball foul is not a snap at all: the down is
+    /// replayed and nobody has moved. `onlyExplosiveRolesAreExposed` makes this argument
+    /// about a guard and `scramblingExposesTheQuarterback` about a passer; the role alone
+    /// cannot make it about a knee, because the role on a knee reads `.rusher`.
+    ///
+    /// This is not a cosmetic point about who limps off. After the two-minute warning an
+    /// injury costs the injured player's team a charged team timeout (2025 rulebook,
+    /// 4-5-4-a) and the game clock then waits for the next snap (4-3-2). So a quarterback
+    /// hurt taking a knee hands the clock back to the side that has just knelt the half
+    /// away, and a caller counting a clock that is no longer running has to play the down
+    /// after all.
+    ///
+    /// Forced draws rather than a sample, and with a control: the same draw over a carry
+    /// has to keep producing injuries, or a zero here would mean nothing.
+    @Test(
+        "contract · a down nobody was hit on and nobody ran on injures nobody: a knee, a spike, and a down that was never snapped",
+        .tags(.contract))
+    func noInjuryOnADownNobodyWasHitOn() {
+        let (context, _) = world()
+
+        func snap(_ kind: PlayKind, _ role: PlayRole, _ position: Position) -> PlayRecord {
+            PlayRecord(
+                game: GameID(1), index: 0,
+                situation: play(.tackled).situation, calls: play(.tackled).calls,
+                outcome: Outcome(
+                    kind: kind, yards: kind == .kneel ? -1 : 0,
+                    endedIn: kind == .kneel ? .tackled : .incomplete,
+                    participants: [
+                        Participation(
+                            slot: SlotLayout.quarterback, player: PlayerID(1),
+                            position: position, role: role)
+                    ]))
+        }
+
+        let dead: [(String, PlayRecord)] = [
+            ("a knee", snap(.kneel, .rusher, .quarterback)),
+            ("a spike", snap(.spike, .passer, .quarterback)),
+            ("a down never snapped", snap(.penaltyOnly, .rusher, .quarterback)),
+        ]
+
+        for (name, record) in dead {
+            var random = SplittableRandom(seed: 4_051)
+            var hurt = 0
+            for _ in 0..<200_000 {
+                if Injuries.drawn(on: record, context: context, random: &random) != nil {
+                    hurt += 1
+                }
+            }
+            #expect(hurt == 0, "\(hurt) men hurt on \(name) across two hundred thousand of them")
+        }
+
+        // The control. Same draw, same seed, a carry instead — if this is zero too, the
+        // zeroes above are the harness rather than the model.
+        var random = SplittableRandom(seed: 4_051)
+        var carried = 0
+        for _ in 0..<200_000 {
+            if Injuries.drawn(
+                on: snap(.rush, .rusher, .runningBack), context: context, random: &random) != nil
+            {
+                carried += 1
+            }
+        }
+        #expect(carried > 0, "the control drew no injuries at all, so the zeroes above say nothing")
     }
 
     /// The resolver had no way to produce a scramble at all, so `PlayKind.scramble` was a

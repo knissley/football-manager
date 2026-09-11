@@ -1,0 +1,7 @@
+Note what the judges record about an exchange
+
+Our note left out the judging. The judges keep a written
+record of every exchange and that is what the note now says.
+
+Invented text for scripts/lint-reference.sh --self-test. Not a
+rulebook and not from one.

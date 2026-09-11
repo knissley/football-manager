@@ -740,19 +740,30 @@ chase individual rows.
 - **Some merged commit messages carry rulebook prose, and they are staying that way.**
   CLAUDE.md rule 8 covers a commit message as much as a source file — a message is in the
   repository permanently and cannot be corrected after a merge. Two sets on `main` were
-  found to reproduce book text: the record-track commits `840ffc3`, `e2e5e38` and
-  `207cbc8` (#58), whose messages quote Rule 14's enforcement-spot prose, and `2e07185`,
-  `797bfbd`, `b78b914` and `e107d1c` from wave 3's small track. Measured here with a
+  found by reading to reproduce book text: the record-track commits `840ffc3`, `e2e5e38`
+  and `207cbc8` (#58), whose messages quote Rule 14's enforcement-spot prose, and
+  `2e07185`, `797bfbd`, `b78b914` and `e107d1c` from wave 3's small track. Measured with a
   ten-word shingle over the message bodies with their lines joined: **24 distinct runs
   across the first three and 11 across the other four**; the issue below carries higher
   figures counted a different way, and the count is not the point. **Nothing moved into the
   tree** — the source and the docs those branches wrote are clean. Rewriting `main`'s
   history to take a quotation out of a message is not worth what it costs, so the
-  deliberate decision is to leave them and record it here. The next whole-tree scan will
-  find them; this bullet is so that it reads them as known rather than as a discovery.
-  `scripts/lint-reference.sh` does not scan messages — nothing can un-write one — so
-  the prevention is the standing instruction to shingle a message before committing it.
+  deliberate decision is to leave them and record it here.
   ([I9 · #98](https://github.com/knissley/football-manager/issues/98))
+- **The whole of `main` was then scanned rather than read, and there are eleven, not
+  seven.** `scripts/lint-reference.sh` now scans commit messages as its check 2 (I12
+  · #160), so the figure above could be replaced by a count over the whole history instead
+  of the messages somebody happened to look at. Over all **411** messages on `main` at ten
+  words, lines joined: **61 runs, 47 distinct, in 11 messages**. The two sets above
+  reproduce exactly — 24 distinct and 11 distinct, by this scan and by an independent
+  implementation that agreed on every figure — and **four more messages carry runs nobody
+  had found**: `c39923e`, `ae8c977`, `334584a` and `9c56353`, 12 distinct runs and 14
+  occurrences between them. They are the same shape as the others: an article's clause
+  quoted while describing the fix that changed it. They are published, so they stay, and
+  this is the entry that makes them known rather than a discovery. The prevention is the
+  check: a run in a message not yet on `main` fails the lint, which is the last moment it
+  can be reworded, and `scripts/lint-reference.sh --messages` is what to run before a push.
+  ([I12 · #160](https://github.com/knissley/football-manager/issues/160))
 - **Golden tests are checked-in constants, and they must stay that way.** Regenerating one
   to make a red test pass is forbidden; regenerating it in the same commit as a deliberate
   behaviour change, with the change described, is the intended workflow. `Hasher` must
