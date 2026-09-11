@@ -392,9 +392,9 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   block is not modelled as its own act; the offence's interference is drawn as 8-5-2's
   push-off on the target's matchup, which is `test:interferenceIsOnTheTarget`
 - **8-5-Penalty** — What interference costs. The clause closes Rule 8 §5 and the book
-  cites it this way. The defence's is a first down at the spot of the foul; behind the
-  defence's goal line it is first down at the 1 when the previous spot was on or outside
-  the 2, and half the distance from the previous spot when that was inside the 2. The
+  cites it this way. The defence's is a first down at the spot of the foul; where that
+  spot is behind the defence's goal line it is first and goal at the 1 — or half the
+  distance from the previous spot, when the previous spot was inside the 2. The
   offence's is ten yards from the previous spot — and since the clause takes no down, the
   down is replayed, which is our inference from it and not a sentence in it. —
   `test:spotFouls`, `test:interferenceInTheEndZoneSpotsAtTheOne`,

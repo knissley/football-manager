@@ -88,11 +88,12 @@
 # the run into the repository is the thing being linted. Each carries a verdict
 # and a note in our own words.
 #
-# Most of them are not copying. Ten words of ordinary rule English — "a foul
-# before the snap is enforced from the succeeding spot" — collide with the book
-# because both describe the rule using the sport's terms of art, which
-# `docs/reference/README.md` already says are the one thing that cannot be
-# reworded. A lint demanding zero would be answered by writing worse football.
+# Most of them are not copying. A sentence that has to name the previous spot,
+# the succeeding spot and the down runs out of ways to be ten words long, and the
+# book's sentence and ours collide because both describe the rule using the
+# sport's terms of art, which `docs/reference/README.md` already says are the one
+# thing that cannot be reworded. A lint demanding zero would be answered by
+# writing worse football.
 # So the gate is: a run that is not in the baseline fails. Adding a line to the
 # baseline is a deliberate act with a note attached, and `--list` prints the
 # lines to add.
