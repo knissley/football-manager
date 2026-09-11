@@ -195,8 +195,11 @@ Counted this way the decision is **monotone**, which is what makes a knee stick:
 the next snap faces is exactly what this knee leaves, and the count falls by exactly as
 much, so a lead that can be knelt out on first down can still be knelt out on second. A
 count that shrinks faster than the clock kneels twice and then runs an ordinary play,
-which is how a won game gets fumbled away. There is no memory in the caller and none is
-needed — the arithmetic is what carries the decision forward.
+which is how a won game gets fumbled away. There is no memory in the caller — the
+arithmetic is what carries the decision forward, and
+`test:aKneelSequenceIsMonotoneDownByDown` sweeps it down by down against both futures the
+book allows between two knees rather than hoping a sample contains one. What the
+arithmetic cannot carry is a stoppage nobody deducted for, which is the section below.
 
 A knee on fourth down is a turnover on downs, so the caller does not take one — except
 when the period cannot survive the play clock in front of it. **That exception is a
@@ -206,9 +209,17 @@ delay of game, and end the period with no snap at all; a knee is a snap, so the 
 do not produce one. This engine has no outcome meaning *let the play clock expire*, so
 the caller kneels that down instead, and the record carries a down that was never played
 — about a fifth of a knee a game. The substitution is what lets the count above include
-the fourth down's interval, and it is what an unforeseen stoppage lands on: an injury
-timeout between downs takes an interval away that nothing could have planned for, and the
-fourth-down knee is where the sequence still ends rather than turning into a punt.
+the fourth down's interval.
+
+It does **not** catch a sequence an unforeseen stoppage has broken, and this page used to
+say it did. The fourth-down knee is taken only while the clock is running into the snap,
+and every stoppage that breaks a sequence leaves the clock waiting for the snap instead
+— so the fourth down arrives with the branch closed, and the caller punts. Measured on a
+real possession: three knees, an interval erased between the third and the fourth, and a
+punt on fourth and thirteen from the opponent's forty-two with fifteen seconds left. The
+punt is the better football of the two — a knee there hands the ball back at midfield
+with the clock stopped — which is the point: after a stoppage the offence is deciding
+again, and a knee is not always what it should decide.
 
 **Nobody spends a timeout into a victory formation**, and the two benches have different
 reasons. The offence is about to stand on the ball and has nothing to buy with one. The
@@ -220,17 +231,31 @@ still — a timeout spent inside a sequence the offence has already committed to
 interval the count was spending, and leaves the offence a live play short of the whistle
 it planned for.
 
-That guard covers every timeout a bench *calls*. It does not cover the two things that
-can still take an interval away from a committed sequence, and neither is a caller's to
-decline. One is a timeout charged by rule: an injury inside the two minutes charges the
-injured team one (4-5-4-a), and it lands wherever the injury does. The other is a
-defensive foul, which can move the ball five yards into field goal range mid-sequence and
-turn a half that was worth ending into a half worth three points — which is the sport, not
-a defect, and the offence is right to stop kneeling and kick. Both are measurable: the
-harness prints **knees followed by a live play**, whose target is zero, and it is not
-always zero. The residual is
-[#101](https://github.com/knissley/football-manager/issues/101)'s to settle, because the
-fix is in what the count assumes rather than in what a coach asks for.
+That guard covers every timeout a bench *calls*, and the monotonicity above survives a
+timeout the defence is *charged*, because the interval it erases is one the count had
+already deducted for. What breaks the sequence is a stoppage the defence did not pay for:
+the interval goes and the deduction stays, so the count falls by a whole interval while
+the clock falls by the two seconds of the knee, and the caller plays the next down.
+
+There were two of those, and one is gone. A **timeout charged by rule** — an injury
+inside the two minutes charges the injured team one (4-5-4-a) — used to land on the
+kneeling side on a knee down, because the injury model drew off the quarterback's rusher
+credit on a play nobody was hit on. It no longer does: a knee, a spike and a down that was
+never snapped hurt nobody (`invariants.md` 64, `test:noInjuryOnADownNobodyWasHitOn`). That
+was every instance of the harness row in twenty-four thousand games.
+
+What remains is a **defensive foul**, which can move the ball five yards across midfield
+mid-sequence and turn a half that was worth ending into a half worth three points — which
+is the sport, not a defect, and the offence is right to stop kneeling and kick. Measured
+over sixty-four thousand games at a hundred and sixty seeds: fifty-eight knees followed by
+a live play before, six after, and all six of those are this. The residual is
+[#49](https://github.com/knissley/football-manager/issues/49)'s, and what it has to settle
+first is whether a broken sequence should be resumed at all — on a fourth down it clearly
+should not, which is why "kneel anyway" is not the fix it looks like.
+
+The harness prints **knees followed by a live play**, whose target is zero, and a reading
+of zero means nothing without the seeds it was read at: it is zero at seeds 7 and 11 on a
+tree where it fires at twenty-eight other seeds. Read it across a stated set, not two.
 
 None of it applies above the two-minute warning. The warning is a stoppage the defence
 is handed for nothing (4-4), so it is a fourth timeout — and a knee taken into it has its

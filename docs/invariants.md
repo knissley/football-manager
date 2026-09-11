@@ -424,7 +424,13 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `PlayCaller` decision written into the play's decision log; **modelling**: before the
     warning an injury changes nothing on the clock (4-5-3), and the five-yard penalty for
     a second excess timeout in a half (4-5-4 Note 2) and an injury to both sides on one
-    down (4-5-4 Note 5) are not modelled
+    down (4-5-4 Note 5) are not modelled. **Modelling**, and it is what decides how often
+    this article is reached at all: nobody is hurt on a down nobody was hit on and nobody
+    ran on — a knee, a spike, or a down a dead-ball foul meant was never snapped —
+    `test:noInjuryOnADownNobodyWasHitOn`. The record credits one man on a knee, the
+    quarterback, as a rusher because he carried the ball and not because he ran; drawing
+    an injury off that credit charged the kneeling side a timeout under this article and
+    handed it back the clock it had just knelt away
 
 ## Where a foul is enforced from
 
