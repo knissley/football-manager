@@ -250,6 +250,34 @@ enum Penalties {
         return record(foul, by: [defender], personnel, context, &random, offense: false)
     }
 
+    /// What a flag drawn in coverage is still worth once the quarterback has taken the
+    /// ball out of the pocket.
+    ///
+    /// 8-4-7 draws a line through the coverage-contact family at that moment, and it does
+    /// not draw the same line through both fouls: illegal contact stops being available to
+    /// the officials, and the cut block with it, while defensive holding goes on being
+    /// available exactly as it was. 8-4-2 and 8-4-3 are why the line is there at all —
+    /// both are written for a down the passer is still standing back there on, which is
+    /// the condition 8-4-7 removes. The engine has no cut block, so illegal contact is the
+    /// whole of what this takes away today.
+    ///
+    /// **Asked here rather than at the draw, because at the draw it is unanswerable.**
+    /// The contact is settled at the coverage rep, which the resolver works out before the
+    /// quarterback has decided anything at all; what the flag is worth turns on something
+    /// that had not happened yet. Nothing is reclassified on the way through — a hold
+    /// stays a hold, and illegal contact is simply gone — because turning one act into the
+    /// other to keep a count up would be inventing a foul.
+    ///
+    /// **It takes away contact that came before he left, too, and cannot help it.** A
+    /// `PenaltyRecord` carries no tick, so a flag from the coverage loop cannot be put
+    /// either side of the moment the pocket was given up, and there is no second moment
+    /// recorded to compare it against. Dropping it is the side of that the rules can live
+    /// with: a foul nobody was charged with, rather than a first down nobody earned.
+    /// [invariants.md](../../../../docs/invariants.md) carries the case.
+    static func afterLeavingThePocket(_ penalty: PenaltyRecord?) -> PenaltyRecord? {
+        penalty?.foul == .illegalContact ? nil : penalty
+    }
+
     /// Interference, on the matchup the ball was thrown into.
     ///
     /// 8-5-1: interference needs a forward pass thrown from behind the line to exist, the
