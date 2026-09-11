@@ -184,7 +184,19 @@ def read_season(directory, season):
                 margin = abs(home - away)
                 c["within3"] = 1 if margin <= 3 else 0
                 c["within7"] = 1 if margin <= 7 else 0
+                c["by14"] = 1 if margin >= 14 else 0
                 c["tie"] = 1 if margin == 0 else 0
+                # The spread of the point differential, as component sums, so it resamples
+                # with every other row. Var(D) = E[D**2] - E[D]**2 wants the sum of D and
+                # the sum of D squared -- but **a signed component cannot be summed here**:
+                # `totals` folds the per-game Counters with `+`, and Counter addition drops
+                # a running total the moment it goes non-positive. So the mean is carried as
+                # two non-negative halves, the margin when the home side won and the margin
+                # when the road side did, and E[D] is their difference. The square is never
+                # negative and needs no such care.
+                c["marginHomeWon"] = max(0.0, home - away)
+                c["marginAwayWon"] = max(0.0, away - home)
+                c["differentialSquared"] = (home - away) ** 2
                 c["homeWin"] = 1 if home > away else 0
                 c["awayWin"] = 1 if away > home else 0
                 c["homeEdge"] = home - away
@@ -458,7 +470,47 @@ def read_season(directory, season):
                 c["redZoneTouchdowns"] += 1
 
     win_sigma = statistics.pstdev(list(wins.values())) if wins else 0.0
-    return games, win_sigma
+    return games, win_sigma, between_team_sigma(finals)
+
+
+def between_team_sigma(finals):
+    """How much of the point differential is the clubs and not the afternoon.
+
+    A one-way random-effects split of each club's per-game point differential. Club *i*
+    plays *n* games, its differential in game *k* is `d[i][k]`, and the balanced-design
+    estimator is
+
+        between variance = variance of the club means - (pooled within-club variance) / n
+
+    which is `(MSB - MSW) / n` written out. The subtraction is the whole point: the spread
+    of the club *means* is inflated by a season being short, and the second term is exactly
+    that inflation. The square root is the standard deviation of a club's true expected
+    point differential per game against an average opponent, which is what a generated
+    league's spread of team strength has to reproduce.
+
+    What it assumes, in full, because the number is used to set a generation constant:
+    every club plays every other about equally often (a real schedule is divisional-heavy
+    and the harness's is a rotation, so both are close but neither is exact); home field is
+    a constant across clubs rather than a club trait; and a club's strength does not move
+    during the season. Each of those, violated, moves the estimate up rather than down --
+    schedule imbalance and in-season drift both read as between-club spread -- so this is an
+    upper estimate of a club's spread and not a lower one.
+    """
+    per_team = {}
+    for home, away, home_team, away_team in finals.values():
+        per_team.setdefault(home_team, []).append(home - away)
+        per_team.setdefault(away_team, []).append(away - home)
+    if len(per_team) < 2:
+        return float("nan")
+    means = {team: statistics.mean(values) for team, values in per_team.items()}
+    between = statistics.variance(list(means.values()))
+    residual = sum(
+        sum((value - means[team]) ** 2 for value in values)
+        for team, values in per_team.items()
+    ) / sum(len(values) - 1 for values in per_team.values())
+    games_each = statistics.mean([len(values) for values in per_team.values()])
+    variance = between - residual / games_each
+    return math.sqrt(variance) if variance > 0 else 0.0
 
 
 def div(a, b):
@@ -610,6 +662,25 @@ METRICS = [
         (lambda g: lambda c: div(c["snaps:" + g], c["groupSnaps"]) * div(c["scrimmage"], 2 * c["games"]))(group),
     )
     for group, _ in POSITION_GROUPS
+] + [
+    # The two margin rows, appended rather than placed beside the scoreboard rows they
+    # belong with. Every row's standard error is bootstrapped from one generator in this
+    # list's order, so a row inserted in the middle reshuffles the draws of every row below
+    # it and moves bands nobody meant to move. Order here is a stream, not a contents page.
+    ("gamesBy14plus", "games decided by 14 or more %", PLAY, 1, share("by14", "games")),
+    (
+        "marginSigma",
+        "standard deviation of the point differential",
+        PLAY,
+        1,
+        lambda c: math.sqrt(
+            max(
+                0.0,
+                div(c["differentialSquared"], c["games"])
+                - div(c["marginHomeWon"] - c["marginAwayWon"], c["games"]) ** 2,
+            )
+        ),
+    ),
 ]
 
 
@@ -698,11 +769,17 @@ def main():
     rng = random.Random(2030)
     seasons = {}
     sigmas = {}
+    betweens = {}
     for season in SEASONS:
-        games, sigma = read_season(directory, season)
+        games, sigma, between = read_season(directory, season)
         seasons[season] = games
         sigmas[season] = sigma
-        print(f"# {season}: {len(games)} regular-season games; win-total sigma {sigma:.2f}", file=sys.stderr)
+        betweens[season] = between
+        print(
+            f"# {season}: {len(games)} regular-season games; win-total sigma {sigma:.2f}; "
+            f"between-club point-differential sigma {between:.2f}",
+            file=sys.stderr,
+        )
 
     totals = {season: sum(seasons[season].values(), Counter()) for season in SEASONS}
 
@@ -731,6 +808,13 @@ def main():
     sigma_used = [sigmas[s] for s in PLAY]
     mean = sum(sigma_used) / len(sigma_used)
     print(f"winTotalSigma\t" + "\t".join(f"{sigmas[s]:.2f}" for s in SEASONS) + f"\t-\t{min(sigma_used) - 0.05 * mean:.1f}\t{max(sigma_used) + 0.05 * mean:.1f}\t{'+'.join(str(s) for s in PLAY)}\tspread of team win totals (sigma)")
+
+    # Not a row and no band: the harness plays a rotation rather than a season, so nothing
+    # prints a verdict for it. It is here because it is what a generated league's spread of
+    # team strength is set from -- see docs/reference/calibration-sources.md.
+    between_used = [betweens[s] for s in PLAY]
+    mean = sum(between_used) / len(between_used)
+    print(f"betweenTeamSigma\t" + "\t".join(f"{betweens[s]:.2f}" for s in SEASONS) + f"\t-\t{min(between_used) - 0.05 * mean:.2f}\t{max(between_used) + 0.05 * mean:.2f}\t{'+'.join(str(s) for s in PLAY)}\tbetween-club spread of point differential (sigma, not a row)")
 
 
 if __name__ == "__main__":

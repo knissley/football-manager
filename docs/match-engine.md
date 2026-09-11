@@ -562,6 +562,9 @@ cannot measure yet or whose sample is too thin to fail on.
 | combined points, heavy rain vs dry | 2.0-4.0 | unsourced | — | — | no | Points lower in heavy rain. The play-by-play does not grade rain, so nobody has cited this; needs --games 1000. |
 | games within 3 | 19.6-29.3% | 2023-24 | — | S1 | yes | — |
 | games within 7 | 44.5-57.0% | 2023-24 | — | S1 | yes | — |
+| games decided by 14 or more | 28.2-42.4% | 2023-24 | — | S1 | yes | The other end of the two rows above: 37.5% of games in 2023 and 33.1% in 2024. A league drawn too wide shows here first. |
+| spread of the point differential | 13.2-15.6 | 2023-24 | — | S1 | yes | Standard deviation of home points less away points, over games. 14.40 in 2023 and 14.43 in 2024. |
+| spread of it that is the clubs | 4.60-6.00 | 2023-24 | — | S1 | no | The club part of the row above, by a one-way split of each club's differential: 4.83 in 2023 and 5.73 in 2024. This is what WorldGenerator.strengthSpread is set from. Not a gate — 400 games gives a club 25, and the estimator's own error is about as wide as the band. |
 | offensive holding per game | 1.89-2.68 | 2023-24 | — | S1 | yes | — |
 | false start per game | 2.10-2.66 | 2023-24 | — | S1 | yes | — |
 | defensive pass interference per game | 0.88-1.24 | 2023-24 | passInterference | S1 | yes | — |
