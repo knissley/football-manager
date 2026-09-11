@@ -463,7 +463,7 @@ struct PenaltyTests {
     /// The offence's interference is the other way round, and stays that way.
     ///
     /// 8-5-2 lists shoving or pushing off to create separation among the acts either side
-    /// can be flagged for while the ball is in the air, and Rule 8 Section 5's Penalty
+    /// can be flagged for with the ball in the air, and Rule 8 Section 5's Penalty
     /// clause costs the offence ten yards from the previous spot — which takes the catch
     /// back rather than presuming there was not one. So a completed pass carrying
     /// offensive interference is the sport working normally, and the fix that stops the
