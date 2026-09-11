@@ -821,6 +821,82 @@ struct PocketTests {
         )
     }
 
+    /// The rosters the pooled pocket measurement draws from, and how many dropbacks each
+    /// contributes to every concept.
+    ///
+    /// Seven generated leagues rather than one — every roster either probe in this suite
+    /// has ever drawn on. A chain of inequalities measured on a single roster is a single
+    /// draw: each share is a property of that roster's line and front as much as of the
+    /// pocket, so a chain that happens to come out ordered on the one roster a probe drew
+    /// says nothing about whether the engine orders it.
+    private static let pocketRosterSeeds: [UInt64] = [1, 5, 7, 11, 12, 23, 41]
+    private static let dropbacksPerRoster = 350
+    /// The stream every dropback in the pooled sample is split out of.
+    private static let pocketFixtureSeed: UInt64 = 41
+
+    /// One dropback, drawn from a stream that depends on the roster and the play index
+    /// and on nothing else.
+    ///
+    /// This is what makes the comparison below a *paired* one, and it is what lets a
+    /// chain across concepts be read at all. Everything the pocket is decided from — who
+    /// is on the field, which rusher beat which blocker, and when he arrived — is drawn
+    /// before the concept's route depth is first consulted, so two concepts handed the
+    /// same stream see the same eleven men and the same rush on the same snap. Their
+    /// verdicts then differ only where the hold differs, which is the thing under test.
+    /// Resampling each concept independently instead leaves every comparison carrying the
+    /// noise of two fresh draws, and that is what let one roster's luck decide the answer.
+    ///
+    /// `split` depends on the root seed and its labels and never on how far a stream has
+    /// been advanced, so the pairing holds at every index rather than only the first.
+    private func coupledDropback(
+        _ concept: PlayConcept, context: PlayContext, rosterSeed: UInt64, index: Int
+    ) -> [DecisionPoint] {
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept), defense: .nickelTwoMan,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: Self.pocketFixtureSeed)
+            .split(rosterSeed, UInt64(index))
+        let onField = Lineup.onField(
+            context, concept: concept, situation: Self.neutral, random: &random)
+        return CrudeResolver().resolve(
+            situation: Self.neutral, calls: calls, onField: onField, context: context,
+            random: &random
+        ).decisions
+    }
+
+    /// What the pooled sample says about each pass concept, in the order they hold the
+    /// ball: the hold its record reports, whether each snap came back pressured, and when
+    /// the first rusher got home on that snap — the last so the pairing can be checked
+    /// rather than assumed.
+    private func pooledPocket() -> [(
+        concept: PlayConcept, hold: Int, pressured: [Bool], firstArrival: [Int]
+    )] {
+        let rosters = Self.pocketRosterSeeds.map { (seed: $0, context: context(seed: $0)) }
+        return Self.passConcepts.map { concept in
+            var hold = 0
+            var pressured: [Bool] = []
+            var firstArrival: [Int] = []
+            for roster in rosters {
+                for index in 0..<Self.dropbacksPerRoster {
+                    let decisions = coupledDropback(
+                        concept, context: roster.context, rosterSeed: roster.seed, index: index)
+                    pressured.append(decisions.contains { $0.kind == .pressureAllowed })
+                    // The hold is the same on every snap of a concept, and only a snap the
+                    // protection survived reports it: a pressured snap was over before the
+                    // hold was up, so its record carries the arrival instead.
+                    if let held = decisions.first(where: { $0.kind == .pressureHeld }) {
+                        hold = Int(held.value)
+                    }
+                    let arrivals = decisions.filter {
+                        $0.kind == .blockResult && $0.blockResultValue == .lost
+                    }.map { Int($0.value) }
+                    firstArrival.append(arrivals.min() ?? -1)
+                }
+            }
+            return (concept, hold, pressured, firstArrival)
+        }
+    }
+
     /// The other half of the same claim: how long the ball is held is what decides how
     /// much of the rush gets home.
     ///
@@ -834,13 +910,26 @@ struct PocketTests {
         "football · pressure per S2 2023-24 · pressure rises with the time the quarterback needs",
         .tags(.football))
     func pressureRisesWithTimeToThrow() {
-        let shares = Self.passConcepts.map { concept in
-            (concept, pressureShare(resolved(concept, Self.neutral, count: 2_000)))
+        let measured = pooledPocket()
+        // The pairing, before anything is read off it: the same roster and the same index
+        // must have produced the same rush under every concept, or the chain below is
+        // comparing five separate samples rather than five holds.
+        for (earlier, later) in zip(measured, measured.dropFirst()) {
+            #expect(
+                earlier.firstArrival == later.firstArrival,
+                "\(earlier.concept) and \(later.concept) did not see the same rush on the same snaps"
+            )
+        }
+        let shares = measured.map {
+            (
+                $0.concept, $0.hold,
+                Double($0.pressured.filter { $0 }.count) / Double($0.pressured.count)
+            )
         }
         for (earlier, later) in zip(shares, shares.dropFirst()) {
             #expect(
-                earlier.1 < later.1,
-                "\(earlier.0) pressured \(earlier.1) against \(later.0) at \(later.1): the pocket is not on a clock"
+                earlier.2 < later.2,
+                "\(earlier.0) holds \(earlier.1)ms and is pressured \(earlier.2) of the time, against \(later.0) holding \(later.1)ms at \(later.2): the pocket is not on a clock"
             )
         }
     }
