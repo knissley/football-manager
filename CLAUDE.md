@@ -242,13 +242,17 @@ swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
-swift test  --package-path Packages/FMSimulation          # the engine's own suite. Minutes,
-                                                          # not seconds: ~145s of test time
-                                                          # here and ~3min of wall clock with
-                                                          # the build. The "~45s" this line
-                                                          # used to say was four times out —
-                                                          # #106 measured 201s and owns
-                                                          # bringing it back under a budget
+swift test  --package-path Packages/FMSimulation          # the engine's own suite, and the one
+                                                          # with a budget: under two minutes of
+                                                          # test time on a four-core container.
+                                                          # Measured there: 85-111s over five
+                                                          # runs, against 170-200s before the
+                                                          # samples were shared. Machines differ
+                                                          # by a factor of two, so measure yours
+                                                          # rather than trusting the number.
+                                                          # What keeps it under: one shared game
+                                                          # corpus, and coverage asserted against
+                                                          # a forced draw. See docs/tools.md
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content
