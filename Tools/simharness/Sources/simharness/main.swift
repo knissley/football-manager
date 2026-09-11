@@ -321,6 +321,11 @@ for (key, title) in CalibrationTarget.sources {
 }
 print("    a stale row was sourced under a different rulebook than the run; an unsourced row")
 print("    keeps a band nobody has cited and is never ok; (ok) and (OFF) are rows with no gate")
+// The reading rule the precision in `CalibrationTarget.printed(_:inBand:)` buys, said out
+// loud: without it a reader cannot tell a row that is on its endpoint from one that is
+// half a display unit past it, and the two are graded differently.
+print("    a value printed as one of its band's endpoints is in band — an endpoint is in —")
+print("    and a row graded outside its band prints the decimals that put it outside")
 
 print("")
 header()

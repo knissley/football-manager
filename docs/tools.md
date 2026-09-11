@@ -189,6 +189,36 @@ CI checks that on every push, as a hard-failing step of the `test` job: two
 `--games 50 --no-timing --seed 7` runs and a `cmp`, with the difference printed if there
 is one (#72). It was a local duty before that, done twice per seed by whoever remembered.
 
+### What a row prints, and how to read it
+
+A row is graded on the **unrounded** value, with both endpoints **in** the band
+(`value >= low && value <= high`), and printed rounded. Those two used to be unrelated,
+and a value that rounds onto a printed endpoint sits within half a display unit of it and
+can be on either side — so `1.8` against a band of `1.3-1.8` was printed beside `ok` in
+one run and `OFF` in another, and the reader had no way to tell which digits the display
+had dropped (#108).
+
+So a row prints its own precision only where that precision carries the verdict. When the
+grade puts a value **outside** its band and the row's own precision would print it as one
+of the endpoints, the value and both endpoints of the band gain decimals together until
+the value is off the endpoint, up to eight. Everything else prints exactly as it did.
+
+The rule a reader can hold, and the harness prints it under **Sources**:
+
+> A value printed as one of its band's endpoints is in band — an endpoint is in — and a
+> row graded outside its band prints the decimals that put it outside.
+
+Bands widen with the value they sit beside, so one band can print as `3.9-4.6` on one row
+and `3.90-4.60` on another. The band has not moved; only the row's precision has. Compare
+bands as numbers, never as text — `scripts/harness-compare.sh` below does.
+
+**What this guarantees anything parsing the table.** Fields are separated by runs of two
+or more spaces, as they were. The value field is a decimal number carrying the row's own
+unit (`%` or `x`) and nothing else: no marker, no glyph, no thousands separator. The
+count of digits after the point varies by row and by run, and both endpoints of the band
+beside it carry the same count as the value. A value wider than its column keeps two
+spaces after it and makes its own row ragged, rather than running into the band field.
+
 ### The world checksum
 
 The header names the league the run was played in, as one number:
