@@ -93,8 +93,20 @@ jobs:
         # package, no recommends, so the step below runs rather than skipping: a check
         # that quietly does not execute is the failure the self-tests exist to prevent.
         run: |
-          apt-get update -qq
-          apt-get install -y -qq --no-install-recommends python3
+          echo "== where apt fetches from =="
+          cat /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
+          echo "== index state before update =="
+          ls /var/lib/apt/lists/ 2>/dev/null | head -40 || true
+          du -sh /var/lib/apt/lists/ 2>/dev/null || true
+          echo "== apt-get update =="
+          time apt-get update -qq
+          du -sh /var/lib/apt/lists/ 2>/dev/null || true
+          echo "== download the debs, nothing else =="
+          time apt-get install -y -qq --no-install-recommends --download-only python3
+          du -sh /var/cache/apt/archives/ 2>/dev/null || true
+          ls -l /var/cache/apt/archives/*.deb 2>/dev/null || true
+          echo "== unpack and configure, already downloaded =="
+          time apt-get install -y -qq --no-install-recommends python3
           python3 --version
 
       - name: Restore build cache
