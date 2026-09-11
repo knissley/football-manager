@@ -642,19 +642,27 @@ public enum RulesScenarios {
     /// `quarter` where the clock is running into the snap. The flag flies on the play
     /// rather than before it, which is the difference 4-4-e turns on.
     ///
-    /// The offence gains nothing on the flagged snap, so the non-offending side always
-    /// prefers the yardage and the foul is accepted; the down before it is an ordinary
-    /// plod, so the clock is running into the snap the flag comes on.
+    /// `gaining` is what the carry made. At nothing — the default — the non-offending
+    /// side always prefers the yardage and the foul is accepted. At a gain worth more
+    /// than the foul it is **declined**: five yards and an automatic first down are worth
+    /// less than twenty and the same first down, so the offence keeps the play. Either
+    /// way the down before it is an ordinary plod, so the clock is running into the snap
+    /// the flag comes on.
+    ///
+    /// A gain has to stay short of the goal line or the down is a touchdown and a
+    /// different scenario; the spot is guarded only when there is a gain to guard, so
+    /// that adding the parameter cannot move a scenario that gains nothing.
     static func flagDuringADown(
-        _ foul: Foul, quarter: UInt8 = 4, window: ClosedRange<UInt16>
+        _ foul: Foul, gaining yards: Int16 = 0, quarter: UInt8 = 4, window: ClosedRange<UInt16>
     ) -> ScriptedGame {
         ScriptedGame { snap in
             guard snap.isScrimmage, snap.quarter == quarter, window.contains(snap.clock),
                 snap.clockIsRunning, snap.down != .fourth,
+                yards == 0 || Int(snap.ballOn) > Int(yards) + 5,
                 let previous = snap.previous, previous.outcome.penalties.isEmpty,
                 previous.situation.possession == snap.possession
             else { return snap.neutral }
-            return snap.rush(0, foulBy: foul)
+            return snap.rush(yards, foulBy: foul)
         }
     }
 
@@ -680,6 +688,24 @@ public enum RulesScenarios {
     /// stops the clock before a snap.
     static var offensiveHoldingInTheFourthQuarterOutsideFiveMinutes: ScriptedGame {
         flagDuringADown(.offensiveHolding, window: 400...600)
+    }
+
+    /// The same second snap of the game, and the same foul, on a carry of twenty: the
+    /// five yards and the automatic first down are worth less than the gain, so the
+    /// offence turns the penalty down. The down still ended with a flag on it, and the
+    /// first period has neither a warning nor a late window, so what is left to watch is
+    /// whether a declined foul stops the clock the way an accepted one does.
+    static var declinedDefensiveHoldingOnAPlayEndingInBounds: ScriptedGame {
+        ScriptedGame { snap in
+            snap.index == 2 ? snap.rush(20, foulBy: .defensiveHolding) : plod(snap)
+        }
+    }
+
+    /// The same declined foul in the fourth quarter with between three and five minutes
+    /// left, so that the play is dead inside the window 4-3-2-e-2 names and well outside
+    /// the two-minute warning.
+    static var declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter: ScriptedGame {
+        flagDuringADown(.defensiveHolding, gaining: 20, window: 200...290)
     }
 
     // MARK: The spike

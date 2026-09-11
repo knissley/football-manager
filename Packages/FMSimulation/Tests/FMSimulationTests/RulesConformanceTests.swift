@@ -1842,6 +1842,89 @@ struct RulesConformanceTests {
         )
     }
 
+    // MARK: A foul during a down that is turned down
+
+    /// The first foul in `quarter` on a down that was actually run, ended in bounds, and
+    /// was **declined**: the non-offending side kept the play and no yardage was walked
+    /// off. 4-4-e is about the foul occurring, not about what was done with it, so this
+    /// is the same down as `foulDuringADown` in every way but the choice.
+    private func declinedFoulDuringADown(
+        in trace: Trace, quarter: UInt8
+    ) -> (index: Int, play: PlayRecord)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == quarter && $0.outcome.kind != .penaltyOnly
+                    && $0.outcome.endedIn == .tackled
+                    && $0.outcome.penalties.first?.wasAccepted == false
+            })
+        else {
+            Issue.record(
+                "the script never drew a declined foul on a down that ended in bounds in quarter \(quarter)"
+            )
+            return nil
+        }
+        #expect(
+            trace.clockRunning(into: found.index) == true,
+            "the scenario meant the clock to be running into the flagged down")
+        return found
+    }
+
+    /// What the offence would be charged before the snap after a down with nothing walked
+    /// off if the clock had never stopped, against the ordinary forty of 4-6-1. Nothing
+    /// was enforced, so the twenty-five of 4-6-2-e is not in force: the article names an
+    /// enforcement, and turning a penalty down is not one. A clock that restarts on the
+    /// ready costs `GameClock.readyForPlayDelay` less than this.
+    private func intervalAfterAnOrdinaryPlay(_ trace: Trace, after index: Int) -> Int? {
+        guard let next = trace[index + 1] else { return nil }
+        return Int(Rules.standard.playClockAfterAPlay.intendedSnap(at: next.calls.offense.tempo))
+    }
+
+    /// 4-4-e kills the clock as a down ends when a flag flew at any point in it, and its
+    /// condition is that somebody fouled — it says nothing about whether the penalty is
+    /// afterwards taken or turned down. 4-3-2-e then starts it again once the
+    /// foul is settled — the article is written over enforcement **or declination**, both
+    /// named in it — as though the foul had not occurred, which on a down that ended in
+    /// bounds is the ready-for-play signal. So a declined foul costs the same six seconds
+    /// an accepted one does, and the only difference between them is the yardage.
+    @Test(
+        "football · Rule 4-4-e, 4-3-2-e · a declined foul on a down that ends in bounds stops the clock at the end of the down, and it restarts on the ready",
+        .tags(.football)
+    )
+    func declinedFoulDuringADownStopsTheClockAtTheEndOfTheDown() {
+        let trace = RulesScenario.declinedDefensiveHoldingOnAPlayEndingInBounds.run()
+        guard let flag = declinedFoulDuringADown(in: trace, quarter: 1),
+            let charged = chargedBeforeTheSnap(after: flag.index, in: trace),
+            let running = intervalAfterAnOrdinaryPlay(trace, after: flag.index)
+        else { return }
+        let onTheReady = running - Int(GameClock.readyForPlayDelay)
+        #expect(
+            charged == onTheReady,
+            "the snap after the declined foul cost \(charged) seconds of game clock, and a clock stopped for the flag and restarted on the ready costs \(onTheReady); a clock that never stopped costs \(running)"
+        )
+    }
+
+    /// Inside the last five minutes of the second half the clock does not restart on the
+    /// ready after a foul: it waits for the snap (4-3-2-e-2). e-2's condition is that
+    /// *the foul occurs* in the window, and 4-3-2-e reaches a clock stopped for a foul
+    /// following enforcement **or declination**, so the window does not care either
+    /// whether the penalty was taken.
+    @Test(
+        "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half a declined foul during a down has the clock start on the snap",
+        .tags(.football)
+    )
+    func declinedFoulDuringADownInsideFiveMinutesWaitsForTheSnap() {
+        let trace = RulesScenario.declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter.run()
+        guard let flag = declinedFoulDuringADown(in: trace, quarter: 4),
+            let next = trace[flag.index + 1]
+        else { return }
+        #expect(
+            next.situation.clockRemaining <= 300 && next.situation.clockRemaining > 120,
+            "the scenario meant the down to be dead inside five minutes and outside the warning")
+        trace.expectPlay(
+            flag.index + 1, clockRunning: false,
+            "inside five minutes of the second half the clock waits for the snap")
+    }
+
     /// 4-7-3 has two clauses, and this is the second: an excess timeout for an injured
     /// *defensive* player in the last forty seconds of a half, with the clock running,
     /// ends the half on the same terms a defensive foul that conserves time does — unless

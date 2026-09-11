@@ -110,6 +110,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
     case offensiveHoldingInTheFourthQuarterOutsideFiveMinutes =
         "offensive-holding-in-the-fourth-quarter-outside-five-minutes"
+    case declinedDefensiveHoldingOnAPlayEndingInBounds =
+        "declined-defensive-holding-on-a-play-ending-in-bounds"
+    case declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
+        "declined-defensive-holding-inside-five-minutes-of-the-fourth-quarter"
 
     // The spike
     case spikeSnappedAtTwentySeconds = "spike-snapped-at-twenty-seconds"
@@ -302,6 +306,10 @@ extension RulesScenario {
             return RulesScenarios.defensiveHoldingInsideFiveMinutesOfTheFourthQuarter
         case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
             return RulesScenarios.offensiveHoldingInTheFourthQuarterOutsideFiveMinutes
+        case .declinedDefensiveHoldingOnAPlayEndingInBounds:
+            return RulesScenarios.declinedDefensiveHoldingOnAPlayEndingInBounds
+        case .declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return RulesScenarios.declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter
 
         case .spikeSnappedAtTwentySeconds: return RulesScenarios.spikeSnapped(at: 20)
         case .spikeSnappedAtFiveSecondsOnThirdDown: return RulesScenarios.spikeSnapped(at: 5)
@@ -652,6 +660,14 @@ extension RulesScenario {
         case .offensiveHoldingInTheFourthQuarterOutsideFiveMinutes:
             return [
                 "football · Rule 4-3-2-e-3, 4-4-e · e-3 reaches only an offensive foul that stops the clock before a snap, so an offensive foul during a fourth-quarter down outside every window restarts the clock on the ready"
+            ]
+        case .declinedDefensiveHoldingOnAPlayEndingInBounds:
+            return [
+                "football · Rule 4-4-e, 4-3-2-e · a foul during a down stops the clock at the end of it whether the penalty is taken or turned down, and a declined foul restarts it on the ready"
+            ]
+        case .declinedDefensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
+            return [
+                "football · Rule 4-3-2-e-2, 4-4-e · inside the last five minutes of the second half a declined foul during a down has the clock start on the snap"
             ]
 
         case .trailingByAPickSix:
