@@ -119,3 +119,11 @@ is nine bytes aligned to eight: `OffensiveCall` goes 10 → 17 bytes, `Calls` 41
 record's fixed part 136 → 144, and a realistic play 494 → 502. The version byte is
 absorbed by padding after the index; the design reference's optionality is not. Eight
 bytes a play for a record that no longer names a design nobody wrote.
+
+Those four numbers are what this amendment measured when it landed, and the eight bytes
+it cost are still the eight bytes it cost. The absolute figures have moved on: the record
+has gained fields since — the possession-loss spot and the kicking-team kickoff touchdown
+that [#58](https://github.com/knissley/football-manager/issues/58) put in it — and
+`swift run --package-path Tools/playsize` now prints a **152-byte fixed part and 510 bytes
+for a realistic play**. Read them off the tool rather than off this paragraph; the tool is
+the measurement and this is a record of one moment of it.

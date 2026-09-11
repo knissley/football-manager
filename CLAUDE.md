@@ -242,7 +242,13 @@ swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
-swift test  --package-path Packages/FMSimulation          # ~45s; the engine's own suite
+swift test  --package-path Packages/FMSimulation          # the engine's own suite. Minutes,
+                                                          # not seconds: ~145s of test time
+                                                          # here and ~3min of wall clock with
+                                                          # the build. The "~45s" this line
+                                                          # used to say was four times out —
+                                                          # #106 measured 201s and owns
+                                                          # bringing it back under a budget
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content
@@ -264,6 +270,12 @@ scripts/lint-sim.sh                                       # banned primitives, n
                                                           # see docs/tools.md
 scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
                                                           # when you change it or add a rule
+scripts/lint-reference.sh --self-test                     # reproduced rulebook text, and
+                                                          # citations that name a real article.
+FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh         # Needs a corpus, which is not in the
+                                                          # repo and will not be: with none it
+                                                          # says so and exits 0. The self-test
+                                                          # ships its own. See docs/tools.md
 scripts/test-census.sh                                    # test kinds per target and per suite;
                                                           # fails on a @Test with no kind tag.
                                                           # docs/testing.md reads the shares
