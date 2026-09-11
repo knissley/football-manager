@@ -224,7 +224,12 @@ wave order and rebase.
   described. Never to make a red test pass.
 - No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after,
   once per seed, or paste the output of `scripts/harness-reach.sh` showing the change
-  cannot reach it; paste the rows that moved into the PR body with one line on why.
+  cannot reach it; paste the rows that moved into the PR body with one line on why. Read
+  each move against that row's **measured** noise floor — it is beside the row in
+  [`docs/reference/calibration-sources.md`](docs/reference/calibration-sources.md#the-measured-noise-floor)
+  — and say which floor you used: a before-and-after at one seed and a comparison across
+  two seeds have different ones, and fifty-five rows print a different verdict at different
+  seeds with nothing changed at all.
 - The PR body names the issue it closes, what was measured versus assumed, and the
   harness rows before and after. No model identifiers in commit or PR text beyond the
   attribution trailer the tooling appends.
@@ -299,6 +304,14 @@ python3 scripts/calibration-sources.py --self-test        # the band derivation'
                                                           # play-by-play release, which is not
                                                           # in the repo. See
                                                           # docs/reference/calibration-sources.md
+python3 scripts/harness-noise.py --self-test              # the noise-floor sweep's parser and
+                                                          # its statistics. The floors
+                                                          # themselves are committed — read
+                                                          # them in calibration-sources.md
+                                                          # rather than re-running the sweep,
+                                                          # and re-take it in the same commit
+                                                          # as a change that moves engine
+                                                          # behaviour
 
 # Planned — land with the backlog
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test

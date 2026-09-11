@@ -687,7 +687,54 @@ schedule to travel on (M3). What the engine models is the crowd, so the mechanis
 pre-snap foul ratio) gets the target and the aggregate gets a note.
 
 The weather rows need a large sample: at 400 games there are only twenty-odd heavy-rain
-games and the row is noise. Run `--games 1000` before reading them.
+games and the row is noise. Run `--games 1000` before reading them. That number is
+folklore and the sweep below could not check it — `heavyRainPoints` has too few rain games
+in a 200-game run to give the sweep a same-league estimate at all — but the rows it *could*
+check say the instinct is right for a rare event and wrong for a wide one, and the next
+section gives a number per row instead of a rule of thumb.
+
+### Judging a row that moved
+
+A row that moved between two runs is either a mechanism or a resample, and until the noise
+floor was measured the last step of that argument was always a model nobody had checked.
+It is measured now, per row, in
+[`reference/calibration-sources.md`](reference/calibration-sources.md#the-measured-noise-floor),
+from a 30-seed sweep of one unchanged tree. Read the move against the floor for the
+comparison you actually ran, and **say which floor that was**:
+
+| what you ran | the floor | where it comes from |
+| --- | --- | --- |
+| before and after at **one** seed | `σ same league × √2` | the world is identical, so only the draw moved, twice |
+| two **different** seeds | `σ seed-to-seed` | a different seed is a different league as well as a different draw |
+| a change that touches **world generation** | `σ seed-to-seed` | the league moved too, whatever the seed says |
+
+So: "moved 0.4, floor 0.9, same seed" is an argument. "Moved 0.4, smaller than the noise"
+is not, because it does not say which noise.
+
+Three things follow that are worth knowing before reaching for `--games`:
+
+- **Fifty-five of 127 rows print a different verdict at different seeds on an unchanged
+  tree.** For those rows an `ok`/`OFF` mark is a fact about the seed. Check the row against
+  the *verdicts seen* column before treating a flip as a finding.
+- **For twenty-one rows most of the spread is the league, not the games**, and the league
+  part does not shrink with `--games` at all: a longer run plays more games in the *same*
+  league. `--games 1000` narrows the sampling half and leaves the rest exactly where it was.
+  More **seeds** is what narrows that one.
+- **`--games` now has a number per row rather than a rule of thumb.**
+  `scripts/harness-noise.py --summary` prints, for every row whose band is narrower than the
+  four floors a seed needs to land inside it reliably, the games that would fix it — 510 to
+  630 for the onside-kick rows, 620 for `fieldGoals50plus`, 703 for
+  `penalty.neutralZoneInfraction`, 827 for `tiesPerGame`, 988 for `betweenTeamSigma`, 1,832
+  for `overtimeLength` — or the answer **more seeds** for the eleven where no `--games` value
+  will do it, among them `rushingYards`, `yardsPerCarry`, `carriesStuffed` and
+  `driveEndTouchdown`.
+- **The binomial/Poisson model reviewers have been using is sound for the same-league floor
+  and optimistic for the seed-to-seed one** — a median 1.01 against the first with one row of
+  84 outside a factor of two, a median 1.24 against the second with nineteen of 85 outside it
+  and the worst at 6.8. Use the measured column rather than the model whenever the comparison
+  crosses seeds.
+
+The sweep is `scripts/harness-noise.py`; see [tools.md](tools.md#harness-noisepy--the-noise-floor).
 
 Also checked: the best players lead the league most seasons, and no scheme dominates —
 equal-talent rosters built differently should win the same number of games within noise.
