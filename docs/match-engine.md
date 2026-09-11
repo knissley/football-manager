@@ -551,7 +551,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | snaps against nickel | 61.6-69.2% | 2023-24 | — | S2 | yes | Five defensive backs on the field. |
 | snaps against base | 20.2-25.0% | 2023-24 | — | S2 | yes | Four defensive backs on the field. |
 | yards per carry, even count | 4.3-5.0 | 2023-24 | — | S2 | yes | First and ten, designed runs; blockers are five linemen plus tight ends plus extra backs, the box is eleven less the defensive backs, as the harness counts it. By defenders actually in the box the figure was 4.5–4.7. |
-| yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. |
+| yards per carry, outnumbered by one | 3.9-5.1 | 2023-24 | — | S2 | yes | Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. The source plays this box on 11.1–12.7% of first-and-ten designed carries; the engine reaches it on 0.2% and the row reads n/a for want of a sample, which is the engine's joint personnel-and-package answer rather than anything about this band. |
+| yards per carry, outnumbering by one | 4.0-4.9 | 2023-24 | — | S2 | yes | Same construction, one more blocker than the box — a tight end or a second back against five defensive backs. The sport runs first and ten from here on 20.0–20.2% of designed carries. By defenders actually in the box the figure was 4.5–4.7. |
 | quarterback snaps per team-game | 58.9-66.8 | 2023-24 | — | S2 | yes | Player-snaps on plays from scrimmage by roster position group, the source's participation feed scaled to plays from scrimmage. One a snap by construction on both sides. |
 | backfield snaps per team-game | 64.2-72.4 | 2023-24 | — | S2 | yes | Running backs and fullbacks. |
 | receiver snaps per team-game | 150.3-171.0 | 2023-24 | — | S2 | yes | — |

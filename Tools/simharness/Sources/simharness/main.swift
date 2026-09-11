@@ -1046,20 +1046,33 @@ func countAdvantage(_ play: PlayRecord) -> Int {
     let blockers = 5 + Int(group.tightEnds) + max(0, Int(group.runningBacks) - 1)
     return blockers - (11 - Int(play.situation.defensePackage.defensiveBacks))
 }
+// A bucket with too few carries to mean anything still prints its count. Printing nothing
+// read as "this never happens", and it is what let the outnumbered bucket be diagnosed for
+// two documents and an issue as empty when it is not — it is thin. A count with no mean
+// beside it is the honest shape: the sample is named, and no average is offered that four
+// hundred games cannot support.
+let gradableCarries = 200
 var yardsByAdvantage: [Int: Double] = [:]
-for advantage in [-2, -1, 0, 1, 2] {
+for advantage in [-3, -2, -1, 0, 1, 2, 3] {
     let matching = carries.filter {
         countAdvantage($0) == advantage && $0.situation.down == .first
             && $0.situation.distance == 10
     }
-    guard matching.count > 200 else { continue }
+    guard !matching.isEmpty else { continue }
+    let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
+    guard matching.count > gradableCarries else {
+        print(
+            "      \(pad(label, 28))\(pad("—", 8))\(matching.count) carries"
+                + "  (under \(gradableCarries), no mean taken)")
+        continue
+    }
     let yards = Double(matching.reduce(0) { $0 + Int($1.outcome.yards) }) / Double(matching.count)
     yardsByAdvantage[advantage] = yards
-    let label = advantage > 0 ? "+\(advantage) blockers" : "\(advantage) blockers"
     print("      \(pad(label, 28))\(pad(oneDecimal(yards), 8))\(matching.count) carries")
 }
 report("ypcEvenCount", yardsByAdvantage[0])
 report("ypcOutnumberedByOne", yardsByAdvantage[-1])
+report("ypcOutnumberingByOne", yardsByAdvantage[1])
 
 print("")
 print("  The shape of a carry")

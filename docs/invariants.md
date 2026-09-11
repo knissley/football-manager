@@ -751,14 +751,20 @@ what every one of them was derived from is in
      four-back front against a second back and on most but not all of the snaps with a
      second tight end, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
-     `row:ypcOutnumberedByOne`, `test:nickelIsTheDefenceATeamPlays`,
+     `row:ypcOutnumberingByOne`, `row:ypcOutnumberedByOne`,
+     `test:nickelIsTheDefenceATeamPlays`,
      `test:baseIsTheSubstitutionAndNotTheAnswerToEveryHeavierGrouping`.
-     **`row:ypcOutnumberedByOne` cannot be graded as the harness builds it today and prints
-     `n/a` rather than a value**: it counts first-and-ten carries where the box holds one
-     more man than the offence has blockers, and the only two groupings that qualify are
-     eleven personnel against a four-back front and four or more receivers against a nickel
-     back, which the caller answers from nickel and from a dime. The band is sound and the
-     sample is empty; repopulating or regrading the row is
+     **`row:ypcOutnumberedByOne` prints `n/a` rather than a value, and the reason is the
+     engine's rather than the row's**: it counts first-and-ten carries where the box holds
+     one more man than the offence has blockers, and the engine reaches that box on 0.2% of
+     them — 23 carries in four hundred games at both calibration seeds, too thin to take a
+     mean from — where the source plays it on 11.1–12.7%. Every one of the 23 is eleven
+     personnel against a four-back front, which the source runs on 18.3–18.8% of its
+     first-and-ten carries from eleven personnel. Each marginal share above is in band while
+     the pairing of grouping to package is not, so the band is sound, the sample is thin,
+     and the residual is the retune's
+     ([#49](https://github.com/knissley/football-manager/issues/49)). The durable check that
+     no graded row reads `n/a` silently is
      [#42](https://github.com/knissley/football-manager/issues/42)'s.
 115. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,

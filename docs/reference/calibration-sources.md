@@ -280,6 +280,7 @@ one hoarding them past the whistle, which is the thing the total exists to catch
 | `row:packageBase` — snaps against base | 2023-24 | S2 |
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
+| `row:ypcOutnumberingByOne` — yards per carry, outnumbering by one | 2023-24 | S2 |
 
 **No share is sourced for any grouping but eleven.** `row:personnel11` is the only
 offensive participation share in `Targets.swift`, and nothing here, in
@@ -309,13 +310,46 @@ rather than to all the heavier ones it realises less than 31.3%, which is the co
 side of a derivation with no figure behind it. Computing the real share is the same cheap
 derivation as above and is likewise not done.
 
-**`row:ypcOutnumberedByOne` is currently ungradable, and it is a property of the rows
-rather than of the source.** The harness grades it on first and ten only, counting blockers
-as the five linemen plus every tight end plus every back after the first against a box of
-eleven less the defensive backs. Minus one needs eleven personnel against a four-back front
-or four-or-more receivers against a nickel back; the caller answers the first from nickel
-and the second from a dime, so neither pairing occurs on first and ten and the row prints
-`n/a` rather than a value and a verdict. The band is sound and the sample is empty.
+### The count-advantage buckets, and which of them the engine can fill
+
+All three rows grade first and ten only, counting blockers as the five linemen plus every
+tight end plus every back after the first, against a box of eleven less the defensive backs.
+So minus one needs eleven personnel against a four-back front, or four-or-more receivers
+against a nickel back; plus one needs a tight end or a second back against five defensive
+backs.
+
+**How much of the sport each bucket is**, derived from the same participation release and
+printed by the script as `ypcShareOutnumberedByOne`, `ypcShareEvenCount` and
+`ypcShareOutnumberingByOne`. None of the three is a row: the harness reads its own shares
+off the counts it prints beside each bucket.
+
+| Bucket | 2023 | 2024 | Engine, 400 games, seeds 7 and 11 |
+| --- | ---: | ---: | ---: |
+| outnumbered by one | 12.7% | 11.1% | **0.2%** — 23 carries of 11,685 and 11,634 |
+| even count | 64.8% | 67.4% | **92.3%** |
+| outnumbering by one | 20.0% | 20.2% | **7.1%** — 827 and 779 carries |
+
+**`row:ypcOutnumberedByOne` reads `n/a`, and the reason is the engine's, not the row's.**
+It was diagnosed — in this file, in [play-calling.md](../play-calling.md) and in the issue
+that asked for it to be regraded or retired — as grading a box that modern defensive
+football has designed out. The table above is what settles that, and it says otherwise: the
+sport plays this box on one first-and-ten designed carry in eight. The bucket is not empty
+in the harness either; it holds 23 carries at both calibration seeds, which is too thin for
+a mean and is why the row prints no value. Every one of the 23 is eleven personnel against a
+four-back front, and the source runs that same pairing on 18.8% of 2023's first-and-ten
+carries from eleven personnel and 18.3% of 2024's, against the engine's 0.3%.
+
+So the band is sound, the row is sound, and what is wrong is the engine's **joint**
+personnel-and-package answer rather than either marginal: `row:personnel11`,
+`row:packageNickel` and `row:packageBase` all grade `ok` at both seeds while the pairing of
+one to the other is nearly deterministic where the sport's is not. **That is a residual for
+the retune ([#49](https://github.com/knissley/football-manager/issues/49)), and no band or
+denominator here is to be moved to accommodate it.** Retiring the row would record a claim
+about the sport that the source contradicts.
+
+`row:ypcOutnumberingByOne` is the bucket the engine's first-and-ten running has moved into,
+and it is graded: about 800 carries a seed, banded from the same source at 4.0–4.9 with
+4.33 in 2023 and 4.55 in 2024.
 
 ### Who took the snap
 
@@ -729,6 +763,8 @@ was computed for this file.
 | First downs per team-game including penalty first downs: 17.8–18.3 | 2023-24 | `row:firstDownsPerTeamGame` |
 | Yards per carry by defenders actually in the box: 4.5–4.7 | 2023-24 | `row:ypcEvenCount` |
 | Even against outnumbered, the sport's own gap: 4.3–4.6 against 4.5–4.7 | 2023-24 | `row:ypcOutnumberedByOne` |
+| The outnumbered box is 11.1–12.7% of first-and-ten designed carries, and the engine reaches it on 0.2% | 2023-24 | `row:ypcOutnumberedByOne` |
+| The outnumbering box is 20.0–20.2% of them, and by defenders actually in the box the carry gained 4.5–4.7 | 2023-24 | `row:ypcOutnumberingByOne` |
 | Fourth downs gone for, rising: 23.3% | 2025 | `row:fourthDownWentForIt` |
 | Fourth and one, went for it, rising: 76.3% | 2025 | `row:fourthAndOneWentForIt` |
 | Two-point conversion swung from 55% to 41% on about 130 tries a season | 2023-24 | `row:twoPointConversion` |

@@ -455,7 +455,14 @@ struct CalibrationTarget: Sendable {
             high: 5.1, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
             gate: true,
             note:
-                "Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7."
+                "Same construction, one more in the box than blockers. The sport's gap between even and outnumbered is small: 4.3–4.6 against 4.5–4.7. The source plays this box on 11.1–12.7% of first-and-ten designed carries; the engine reaches it on 0.2% and the row reads n/a for want of a sample, which is the engine's joint personnel-and-package answer rather than anything about this band."
+        ),
+        CalibrationTarget(
+            id: "ypcOutnumberingByOne", label: "yards per carry, outnumbering by one", low: 4.0,
+            high: 4.9, season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [],
+            gate: true,
+            note:
+                "Same construction, one more blocker than the box — a tight end or a second back against five defensive backs. The sport runs first and ten from here on 20.0–20.2% of designed carries. By defenders actually in the box the figure was 4.5–4.7."
         ),
 
         // Who took the snap: player-snaps per team-game on plays from scrimmage, by the

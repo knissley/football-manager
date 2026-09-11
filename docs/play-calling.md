@@ -374,21 +374,46 @@ sixth defensive back is on offer. What it no longer does is answer eleven person
 four-back front on an ordinary down, which it used to do about a quarter of the time and
 which left four defensive backs on a third of every snap played.
 
-One cost of that is worth writing down rather than discovering, and the correction to what
-this section used to say about it is worth more. Reserving the four-back front to the
-heavier groupings means a first-and-ten carry from eleven personnel never meets a seven-man
-box, so `row:ypcOutnumberedByOne` has no carries to measure and prints `n/a` instead of a
-number. This section then said that answering a two-tight-end grouping from nickel some of
-the time would get the row back. **It does not, and the arithmetic says so.** The row counts
-carries where the box has one more man in it than the offence has blockers, and the harness
-counts blockers as the five linemen plus every tight end plus every back after the first. A
-two-tight-end grouping blocks seven against nickel's six-man box, so it is not outnumbered
-by one — it outnumbers by one. The pairings that reach minus one are eleven personnel
-against a four-back front, which is the rule the paragraph above removed on ordinary downs,
-and four or five receivers against a nickel back, which the package rule answers with a
-dime instead. The engine produces neither on first and ten, so the row is structurally
-ungradable rather than off band, and getting it back is a change to one of those two rules
-rather than to this one.
+One cost of that is worth writing down rather than discovering, and two corrections to what
+this section used to say about it are worth more.
+
+Reserving the four-back front to the heavier groupings means a first-and-ten carry from
+eleven personnel almost never meets a seven-man box, so `row:ypcOutnumberedByOne` has too
+few carries to take a mean from and prints `n/a` instead of a number.
+
+**The first correction.** This section once said that answering a two-tight-end grouping
+from nickel some of the time would get the row back. **It does not, and the arithmetic says
+so.** The row counts carries where the box has one more man in it than the offence has
+blockers, and the harness counts blockers as the five linemen plus every tight end plus
+every back after the first. A two-tight-end grouping blocks seven against nickel's six-man
+box, so it is not outnumbered by one — it outnumbers by one. The pairings that reach minus
+one are eleven personnel against a four-back front, which is the rule the paragraph above
+removed on ordinary downs, and four or five receivers against a nickel back, which the
+package rule answers with a dime instead.
+
+**The second correction, which is newer and which the first one's wording invited.** This
+section then said the engine produces *neither* pairing on first and ten and that the row is
+structurally ungradable. Measured, at 400 games in release, both calibration seeds: it
+produces the first, **23 times a seed**, eleven personnel against a four-back front — 0.2%
+of first-and-ten designed carries, against the 92.3% that come at an even count. Twenty-three
+is a real sample and a useless one, and the harness prints the count with no mean beside it
+rather than printing nothing, because printing nothing is what made "thin" read as "never"
+in this paragraph for as long as it did.
+
+**What the source does is the part that settles it.** In the play-by-play release the box
+outnumbers the blockers on **11.1% of first-and-ten designed carries in 2024 and 12.7% in
+2023** — one carry in eight, not a situation the sport has designed out. Eleven personnel
+alone draws a four-back front on **18.3% and 18.8%** of those carries. So the band is right
+and the row is right, and what is not right is the engine's *joint* answer: each package's
+own share lands in band — `row:packageBase` and `row:packageNickel` both grade `ok` — while
+the pairing of package to grouping is nearly deterministic where the sport's is not. That is
+an engine residual and belongs to the retune
+([#49](https://github.com/knissley/football-manager/issues/49)), not to this section and not
+to the row.
+
+The bucket where the engine's first-and-ten running actually happens is the other one, and
+it is graded: `row:ypcOutnumberingByOne`, about 800 carries a seed, banded from the same
+source at 4.0–4.9.
 
 ### Every call gives something up
 
