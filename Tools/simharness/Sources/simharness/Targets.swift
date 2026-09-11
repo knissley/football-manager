@@ -196,8 +196,11 @@ struct CalibrationTarget: Sendable {
         for target in all {
             let sensitivity = target.rulesSensitiveTo.map(\.rawValue).sorted().joined(
                 separator: ", ")
+            // The unit rides on the band and not on the word that stands in for one: a row
+            // with no band at all prints "none", and "none%" reads as a number.
+            let band = target.low == nil ? target.band : target.band + target.unit
             lines.append(
-                "| \(target.label) | \(target.band)\(target.unit) | "
+                "| \(target.label) | \(band) | "
                     + "\(target.season == .unsourced ? "unsourced" : target.season.printed) | "
                     + "\(sensitivity.isEmpty ? "—" : sensitivity) | "
                     + "\(target.source.isEmpty ? "—" : sourceKey(for: target.source)) | "
@@ -281,6 +284,26 @@ struct CalibrationTarget: Sendable {
         CalibrationTarget(
             id: "yardsPerCompletion", label: "yards per completion", low: 10.3, high: 11.5,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true),
+
+        // Why the other passes were not caught. Both rows are printed with no band at
+        // all, which is the honest output rather than a gap: the play-by-play charts
+        // neither a drop nor a pass defensed, so a band for either has to come off a
+        // charting release nobody here has read, under E1's rules. Typing a
+        // plausible-looking figure in place of an uncomputed one is the failure
+        // docs/reference/calibration-sources.md exists to prevent, and the derivation each
+        // would need is written down there instead.
+        CalibrationTarget(
+            id: "dropsPerTarget", label: "drops per target", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note:
+                "Catch attempts the record calls a drop, over catch attempts. Every throw the engine resolves to a receiver has exactly one target, so this is the charting convention's denominator. Unsourced: the play-by-play does not chart a drop."
+        ),
+        CalibrationTarget(
+            id: "passesDefensedPerGame", label: "passes defensed per game", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, decimals: 2,
+            note:
+                "Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up."
+        ),
 
         // The shape of the stream.
         CalibrationTarget(
@@ -811,5 +834,25 @@ struct CalibrationTarget: Sendable {
             id: "penalty.neutralZoneInfraction", label: "neutral zone infraction per game",
             low: 0.27, high: 0.41, season: .seasons(2023...2024), source: playByPlay,
             rulesSensitiveTo: [], gate: true, decimals: 2),
+
+        // What the accepted rate above is the residue of. The ten rows before this one
+        // count accepted fouls, which is what the league publishes and what the engine
+        // should be graded on — but a draw that is three times the accepted rate and hides
+        // behind a decline grades green on the way past, and that is exactly what
+        // interference did.
+        CalibrationTarget(
+            id: "interferenceDrawnPerGame", label: "interference drawn per game", low: nil,
+            high: nil, season: .unsourced, source: "", rulesSensitiveTo: [.passInterference],
+            gate: false, decimals: 2,
+            note:
+                "Defensive interference flags thrown, accepted or declined, both teams. The accepted half is row:penalty.defensivePassInterference, which is the graded one. Unsourced: a band for flags thrown rather than enforced has not been computed."
+        ),
+        CalibrationTarget(
+            id: "interferenceOnCompletions", label: "interference on completions", low: 0,
+            high: 0, season: .unsourced, source: "", rulesSensitiveTo: [.passInterference],
+            gate: false, unit: "%",
+            note:
+                "Defensive interference flags on a pass that was then completed, as a share of them. Not a league rate and not sourced: the band is the engine's own promise from 8-5-1, where the foul is contact that spoiled the receiver's chance at the ball and so is the reason it was not caught. The offence's push-off is excluded and printed beside it, because a catch it brings back is the sport working normally."
+        ),
     ]
 }

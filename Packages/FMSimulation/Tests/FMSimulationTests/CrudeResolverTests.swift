@@ -465,6 +465,249 @@ struct OutOfBoundsTests {
     }
 }
 
+/// What a carry looks like, rather than what it averages.
+///
+/// A mean is not a distribution. An engine can put four and a half yards a carry on the
+/// board by handing every back four and a half yards, or by stuffing half of them and
+/// springing the rest, and neither is the sport. These assert the shape: that the
+/// ordinary carry — through the line, into the second level, three to nine yards — is
+/// the largest part of the run game, and that the long run is something the carrier did
+/// rather than something the blocking bought.
+@Suite("The shape of a carry")
+struct CarryShapeTests {
+
+    /// Every designed carry of the shared corpus. Scrambles are a different play and the
+    /// record gives them their own kind, exactly as the sourced shares below exclude
+    /// them.
+    private static let carries: [PlayRecord] =
+        TestWorld.corpus.flatMap { $0.plays }.filter { $0.outcome.kind == .rush }
+
+    private static func share(_ test: (Int) -> Bool) -> Double {
+        let yards = carries.map { Int($0.outcome.yards) }
+        return Double(yards.filter(test).count) / Double(max(1, yards.count)) * 100
+    }
+
+    /// The middle of the run distribution, and the claim that it is the largest part of
+    /// it.
+    ///
+    /// Nothing sources the share of carries gaining three to nine directly, so it is
+    /// derived from the two sourced shares either side of it (2023-24, nflverse
+    /// play-by-play; `row:carries2orFewer` and `row:carries10plus` in
+    /// `docs/reference/calibration-sources.md`). Every carry falls in exactly one of the
+    /// three, so
+    ///
+    ///     three to nine = 100 − (two or fewer) − (ten or more)
+    ///
+    /// and with two or fewer sourced at 40.6–46.5 and ten or more at 9.6–11.2, the middle
+    /// share lies between **42.3 and 49.8** however the two sourced shares fall inside
+    /// their own bands. The floor is what this asserts, because it is the corner that
+    /// holds whatever the truth is inside them.
+    ///
+    /// It also asserts the middle is larger than the ten-or-more share, which holds at
+    /// every corner — 42.3 against 11.2.
+    ///
+    /// It deliberately does **not** assert that the middle is larger than the two-or-fewer
+    /// share. That holds at the midpoints of the two bands, 46.0 against 43.6, but not at
+    /// every corner, so it is a reading of where the bands centre rather than something
+    /// they imply, and it is written down here instead of being asserted.
+    @Test(
+        "football · nflverse play-by-play 2023-24 · at least 42.3% of carries gain three to nine yards",
+        .tags(.football))
+    func theMiddleIsTheLargestPartOfTheRunGame() {
+        let middle = Self.share { $0 >= 3 && $0 <= 9 }
+        let long = Self.share { $0 >= 10 }
+        #expect(
+            middle >= 42.3,
+            "carries of three to nine are \(middle)% of \(Self.carries.count), floor 42.3%")
+        #expect(
+            middle > long,
+            "carries of three to nine are \(middle)% against \(long)% of ten or more")
+    }
+
+    /// A long run is a man beaten, not a hole measured.
+    ///
+    /// The engine's own promise about its run game: a carry that goes twenty yards or
+    /// more has a broken tackle in front of it in the same record. Nothing about the
+    /// blocking alone may produce one, because a distribution whose tail is drawn rather
+    /// than earned puts the yards on the offensive line and leaves the back's contact
+    /// balance worth nothing.
+    @Test("Every carry of twenty or more has a broken tackle in front of it", .tags(.contract))
+    func aBreakawayIsAlwaysABrokenTackle() {
+        let long = Self.carries.filter { $0.outcome.yards >= 20 }
+        #expect(long.count > 0, "no carry reached twenty: the case was never exercised")
+        let unearned = long.filter { play in
+            !play.decisions.contains {
+                $0.kind == .tackleAttempt && $0.detail == TackleResult.broken.rawValue
+            }
+        }.count
+        #expect(
+            unearned == 0,
+            "\(unearned) of \(long.count) carries of twenty or more broke no tackle")
+    }
+
+    /// Yards rise with the hole the carry came through.
+    ///
+    /// The record publishes the hole as a `.holeQuality` point, so this reads the engine's
+    /// own number rather than inferring one. The scale pays twelve a block — twelve for a
+    /// block won or lost at the point of attack, twelve for a defender the offence had no
+    /// blocker for — so the bins below are a block wide, and the claim is that a carry
+    /// through a better hole is not worth fewer yards on average than one through a worse.
+    ///
+    /// Against each bin's own sampling error rather than a fixed yard, because a carry's
+    /// length is a wide distribution and the best holes are the thinnest bins: the top of
+    /// the range holds a few hundred carries whose mean moves half a yard on the draw
+    /// alone. A fixed tolerance either passes a real inversion at the bottom or fails on
+    /// noise at the top.
+    @Test("A carry's yards rise with the hole it came through", .tags(.contract))
+    func yardsRiseWithTheHole() {
+        var byBin: [Int: [Int]] = [:]
+        for play in Self.carries {
+            guard
+                let hole = play.decisions.first(where: {
+                    $0.kind == .holeQuality && $0.primary == SlotLayout.back
+                })
+            else { continue }
+            byBin[Int(hole.value) / 12, default: []].append(Int(play.outcome.yards))
+        }
+        // A bin too thin to have a mean says nothing either way.
+        let bins = byBin.filter { $0.value.count >= 100 }.keys.sorted()
+        #expect(bins.count >= 5, "only \(bins.count) bins had enough carries to read")
+        var previous: (bin: Int, mean: Double, error: Double)?
+        for bin in bins {
+            let yards = byBin[bin]!.map(Double.init)
+            let mean = yards.reduce(0, +) / Double(yards.count)
+            let spread = yards.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(yards.count)
+            let error = (spread / Double(yards.count)).squareRoot()
+            if let below = previous {
+                let tolerance = 2 * (below.error + error)
+                let message =
+                    "bin \(bin * 12) averaged \(mean) against \(below.mean) for bin "
+                    + "\(below.bin * 12), a fall of more than \(tolerance)"
+                #expect(mean >= below.mean - tolerance, "\(message)")
+            }
+            previous = (bin, mean, error)
+        }
+    }
+}
+
+/// Whose incompletion it was.
+///
+/// `CatchResult` is the only field that says why a pass fell incomplete, and everything
+/// downstream — a drop rate, a pass-defensed leaderboard, the narrative layer's sentence
+/// about the play — repeats whatever it says. So the label has to name the man who
+/// actually caused it: the receiver on a ball he could have caught, the defender on a
+/// ball he got to, and the passer on a ball he put where it could not be caught.
+///
+/// **These are promises the record makes about its own vocabulary, not claims about the
+/// rules.** The sport has no article on what a drop is — a drop is charting vocabulary
+/// rather than a rule, and nothing in this repository sources a drop rate — so they are
+/// `.contract` under CLAUDE.md rule 11 rather than `.football` with a citation that would
+/// have to be stretched to fit. What the rules *do* say about a ball nobody could catch
+/// is asserted in `PenaltyTests`, from 8-5-3-c.
+@Suite("The catch, and whose incompletion it was")
+struct CatchVocabularyTests {
+
+    /// The shared forty-game corpus: 2,505 catch attempts and 662 incompletions on the
+    /// tree this was written against, which is two orders more than either assertion
+    /// below needs and costs nothing, because six other suites have already played it.
+    private struct Attempt {
+        let placement: BallPlacement
+        let result: CatchResult
+        let separation: Int
+        let wasInterfered: Bool
+    }
+
+    private static let attempts: [Attempt] =
+        TestWorld.corpus.flatMap(\.plays).compactMap { play in
+            guard let attempt = play.decisions(ofKind: .catchAttempt).last,
+                let result = attempt.catchResult,
+                let placement = play.decisions(ofKind: .ballArrival).last?.ballPlacement
+            else { return nil }
+            return Attempt(
+                placement: placement, result: result, separation: Int(attempt.value),
+                wasInterfered: play.outcome.penalties.contains {
+                    $0.foul == .defensivePassInterference
+                })
+        }
+
+    /// A drop is a catchable ball the receiver did not catch.
+    ///
+    /// The engine used to call every failed catch with the receiver open a drop, whatever
+    /// the ball's placement was, so a throw the quarterback put where nobody could be
+    /// expected to catch it was charged to the man it was thrown at. `BallPlacement` is
+    /// already on the record one decision earlier and says which kind of throw it was.
+    @Test(
+        "contract: a drop is only ever recorded on a ball the receiver could have caught",
+        .tags(.contract))
+    func dropsAreOnCatchableBalls() {
+        let drops = Self.attempts.filter { $0.result == .dropped }
+        #expect(drops.count > 50, "only \(drops.count) drops in the corpus: nothing to check")
+        let uncatchable = drops.filter {
+            $0.placement == .poor || $0.placement == .uncatchable
+        }.count
+        #expect(
+            uncatchable == 0,
+            "\(uncatchable) of \(drops.count) drops were charged to the receiver on a ball placed poor or uncatchable"
+        )
+    }
+
+    /// A break-up is the defender's act, so he has to have been able to make it.
+    ///
+    /// Either he was inside the contested distance and knocked it away, or he committed
+    /// interference and the flag is the reason the ball was not caught — which is the
+    /// one way a receiver with separation ends the play with no catch and the defender
+    /// named for it (2025 rulebook, 8-5-1).
+    ///
+    /// Green before the change and after it, and it is the second half that needs it: a
+    /// break-up drawn from a flag lands on a receiver who was open by construction, since
+    /// the foul is drawn on separation. Without the second clause this would fail the
+    /// moment interference starts causing incompletions.
+    @Test(
+        "contract: a break-up is recorded only where the defender was in reach or fouled the receiver",
+        .tags(.contract))
+    func breakUpsAreTheDefendersAct() {
+        let brokenUp = Self.attempts.filter { $0.result == .brokenUp }
+        #expect(brokenUp.count > 20, "only \(brokenUp.count) break-ups in the corpus")
+        let unexplained = brokenUp.filter { $0.separation >= 110 && !$0.wasInterfered }.count
+        #expect(
+            unexplained == 0,
+            "\(unexplained) of \(brokenUp.count) break-ups were credited to a defender who was neither in reach nor flagged"
+        )
+    }
+
+    /// And the passer's incompletions are his: a ball placed poorly that is not caught is
+    /// nobody's failure at the catch point.
+    ///
+    /// Written without naming the case that carries it, because *which* case does is a
+    /// vocabulary question — a new one, or the existing `.uncatchable` widened — and the
+    /// promise is the same either way: the two labels that name a player at the catch
+    /// point are not the ones a poor ball gets. Which case the engine actually uses is
+    /// pinned by `VocabularyCoverageTests`' register and printed by `gamelog`.
+    ///
+    /// The exception is the defender's foul, and it is the same one the break-up test
+    /// carries. A poor ball is still a catchable one — 8-5-3-c exempts only the throw
+    /// nobody could reach — so a defender who spoiled the receiver's chance at it caused
+    /// the incompletion whatever the placement was, and the record names him.
+    @Test(
+        "contract: an uncaught poor ball is recorded against the throw, not against either player at the catch point",
+        .tags(.contract))
+    func poorBallsAreTheThrowsOwn() {
+        let poor = Self.attempts.filter { $0.placement == .poor }
+        #expect(poor.count > 100, "only \(poor.count) poor balls in the corpus")
+        let uncaught = poor.filter {
+            $0.result != .caught && $0.result != .contestedCatch && $0.result != .intercepted
+        }
+        #expect(uncaught.count > 50, "only \(uncaught.count) uncaught poor balls")
+        let blamedAtTheCatchPoint = uncaught.filter {
+            ($0.result == .dropped || $0.result == .brokenUp) && !$0.wasInterfered
+        }.count
+        #expect(
+            blamedAtTheCatchPoint == 0,
+            "\(blamedAtTheCatchPoint) of \(uncaught.count) uncaught poor balls were charged to the receiver or the defender"
+        )
+    }
+}
+
 /// What the record says about the pocket, and when it is entitled to say it.
 ///
 /// The engine used to flag pressure the moment a rusher beat his blocker, which made
@@ -612,8 +855,17 @@ struct PocketTests {
     ///
     /// A snap the defence fielded no edge or interior lineman on has no rep to resolve
     /// and gets no verdict, rather than a verdict naming a slot nobody is standing in.
-    /// That is rare — this probe measures it at under 2% of dropbacks — but it is the
-    /// reason the count is tied to the reps rather than asserted flat.
+    /// That is rare, and it is the reason the count is tied to the reps rather than
+    /// asserted flat.
+    ///
+    /// **The bound is the spread and not one draw.** It read "under 2%", which was this
+    /// sample's share at the seed the probe happens to use. The share is a property of
+    /// the lineup draw rather than of anything in the pocket, and it moves with the
+    /// stream: measured over six seeds — 1, 5, 7, 11, 23 and the probe's own 41 — it is
+    /// 1.4% to 2.8% on the tree the bound was written on and 1.9% to 2.5% here, so four
+    /// of those six seeds break a 2% bound on the tree that set it. Four percent is above
+    /// every one of the twelve and still an order below anything a mechanism change would
+    /// produce: a defence that stopped fielding linemen would not land at five.
     @Test("A dropback records one verdict on its pocket", .tags(.contract))
     func everyDropbackHasOnePocketVerdict() {
         var withoutARep = 0
@@ -638,7 +890,7 @@ struct PocketTests {
             }
         }
         #expect(
-            withoutARep * 50 < total,
+            withoutARep * 25 < total,
             "\(withoutARep) of \(total) dropbacks had no pass-rush rep at all")
     }
 }

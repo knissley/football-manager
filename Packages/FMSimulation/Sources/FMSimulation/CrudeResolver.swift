@@ -574,7 +574,15 @@ public struct CrudeResolver: PlayResolver {
         // and it exists on exactly one matchup: the man the pass was thrown to and the
         // man covering him. The defence's is a spot foul (8-6-1-b) and the spot is where
         // the ball was going, in the offence's frame with zero meaning the end zone.
-        if penalty == nil {
+        //
+        // Not on a throw nobody could have reached, though: 8-5-3-c makes contact that
+        // would otherwise be interference legal when the pass is clearly uncatchable by
+        // the players involved, and `.uncatchable` is the record's name for that throw.
+        // The article's exception to its own clause is the offence's blocking downfield
+        // (8-3-2, 8-5-4), which is not modelled as an act of its own, so the gate covers
+        // both kinds here. Without it a spot foul is handed out at the catch point for
+        // contact the rules do not make a foul at all.
+        if penalty == nil, placement != .uncatchable {
             penalty = Penalties.onTheThrow(
                 defender: target.defender, receiver: target.receiver,
                 separationCentimetres: target.separation, routeDepth: depth.yards,
@@ -582,10 +590,15 @@ public struct CrudeResolver: PlayResolver {
                 personnel: personnel, context: context, random: &random)
         }
 
+        // The foul is drawn first and the catch resolved with it in hand, which is the
+        // order 8-5-1 puts them in: the defence's interference is contact that spoiled
+        // the receiver's chance at the ball, so it is the reason the pass was not caught
+        // rather than something that happened alongside a catch.
         let catchResult = catchOutcome(
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
+            interferedWith: penalty?.foul == .defensivePassInterference,
             contested: isTry, conditions: Conditions.handling(context.weather),
             random: &random)
         decisions.append(
@@ -662,7 +675,7 @@ public struct CrudeResolver: PlayResolver {
                 decisions
             )
 
-        case .dropped, .brokenUp, .uncatchable:
+        case .dropped, .brokenUp, .uncatchable, .offTarget:
             return (
                 Outcome(
                     kind: recorded(.pass), yards: 0, endedIn: .incomplete,
@@ -675,6 +688,46 @@ public struct CrudeResolver: PlayResolver {
     }
 
     // MARK: - Run
+
+    /// Below this the defence won the point of attack and the carry dies at or behind
+    /// the line: one block's worth better than an even fight, on a scale that pays
+    /// twelve a block.
+    ///
+    /// A block won and not a draw, because a point of attack that is merely even is a
+    /// linebacker running free into the hole — the crease a carry needs is somebody
+    /// beaten, not nobody beaten. A defender the offence had no blocker for costs the
+    /// scale a whole block on its own, which is how the count the harness grades with
+    /// `row:ypcOutnumberedByOne` decides this on its own.
+    static let stuffedHole: Int16 = 12
+
+    /// At or above this the play side is washed and there is nobody left at the line of
+    /// scrimmage: four of the point of attack's blocks clear of an even fight.
+    static let openHole: Int16 = 48
+
+    /// How far behind the line a lost point of attack puts the carrier: a yard for every
+    /// twenty points of the hole-quality scale, so five blocks lost is three yards deep.
+    ///
+    /// Shallower than a yard a block, because the man who wins at the point of attack is
+    /// usually waiting at the line rather than two yards behind it, and a run that loses
+    /// four or more is a small part of the sport rather than the ordinary consequence of
+    /// losing the exchange.
+    static let yardsPerPointBehindTheLine: Int16 = 20
+
+    /// What the second level is, as one number: the tackling of the men who have to make
+    /// the play once the carrier is past the front, weighted the way the pursuit draw
+    /// weights them so the linebacker the run is aimed at counts for more than the safety
+    /// behind him. A slot nobody is standing in does not count at all.
+    private func secondLevelTackling(
+        _ pursuit: [(PlayerSlot, Double)], _ personnel: Lineup, _ context: PlayContext
+    ) -> Double {
+        var total = 0.0
+        var weight = 0.0
+        for (slot, share) in pursuit where personnel[slot] != nil {
+            total += rating(.tackling, slot, personnel, context) * share
+            weight += share
+        }
+        return weight > 0 ? total / weight : 60
+    }
 
     private func run(
         _ concept: PlayConcept,
@@ -752,42 +805,75 @@ public struct CrudeResolver: PlayResolver {
                 tick: 10, kind: .holeQuality, primary: SlotLayout.back,
                 detail: concept == .insideRun ? 0 : 1, value: quality))
 
+        // What the carry turns into is three different things, not three points on one
+        // line. A single ramp from the hole quality to the yards makes a carry a
+        // stuff-or-break contest with nothing in between: the ordinary carry — through
+        // the line, into the second level, three to nine yards — is the plurality of
+        // carries in the sport and has to be the plurality here.
+        //
+        // The scale `stuffedHole` and `openHole` are stated on is `quality`'s own, which
+        // pays twelve a block: twelve for a block won or lost at the point of attack,
+        // twelve for a defender the offence had no blocker for, six for a blocker with
+        // nobody left to take. So a cut at a multiple of twelve is a cut at a block.
+        let pursuit =
+            concept == .insideRun ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit
         // Vision turns a hole into yards; a back with none runs into his own linemen.
+        // Contact balance is what he does when the man there arrives.
         let vision = rating(.vision, SlotLayout.back, personnel, context)
-        // A flat line through the hole quality made every carry roughly the same, which
-        // kept early downs so reliable that third downs were short and converted half
-        // the time. Real carries are mostly modest with a fat tail: a hole that really
-        // opens is a long run, and that tail is where the yards-per-carry average
-        // actually comes from.
-        var yards = Int(Double(quality) * 0.075 + (vision - 60) * 0.04 + 1.3)
-        yards += Int(random.next(upperBound: 5)) - 2
-        // A carry from the two is a play into a phone booth: there is no second level to
-        // reach and no grass behind the defence, so the crease pays nothing. That is the
-        // run's half of the adjustment the conversion pass carries, and it is the whole
-        // of it — the goal-line package the try is now answered with already puts eight
-        // men in the box against six or seven blockers, and subtracting yards on top of
-        // that counted the same crowd twice: it converted the try at 10% against the
-        // pass's 72% on the same eighty games.
-        if quality > 30, !isTry {
-            // A hole that opens gets him to the second level. It does not by itself make
-            // a long run — what does is beating the man waiting there, which the tackle
-            // sequence below already decides. Paying the whole bonus here put 19% of
-            // carries past ten yards against a real 11%, all of it in the ten-to-twenty
-            // band: the blocking was doing work that belongs to the back.
-            let crease = Int(quality) / 3
-            yards +=
-                random.nextBool(probability: 0.36)
-                ? Int(random.next(upperBound: UInt64(max(1, crease * 8 / 5))))
-                : Int(random.next(upperBound: UInt64(max(1, crease / 5))))
+        let contactBalance = rating(.breakTackle, SlotLayout.back, personnel, context)
+        // The exchange the ordinary carry is settled by, and the reason the back's
+        // ratings show up on a five-yard run rather than only on a fifty-yard one: his
+        // eyes and his contact balance against what the second level can do about them.
+        let wonTheSecondLevel = random.nextBool(
+            probability: contest(
+                (vision + contactBalance) / 2, secondLevelTackling(pursuit, personnel, context)))
+
+        // Blown open — the play side washed, four blocks' worth clear of an even point
+        // of attack, nobody left at the line of scrimmage. A carry from the two is a
+        // play into a phone booth with no second level to reach and no grass behind the
+        // defence, so a try never gets here: that is the run's half of the adjustment
+        // the conversion pass carries, and it is the whole of it, because the goal-line
+        // package the try is answered with already puts eight men in the box against six
+        // or seven blockers.
+        let intoSpace = quality >= Self.openHole && !isTry
+
+        var yards: Int
+        if quality < Self.stuffedHole {
+            // The defence won the point of attack. A defender nobody blocked puts a
+            // carry here on its own — that is the count `ypcOutnumberedByOne` grades —
+            // and so does losing the blocks outright. He is met at or behind the line
+            // and the best he does is fall forward for a yard or two.
+            yards = min(
+                2,
+                Int((quality - Self.stuffedHole) / Self.yardsPerPointBehindTheLine)
+                    + Int(random.next(upperBound: 3))
+                    + (wonTheSecondLevel ? 1 : 0))
+        } else if intoSpace {
+            // Through clean, so where he is met is the depth of the second level rather
+            // than the size of the hole: drawn over six to eleven and then pushed on by
+            // the hole and the exchange. Drawn rather than fixed because a floor puts a
+            // spike in the distribution at exactly that number, which is a fact about
+            // the code and not about the sport. Bounded below twenty, because reaching
+            // twenty is the tackle sequence's to grant and not the blocking's.
+            yards =
+                6 + Int(random.next(upperBound: 6)) + min(5, Int(quality - Self.openHole) / 12)
+                + (wonTheSecondLevel ? Int(random.next(upperBound: 4)) : 0)
+        } else {
+            // The ordinary carry: through the line with a crease, into the second level,
+            // three to nine. Where in that range is the hole he came through plus the
+            // exchange above, so a better hole is worth more and so is a better back.
+            yards =
+                3 + min(3, Int(quality - Self.stuffedHole) / 12)
+                + (wonTheSecondLevel ? Int(random.next(upperBound: 4)) : 0)
         }
 
         let tackle = tackleSequence(
             carrier: SlotLayout.back,
-            pursuit: concept == .insideRun
-                ? SlotLayout.insideRunPursuit : SlotLayout.outsideRunPursuit,
+            pursuit: pursuit,
             personnel: personnel,
             context: context,
             sideline: sidelineChance(isTry ? .twoPointRun : concept, situation, context),
+            inSpace: intoSpace,
             decisions: &decisions, participants: &participants, startTick: 16, random: &random)
         yards += tackle.extraYards
 
@@ -1268,38 +1354,18 @@ public struct CrudeResolver: PlayResolver {
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
 
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
-        let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
-        // The league-average kicker's curve, in two segments: near-automatic inside
-        // thirty, a gentle slope through the range teams actually kick from, and a
-        // steeper fall past the mid-forties. A single line from twenty-five was too
-        // steep in the middle — it made forty-somethings 69% against a real 82%, and it
-        // ran the extra point through the same slope, so kicks were missed at 15% when
-        // the sport misses them at 5%.
-        // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
-        // these modules link without libm, and `Tools/playsize` is the guard that proves it.
-        let carry = Conditions.kickingAdjustment(
-            context.weather, altitudeFeet: context.altitudeFeet)
-        let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
-        var chance: Double
-        if length <= 30 {
-            chance = 0.95
-        } else if length <= 45 {
-            chance = 0.95 - Double(length - 30) * 0.010
-        } else {
-            chance = 0.80 - Double(length - 45) * 0.017
-        }
-        // A try is kicked from the middle of the field by a kicker nobody is trying very
-        // hard to block, and the sport converts it at a better rate than a field goal of
-        // the same length. Running it through the field-goal curve unmodified is what
-        // made extra points a coin-flip-adjacent 85%.
-        if concept == .extraPoint { chance += 0.025 }
-        // Centred on an average leg, so the curve above *is* the league average rather
-        // than a floor everybody beats.
-        chance += (accuracy - 68) * 0.004
-        if context.weather.precipitation != .none { chance -= 0.03 }
-
-        let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
+        // The curve is `PlaceKick`'s, and so is the caller's range: a coach who sends the
+        // unit out and the ball that is struck have to be the same model of the same kick,
+        // or the coach is right about a game nobody is playing. Both ratings are read —
+        // the touch sets the level and the leg sets how fast the chance falls once the
+        // kick is long enough for the leg to be what is being asked for.
+        let good = random.nextBool(
+            probability: PlaceKick.makeChance(
+                rawLength: rawLength,
+                leg: rating(.kickPower, SlotLayout.specialist, personnel, context),
+                accuracy: rating(.kickAccuracy, SlotLayout.specialist, personnel, context),
+                isTry: concept == .extraPoint, context: context))
         return (
             Outcome(
                 kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
@@ -1408,10 +1474,28 @@ public struct CrudeResolver: PlayResolver {
         return .uncatchable
     }
 
+    /// What became of the throw at the catch point, and whose incompletion it was.
+    ///
+    /// Three men can be at fault and the record has a label for each: the placement says
+    /// whether the ball was one the receiver could have caught, and the separation says
+    /// whether the defender could reach it. Reading neither — calling every failed catch
+    /// with the receiver open a drop — charged the passer's worst throws to the man they
+    /// were thrown at, which is three quarters of all incompletions landing on the
+    /// receiver.
+    ///
+    /// `interferedWith` is a defensive interference foul already drawn on this matchup.
+    /// It is the reason the ball was not caught (2025 rulebook, 8-5-1: contact that
+    /// spoils an eligible receiver's chance at the ball, from the throw until the ball is
+    /// touched), so it settles the catch before anything is drawn: a foul that hindered
+    /// him and a ball he caught anyway are two events that cannot both have happened.
     private func catchOutcome(
         placement: BallPlacement, separation: Int, hands: Double, ballHawk: Double,
-        contested: Bool = false, conditions: Double = 0, random: inout SplittableRandom
+        interferedWith: Bool = false, contested: Bool = false, conditions: Double = 0,
+        random: inout SplittableRandom
     ) -> CatchResult {
+        // Ahead of the placement check only for readability: 8-5-3-c means no flag is
+        // drawn on an uncatchable ball, so the two cannot both be true.
+        if interferedWith { return .brokenUp }
         if placement == .uncatchable { return .uncatchable }
 
         var catchChance: Double
@@ -1439,6 +1523,11 @@ public struct CrudeResolver: PlayResolver {
         pickChance -= Double(separation - 130) * 0.0006
         if random.nextBool(probability: min(0.5, max(0.005, pickChance))) { return .intercepted }
 
+        // Placement decides whose incompletion it is, and only then does separation
+        // decide which of the two men at the catch point it belongs to. A poor ball is
+        // the throw's: it reached the receiver, so it is not `.uncatchable`, and it was
+        // not one he could be expected to catch, so it is not his drop either.
+        if placement == .poor { return .offTarget }
         return separation < 110 ? .brokenUp : .dropped
     }
 
@@ -1484,6 +1573,19 @@ public struct CrudeResolver: PlayResolver {
         return (max(0, loose + inStride + tackle.extraYards), tackle.ending)
     }
 
+    /// How often a tackle is missed by a man who has grass behind him.
+    ///
+    /// The base below is the tackle made at the line of scrimmage: the defender already
+    /// has his hands on the carrier and the question is only whether he holds on. The
+    /// man at the second level is running laterally to a carrier already at speed with
+    /// room on either side of him, and he misses far more often — which is the only
+    /// mechanism a long run has, because at the line's rate a carrier would have to beat
+    /// three men in a row to get loose and that happens once in fourteen hundred
+    /// carries. Set against `row:carries20plus`: a carry of twenty or more is a carry
+    /// that beat this man. What level it produces is a calibration question and is not
+    /// settled here.
+    static let breakInSpace = 0.20
+
     /// Who brought him down, and whether he broke one first.
     ///
     /// The tackler credited here is the one the outcome names. Nothing else can be, and
@@ -1495,7 +1597,7 @@ public struct CrudeResolver: PlayResolver {
     /// fact about the code.
     private func tackleSequence(
         carrier: PlayerSlot, pursuit: [(PlayerSlot, Double)], personnel: Lineup,
-        context: PlayContext, sideline: Double,
+        context: PlayContext, sideline: Double, inSpace: Bool = false,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
     ) -> (extraYards: Int, ending: PlayEnding) {
@@ -1520,7 +1622,10 @@ public struct CrudeResolver: PlayResolver {
             // A flat base with a rating swing on top, rather than a contest: a contest
             // at parity breaks four tackles in ten, which turned every carry into seven
             // and a half yards.
-            let breakChance = min(0.32, max(0.02, 0.09 + (breakTackle - tackling) * 0.0045))
+            let breakChance =
+                inSpace
+                ? min(0.55, max(0.08, Self.breakInSpace + (breakTackle - tackling) * 0.0045))
+                : min(0.32, max(0.02, 0.09 + (breakTackle - tackling) * 0.0045))
             let broken = random.nextBool(probability: breakChance)
             decisions.append(
                 .init(
@@ -1535,6 +1640,11 @@ public struct CrudeResolver: PlayResolver {
             }
             extra += 2 + Int(random.next(upperBound: 5))
             broke += 1
+            // A tackle missed in space is missed with nobody behind it. One is enough:
+            // the carrier who is already past the front and beats the man sent to meet
+            // him there has the field in front of him, and making him beat two more
+            // first is how a long run came to be a property of the blocking instead.
+            if inSpace { break }
         }
 
         // He beat everybody who had an angle on him, so he is in open field rather than
@@ -1543,7 +1653,7 @@ public struct CrudeResolver: PlayResolver {
         // maximum of three passing touchdowns in four hundred team-games: without a
         // breakaway there is no long touchdown, and without long touchdowns there is no
         // tail at all.
-        if broke == attempts {
+        if broke == attempts || (inSpace && broke > 0) {
             let speed = context.effective(.speed, for: personnel[carrier], onOffense: true)
             let burst = 6 + Int((speed - 55) * 0.35) + Int(random.next(upperBound: 22))
             extra += max(4, burst)

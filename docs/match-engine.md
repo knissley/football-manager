@@ -216,6 +216,24 @@ Blocking assignments resolve into actual displacement; the hole is a real gap be
 bodies. The back's vision trait affects which gap he attacks and how quickly he commits.
 Tacklers pursue on real angles. Broken tackles chain.
 
+**What the crude resolver does today** is a hole-quality score and then *three* outcomes,
+which is the part worth keeping when the spatial engine replaces it. The score pays twelve
+a block — twelve for a block won or lost at the point of attack, twelve for a defender the
+offence had no blocker for, six for a blocker with nobody left to take — so it carries the
+count and the blocking in one signed number, and the record publishes it as the play's
+`holeQuality` point. Below a block's worth above an even fight the defence won the point of
+attack and the carry dies at or behind the line. Four blocks clear the play side is washed
+and he is through into the second level. In between is the **ordinary carry**, three to nine
+yards, decided by the back's vision and contact balance against the tackling of the men who
+have to come downhill and meet him — and that is the plurality of carries, as it is in the
+sport.
+
+One line through the score instead of three outcomes is what the run game used to be, and it
+had no middle: a stuff-or-break contest that satisfied all four of the cumulative shape rows
+while putting half the carries at two yards or fewer and paying for the mean out of a flat
+lottery on the tail. The harness prints the whole carry-length histogram now, because four
+cumulative shares cannot see that and a reader can.
+
 ### Special teams
 
 **Partly built.** Kick distance and accuracy from ratings, wind and precipitation are in
@@ -352,7 +370,12 @@ shared draw with no reason behind it would be indistinguishable from an excuse.
 **Explosive plays.** A receiver who beats every defender with an angle on him is in open
 field, not three yards further on. The run game had a burst through the hole from the
 start and the passing game had no equivalent, which is precisely why one had a tail and
-the other did not.
+the other did not. Both are the same mechanism now: a long run is a tackle **missed in
+space**, not a hole that measured well, so the carrier's contact balance is what earns it
+and the blocking only decides whether he gets to the man who has to make that tackle. A
+tackle attempted in space is missed far more often than one made at the line, which is
+what makes a tail possible at all — at the line's rate a carrier would have to beat three
+men in a row, which happens about once in fourteen hundred carries.
 
 The test of this is not the mean. It is whether, over a long enough career, somebody
 breaks a record that looked unattainable — and `Tools/simharness` reports the tails
@@ -438,6 +461,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per pass attempt | 6.6-7.5 | 2023-24 | — | S1 | yes | Gross. |
 | yards per play | 5.0-5.8 | 2023-24 | — | S1 | yes | The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7. |
 | yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | — |
+| drops per target | none | unsourced | — | — | no | Catch attempts the record calls a drop, over catch attempts. Every throw the engine resolves to a receiver has exactly one target, so this is the charting convention's denominator. Unsourced: the play-by-play does not chart a drop. |
+| passes defensed per game | none | unsourced | — | — | no | Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up. |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
 | ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy. |
 | games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |
@@ -548,6 +573,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | illegal formation per game | 0.13-0.55 | 2023-24 | — | S1 | yes | Wide because 2024 called it twice as often as 2023. |
 | roughing the passer per game | 0.27-0.43 | 2023-24 | — | S1 | yes | — |
 | neutral zone infraction per game | 0.27-0.41 | 2023-24 | — | S1 | yes | — |
+| interference drawn per game | none | unsourced | passInterference | — | no | Defensive interference flags thrown, accepted or declined, both teams. The accepted half is row:penalty.defensivePassInterference, which is the graded one. Unsourced: a band for flags thrown rather than enforced has not been computed. |
+| interference on completions | 0.0-0.0% | unsourced | passInterference | — | no | Defensive interference flags on a pass that was then completed, as a share of them. Not a league rate and not sourced: the band is the engine's own promise from 8-5-1, where the foul is contact that spoiled the receiver's chance at the ball and so is the reason it was not caught. The offence's push-off is excluded and printed beside it, because a catch it brings back is the sport working normally. |
 
 - **S1** — nflverse play-by-play data, regular-season games
 - **S2** — nflverse participation data from Next Gen Stats, regular-season games

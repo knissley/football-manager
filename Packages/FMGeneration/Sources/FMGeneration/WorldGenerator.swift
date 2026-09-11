@@ -139,10 +139,14 @@ public enum WorldGenerator {
     /// invention and no season publishes one. What can be sourced is what a rating spread
     /// *produces*: the standard deviation of a club's expected point differential per game,
     /// 4.83 in 2023 and 5.73 in 2024, which `row:betweenTeamSigma` grades a generated league
-    /// against. Three measured numbers turn one into the other — a floor of 4.06 that two
-    /// rosters drawn the same way differ by anyway, a slope of 1.065 points of differential
-    /// per point of this constant, and the solve that leaves √(5.28² − 4.06²) for the draw
+    /// against. Three measured numbers turn one into the other — a floor of 4.28 that two
+    /// rosters drawn the same way differ by anyway, a slope of 1.212 points of differential
+    /// per point of this constant, and the solve that leaves √(5.28² − 4.28²) for the draw
     /// to supply. `calibration-sources.md` carries all three under *Scoreboard*.
+    ///
+    /// **All three are properties of the engine and move when it does**, so they are
+    /// re-measured rather than inherited: the floor and the slope were 4.06 and 1.065
+    /// against an engine whose carries had no middle, which solved to 3.17.
     ///
     /// Most of a real league's spread is spent on that floor before any club is called a
     /// contender, which is why this is as narrow as it is: the deliberate structure is the
@@ -155,7 +159,7 @@ public enum WorldGenerator {
     ///
     /// `RosterGenerator.Strength` describes what one club's number means; this is how wide a
     /// *league* is drawn.
-    public static let strengthSpread = 3.17
+    public static let strengthSpread = 2.55
 
     /// One strength per team, drawn from the seed and centred on the league.
     ///

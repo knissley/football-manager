@@ -261,4 +261,92 @@ struct PersonnelTests {
         #expect(Set(drawn.compactMap { $0[PlayerSlot(11)] }).count > 1, "the edge stopped rotating")
         #expect(Set(drawn.compactMap { $0[PlayerSlot(1)] }).count > 1, "the backs stopped rotating")
     }
+
+    // MARK: - The mix is the sport's
+
+    /// The corpus, paired with the roster table its snap counts have to be read through.
+    /// Forty games is the shared corpus, whose size is derived where it is defined; a
+    /// package share is a property of every snap, so the evidence here is about five
+    /// thousand of them rather than forty.
+    private static let sampled: [(result: GameResult, players: [PlayerID: Player])] =
+        (UInt64(1)...40).map { seed in
+            (
+                TestWorld.corpus[Int(seed) - 1],
+                TestWorld.setup(seed: seed, game: GameID(seed)).players
+            )
+        }
+
+    /// Snaps from scrimmage, which is what every participation row is measured over.
+    private static var scrimmage: [PlayRecord] {
+        sampled.flatMap { $0.result.plays.filter { $0.outcome.kind.isScrimmagePlay } }
+    }
+
+    /// Five defensive backs, not four, is what a defence lines up in.
+    ///
+    /// `row:packageNickel` puts five defensive backs on 61.6–69.2% of snaps and
+    /// `row:packageBase` four on 20.2–25.0% (S2, the source's participation feed, 2023–24;
+    /// `docs/reference/calibration-sources.md`). The two bands do not overlap and nickel's
+    /// floor is above half of all snaps: nickel is the defence a team plays, and base is
+    /// the substitution.
+    ///
+    /// Base's own band is not asserted here. The engine is still above it, and what is
+    /// left of that gap after the package rule is a calibration residual rather than a
+    /// rule — it is recorded on the retune issue, with the mechanism, rather than pinned
+    /// by a test that would have to be wrong to pass.
+    @Test(
+        "Nickel takes 61.6-69.2% of snaps (row:packageNickel, S2 2023-24)",
+        .tags(.football))
+    func nickelIsTheDefenceATeamPlays() {
+        let snaps = Self.scrimmage
+        let nickel = Double(snaps.filter { $0.situation.defensePackage == .nickel }.count)
+        let base = Double(snaps.filter { $0.situation.defensePackage == .base }.count)
+        let share = nickel / Double(snaps.count) * 100
+        #expect(
+            share >= 61.6 && share <= 69.2,
+            "nickel on \(share)% of \(snaps.count) snaps, base on \(base / Double(snaps.count) * 100)%"
+        )
+    }
+
+    /// A second tight end, where the engine had a fourth receiver.
+    ///
+    /// Two sourced rows bound this between them (S2, 2023–24;
+    /// `docs/reference/calibration-sources.md`): `row:snaps.tightEnd` is 77.1–87.2 tight
+    /// end player-snaps per team-game, and `row:snaps.quarterback` is 58.9–66.8, one a
+    /// snap by construction and therefore the plays from scrimmage a team runs. The
+    /// fewest tight ends per snap any pairing of the two admits is 77.1 over 66.8, so the
+    /// sport puts more than one tight end on the average snap however the bands are read.
+    ///
+    /// This is the sourced form of the claim that the offence spends about a snap in five
+    /// in twelve personnel: the repository sources no share for twelve itself, and the
+    /// tight end count is the figure it does source. The measured share is reported
+    /// alongside so a reader can see it.
+    @Test(
+        "More than one tight end on the average snap (row:snaps.tightEnd over row:snaps.quarterback, S2 2023-24)",
+        .tags(.football))
+    func aSecondTightEndIsOnTheFieldWhereTheSportPutsOne() {
+        // The least favourable corner of the two bands, computed here rather than typed
+        // as a quotient so the derivation is on the page.
+        let floor = 77.1 / 66.8
+
+        var tightEnds = 0
+        var snaps = 0
+        var twelve = 0
+        for (result, players) in Self.sampled {
+            for play in result.plays where play.outcome.kind.isScrimmagePlay {
+                snaps += 1
+                if play.situation.offensePersonnel.code == 12 { twelve += 1 }
+                for index in 0..<PlayerSlot.count {
+                    guard let player = play.player(at: PlayerSlot(index), rosters: result.rosters),
+                        players[player]?.position.group == .tightEnd
+                    else { continue }
+                    tightEnds += 1
+                }
+            }
+        }
+        let perSnap = Double(tightEnds) / Double(snaps)
+        #expect(
+            perSnap > floor,
+            "\(perSnap) tight ends a snap over \(snaps) snaps, against a floor of \(floor); twelve personnel on \(Double(twelve) / Double(snaps) * 100)% of them"
+        )
+    }
 }

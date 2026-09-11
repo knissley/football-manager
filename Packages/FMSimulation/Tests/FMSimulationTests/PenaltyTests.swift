@@ -368,4 +368,130 @@ struct PenaltyTests {
             #expect(play.outcome.endedIn == .penaltyEnforced)
         }
     }
+
+    // MARK: - Interference is the reason the pass was not caught
+
+    /// A defensive interference flag and a catch cannot both have happened on the matchup
+    /// it was drawn on.
+    ///
+    /// 2025 rulebook, 8-5-1: interference is an act more than a yard past the line that
+    /// significantly hinders an eligible receiver's opportunity to catch the ball, and the
+    /// defence's restrictions run from the throw until the ball is touched. The engine
+    /// draws the foul on one matchup — the man the pass was thrown to and the man covering
+    /// him, which is its own simplification and not the article's — and on that matchup
+    /// the two records contradict each other: the flag says his opportunity was
+    /// significantly hindered, the catch says he took it anyway.
+    ///
+    /// What makes this true rather than filtered is the order: the foul is drawn at the
+    /// throw and the catch is then resolved with the foul in hand.
+    @Test(
+        "football · Rule 8-5-1 · a defensive interference flag is the reason the pass was not caught",
+        .tags(.football))
+    func interferenceMeansNoCatch() {
+        var checked = 0
+        var caught = 0
+        for (play, flag) in flags(seeds: 1...30)
+        where flag.foul == .defensivePassInterference {
+            checked += 1
+            guard let result = play.decisions(ofKind: .catchAttempt).last?.catchResult else {
+                continue
+            }
+            if result == .caught || result == .contestedCatch { caught += 1 }
+        }
+        #expect(checked > 20, "only \(checked) interference calls in thirty games")
+        #expect(
+            caught == 0,
+            "\(caught) of \(checked) defensive interference flags sit on a ball the receiver caught"
+        )
+    }
+
+    /// And the same fact at the level the record reports: the pass is incomplete.
+    ///
+    /// 8-5-1 again for what the foul is, and Rule 8 Section 5's Penalty clause for why the
+    /// accept-or-decline choice cannot be relied on to hide it: the defence's interference
+    /// is a first down for the offence at the spot of the foul, so a flag on an
+    /// incompletion is worth taking and one on a completion that gained more is worth
+    /// declining. A model that throws the flag and completes the pass anyway therefore
+    /// reports a rate made almost entirely of declines, which is what the engine did:
+    /// every one of them declined, in the printed game at seed 7.
+    @Test(
+        "football · Rule 8-5-1, 8-5-Penalty · an accepted defensive interference never sits on a completed pass",
+        .tags(.football))
+    func acceptedInterferenceIsNeverOnACompletion() {
+        var accepted = 0
+        var onCompletions = 0
+        for (play, flag) in flags(seeds: 1...30)
+        where flag.foul == .defensivePassInterference && flag.wasAccepted {
+            accepted += 1
+            if play.outcome.passResult == .complete { onCompletions += 1 }
+        }
+        #expect(accepted > 5, "only \(accepted) accepted interference calls in thirty games")
+        #expect(
+            onCompletions == 0,
+            "\(onCompletions) of \(accepted) accepted interference calls sit on a completed pass")
+    }
+
+    /// There is no interference on a ball nobody could have caught.
+    ///
+    /// 2025 rulebook, 8-5-3-c: contact that would otherwise be interference is permissible
+    /// when the pass is clearly uncatchable by the players involved — the article's one
+    /// exception being the offence's blocking downfield (8-3-2, 8-5-4), which this engine
+    /// does not model as an act of its own. `BallPlacement.uncatchable` is the record's
+    /// name for exactly that throw: one put where nobody could reach it.
+    ///
+    /// It matters more than the count suggests, because the defence's interference is a
+    /// spot foul: a flag on a throw nobody could catch hands the offence the ball at the
+    /// spot the pass was going, for contact the rules do not make a foul at all.
+    @Test(
+        "football · Rule 8-5-3-c · interference is not called when the pass was clearly uncatchable",
+        .tags(.football))
+    func noInterferenceOnAnUncatchableBall() {
+        var uncatchable = 0
+        var flagged = 0
+        for result in Self.neutral {
+            for play in result.plays {
+                guard play.decisions(ofKind: .ballArrival).last?.ballPlacement == .uncatchable
+                else { continue }
+                uncatchable += 1
+                flagged +=
+                    play.outcome.penalties.filter {
+                        $0.foul == .defensivePassInterference
+                            || $0.foul == .offensivePassInterference
+                    }.count
+            }
+        }
+        #expect(uncatchable > 40, "only \(uncatchable) throws nobody could reach in thirty games")
+        #expect(
+            flagged == 0,
+            "\(flagged) interference calls on throws the record says were uncatchable")
+    }
+
+    /// The offence's interference is the other way round, and stays that way.
+    ///
+    /// 8-5-2 lists shoving or pushing off to create separation among the acts either side
+    /// can be flagged for with the ball in the air, and Rule 8 Section 5's Penalty
+    /// clause costs the offence ten yards from the previous spot — which takes the catch
+    /// back rather than presuming there was not one. So a completed pass carrying
+    /// offensive interference is the sport working normally, and the fix that stops the
+    /// defence's flag landing on completions must not take this with it.
+    ///
+    /// Green before the change as well as after it: a guard on the other half of the
+    /// draw, not a defect being closed.
+    @Test(
+        "football · Rule 8-5-2, 8-5-Penalty · offensive interference is a push-off, so it can sit on a catch",
+        .tags(.football))
+    func offensiveInterferenceCanSitOnACatch() {
+        var offensive = 0
+        var onCompletions = 0
+        for (play, flag) in flags(seeds: 1...30)
+        where flag.foul == .offensivePassInterference {
+            offensive += 1
+            if play.outcome.passResult == .complete { onCompletions += 1 }
+        }
+        #expect(offensive > 5, "only \(offensive) offensive interference calls in thirty games")
+        #expect(
+            onCompletions > 0,
+            "none of \(offensive) offensive interference calls sits on a catch: the push-off has stopped nullifying anything"
+        )
+    }
 }
