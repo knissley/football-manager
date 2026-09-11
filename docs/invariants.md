@@ -325,13 +325,26 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `[2025 · 4-6-1, 4-6-2, 4-6-3, 4-6-4, 14-4-1]` —
     `test:delayOfGameWhenThePlayClockExpires`,
     `test:delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock`,
-    `test:playClockValues`, `test:everySnapRecordsItsPlayClock`; **modelling**: the
+    `test:playClockValues`, `test:everySnapRecordsItsPlayClock`,
+    `test:anExpiredPlayClockWithNoTimeoutIsADelayOfGame`; **modelling**: the
     offence's tempo is how much of whatever clock is in force it means to leave itself,
     and how often it overruns that slack is a draw that halves with every eight seconds
     of it — the delay-of-game rate is derived from the clock rather than tuned as a flat
     roll, and `row:penalty.delayOfGame` is what measures it. `test:tempoOrdering` pins
     the tempo table, and that a tempo keeps its share of slack on a shorter clock is a
     further **modelling** choice, pinned by `test:tempoScalesToTheClock`
+    A play clock about to expire is a decision before it is a foul: a charged timeout
+    stops it, so the down is played for the price of a timeout rather than five yards,
+    and the game clock goes on waiting for the snap it was already waiting for. The
+    offence is asked with the interval's verdict already in hand, so a timeout spent on
+    a play clock is spent on a down that was really in danger. `[2025 · 4-3-2, 4-5-1,
+    4-6-3-a, 4-6-4]` — `test:aChargedTimeoutBeatsThePlayClock`,
+    `test:anOffenceSpendsATimeoutRatherThanTakeTheFiveYards`; a further **modelling**
+    choice: an offence that has stood through a charged timeout comes to the snap with
+    its call in and its grouping set, so those twenty-five seconds are counted against
+    lining up rather than against a huddle that has already happened — the book fixes the
+    clock's length and says nothing about how ready the offence is. Pinned by
+    `test:theSnapOutOfATimeoutIsPrepared`
 
 ## The ten-second runoff
 

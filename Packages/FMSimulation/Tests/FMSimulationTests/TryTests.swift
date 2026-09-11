@@ -35,6 +35,16 @@ struct TryTests {
     /// rulebook, 11-3-3), and asserting the standard spot regardless is exactly how a
     /// flag that was recorded and never applied stayed invisible. A try that no flag
     /// preceded is snapped from its own yard line; one a flag preceded is not.
+    ///
+    /// Rewritten again, and its own note says why. A foul during the touchdown is
+    /// enforced on the try (14-2-3) and moves it by **yards**, which flags before the
+    /// replay can walk straight back off — and this counted those yards as a boolean
+    /// while counting every later flag's yardage properly. So a sequence that nets to
+    /// nothing honestly, and lands on the standard spot for that reason, read as a try
+    /// a flag had moved: holding on a converted two-point try puts the replay ten out,
+    /// and two defensive fouls on the replay bring it ten back. That is precisely the
+    /// cancelling case the note below says to count and skip, and the arithmetic simply
+    /// did not do what the note described.
     @Test(
         "football · Rule 11-3-1, 11-3-3 · a try is snapped from its own yard line unless a flag on the try moved it",
         .tags(.football)
@@ -81,16 +91,27 @@ struct TryTests {
                 // it moves the spot with no `penaltyOnly` play of its own. The play the
                 // walk-back ends on is that touchdown, and an accepted penalty on a
                 // scoring play is the only thing it can mean.
-                let duringTheTouchdown =
-                    back >= 0 && plays[back].outcome.endedIn == .touchdown
-                    && plays[back].outcome.penalties.first?.wasAccepted == true
+                //
+                // Its yardage goes into the same running total as every other flag's,
+                // because it is walked off the same way and a later flag can walk it
+                // back. Counted as a boolean it was the one flag whose cancellation this
+                // could not see.
+                var duringTheTouchdown = false
+                if back >= 0, plays[back].outcome.endedIn == .touchdown {
+                    for penalty in plays[back].outcome.penalties where penalty.wasAccepted {
+                        duringTheTouchdown = true
+                        net +=
+                            penalty.foul.committedBy == .offense
+                            ? Int(penalty.yards) : -Int(penalty.yards)
+                    }
+                }
 
-                if net != 0 || duringTheTouchdown {
+                if net != 0 {
                     moved += 1
                     #expect(
                         play.situation.ballOn != standard,
                         "a flag on the try left it at the standard spot (play \(play.index))")
-                } else if flags == 0 {
+                } else if flags == 0 && !duringTheTouchdown {
                     checked += 1
                     #expect(
                         play.situation.ballOn == standard,

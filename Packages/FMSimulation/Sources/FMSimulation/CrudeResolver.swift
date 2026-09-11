@@ -18,6 +18,19 @@ public struct CrudeResolver: PlayResolver {
 
     public init() {}
 
+    /// Whether the interval between downs beats this offence, drawn from the play clock
+    /// in force, the tempo it is playing at and the crowd it is playing in front of.
+    ///
+    /// Asked before the benches are given the chance to stop the clock, so that the
+    /// timeout that answers a play clock is a decision rather than a guess — see
+    /// `Penalties.overrunsThePlayClock`.
+    public func overrunsThePlayClock(
+        situation: Situation, calls: Calls, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> Bool {
+        Penalties.overrunsThePlayClock(calls: calls, context: context, random: &random)
+    }
+
     public func resolve(
         situation: Situation, calls: Calls, onField personnel: Lineup, context: PlayContext,
         random: inout SplittableRandom

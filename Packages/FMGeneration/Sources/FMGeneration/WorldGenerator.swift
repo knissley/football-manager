@@ -139,16 +139,23 @@ public enum WorldGenerator {
     /// invention and no season publishes one. What can be sourced is what a rating spread
     /// *produces*: the standard deviation of a club's expected point differential per game,
     /// 4.83 in 2023 and 5.73 in 2024, which `row:betweenTeamSigma` grades a generated league
-    /// against. Three measured numbers turn one into the other — a floor of 4.16 that two
-    /// rosters drawn the same way differ by anyway, a slope of 1.237 points of differential
-    /// per point of this constant, and the solve that leaves √(5.28² − 4.16²) for the draw
+    /// against. Three measured numbers turn one into the other — a floor of 4.23 that two
+    /// rosters drawn the same way differ by anyway, a slope of 1.211 points of differential
+    /// per point of this constant, and the solve that leaves √(5.28² − 4.23²) for the draw
     /// to supply. `calibration-sources.md` carries all three under *Scoreboard*, with the
     /// rule for when a re-measurement is worth acting on and when it is noise.
     ///
     /// **The floor and the slope are the engine's and move when it does**, so they are
     /// re-measured on the tree in hand rather than inherited. They were 4.06 and 1.065 when
     /// this was first derived, against an engine whose carries had no middle and whose
-    /// defence answered two tight ends the same way every time.
+    /// defence answered two tight ends the same way every time; the reference carries the
+    /// whole history, which is the measured answer to how far this moves when a snap changes.
+    ///
+    /// This tree solves to 2.61 rather than the 2.63 written here, and the difference is
+    /// deliberate: 2.63 was derived one engine landing ago and re-measuring moved it by 0.8%
+    /// against a measured noise floor of 2%, so it was held rather than fitted to noise.
+    /// **The value is provisional by construction** — it is derived from engine measurements
+    /// — and E3 owns the final derivation once the engine stops moving.
     ///
     /// Most of a real league's spread is spent on that floor before any club is called a
     /// contender, which is why this is as narrow as it is: the deliberate structure is the

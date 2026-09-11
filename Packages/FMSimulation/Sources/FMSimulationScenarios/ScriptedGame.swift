@@ -400,6 +400,16 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     public var timeoutDecision: @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
         _, _ in false
     }
+    /// Whether the offence spends one to beat a play clock it is not going to beat.
+    ///
+    /// Separate from `timeoutDecision`, and the only timeout question that reads the
+    /// context: whether the ball is about to stay dead for a delay of game (2025
+    /// rulebook, 4-6-4) is a fact about this snap rather than about the situation, so a
+    /// scenario that wants to answer it has to see `PlayContext.playClockExpired`.
+    /// Nobody does, unless the scenario says so.
+    public var timeoutOnThePlayClock:
+        @Sendable (_ situation: Situation, _ context: PlayContext) ->
+            Bool = { _, _ in false }
     public var twoPointDecision: @Sendable (Situation) -> Bool = { _ in false }
     public var onsideDecision: @Sendable (Situation) -> Bool = { _ in false }
     /// The first choice of 4-2-2's privileges, when it is this side's: receive, unless
@@ -412,6 +422,9 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         timeoutDecision: @escaping @Sendable (_ situation: Situation, _ isOffense: Bool) -> Bool = {
             _, _ in false
         },
+        timeoutOnThePlayClock:
+            @escaping @Sendable (_ situation: Situation, _ context: PlayContext)
+            -> Bool = { _, _ in false },
         twoPointDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
         onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
         receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true }
@@ -419,6 +432,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         self.offensiveConcept = offensiveConcept
         self.offensiveTempo = offensiveTempo
         self.timeoutDecision = timeoutDecision
+        self.timeoutOnThePlayClock = timeoutOnThePlayClock
         self.twoPointDecision = twoPointDecision
         self.onsideDecision = onsideDecision
         self.receiveDecision = receiveDecision
@@ -442,7 +456,8 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         for situation: Situation, classified: SituationClass, isOffense: Bool,
         context: PlayContext
     ) -> Bool {
-        timeoutDecision(situation, isOffense)
+        if isOffense, timeoutOnThePlayClock(situation, context) { return true }
+        return timeoutDecision(situation, isOffense)
     }
 
     public func goesForTwo(situation: Situation, classified: SituationClass) -> Bool {
@@ -478,6 +493,10 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
 struct ScenarioResolver: PlayResolver {
 
     let script: @Sendable (Snap) -> Outcome
+    /// Whether the play clock in force runs out before this snap (2025 rulebook, 4-6-1,
+    /// 4-6-2). Never, unless the scenario says so: a scripted game has no offence to be
+    /// late, so the clock is the one thing a scenario about the play clock has to state.
+    let playClockExpires: @Sendable (Snap) -> Bool
     /// Which side, if either, has a player hurt on the snap — the scenario's say, read
     /// off the snap and the outcome the script gave it, and kept in the log so that the
     /// game's injury draw can hand the rules layer a real player of that side.
@@ -564,15 +583,35 @@ struct ScenarioResolver: PlayResolver {
         }
     }
 
+    /// The snap as the scenario's closures see it, built from what the resolver is
+    /// handed. Nothing is logged here: the log is the record of snaps that were
+    /// resolved, and this is also built for the questions asked before one is.
+    private func snap(_ situation: Situation, _ calls: Calls, _ context: PlayContext) -> Snap {
+        Snap(
+            index: log.count(), situation: situation, calls: calls,
+            offense: context.offense, defense: context.defense,
+            clockIsRunning: context.clockIsRunning, previous: log.previous(), huddle: log.huddle)
+    }
+
+    /// The scenario's own answer to the interval: this offence is late, or it is not.
+    /// Whether anybody stops the clock in time is the rules layer's and the benches', and
+    /// the answer comes back on `PlayContext.playClockExpired`.
+    func overrunsThePlayClock(
+        situation: Situation, calls: Calls, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> Bool {
+        playClockExpires(snap(situation, calls, context))
+    }
+
     func resolve(
         situation: Situation, calls: Calls, onField: Lineup, context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint]) {
-        let snap = Snap(
-            index: log.count(), situation: situation, calls: calls,
-            offense: context.offense, defense: context.defense,
-            clockIsRunning: context.clockIsRunning, previous: log.previous(), huddle: log.huddle)
-        let outcome = script(snap)
+        let snap = self.snap(situation, calls, context)
+        // Nobody stopped the clock in time, so the ball stays dead and the whistle is the
+        // foul (4-6-4): there is no play for the script to describe. The contract the
+        // crude resolver honours for the same event.
+        let outcome = context.playClockExpired ? snap.preSnapFoul(.delayOfGame) : script(snap)
         log.append(
             .init(
                 clockIsRunning: context.clockIsRunning, situation: situation, outcome: outcome,
@@ -606,6 +645,14 @@ public struct ScriptedGame {
     /// script made of it. Nobody, unless the scenario says so: a scripted outcome
     /// credits no participants, so the game's own injury draw never fires.
     public var injury: @Sendable (Snap, Outcome) -> Side?
+    /// Whether the offence fails to get this snap away before the play clock in force
+    /// expires (2025 rulebook, 4-6-1, 4-6-2). Never, unless the scenario says so.
+    ///
+    /// It states the *cause*, not the consequence: what an expired play clock costs —
+    /// five yards, the down replayed (4-6-4, 14-4-1), or nothing at all because
+    /// somebody stopped the clock first (4-3-2) — is the rules layer's and the benches',
+    /// which is exactly what a scenario about the play clock is there to observe.
+    public var playClockExpires: @Sendable (Snap) -> Bool
     public var play: @Sendable (Snap) -> Outcome
 
     public init(
@@ -614,6 +661,7 @@ public struct ScriptedGame {
         isPostseason: Bool = false,
         caller: ScriptedCaller = ScriptedCaller(),
         injury: @escaping @Sendable (Snap, Outcome) -> Side? = { _, _ in nil },
+        playClockExpires: @escaping @Sendable (Snap) -> Bool = { _ in false },
         play: @escaping @Sendable (Snap) -> Outcome
     ) {
         self.seed = seed
@@ -621,6 +669,7 @@ public struct ScriptedGame {
         self.isPostseason = isPostseason
         self.caller = caller
         self.injury = injury
+        self.playClockExpires = playClockExpires
         self.play = play
     }
 
@@ -633,7 +682,8 @@ public struct ScriptedGame {
     public func run(with caller: some FMSimulation.PlayCaller) -> Trace {
         let setup = ScenarioWorld.setup(seed: seed, rules: rules, isPostseason: isPostseason)
         let log = ScenarioResolver.Log()
-        let resolver = ScenarioResolver(script: play, injury: injury, log: log)
+        let resolver = ScenarioResolver(
+            script: play, playClockExpires: playClockExpires, injury: injury, log: log)
         let result = GameSimulator(
             resolver: resolver, caller: caller,
             injuries: { play, context, _ in resolver.scriptedInjury(on: play, context: context) }

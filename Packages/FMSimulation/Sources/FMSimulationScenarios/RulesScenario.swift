@@ -118,6 +118,8 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     // The play clock
     case delayOfGameOnARunningClock = "delay-of-game-on-a-running-clock"
     case delayOfGameAfterATurnoverOnDowns = "delay-of-game-after-a-turnover-on-downs"
+    case thePlayClockExpiresOnThirdAndOne = "the-play-clock-expires-on-third-and-one"
+    case aTimeoutBeatsThePlayClockOnThirdAndOne = "a-timeout-beats-the-play-clock-on-third-and-one"
 
     // The last forty seconds of a half
     case neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading =
@@ -303,6 +305,12 @@ extension RulesScenario {
         case .delayOfGameOnARunningClock: return RulesScenarios.delayOfGameOnARunningClock
         case .delayOfGameAfterATurnoverOnDowns:
             return RulesScenarios.delayOfGameAfterATurnoverOnDowns
+        case .thePlayClockExpiresOnThirdAndOne:
+            return RulesScenarios.thePlayClockExpiresOnThirdAndOne
+        case .aTimeoutBeatsThePlayClockOnThirdAndOne:
+            var game = RulesScenarios.thePlayClockExpiresOnThirdAndOne
+            game.caller = RulesScenarios.spendsATimeoutOnThePlayClock
+            return game
 
         case .neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading:
             return RulesScenarios.neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading
@@ -660,6 +668,14 @@ extension RulesScenario {
         case .delayOfGameAfterATurnoverOnDowns:
             return [
                 "football · Rule 4-6-2-a, 4-6-4 · after a change of possession the play clock is 25 seconds, and letting it expire with the game clock stopped is a delay of game that costs no time"
+            ]
+        case .thePlayClockExpiresOnThirdAndOne:
+            return [
+                "football · Rule 4-6-1, 4-6-4, 14-4-1 · a play clock that expires on a bench with no answer to it is five yards and the same down"
+            ]
+        case .aTimeoutBeatsThePlayClockOnThirdAndOne:
+            return [
+                "football · Rule 4-3-2, 4-6-3-a, 4-6-4 · a charged timeout stops a play clock the offence is not going to beat, so there is no delay of game and the snap that follows is against twenty-five seconds"
             ]
 
         case .neutralZoneInfractionInTheLastFortySecondsWithTheOffenseLeading:

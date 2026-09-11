@@ -427,17 +427,24 @@ reads the between-club spread about 2% high, which is harmless in a row and is n
 in a slope.
 
 1. **The floor.** At *S* = 0 every club is drawn from the same distribution, and the
-   between-club spread is still **4.16** — eight worlds of 1,600 games. Two rosters drawn
+   between-club spread is still **4.23** — eight worlds of 1,600 games. Two rosters drawn
    the same way are not the same roster, and that difference alone is most of a real
    league's spread.
 2. **The transfer.** Between-club variance above the floor is proportional to *S*²: the
-   slope is **1.237** points of differential per point of *S*, from 1.2639 at *S* = 4 and
-   1.2102 at *S* = 8.
-3. **The solve.** The draw must contribute √(5.28² − 4.16²) = 3.26 points, so
-   *S* = 3.26 / 1.237 = **2.63** — where 5.28 is the mean of the two sourced seasons.
+   slope is **1.211** points of differential per point of *S*, from 1.2208 at *S* = 4 and
+   1.2005 at *S* = 8.
+3. **The solve.** The draw must contribute √(5.28² − 4.23²) = 3.16 points, so
+   *S* = 3.16 / 1.211 = **2.61** — where 5.28 is the mean of the two sourced seasons.
 
-Checked at the answer rather than assumed: eight worlds of 1,600 games at *S* = 2.63 report
-a pooled **5.36** against the 5.28 it was solved for.
+Checked at the answer rather than assumed: eight worlds of 1,600 games at the shipped width
+report a pooled **5.33** against the 5.28 it was solved for.
+
+**The shipped constant is 2.63, not the 2.61 this tree solves to, and the difference is the
+rule below doing its job.** 2.63 was derived on the tree before this one; re-measuring here
+gives 2.61, a drift of 0.8% against a measured noise floor of 2%, so the constant was held
+and the drift recorded rather than moved by less than the instrument resolves. Any reader
+checking the arithmetic will land on 2.61 and should: that is the re-measurement, and this
+paragraph is where it is written down.
 
 **The floor and the slope belong to the engine, so re-measure them rather than inheriting
 them.** They were 4.06 and 1.065 when this was first derived, which solved to 3.17; the run
@@ -471,16 +478,52 @@ So, after re-measuring the floor and the slope on the tree in front of you and s
   numbers, and the floor and slope that produced each, go in the pull request. This is not
   laziness or chasing avoided by fiat: it is declining to move a constant by less than the
   instrument can resolve, which would be fitting noise.
-  *Worked example of the other branch:* 2.55 against a re-solve of 2.63 is 3.2%, past the
-  floor, so the constant moved and the engine change that moved it was named.
+  *Worked example:* 2.63 against a re-solve of 2.61 is 0.8%, inside the floor, so the
+  constant was held and the drift written into the three steps above.
 - **Beyond it — move it**, and say which engine change moved the slope or the floor, in the
   same terms the rest of this section uses.
+  *Worked example:* 2.55 against a re-solve of 2.63 is 3.2%, past the floor, so the
+  constant moved and the engine change that moved it was named.
 
 Two things this rule is not. It is **not** a licence to skip the measurement: the drift is
 only reportable because somebody measured it, and an unmeasured "probably still fine" is
 the failure this whole file exists to prevent. And it is **not** a tolerance on the *band* —
 `row:betweenTeamSigma` grades what a generated league actually does, at whatever width is
 shipped, and a row out of band is a finding whether or not the constant was left alone.
+
+#### When re-derivation stops
+
+The rule above says whether to move once you have re-derived. On its own that is an
+infinite loop, because the thing it measures keeps moving.
+
+**This constant is provisional by construction.** It is derived from engine measurements,
+so it drifts whenever the engine lands. Re-derive when the branch that owns it lands, and
+apply the rule above on the tree it ships on. Do **not** re-derive again because a later
+branch moved the engine: record the drift instead, and let the retune own the final value.
+`row:betweenTeamSigma` is what makes that drift visible rather than silent — which is the
+whole reason it is graded rather than left as a note.
+
+**E3 ([#49](https://github.com/knissley/football-manager/issues/49)) owns the final
+derivation.** It is the pass that settles what a snap does, so it is the only place the
+floor and the slope stop moving underneath the solve, and it should re-derive once at the
+end against whatever engine it leaves behind.
+
+**How much does it actually move?** Measured in one day, across three engine landings, each
+by the same three steps against the same sourced target of 5.28:
+
+| after | floor | slope | solve | what moved the engine |
+| --- | --- | --- | --- | --- |
+| the tree before the run game had a middle | 4.06 | 1.065 | **3.17** | — |
+| [#118](https://github.com/knissley/football-manager/issues/118) | 4.28 | 1.212 | **2.55** | a carry became three outcomes rather than a draw on a hole |
+| [#130](https://github.com/knissley/football-manager/issues/130) | 4.16 | 1.237 | **2.63** | a two-tight-end grouping began drawing the fifth defensive back |
+| [#133](https://github.com/knissley/football-manager/issues/133) | 4.23 | 1.211 | 2.61 — **held at 2.63** | when a pre-snap foul is drawn, which is not how yards are gained |
+
+That table is worth more than any one of the three values. It is the measured answer to
+*how far does this constant move when the engine changes*, which nobody had before, and it
+is the argument for both halves of the rule: the moves are real rather than noise — two of
+the three are past the floor — and they are small enough that waiting for the retune costs
+little. A reader who wants to know whether a stale width matters should read the rows here
+rather than re-run the derivation.
 
 **Read the floor as a finding, not a detail.** Four fifths of the sourced spread — two
 thirds of its variance — is already spent on roster-draw noise before a single club is

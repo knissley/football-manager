@@ -44,6 +44,25 @@ public struct PlayContext: Sendable {
     /// resolver that lets it expire is then reporting a fact about the clock, not
     /// drawing a rate.
     public let playClock: PlayClock
+    /// Whether that clock has run out with the ball not snapped, so the ball stays dead
+    /// and the whistle is the foul (2025 rulebook, 4-6-4).
+    ///
+    /// Decided before this snap and above the resolver, because stopping the clock
+    /// first is a decision somebody makes: a charged timeout leaves the game clock
+    /// waiting for the snap it was already waiting for (4-3-2), and a bench that cannot
+    /// see the flag coming is guessing rather than choosing. What is left for a
+    /// resolver is to report it.
+    public let playClockExpired: Bool
+    /// Whether the offence comes to this snap out of a charged timeout, either side's
+    /// (2025 rulebook, 4-5-1).
+    ///
+    /// A timeout is a stoppage for the benches to talk, and the offence stands through
+    /// it with the ball: what a huddle is for has already happened by the time the
+    /// twenty-five seconds of 4-6-3-a start. Every other administrative stoppage on that
+    /// list is the officials' business rather than the offence's, and a change of
+    /// possession puts a side on the field that has prepared nothing — which is why the
+    /// short clock after one is the tightest interval in the game.
+    public let offenseIsSetFromATimeout: Bool
     /// Each player's day, in rating points, fixed for the whole game.
     ///
     /// A game-level fact, so it is computed once and read here rather than drawn per
@@ -65,6 +84,8 @@ public struct PlayContext: Sendable {
         offenseIsHome: Bool = true,
         clockIsRunning: Bool = false,
         playClock: PlayClock? = nil,
+        playClockExpired: Bool = false,
+        offenseIsSetFromATimeout: Bool = false,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
@@ -74,6 +95,8 @@ public struct PlayContext: Sendable {
         self.offenseIsHome = offenseIsHome
         self.clockIsRunning = clockIsRunning
         self.playClock = playClock ?? rules.playClockAfterAPlay
+        self.playClockExpired = playClockExpired
+        self.offenseIsSetFromATimeout = offenseIsSetFromATimeout
         self.form = form
         self.offense = offense
         self.defense = defense
@@ -127,6 +150,36 @@ public struct PlayContext: Sendable {
     }
 }
 
+extension PlayContext {
+
+    /// What the play clock in force reads when an offence playing at `tempo` means to
+    /// snap.
+    ///
+    /// The tempo is everything the offence has to fit into the interval: getting the
+    /// call in, breaking the huddle, lining up (`Tempo.secondsBetweenSnaps` — a model,
+    /// not a rule). An offence that comes to the snap out of a charged timeout has done
+    /// all but the last of that while the clock was stopped, so what is left of the
+    /// twenty-five seconds 4-6-3-a puts on the clock is the time it takes to line up,
+    /// which is the interval a hurry-up offence works in. The book fixes how long the
+    /// clock is; how ready the offence is when it starts is the model's to say.
+    ///
+    /// One definition, because two readers need the same answer: the draw that decides
+    /// whether the offence is beaten by the clock, and the `.playClock` decision point
+    /// the rules layer writes onto the record. A record that said one thing while the
+    /// draw used another would describe a game that did not happen.
+    public static func remainingAtIntendedSnap(
+        _ playClock: PlayClock, at tempo: Tempo, setFromATimeout: Bool
+    ) -> UInt8 {
+        playClock.remainingAtIntendedSnap(at: setFromATimeout ? .hurryUp : tempo)
+    }
+
+    /// The same, for the snap this context describes.
+    public func remainingAtIntendedSnap(at tempo: Tempo) -> UInt8 {
+        Self.remainingAtIntendedSnap(
+            playClock, at: tempo, setFromATimeout: offenseIsSetFromATimeout)
+    }
+}
+
 /// The seam between the sport's rules and the physics
 /// ([ADR-0012](../../../../docs/adr/0012-play-resolver-seam.md)).
 ///
@@ -160,4 +213,36 @@ public protocol PlayResolver: Sendable {
         context: PlayContext,
         random: inout SplittableRandom
     ) -> (outcome: Outcome, decisions: [DecisionPoint])
+
+    /// Whether the offence is beaten by the play clock in force: it does not get the
+    /// ball snapped inside the interval the book gives it (2025 rulebook, 4-6-1, 4-6-2).
+    ///
+    /// Asked **before** the snap and before the benches are asked for a timeout, because
+    /// the timeout is the answer to it: a charged timeout stops the clock (4-3-2), and a
+    /// bench asked after the flag has flown is not being asked anything. What the answer
+    /// costs — five yards and the down replayed (4-6-4, 14-4-1) — is the rules layer's,
+    /// which is why this returns a fact about the interval and not an `Outcome`.
+    ///
+    /// How punctual an offence is belongs here rather than in the rules layer for the
+    /// same reason a false start does: it is a property of the eleven men and the tempo
+    /// they are being asked to play at. A resolver that does not model the interval
+    /// leaves it alone and every snap is taken.
+    func overrunsThePlayClock(
+        situation: Situation,
+        calls: Calls,
+        context: PlayContext,
+        random: inout SplittableRandom
+    ) -> Bool
+}
+
+extension PlayResolver {
+
+    /// A resolver with no model of the interval between downs never loses the play
+    /// clock, so every snap it is asked about is one that was taken.
+    public func overrunsThePlayClock(
+        situation: Situation, calls: Calls, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> Bool {
+        false
+    }
 }

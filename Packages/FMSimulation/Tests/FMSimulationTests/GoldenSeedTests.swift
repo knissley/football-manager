@@ -620,18 +620,57 @@ struct GoldenSeedTests {
             // computed without the other's mechanism. Checked before they were written
             // down: all three seeds differ from both parents of this merge.
             //
-            // And moved once more by the world rather than by the engine, which is the
-            // other half of where the constants below come from. `WorldGenerator` draws a
-            // league's talent on a width that is sourced now rather than assumed, so every
-            // club's offset is a different number, every roster is built to a different
-            // ceiling, and every man drawn after the first is a different man. Nothing in
+            // And then the play clock stopped being a rate and became an interval with a
+            // decision in it. Whether the offence gets a snap away inside the clock in
+            // force is asked once per snap, before either bench is asked for a timeout
+            // and before the eleven men are drawn — where the flag used to be drawn
+            // beside the down, after the false start and inside the resolver. That draw
+            // has moved in every snap's stream, so every game diverges from its first
+            // possession whether or not a play clock is ever lost. Three things then
+            // differ in the football as well: the offence spends a timeout on a play
+            // clock only when it has actually lost one rather than whenever the clock
+            // looked tight, which is about 0.7 fewer timeouts a game; the snap that
+            // follows a charged timeout is a prepared one, so it takes about half as many
+            // delays of game as an ordinary snap instead of rather more; and a down where
+            // nobody stopped the clock is a delay of game whatever else might have been
+            // drawn on it, since no play was run.
+            //
+            // And the play clock then met the run game and the defence's answer to one
+            // grouping, in this merge, which is where the constants below come from. On
+            // one side a play clock that is about to expire is a decision a bench makes
+            // rather than a flag drawn beside the down. On the other a carry is three
+            // outcomes of a point of attack, and a two-tight-end grouping draws the fifth
+            // defensive back three snaps in ten where it drew the four-back front every
+            // time. They reach each other on exactly the downs both are about. The
+            // timeout is spent on third and fourth and short, and how often an offence is
+            // *in* third and short is the run game's to decide — a carry that gains five
+            // where it gained one is a second and five, so the down the bench is asked
+            // about is a different down at a different distance. Run the other way, a
+            // timeout that stops the clock leaves a down played where five yards would
+            // have been walked off, so the distance the next carry is run at is one the
+            // run game would never have seen. And the defence's answer decides who is
+            // standing at that point of attack on the down the timeout bought. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanisms. Checked before they were written down: all three seeds
+            // differ from both parents of this merge.
+            //
+            // And moved by the world rather than by the engine, which is the other half
+            // of where the constants below come from. `WorldGenerator` draws a league's
+            // talent on a width that is sourced now rather than assumed, so every club's
+            // offset is a different number, every roster is built to a different ceiling,
+            // and every man drawn after the first is a different man. Nothing in
             // `FMSimulation` changed for that reason: the same code plays a different pair
-            // of teams. The two mechanisms are live at once and neither parent's constants
-            // survive — checked against each of them, and against the merged tree at the
-            // width this branch carried before it, before these were written down.
-            (UInt64(1), UInt64(6_234_649_446_947_465_369)),
-            (UInt64(5), UInt64(12_802_256_702_774_597_152)),
-            (UInt64(12), UInt64(11_052_382_159_813_794_244)),
+            // of teams.
+            //
+            // The width did **not** move in this merge, and `GoldenWorldTests` is the
+            // evidence — it did not move either. Re-measuring the floor and the slope on
+            // this tree solved to 2.61 against the 2.63 carried in, a drift smaller than
+            // the measurement's own error, so the constant was held. What moved here is the
+            // engine alone, and neither parent's constants survive it: checked against both
+            // before these were written down.
+            (UInt64(1), UInt64(15_821_790_818_830_671_322)),
+            (UInt64(5), UInt64(5_267_760_856_449_019_185)),
+            (UInt64(12), UInt64(6_928_693_147_283_489_712)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
