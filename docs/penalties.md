@@ -45,6 +45,26 @@ The crude resolver picks one target and keeps no separation for anyone else once
 the ball is gone, so the target's matchup is the only one it has to draw on. What
 the simplification costs is exactly those away-from-the-ball flags.
 
+**The defence's interference is drawn as the cause of an incompletion, not beside
+one.** The order is: draw the flag at the throw, then resolve the catch with the
+flag in hand. 8-5-1 defines the foul as contact that spoils an eligible
+receiver's chance at the ball, so the flag and a catch by that receiver are two
+events that cannot both have happened — and a model that throws one and then
+completes the pass is graded on whatever the accept-or-decline choice leaves
+behind, which is how a draw three times too large sat under a rate near its band.
+The offence's is the other way round and stays that way: 8-5-2 lists a shove or a
+push-off that buys a receiver room, and the Penalty clause of Rule 8 Section 5
+costs ten yards from the previous spot, which brings a catch back rather than
+presuming there was not one.
+
+**And neither kind is drawn on a throw nobody could reach** `[2025 · 8-5-3-c]`,
+which makes contact that would otherwise be interference permissible when the pass
+is clearly uncatchable by the players involved. The article's own exception is the
+offence's blocking downfield `[2025 · 8-3-2, 8-5-4]`, which this engine does not
+model as an act of its own, so the exception has nothing to except here. Without
+that gate the defence's spot foul hands the offence the ball at the catch point
+for contact the rules do not make a foul at all.
+
 That second class is what makes a flag explicable: *he held because he was beaten
 in 1.9 seconds*, with the pressure decision point sitting right there in the play
 record. It also means a bad offensive line commits more holds without anyone

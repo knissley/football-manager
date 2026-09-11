@@ -438,6 +438,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per pass attempt | 6.6-7.5 | 2023-24 | — | S1 | yes | Gross. |
 | yards per play | 5.0-5.8 | 2023-24 | — | S1 | yes | The harness's definition: gross pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. The league's net figure was 5.5–5.7. |
 | yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | — |
+| drops per target | none | unsourced | — | — | no | Catch attempts the record calls a drop, over catch attempts. Every throw the engine resolves to a receiver has exactly one target, so this is the charting convention's denominator. Unsourced: the play-by-play does not chart a drop. |
+| passes defensed per game | none | unsourced | — | — | no | Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up. |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
 | ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy. |
 | games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |
@@ -545,6 +547,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | illegal formation per game | 0.13-0.55 | 2023-24 | — | S1 | yes | Wide because 2024 called it twice as often as 2023. |
 | roughing the passer per game | 0.27-0.43 | 2023-24 | — | S1 | yes | — |
 | neutral zone infraction per game | 0.27-0.41 | 2023-24 | — | S1 | yes | — |
+| interference drawn per game | none | unsourced | passInterference | — | no | Defensive interference flags thrown, accepted or declined, both teams. The accepted half is row:penalty.defensivePassInterference, which is the graded one. Unsourced: a band for flags thrown rather than enforced has not been computed. |
+| interference on completions | 0.0-0.0% | unsourced | passInterference | — | no | Defensive interference flags on a pass that was then completed, as a share of them. Not a league rate and not sourced: the band is the engine's own promise from 8-5-1, where the foul is contact that spoiled the receiver's chance at the ball and so is the reason it was not caught. The offence's push-off is excluded and printed beside it, because a catch it brings back is the sport working normally. |
 
 - **S1** — nflverse play-by-play data, regular-season games
 - **S2** — nflverse participation data from Next Gen Stats, regular-season games

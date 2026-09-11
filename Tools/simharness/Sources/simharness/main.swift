@@ -338,6 +338,30 @@ report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
 let receptionYards = attemptYards / Double(max(1, completionsThatGained.count))
 report("yardsPerCompletion", receptionYards)
 
+// Why the rest were not caught. `CatchResult` is the only field that says, and everything
+// downstream repeats it — a drop rate, a pass-defensed leaderboard, the narrative layer's
+// sentence about the play — so a label that names the wrong man is a rate that names the
+// wrong man. Read off the decision stream rather than inferred from the outcome, which
+// carries one `.incomplete` for all four ways a pass can fall.
+let catchAttempts = allPlays.compactMap { $0.decisions(ofKind: .catchAttempt).last?.catchResult }
+let drops = catchAttempts.filter { $0 == .dropped }.count
+let brokenUp = catchAttempts.filter { $0 == .brokenUp }.count
+report(
+    "dropsPerTarget",
+    catchAttempts.isEmpty ? nil : Double(drops) / Double(catchAttempts.count) * 100)
+report("passesDefensedPerGame", Double(brokenUp) / Double(max(1, results.count)))
+// The other two ways, printed because the four have to add up for the first two to be
+// read at all: a ball placed where the receiver could not be expected to catch it, and
+// one thrown where nobody could reach it. Both are the passer's, and neither has a band
+// for the same reason the two rows above have none.
+let offTarget = catchAttempts.filter { $0 == .offTarget }.count
+let unreachable = catchAttempts.filter { $0 == .uncatchable }.count
+print(
+    "    \(pad("  off target, out of reach", 28))"
+        + "\(oneDecimal(Double(offTarget) / Double(max(1, catchAttempts.count)) * 100))%  "
+        + "\(oneDecimal(Double(unreachable) / Double(max(1, catchAttempts.count)) * 100))%"
+        + "   (no band: the throw's own two, see dropsPerTarget)")
+
 print("")
 print("  Shape of the stream")
 report("playsPerGame", Double(allPlays.count) / Double(max(1, results.count)))
@@ -550,6 +574,30 @@ let targetedFouls = CalibrationTarget.all.filter { $0.id.hasPrefix("penalty.") }
 for foul in targetedFouls {
     report("penalty.\(foul)", Double(byFoul[foul] ?? 0) / Double(max(1, results.count)))
 }
+// The accepted rate above is the residue of a draw that is larger, and how much larger is
+// the thing a decline can hide: a flag on a pass that is then completed is usually worth
+// declining, so a model that throws one and completes the pass anyway grades on what is
+// left over. Interference is the case that went wrong this way, so the draw is printed
+// beside the accepted rate and so is the share of it that lands on a catch.
+let interference = flags.filter { $0.foul == .defensivePassInterference }
+report("interferenceDrawnPerGame", Double(interference.count) / Double(max(1, results.count)))
+var interferenceOnCompletions = 0
+var offensiveInterferenceOnCompletions = 0
+for play in allPlays where play.outcome.passResult == .complete {
+    for flag in play.outcome.penalties {
+        if flag.foul == .defensivePassInterference { interferenceOnCompletions += 1 }
+        if flag.foul == .offensivePassInterference { offensiveInterferenceOnCompletions += 1 }
+    }
+}
+report(
+    "interferenceOnCompletions",
+    interference.isEmpty
+        ? nil : Double(interferenceOnCompletions) / Double(interference.count) * 100)
+print(
+    "    \(pad("  offensive interference on a catch", 38))"
+        + "\(offensiveInterferenceOnCompletions) of \(byFoul["offensivePassInterference"] ?? 0) accepted"
+        + "   (no target: a push-off that brings a catch back is the sport, 8-5-2)")
+
 for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) })
 where !targetedFouls.contains(foul) {
     print(
