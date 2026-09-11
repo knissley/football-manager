@@ -671,9 +671,21 @@ struct GoldenSeedTests {
             // and 12 each have a snap that moves from forty to twenty-five, which moves
             // both the reading on the record and the odds the offence is beaten by the
             // interval, and from there the game diverges.
-            (UInt64(1), UInt64(13_662_653_904_281_590_993)),
-            (UInt64(5), UInt64(18_134_028_555_637_264_242)),
-            (UInt64(12), UInt64(9_331_547_378_743_938_053)),
+            //
+            // And then the pass rush was given a window that spans the holds it is read
+            // against. A beaten blocker's man used to arrive on a uniform 1,500-2,899 ms
+            // while the routes asked for 1,400 through 3,400, so three of the five pass
+            // concepts sat outside the window and their pressure verdict was a constant.
+            // He now arrives from 1,000 ms on a core of the same width with a tail that
+            // halves every half second. All three seeds move, and every one of them has
+            // to: the draw is a different draw on the first lost rep of the game, the
+            // number of values it consumes is itself random now, and both the verdict and
+            // the stream diverge from there. There is no snap in any of the three that
+            // could have come out the same by luck, so — unlike the warning above — a
+            // seed that did *not* move would be the thing worth investigating.
+            (UInt64(1), UInt64(6_815_553_386_457_547_323)),
+            (UInt64(5), UInt64(6_467_780_222_937_450_596)),
+            (UInt64(12), UInt64(2_014_329_887_637_027_649)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

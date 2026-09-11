@@ -208,6 +208,62 @@ sequential dice rolls:
 Each of those steps writes a decision record. That's where "your right tackle lost his
 rep in 2.1 seconds and the checkdown was covered" comes from — it's logged, not inferred.
 
+**What the crude resolver does today** is one inequality. A beaten blocker's man is given
+an arrival; the concept is given a hold — how long the route needs before the ball can come
+out, 1,400 ms on a screen through 3,400 ms on a deep drop, with a try at 1,500 ms — and the
+snap is pressured when the first man home beat the hold. Everything downstream of pressure
+hangs off that one comparison: the sack, the scramble, the throwaway, and the accuracy
+penalty on a throw made under it.
+
+**The arrival window is the engine's own model and nothing sources it.** The only pressure
+figure the references band is `row:pressureRate`, pressure per dropback pooled over every
+dropback, 2023-24, source S2 — split by nothing: not by pass depth, not by play action, not
+by how long the passer held the ball. A shape for the arrival therefore cannot be derived
+from the reference, and the gap is recorded as one in
+[calibration-sources.md](reference/calibration-sources.md). What follows is a modelling
+decision of the same kind as `GameClock.readyForPlayDelay`, stated here so nobody has to
+reconstruct it from the constants.
+
+*The shape.* A uniform core of 1,400 ms starting at 1,000 ms, and then a tail: a rusher who
+has not got home has not stopped coming, and the chance he is still coming halves every half
+second. Mean arrival 2,200 ms.
+
+*Why it has to span the holds.* An inequality whose two sides cannot cross is a constant
+wearing one. A hold under the earliest possible arrival is never pressured — the concept
+becomes un-pressurable by construction rather than hard to pressure — and a hold over the
+latest is pressured on every snap a rep was lost, so the hold stops being read and any two
+such holds are pressured on exactly the same snaps however far apart their numbers look.
+Both failures are silent: the shares still come out plausible. The window this replaced ran
+`[1500, 2899]` against holds spanning 1,400 to 3,400, so three of the five concepts sat
+outside it — a screen at exactly 0.0000, and play action and a deep drop identical to the
+snap. `test:theArrivalWindowSpansTheRouteHolds` is what stops that coming back.
+
+*Why a tail rather than a wider wall.* Wherever a wall is put, a hold past it saturates and
+the next hold past it saturates in exactly the same way; widening only moves the cliff. A
+tail has no edge at any hold, so a hold added later cannot silently stop being read. Its
+only bound is the record's — an arrival is `Int16` milliseconds — which takes sixty-one
+halvings in a row to reach.
+
+*What sets the level, and what does not.* This window decides the **shape**: which holds an
+arrival can beat. How much of the rush gets home at all is the rush win multiplier in
+`CrudeResolver`, and that is the one constant `row:pressureRate` answers to. Keeping them
+apart is deliberate: a retune of the pressure rate should be one number, not a search.
+
+*What it cost.* Measured over 2,450 paired dropbacks per concept, with the pocket held
+identical across concepts by construction:
+
+| concept | hold | pressured, old window | pressured, this one |
+|---|---|---|---|
+| `screen` | 1,400 ms | 0.0000 — below the old floor | 0.0939 |
+| `quickPass` | 1,700 ms | 0.0976 | 0.1976 |
+| `mediumPass` | 2,600 ms | 0.4706 | 0.4494 |
+| `playAction` | 3,000 ms | 0.5559 — above the old ceiling | 0.4963 |
+| `deepPass` | 3,400 ms | 0.5559 — the same 1,362 snaps | 0.5253 |
+
+`row:pressureRate` rises with it, to 33.2% and 32.7% at harness seeds 7 and 11 against a
+band of 27.8–32.3, so the row reads `OFF` at both. That is a level, it is the multiplier's
+to set and not this window's, and it is recorded as a residual rather than absorbed here.
+
 ### Run play
 
 **Designed, not built.** M5. The crude resolver has no gaps and no pursuit angles.

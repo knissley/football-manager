@@ -346,6 +346,8 @@ whether or not anybody scored on it (2025 rulebook, 11-3-1, 11-3-2-e). So `kind`
 | dropped, broken up, off target, out of reach | `.incomplete` | `.incomplete` | 0 |
 | thrown away | `.incomplete` | `.incomplete` | 0 |
 | intercepted | `.intercepted` | `.intercepted` | 0, with `finalSpot` and `possessionLostAt` |
+| sacked | `.tackled` | none — the ball never left | the loss |
+| the passer ran it | `.touchdown` / `.tackled` / `.outOfBounds` | none — the ball never left | what he got |
 | a flag before the snap | — the play is `.penaltyOnly`, as any snap is | | |
 
 The pick is the one that was wrong, and it was wrong in both layers: the resolver filed it
@@ -359,13 +361,26 @@ during the down, and where it was picked off and how far it came back are facts 
 play whatever the try was worth. What follows the try does not read them, because nothing
 follows a try but a kickoff.
 
-**A sacked try and a scrambled try are not told apart**, and that is a known limit rather
-than an oversight: `PlayEnding` has no `.sacked`, so both would be `.tackled` with no
-`passResult`, and only the `.throwDecision` decision point separates them. Neither is
-reachable today — a try's throw is out before any rusher arrives, so the resolver's
-pressure branches are dead on one — and closing the gap means a new `PlayEnding` case,
-which is a change to the record's shape and needs its own version bump. The exits report
-the try regardless, so the labelling does not depend on that timing holding.
+**A sacked try and a scrambled try are not told apart by `endedIn`**, and that is a known
+limit rather than an oversight: `PlayEnding` has no `.sacked`, so a sacked try is
+`.tackled` like a scrambled one that was brought down, and only the `.throwDecision`
+decision point separates them. Closing that gap means a new `PlayEnding` case, which is a
+change to the record's shape and needs its own version bump.
+
+**Both are reachable, and they did not used to be.** A try's throw is out in 1,500 ms, and
+a beaten blocker's man could not reach the quarterback before 1,500 ms either, so the
+resolver's pressure branches were dead on a try — not by rule, but because two constants
+happened to touch. The pass rush now arrives on a window that spans every hold it is
+compared against, starting at 1,000 ms, so a try can be sacked and a quarterback can run
+one in, which is the football. Measured over twenty thousand two-point passes through the
+crude resolver: 13.0% pressured, 1.8% sacked, 1.1% scrambled.
+
+**Neither carries a `passResult`**, because on neither did the ball leave. That is the one
+place where a reader cannot get the answer from `kind`: an ordinary dropback that ends in
+a sack is a `.sack` and never a `.pass`, but a try is the try however it ended (11-3-1,
+11-3-2-e) and its kind says nothing about whether a pass was attempted. Read the last
+`.throwDecision` — `.sack` and `.scramble` mean no throw, and `test:passResultsAreWherePassesAre`
+is written that way.
 
 ## Kicks, takeaways, and the dead ball
 
