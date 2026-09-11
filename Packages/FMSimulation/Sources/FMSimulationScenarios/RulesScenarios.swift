@@ -741,6 +741,35 @@ public enum RulesScenarios {
         }
     }
 
+    /// A third and one in the first quarter that the offence does not get snapped: the
+    /// play clock in force runs out with the ball dead.
+    ///
+    /// Two drives to it, both scripted — nine yards on first down, nothing on second —
+    /// so that the down the clock beats is one where the five yards of 4-6-4 decide
+    /// something. What the offence does about it is the caller's, and this game is run
+    /// with two: one bench that spends a charged timeout on a play clock it is not going
+    /// to beat, and one that has no answer at all.
+    static var thePlayClockExpiresOnThirdAndOne: ScriptedGame {
+        ScriptedGame(
+            playClockExpires: { snap in
+                snap.isScrimmage && snap.quarter == 1 && snap.down == .third
+                    && snap.distance == 1
+            }
+        ) { snap in
+            guard snap.isScrimmage, snap.quarter == 1 else { return snap.neutral }
+            switch snap.down {
+            case .first: return .rush(9)
+            case .second: return .rush(0)
+            default: return snap.neutral
+            }
+        }
+    }
+
+    /// The bench that answers the play clock: the offence spends a charged timeout when,
+    /// and only when, the clock is about to beat it (2025 rulebook, 4-3-2, 4-6-4).
+    static let spendsATimeoutOnThePlayClock = ScriptedCaller(
+        timeoutOnThePlayClock: { _, context in context.playClockExpired })
+
     // MARK: The last forty seconds of a half
 
     /// Every side burns its second-half timeouts while on defence in the fourth quarter,

@@ -44,6 +44,15 @@ public struct PlayContext: Sendable {
     /// resolver that lets it expire is then reporting a fact about the clock, not
     /// drawing a rate.
     public let playClock: PlayClock
+    /// Whether that clock has run out with the ball not snapped, so the ball stays dead
+    /// and the whistle is the foul (2025 rulebook, 4-6-4).
+    ///
+    /// Decided before this snap and above the resolver, because stopping the clock
+    /// first is a decision somebody makes: a charged timeout leaves the game clock
+    /// waiting for the snap it was already waiting for (4-3-2), and a bench that cannot
+    /// see the flag coming is guessing rather than choosing. What is left for a
+    /// resolver is to report it.
+    public let playClockExpired: Bool
     /// Each player's day, in rating points, fixed for the whole game.
     ///
     /// A game-level fact, so it is computed once and read here rather than drawn per
@@ -65,6 +74,7 @@ public struct PlayContext: Sendable {
         offenseIsHome: Bool = true,
         clockIsRunning: Bool = false,
         playClock: PlayClock? = nil,
+        playClockExpired: Bool = false,
         form: [PlayerID: Double] = [:],
         rules: Rules
     ) {
@@ -74,6 +84,7 @@ public struct PlayContext: Sendable {
         self.offenseIsHome = offenseIsHome
         self.clockIsRunning = clockIsRunning
         self.playClock = playClock ?? rules.playClockAfterAPlay
+        self.playClockExpired = playClockExpired
         self.form = form
         self.offense = offense
         self.defense = defense
