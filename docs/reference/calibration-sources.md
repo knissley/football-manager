@@ -332,7 +332,9 @@ sourced numbers of its own — how old a roster is, how much of it arrived this 
 the harness never sees them, because nothing about them changes when a snap does. They are
 banded here all the same, and the band lives in the test that measures it rather than in
 `Targets.swift`: a row in that table is a promise `simharness` prints a verdict for, and a
-row nothing prints would be a promise nobody keeps.
+row nothing prints would be a promise nobody keeps. One band is in that table. What else a
+generated world claims about the sport, and what a band for each would have to be computed
+from, is [further down](#what-a-generated-world-claims-and-nothing-sources).
 
 | Band | Season | Source | Where it is checked |
 | --- | --- | --- | --- |
@@ -416,3 +418,91 @@ it with the script, put the band and its citation in the test's name and doc com
 add it to [the table above](#bands-the-harness-cannot-measure) naming that test. It is not a
 `row:` and must not be written as one — `InvariantsTraceabilityTests` reads every `row:` in
 this file as a claim that `Targets.swift` carries it.
+
+
+## What a generated world claims and nothing sources
+
+The table above holds one band, and it is the only claim about a generated world that
+anything in this repository asserts as football. This is the rest of the shelf. It exists
+because a generation defect has twice had to be asserted as something other than football
+for want of a band, and because the next agent to want one should find the question already
+asked rather than reach for a figure.
+
+**Read it as a list of derivations, not of numbers.** Each line says what a band would have
+to be computed from — a season, a release, and the count to take off it — and whether that
+is worth doing. Not one of them states a band, because none has been computed. Typing a
+plausible-looking figure in place of an uncomputed one is the precise failure this file
+exists to prevent, so a line that says no source was located is the honest output and is
+finished as it stands.
+
+None of these is a `row:` and none may be written as one: `InvariantsTraceabilityTests`
+reads every `row:` in this file as a claim that `Targets.swift` carries it, and a band about
+a world belongs in a test rather than in that array for the reason
+[the section above](#bands-the-harness-cannot-measure) gives.
+
+### Worth computing
+
+**What a roster is made of, by position group.** `RosterShape.standard` fixes the
+fifty-three a club carries position by position, and the argument its doc comment makes for
+the split is the personnel a defence spends its snaps in rather than a roster anybody
+counted. The derivation would be the one `--rosters` already performs — week 1 of the
+regular season, status `ACT` or `INA`, the seasons S3 already covers — counted by the
+position group each man is listed at instead of by his years of experience. **Whether that
+release names a position at all is not checked here**; if it does not, the count wants
+another release from the same project, and which one is part of the sourcing job rather
+than settled by this list. This is the cheapest of the six and the one nothing else would
+catch: the snaps rows above grade who is *on the field*, not who is *carried*, so a club
+carrying too few linemen and too many corners is in band on every one of them. Note where
+the band would have to be asserted, because it is not where this list sits: the shape is an
+`FMCore` constant, so the test reading it is `FMCore`'s, and sourcing this raises that
+package's football share rather than `FMGeneration`'s.
+
+**How old a roster is, and how wide.** Mean age and age spread are measured above, over the
+same three seasons, and deliberately left as notes on the ground that a number nobody
+asserts is not a target. That was right while nothing had gone wrong in that dimension;
+[#67](https://github.com/knissley/football-manager/issues/67) has since gone wrong in
+exactly it, and was caught by the first-season share rather than by either of these. Banding
+them is nearly free — `--rosters` prints both already and only the policy's widening remains
+to apply. Do it with the entry ages below rather than before them: whatever changes the
+shape of the age model moves all three, and banding two of them first would only mean
+rederiving them afterwards.
+
+### Not a sourcing problem
+
+**When a first-season player arrives.** Already derived — same release, same policy,
+recorded above. What blocks it
+([#90](https://github.com/knissley/football-manager/issues/90)) is that no setting of the
+generation constants reproduces the mix, because the family the ages are drawn from is the
+wrong shape. That is a modelling decision for the owner, not a band anybody is missing. The
+line is here only to stop it being counted as a sourcing gap, which it has been.
+
+**The spread of team strength.**
+[#116](https://github.com/knissley/football-manager/issues/116) is sourcing it, from the
+published per-game point-differential figures, and will record it here under this file's own
+rules. Not duplicated here, and nobody should open a second derivation of it.
+
+### Not worth computing
+
+**Rating distributions by position group.** There is nothing to source. A rating on this
+project's scale is the project's own invention: no season and no publisher produces one, and
+importing somebody else's would import the likeness
+[ADR-0005](../adr/0005-generated-fictional-content.md) forbids along with it. What can be
+sourced is what a rating distribution *produces* — the spread of team strength above, and
+the per-position rates the harness already grades — which is how it already stands. Marking
+this line `unsourced` would imply a source exists and somebody has been lazy, and neither is
+true.
+
+**Ball security by position.** The band
+[#115](https://github.com/knissley/football-manager/issues/115) wanted. Sourceable in
+principle, expensive in practice, and the band it produced would probably not be worth
+carrying. It needs a fumble count and a touch count split by the carrier's position, which
+means joining the play-by-play release to a roster release to learn what each man plays —
+the only line here needing two data sets — and a fumble per touch is rare enough that the
+policy's rare-event widening would hand back a band wide enough to admit most of what the
+engine could plausibly do. The claim actually wanted is a *ratio* between two positions,
+and the policy bands a value, so the policy would need extending as well. The `.contract`
+that landed instead — that the engine reads no positional penalty into ball security which
+the rules do not draw — is cheaper and, against the defect in question, stronger. Worth
+revisiting only if the fumble rows are still out of band once
+[#49](https://github.com/knissley/football-manager/issues/49) has retuned the total, since
+that is the case where the split matters and the total cannot speak to it.
