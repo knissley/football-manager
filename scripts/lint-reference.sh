@@ -21,7 +21,8 @@
 #
 #   1. REPRODUCED TEXT. Runs of N words (default 10) that the tree and the
 #      rulebook have in common. Any run not carried in the baseline is a
-#      violation.
+#      violation. A reproduction SHORTER than N is invisible — see "The blind
+#      spot" below, which says how short and what was measured.
 #   2. CITATIONS RESOLVE. Every `rule-section-article` number cited in the four
 #      reference documents names an article the rulebook actually has.
 #
@@ -102,13 +103,66 @@
 # not a way to quiet the script. `--list` prints the line to add, and the baseline
 # file itself says more.
 #
+# ## THE BLIND SPOT: a reproduction of nine words or fewer is invisible here
+#
+# The gate is ten words. Nine is not a gap in the implementation, it is the
+# threshold — so a clean run means "no run of ten", and it does NOT mean the tree
+# holds none of the book's prose. Eight-word reproductions happen: one was written
+# into a commit message and found only because somebody scanned at eight while the
+# branch was still local, below what this script asks for. Nothing about rule 8
+# comes with a word count.
+#
+# Eight was then measured across the whole policed tree rather than argued about,
+# and REJECTED. Shared runs, whole tree, 214 files, against a plain-text extraction
+# of the book:
+#
+#      n = 10        0 runs                              (the state this ships in)
+#      n =  9       32 runs, 12 distinct, 18 files       29 baseline lines
+#      n =  8      130 runs, 57 distinct, 26 files      116 baseline lines
+#      n =  7      382 runs
+#      n =  6     1039 runs
+#
+# Every distinct run at 8 and at 9 was read against its own article. At 9, none is
+# a reproduction. At 8, two were — one a clause of prose lifted from the
+# ten-second-runoff article, one a quotation of a clock window set in quote marks
+# and announced as the article's words — and both were reworded, which is what the
+# counts above already reflect. The other 57 are chains of defined terms the sport
+# has no synonym for, a penalty's own name beside the article number rule 10
+# requires, a rule's title used as a heading, and plain coincidence.
+#
+# That is the successor to the twenty-three. At ten, twenty-three runs and every
+# one of them reducible: a gate whose every hit was worth acting on. At eight, 116
+# baseline lines standing around two findings — and a baseline line is a claim that
+# somebody opened the article and judged the run. A hundred and sixteen of those
+# would be a rubber stamp, and the baseline is the one part of this script that
+# only works if somebody reads it. So the cost of eight is not the runtime, it is
+# that it converts the gate into noise and buries the next real run inside it.
+#
+# Two things follow, and neither is fixed by a threshold:
+#
+#   * THIS SCRIPT NEVER READS A COMMIT MESSAGE, at any run length. It scans files
+#     in the tree. The run that prompted the measurement above was in a message,
+#     so no value of `--n` here would have caught it, and a merged message cannot
+#     be un-written afterwards. Shingle your own messages before you push.
+#   * A SHORT RUN IS A READING PROBLEM. At eight the script cannot tell a
+#     quotation from the same defined terms in the same order — the quoted clock
+#     window above sat among nine innocent uses of the identical words. Only
+#     opening the article separates them.
+#
+# `--n 8` runs the tree at eight on demand and is worth doing on a branch that
+# added football prose. Expect the count above, not zero, and read what moved.
+#
 # Usage:
 #   scripts/lint-reference.sh              lint the tree
 #   scripts/lint-reference.sh --list       print a baseline line per run found
 #   scripts/lint-reference.sh --self-test  run against the fixture corpus and
 #                                          fixture documents, and compare the
 #                                          hits against the expected list
-#   --n <N>                                run length, default 10
+#   --n <N>                                run length, default 10. Anything
+#                                          shorter than the default is advisory:
+#                                          the gate is ten, and the counts a
+#                                          shorter run prints are in "The blind
+#                                          spot" above.
 #
 # Exit codes: 0 clean or skipped, 1 violations, 2 the lint could not measure.
 
@@ -455,11 +509,14 @@ citation_out=""
 # back as a non-zero exit from awk, and `set -e` would end the script there without
 # a word. Refusing to print a count is the point; refusing to say why is not, so
 # the status is captured and reported rather than allowed to abort.
+# The run length is a parameter rather than the global, because the self-test has to
+# scan the same fixtures at two lengths to pin the blind spot, and a check that reaches
+# past its arguments for the number it is testing is a check that cannot test two.
 run_scan() {
-    local corpus=$1 status=0 out
-    shift
+    local length=$1 corpus=$2 status=0 out
+    shift 2
     set +e
-    out=$(awk -v CORPUS="$corpus" -v N="$n" "$scanner" "$corpus" "$@" 2>&1)
+    out=$(awk -v CORPUS="$corpus" -v N="$length" "$scanner" "$corpus" "$@" 2>&1)
     status=$?
     set -e
     if [ "$status" -ne 0 ]; then
@@ -534,7 +591,7 @@ if [ "$mode" = self-test ]; then
         exit 2
     fi
 
-    scan_out=$(run_scan "$corpus" "${fixture_docs[@]}")
+    scan_out=$(run_scan "$n" "$corpus" "${fixture_docs[@]}")
     control=$(printf '%s\n' "$scan_out" | grep '^CONTROL' || true)
     cite_out=$(run_citations "$corpus" 2 "$fixtures/docs/citations.md")
 
@@ -542,6 +599,39 @@ if [ "$mode" = self-test ]; then
         echo "lint-reference: the self-test's controls did not fire — printing nothing." >&2
         echo "  $control" >&2
         exit 2
+    fi
+
+    # The blind spot, pinned in both directions. `docs/blind-spot.md` carries nine
+    # consecutive words of the fixture corpus and no ten of them, so the gate as shipped
+    # must walk past it and a scan one word shorter must find it. The header explains why
+    # ten and not eight; this is what stops that from being only an explanation. Asserting
+    # the miss alone would be satisfied by a scanner that had stopped working, so the
+    # hit at nine is the half that carries the weight.
+    #
+    # Both lengths are literal rather than derived from the default, because a check that
+    # reads the number it is testing from the thing it is testing passes whatever that
+    # number becomes. Widen the gate and this goes red on purpose.
+    blind_spot="$fixtures/docs/blind-spot.md"
+    if [ ! -f "$blind_spot" ]; then
+        echo "lint-reference: $blind_spot is missing — the blind spot is unpinned" >&2
+        exit 2
+    fi
+
+    count_hits() {
+        printf '%s\n' "$1" |
+            awk -F'\t' '$1 !~ /^(CORPUS|FILES|CONTROL)$/ && NF >= 4' |
+            sed '/^$/d' | wc -l | tr -d ' '
+    }
+
+    blind_at_ten=$(count_hits "$(run_scan 10 "$corpus" "$blind_spot")")
+    blind_at_nine=$(count_hits "$(run_scan 9 "$corpus" "$blind_spot")")
+
+    if [ "$blind_at_ten" -ne 0 ] || [ "$blind_at_nine" -lt 1 ]; then
+        echo "lint-reference: SELF-TEST FAILED — the blind spot is not where the header says." >&2
+        echo "  $blind_spot must yield 0 runs at 10 words and at least 1 at 9;" >&2
+        echo "  it yielded $blind_at_ten at 10 and $blind_at_nine at 9." >&2
+        echo "  Either the fixture's planted run changed length, or the gate did." >&2
+        exit 1
     fi
 
     # A baseline that holds only its own explanation must read as no keys and must
@@ -585,6 +675,8 @@ if [ "$mode" = self-test ]; then
         sort -t: -k1,1 -k2,2n)
 
     echo "lint-reference: self-test controls — $control"
+    echo "lint-reference: self-test blind spot — the planted nine-word run is invisible at" \
+        "10 ($blind_at_ten hit(s)) and found at 9 ($blind_at_nine hit(s)), as the header says."
 
     if [ "$actual" = "$want" ]; then
         count=$(printf '%s\n' "$actual" | sed '/^$/d' | wc -l | tr -d ' ')
@@ -665,7 +757,7 @@ done
 # Check 1 — reproduced text
 # ---------------------------------------------------------------------------
 
-scan_out=$(run_scan "$corpus" "${targets[@]}")
+scan_out=$(run_scan "$n" "$corpus" "${targets[@]}")
 
 control_line=$(printf '%s\n' "$scan_out" | grep '^CONTROL' || true)
 corpus_grams=$(printf '%s\n' "$scan_out" | awk -F'\t' '$1 == "CORPUS" { print $2 }')

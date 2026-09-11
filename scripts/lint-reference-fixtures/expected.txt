@@ -8,6 +8,10 @@
 # docs/baselined.md holds a fourth run and is deliberately absent from this list: its
 # content key is in baseline.txt, so the lint must swallow it.
 # docs/paraphrase.md says what the corpus says in its own words and must yield nothing.
+# docs/blind-spot.md is absent for the opposite reason: its run is NINE words, one short
+# of the gate, so the lint cannot see it. That absence is the blind spot, and absence is
+# weak evidence on its own — the self-test also scans that file at nine and requires a
+# hit, so a scanner that had simply stopped working could not satisfy both.
 scripts/lint-reference-fixtures/docs/citations.md:11: citation-no such article
 scripts/lint-reference-fixtures/docs/one-line.md:10: reproduced-line
 scripts/lint-reference-fixtures/docs/wrapped.md:14: reproduced-joined
