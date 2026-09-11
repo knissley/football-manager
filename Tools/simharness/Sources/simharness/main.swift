@@ -1028,6 +1028,51 @@ report("carries2orFewer", carryShare { $0 <= 2 })
 report("carries10plus", carryShare { $0 >= 10 })
 report("carries20plus", carryShare { $0 >= 20 })
 
+// The four rows above are four cumulative shares and they overlap: a distribution can
+// satisfy all four and still be a stuff-or-break contest with nothing in between, which
+// is what this engine was. The whole of it, printed, so the middle of the run game is
+// visible without attaching a probe to the resolver.
+print("")
+print("    the length of a carry")
+var carryBuckets: [(label: String, test: (Int) -> Bool)] = []
+carryBuckets.append(("-3 or worse", { (length: Int) in length <= -3 }))
+for yards in -2...12 {
+    carryBuckets.append(("\(yards)", { (length: Int) in length == yards }))
+}
+carryBuckets.append(("13 to 19", { (length: Int) in length >= 13 && length <= 19 }))
+carryBuckets.append(("20 or more", { (length: Int) in length >= 20 }))
+let widest = carryBuckets.map { bucket in carryYards.filter(bucket.test).count }.max() ?? 1
+for bucket in carryBuckets {
+    let count = carryYards.filter(bucket.test).count
+    let share = Double(count) / Double(max(1, carryYards.count)) * 100
+    // Thirty characters at the widest bar, so the shape reads at a glance and the column
+    // does not depend on how many games were played.
+    let bar = String(repeating: "#", count: count * 30 / max(1, widest))
+    print(
+        "      " + pad(bucket.label, 14) + pad("\(count)", 8) + pad(oneDecimal(share) + "%", 8)
+            + bar)
+}
+// The middle, which is the shape claim the four rows above cannot make between them.
+// Not a `row:` and deliberately not one: the band is derived from `row:carries2orFewer`
+// and `row:carries10plus` rather than sourced on its own, so it lives in the test that
+// asserts it. See docs/reference/calibration-sources.md.
+let middle = carryShare { $0 >= 3 && $0 <= 9 }
+let mode =
+    carryYards.isEmpty
+    ? 0
+    : Set(carryYards).max { left, right in
+        let leftCount = carryYards.filter { $0 == left }.count
+        let rightCount = carryYards.filter { $0 == right }.count
+        return (leftCount, -left) < (rightCount, -right)
+    } ?? 0
+print(
+    "      " + pad("three to nine", 14) + pad("", 8) + pad(oneDecimal(middle) + "%", 8)
+        + "derived floor 42.3, ceiling 49.8 (2023-24, S1; test:theMiddleIsTheLargestPartOfTheRunGame)"
+)
+print(
+    "      " + pad("most common", 14) + pad("", 8) + pad("\(mode) yd", 8)
+        + "(no target: no source bands the mode of a carry — see calibration-sources.md)")
+
 print("")
 print("  The shape of a dropback")
 // The same question as the carry rows. A passing game with the right mean and no tail

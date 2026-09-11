@@ -548,9 +548,49 @@ struct GoldenSeedTests {
             // above reproduces these numbers. Checked before they were written down: all
             // three seeds differ from both parents of this merge, from each of the three
             // caller branches, and from both intermediate merges on this branch.
-            (UInt64(1), UInt64(18_059_936_834_785_840_009)),
-            (UInt64(5), UInt64(450_664_120_030_719_106)),
-            (UInt64(12), UInt64(12_428_643_440_527_402_903)),
+            // And moved again by the run game. A carry no longer reads its yards off one
+            // line through the hole quality with a flat lottery on the end of it: the
+            // hole decides which of three things happened — the point of attack lost,
+            // the ordinary carry through it, or the play side washed — and the ordinary
+            // one gains three to nine, decided by the carrier's vision and contact
+            // balance against the second level's tackling. The long run is a tackle
+            // missed in space rather than a draw on a hole that opened. Every carry
+            // spends a different number of draws in a different order, so every game
+            // diverges from its first handoff.
+            //
+            // And the run game then met the pocket, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes and a
+            // long run is a man beaten. On the other the pocket gets one verdict a snap
+            // and it is pressure only if the rusher got there before the ball was out,
+            // so fewer rushers get home and fewer sacks and scrambles are taken. The two
+            // reach each other on the same drives: a carry that gains five where it
+            // gained one is a second and five rather than a second and nine, which is a
+            // different call, and the dropback that call produces is the one the pocket
+            // is now deciding differently; a sack no longer taken leaves a down the run
+            // game then plays. Neither parent's constants could survive, because each
+            // was computed without the other's mechanism, and no subset of the
+            // mechanisms above reproduces these numbers.
+            //
+            // And the run game then met all of that, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes — the
+            // point of attack lost, the ordinary carry through it, the play side washed
+            // — and a long run is a tackle missed in space rather than a draw on a hole
+            // that opened. On the other a bench spends its timeouts, range is the
+            // kicker's, the grouping and the front are the sport's, an interference foul
+            // settles the catch, and a poor throw is the throw's incompletion. They
+            // reach each other on the same drives and in both directions. A carry that
+            // gains five where it gained one is a second and five rather than a second
+            // and nine, which is a different call, so the throw the catch rules are now
+            // deciding is a throw that would not have been made; and a defence that
+            // answers three receivers from its nickel back meets the run with six in the
+            // box where seven used to stand, which moves the point of attack the carry
+            // is now three outcomes of. Neither parent's constants could survive,
+            // because each was computed without the other's mechanisms, and no subset of
+            // the mechanisms above reproduces these numbers. Checked before they were
+            // written down: all three seeds differ from both parents of this merge.
+            (UInt64(1), UInt64(16_234_316_287_163_332_877)),
+            (UInt64(5), UInt64(7_894_583_737_340_030_344)),
+            (UInt64(12), UInt64(13_874_420_997_551_782_554)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
