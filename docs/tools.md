@@ -663,6 +663,10 @@ it was nonetheless the wrong article in six entries across three documents for w
 green run means "no uncarried run, and no dangling number" and not "the citations are
 right". That half stays a reading problem.
 
+It also cannot see a reproduction shorter than its run length — nine words or fewer slip
+straight through, and eight-word ones have happened. [The blind spot](#the-blind-spot-nine-words-or-fewer)
+has the measurement and why the threshold is still ten.
+
 **The corpus is not in the repository and will not be** — it is the copyrighted document
 rule 8 is about. Point `FM_RULEBOOK_TEXT` at a plain-text extraction of the book, or leave
 one at `.rulebook.txt` in the repository root, which `.gitignore` keeps out of the tree.
@@ -715,15 +719,49 @@ the article and judged the run; `--list` prints the line to add. The baseline me
 itself is exercised by `baselined.md` in the self-test rather than by anything carried in
 the tree.
 
-**Below ten words the shingle stops separating copying from vocabulary**, and that is why
-ten is the floor. Measured on `playing-rules.md` with everything at n=10 reworded away: 26
-runs at n=8 and 73 at n=7, and they are things like the three-and-one method's own list of
-a run, a backward pass and a fumble, or the toss choice between receiving and kicking off.
-Those are the rule, not a copy of it.
+### The blind spot: nine words or fewer
 
-It does not scan commit messages, and nothing can: a message merged to `main` cannot be
-un-written. Two sets on `main` carry book prose and are deliberately left there — see
-[the audit doc](audit-is-this-football.md). Shingle a message before you commit it.
+**A clean run means "no run of ten". It does not mean the tree holds none of the book's
+prose.** Eight-word reproductions happen — one was written into a commit message and
+caught only because an agent scanned at eight, below what the script asks for — and
+CLAUDE.md rule 8 does not come with a word count.
+
+Eight was measured over the whole tree and **rejected**. Shared runs, 214 files, against a
+plain-text extraction of the book, September 2026:
+
+| n | runs | distinct | files | baseline lines it would need |
+| --- | --- | --- | --- | --- |
+| 10 | 0 | 0 | 0 | 0 |
+| 9 | 32 | 12 | 18 | 29 |
+| 8 | 130 | 57 | 26 | 116 |
+| 7 | 382 | 161 | 38 | 337 |
+| 6 | 1039 | 371 | 56 | 854 |
+
+Every distinct run at 8 and 9 was read against its own article. At 9 none is a
+reproduction. At 8 two were, both reworded in the same change that recorded this table —
+a clause of prose from the ten-second-runoff article, and a clock window set in quote
+marks and announced as the article's words. The other 57 are chains of defined terms with
+no synonym, a penalty's own name beside the article number rule 10 requires, a rule title
+used as a heading, and coincidence.
+
+**That is the successor to the twenty-three.** At ten, twenty-three runs and every one
+reducible — every hit worth acting on. At eight, 116 baseline lines around two findings,
+and a baseline line is a claim that somebody opened the article and judged the run. A
+hundred and sixteen of those is a rubber stamp, and the baseline only works if it is read.
+The cost of eight is not runtime; it is that the gate becomes noise and buries the next
+real run inside it. `--n 8` runs the tree at eight on demand — worth doing on a branch
+that added football prose. Expect the table, not zero, and read what moved.
+
+Two things follow that no threshold fixes:
+
+- **It does not scan commit messages, at any `--n`**, and nothing can un-write one merged
+  to `main`. The run that prompted this measurement was in a message. Two sets on `main`
+  carry book prose and are deliberately left there — see
+  [the audit doc](audit-is-this-football.md). **Shingle a message before you commit it**,
+  per line and joined, at eight as well as ten.
+- **A short run is a reading problem.** At eight the script cannot tell a quotation from
+  the same defined terms in the same order: the quoted clock window above sat among nine
+  innocent uses of the identical words. Only opening the article separates them.
 
 ### Its self-test
 
@@ -737,7 +775,7 @@ rulebook**, imitating the shape of one — numbered rules, sections and articles
 heading deliberately broken across a line the way a PDF extractor breaks them, so the
 script's repair of that is exercised.
 
-Four fixture documents, one per direction:
+Six fixture documents, one per direction:
 
 | fixture | what it pins |
 | --- | --- |
@@ -745,6 +783,7 @@ Four fixture documents, one per direction:
 | `wrapped.md` | a run **only** a joined scan can see is found, and labelled `joined` |
 | `baselined.md` | a run whose key is in the fixture baseline is **not** reported |
 | `paraphrase.md` | the same rules in our own words yield nothing |
+| `blind-spot.md` | a **nine**-word run is invisible at ten and found at nine |
 | `citations.md` | a number the corpus does not have is reported, and three that it does are not |
 
 Plus `baseline-empty.txt`, a baseline holding only its own explanation, which must read as
@@ -759,6 +798,12 @@ as `path:line: rule-id`, and a difference either way fails. `wrapped.md` is the 
 protecting: rewrite the scanner to look at lines one at a time and both it and the
 runtime control go red, rather than the script printing a comfortable zero. CI runs the
 self-test as a hard-failing step, and the lint proper as a step that skips.
+
+`blind-spot.md` is checked at two run lengths rather than one, and both halves matter: it
+must yield nothing at ten, and at least one hit at nine. Asserting the miss alone would be
+satisfied by a scanner that had stopped working altogether, which is the same failure as a
+control that cannot fire. Widen the gate and it goes red on purpose — the blind spot is a
+decision, and a decision nothing exercises is a comment.
 
 ## harness-reach — can this change reach the harness?
 
