@@ -37,10 +37,41 @@ enum Injuries {
     static func drawn(
         on play: PlayRecord, context: PlayContext, random: inout SplittableRandom
     ) -> InjuryEvent? {
+        guard somebodyCouldHaveBeenHurt(on: play) else { return nil }
         if let nonContact = nonContactInjury(on: play, context: context, random: &random) {
             return nonContact
         }
         return contactInjury(on: play, context: context, random: &random)
+    }
+
+    /// Whether this down is one anybody could have been hurt on.
+    ///
+    /// Both draws below read the record's *credits* as if they were physical facts, and
+    /// on three kinds of down the two come apart.
+    ///
+    /// A knee and a spike are snaps taken to stop the game rather than to play it. One
+    /// man is credited on each — the quarterback, down as a rusher on a knee because he
+    /// carried the ball and not because he ran, and as a passer on a spike. Neither
+    /// record carries a tackler, a blocker or a pass rusher, so there is nobody on it to
+    /// have hit him, and neither carries anybody who changed direction at speed: a man
+    /// standing on the ball is in a smaller phone booth than the guard who does not tear
+    /// a knee in `nonContactInjury`. A down that was never snapped is not a down at all —
+    /// a dead-ball foul replays it, and nobody has moved.
+    ///
+    /// A kick is not in the list. A field goal and a try are scrimmage downs with a rush
+    /// to block, and they keep the small exposure `contactInjury` gives them.
+    ///
+    /// The cost of getting this wrong is not who limps off. After the two-minute warning
+    /// an injury costs the injured player's team a charged team timeout (2025 rulebook,
+    /// 4-5-4-a) and the game clock then waits for the next snap (4-3-2) — so a
+    /// quarterback hurt taking a knee hands the clock back to the side that has just
+    /// kneeled the half away, and a caller counting a clock that is no longer running
+    /// plays the down after all.
+    static func somebodyCouldHaveBeenHurt(on play: PlayRecord) -> Bool {
+        switch play.outcome.kind {
+        case .kneel, .spike, .penaltyOnly: return false
+        default: return true
+        }
     }
 
     /// A knee or an achilles going on a cut, a plant or a landing.
@@ -94,7 +125,14 @@ enum Injuries {
         case .sack: exposure = 1.5
         case .pass: exposure = play.outcome.endedIn == .incomplete ? 0.5 : 1.0
         case .punt, .kickoff: exposure = 1.2
-        case .kneel, .spike, .penaltyOnly, .extraPoint, .fieldGoal: exposure = 0.05
+        // A kick is a scrimmage down with a rush to block, and hurts somebody about as
+        // often as you would expect from that: rarely, and not never.
+        case .extraPoint, .fieldGoal: exposure = 0.05
+        // Not reached through `drawn`, which turns these three away before either draw —
+        // nobody was hit on them and nobody ran. They keep the number they had so that a
+        // caller reaching past `drawn` gets the same answer it always did, rather than a
+        // second exposure nobody can see.
+        case .kneel, .spike, .penaltyOnly: exposure = 0.05
         default: exposure = 0.8
         }
 

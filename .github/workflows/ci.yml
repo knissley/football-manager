@@ -170,14 +170,21 @@ jobs:
         # article number) had nothing enforcing them until #98. The lint needs the
         # rulebook, which is not in the repository and will not be, so the step below
         # skips here — this one does not: the fixture tree ships an invented corpus, so
-        # the scanner, its joining of wrapped lines, its baseline and the citation index
-        # are all exercised on every run. See docs/tools.md.
+        # the scanner, its joining of wrapped lines, its baseline, its commit-message
+        # check and the citation index are all exercised on every run. The commit-message
+        # half builds a throwaway git repository in the runner's temp directory and points
+        # the check at that, so it needs `git` on PATH and nothing from the checkout's own
+        # history. See docs/tools.md.
         run: ./scripts/lint-reference.sh --self-test
 
       - name: Reference lint
         # Expected to print SKIPPED and pass: no corpus is available to the runner. It is
         # here so the skip path is exercised rather than assumed, and so the day a corpus
         # can be made available this step starts checking instead of having to be added.
+        # On that day note that `actions/checkout` fetches one commit by default, so there
+        # is no `origin/main` to take a merge base from: the commit-message check would say
+        # out loud that it did not run rather than passing quietly, and closing that needs
+        # `fetch-depth: 0` here, not a change to the script.
         run: ./scripts/lint-reference.sh
 
       - name: Test census
