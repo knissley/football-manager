@@ -104,10 +104,16 @@ enum PlaceKick {
         max(20.0, averageReach + (leg - averageLeg) * reachPerLegPoint)
     }
 
-    /// The longest kick a rating of 99 reaches — the longest attempt anyone in a generated
-    /// league can be sent out for, and what a test asserting nobody kicks a seventy-yarder
-    /// reads.
-    static var longestAttempt: Int { Int(reach(leg: 99)) }
+    /// The longest kick anyone in a generated league can be sent out for, as the kick's
+    /// raw length — what a test asserting nobody kicks a seventy-yarder reads.
+    ///
+    /// Two parts, because range is read net of the conditions and the *record* carries the
+    /// raw length. The reach of a leg at the top of the scale, and the four yards the
+    /// thinnest air a league is played in adds to a kick: the highest ground in the
+    /// curated set is 5,200 feet, which `Conditions.kickingAdjustment` turns into 3.7
+    /// yards of carry. Nothing else in the weather adds any — cold, wind and snow only
+    /// take it away — so this is the whole of the gap between the two lengths.
+    static var longestAttempt: Int { Int(reach(leg: 99)) + 4 }
 
     // MARK: - Whether it goes through
 
