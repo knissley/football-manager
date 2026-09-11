@@ -234,12 +234,14 @@ extension RulesScenario {
         case .kickoffFairCaught: return RulesScenarios.kickoffFairCaught
         case .playEndingJustBeforeTheTwoMinuteWarning:
             return RulesScenarios.playStretchedToEnd(quarter: 4, at: 121)
+        // Snapped above 2:00 and dead below it, so the warning falls in the down and
+        // not in the interval before it.
         case .playRunningPastTheTwoMinuteWarning:
-            return RulesScenarios.playStretchedToEnd(quarter: 2, at: 117)
+            return RulesScenarios.playStretchedToEnd(quarter: 2, at: 117, snappedAfter: 120)
         case .playEndingJustBeforeTheTwoMinuteWarningOfOvertime:
             return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121)
         case .playRunningPastTheTwoMinuteWarningOfOvertime:
-            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 117)
+            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 117, snappedAfter: 120)
         case .playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod:
             return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121, postseasonDecidedIn: 6)
         case .playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod:

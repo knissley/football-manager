@@ -378,9 +378,25 @@ struct GoldenSeedTests {
             // to the ball and breaks a tackle on a number in the sixties where he did it
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
-            (UInt64(1), UInt64(16_544_674_377_827_432_735)),
-            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
-            (UInt64(12), UInt64(3_133_720_638_961_547_474)),
+            //
+            // And moved by the clock, by the engine. The interval between downs is
+            // charged before the situation is built rather than after it is recorded, so
+            // every play's recorded clock moves from the end of the play before to the
+            // moment the ball was snapped. Three things follow that the checksum can see.
+            // A period the interval alone exhausts now ends with **no down recorded**
+            // (2025 rulebook, 4-8-1), and a play removed from the end of a period removes
+            // every later play's seed split with it, so each of these games diverges
+            // wholly from its first such period. The two-minute warning taken between
+            // downs now belongs to the snap that follows it rather than to the one after
+            // that, and no longer buys the offence a free interval on the down after the
+            // warning. And a caller reading the clock at the previous whistle, which is
+            // where it still reads it, is asked about a game that no longer carries those
+            // downs. `Tools/gamelog --seed 7 --home 3 --away 11` prints a hundred and
+            // seventy-eight plays where it printed a hundred and sixty-six, with the
+            // clock column reading at the snap throughout.
+            (UInt64(1), UInt64(10_623_083_055_246_833_324)),
+            (UInt64(5), UInt64(4_170_365_452_443_562_427)),
+            (UInt64(12), UInt64(10_212_446_830_659_895_973)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

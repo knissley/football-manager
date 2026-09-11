@@ -450,15 +450,13 @@ swift run gamelog --scenario defensive-holding-on-a-play-ending-in-bounds | head
 swift run gamelog --scenario defensive-holding-inside-five-minutes-of-the-fourth-quarter | grep -B1 -A2 "defensive holding"
 swift run gamelog --scenario offensive-holding-in-the-fourth-quarter-outside-five-minutes | grep -B1 -A2 "offensive holding"
 
-# What a spike costs (4-4-f, 8-2-1 Item 3). **Read the clock at the snap, not at the line.**
-# A play's printed clock is the previous whistle's, and the offence's interval between
-# downs is charged at the snap: the spike printed at 0:13 was snapped at 0:05, left 0:04,
-# and the fourth down is snapped at 0:04 and played. Reading the printed clock as the snap
-# clock is what makes a spike look like it costs nine seconds. The spike is play 300 of
-# 354, so grep for it — the tail of this scripted game is the overtime a 0–0 tie runs into.
+# What a spike costs (4-4-f, 8-2-1 Item 3). The printed clock is the clock the ball was
+# snapped on, so this reads straight off the page: the spike is snapped at 0:05, costs its
+# own second, and the fourth down is snapped at 0:04 and played. Grep for it — the tail of
+# this scripted game is the overtime a 0–0 tie runs into.
 swift run gamelog --scenario spike-snapped-at-five-seconds-on-third-down | grep -B1 -A1 "spikes it to stop the clock"
 
-# The same read twenty seconds out: printed at 0:28, snapped at 0:20, fourth down at 0:19.
+# The same twenty seconds out: the spike at 0:20, the fourth down at 0:19.
 swift run gamelog --scenario spike-snapped-at-twenty-seconds | grep -B1 -A1 "spikes it to stop the clock"
 
 # A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A

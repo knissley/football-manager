@@ -20,11 +20,18 @@ import Testing
 // takes, so the game a reader watches is the game this suite asserts on.
 //
 // Two conventions the clock scenarios rest on, neither of them a rule. A play's recorded
-// situation is the moment the previous play ended, and the offence's tempo — the huddle —
-// is charged at the snap when the clock is running, so a play snapped on a running clock
-// ends at `clock - huddle - clockRunoff`; the huddle is measured from the game itself,
-// never assumed. And a flag before the snap flies when the snap was due: the huddle has
-// elapsed, no play time has, and only then does any runoff come off.
+// situation is the moment the ball was snapped — the offence's interval between downs has
+// already come off it — so a play on a running clock ends at `clock - clockRunoff` and the
+// snap after it comes an interval later still; that interval is measured from the game
+// itself, never assumed. And a flag before the snap flies when the snap was due, so the
+// flag's own record reads at the flag: the interval has elapsed, no play time has, and
+// only then does any runoff come off.
+//
+// What the interval costs the game clock is the offence's tempo against the play clock in
+// force (4-6), and that is the engine's model rather than a rule: nothing where the clock
+// waits for the snap, the whole of it where nothing had stopped the clock, and that less
+// the officials' spot where a rule restarts the clock on the ready for play, which is
+// `intervalFromTheReady` below.
 //
 // Kinds are in the names until the tag helpers land: every test here is `football`
 // except the one `pin`, which says so.
@@ -94,6 +101,14 @@ struct RulesConformanceTests {
             return nil
         }
         return found
+    }
+
+    /// What the interval to the next snap costs the game clock where a rule restarts the
+    /// clock on the ready-for-play signal (4-3-2-e, 4-3-2-g): the offence's tempo against
+    /// the play clock that stoppage leaves (4-6-2, 4-6-3), less the officials' spot, which
+    /// the clock does not run through. The tempo is the engine's model and not a rule.
+    private func intervalFromTheReady(_ playClock: PlayClock, at tempo: Tempo = .normal) -> UInt16 {
+        playClock.intendedSnap(at: tempo) - GameClock.readyForPlayDelay
     }
 
     /// Whether the game reached overtime: the football fact every overtime scenario
@@ -827,9 +842,10 @@ struct RulesConformanceTests {
             stop.index + 1, possession: trace.opponent(of: before.possession), down: .first,
             clockRunning: false, "the ball changes hands on downs, and the clock is dead")
         guard let next = trace[stop.index + 1] else { return }
-        trace.expectPlay(
-            stop.index + 2, clock: next.situation.clockRemaining - 6,
-            "the new offence's first snap costs only the play's own six seconds")
+        #expect(
+            next.situation.clockRemaining
+                == before.clockRemaining - stop.play.outcome.clockRunoff,
+            "the new offence's huddle cost it nothing: it snapped on the clock the down left")
     }
 
     @Test(
@@ -848,9 +864,10 @@ struct RulesConformanceTests {
             ballOn: 70, clockRunning: false,
             "the receiving side takes over at its own 30 with the clock dead")
         guard let next = trace[punt.index + 1] else { return }
-        trace.expectPlay(
-            punt.index + 2, clock: next.situation.clockRemaining - 6,
-            "the new offence's first snap costs only the play's own six seconds")
+        #expect(
+            next.situation.clockRemaining
+                == before.clockRemaining - punt.play.outcome.clockRunoff,
+            "the new offence's huddle cost it nothing: it snapped on the clock the return left")
     }
 
     /// A fumble the offence falls on in the field of play is not among the stoppages:
@@ -886,9 +903,10 @@ struct RulesConformanceTests {
         trace.expectPlay(
             2, possession: trace.opponent(of: fumble.situation.possession), down: .first,
             clockRunning: false, "the defence has the ball, and the clock is dead")
-        trace.expectPlay(
-            3, clock: next.situation.clockRemaining - 6,
-            "the new offence's first snap costs only the play's own six seconds")
+        #expect(
+            next.situation.clockRemaining
+                == fumble.situation.clockRemaining - fumble.outcome.clockRunoff,
+            "the new offence's huddle cost it nothing: it snapped on the clock the fumble left")
     }
 
     /// Filed with A4 (#17): the clock starts when the kick is legally touched in the
@@ -909,7 +927,14 @@ struct RulesConformanceTests {
         trace.expectPlay(
             1, clock: 900 - 8, clockRunning: false,
             "the eight seconds of the return come off, and the clock waits for the snap")
-        trace.expectPlay(2, clock: 900 - 8 - 6, "the first snap costs only its own six seconds")
+        guard let huddle = trace.huddle else {
+            Issue.record("the game never showed the offence's interval between downs")
+            return
+        }
+        trace.expectPlay(
+            2, clock: 900 - 8 - 6 - huddle,
+            "that snap cost nothing, the down cost its six seconds, and the clock then ran on into the next"
+        )
     }
 
     @Test("football · Rule 4-3-1-c · a fair-caught kickoff starts no clock", .tags(.football))
@@ -954,7 +979,9 @@ struct RulesConformanceTests {
 
     /// A play ends at 2:01 with the clock running. The clock reaches 2:00 between
     /// downs, the warning stops it there, and the snap that follows restarts it: the
-    /// offence's huddle costs one second rather than its whole tempo.
+    /// offence's interval costs it one second rather than its whole tempo, so that snap is
+    /// taken at 2:00 and the warning is on its record. The down after *that* one is an
+    /// ordinary down with the clock running into it again.
     @Test(
         "football · Rule 3-41, 4-4-h · the two-minute warning stops a running clock at exactly 2:00 and the snap restarts it",
         .tags(.football)
@@ -970,12 +997,16 @@ struct RulesConformanceTests {
             return
         }
         trace.expectPlay(
-            stretched.index + 1, quarter: 4, clock: 121, clockRunning: true,
-            "the play ended at 2:01 with the clock running")
-        guard let next = trace[stretched.index + 1] else { return }
-        trace.expectPlay(
-            stretched.index + 2, quarter: 4, clock: 120 - next.outcome.clockRunoff,
-            "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
+            stretched.index + 1, quarter: 4, clock: 120, clockRunning: true,
+            "the interval from 2:01 was cut at 2:00: the ball was snapped at the warning")
+        #expect(
+            trace[stretched.index + 1]?.hasTwoMinuteWarningBeforeTheSnap == true,
+            "the warning came between the downs, so it is on the record of the snap after it")
+        guard let next = trace[stretched.index + 1], let after = trace[stretched.index + 2]
+        else { return }
+        #expect(
+            after.situation.clockRemaining <= 120 - next.outcome.clockRunoff,
+            "the snap restarted the clock, so the down after the warning came off it")
     }
 
     /// The clock runs past 2:00 during a play: that down finishes, and only then is the
@@ -997,9 +1028,10 @@ struct RulesConformanceTests {
         trace.expectPlay(
             stretched.index + 1, quarter: 2, clock: 117, clockRunning: false,
             "the down finished at 1:57, and the clock is dead from there until the snap")
-        trace.expectPlay(
-            stretched.index + 2, quarter: 2, clock: 117 - 6,
-            "the snap at 1:57 costs only the play's own six seconds")
+        guard let after = trace[stretched.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= 117 - 6,
+            "that snap cost nothing, and only the down after it came off the clock")
     }
 
     /// Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
@@ -1015,12 +1047,13 @@ struct RulesConformanceTests {
             return
         }
         trace.expectPlay(
-            stretched.index + 1, quarter: 5, clock: 121, clockRunning: true,
-            "the play ended at 2:01 of overtime with the clock running")
-        guard let next = trace[stretched.index + 1] else { return }
-        trace.expectPlay(
-            stretched.index + 2, quarter: 5, clock: 120 - next.outcome.clockRunoff,
-            "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
+            stretched.index + 1, quarter: 5, clock: 120, clockRunning: true,
+            "the interval from 2:01 was cut at 2:00: the ball was snapped at the warning")
+        guard let next = trace[stretched.index + 1], let after = trace[stretched.index + 2]
+        else { return }
+        #expect(
+            after.situation.clockRemaining <= 120 - next.outcome.clockRunoff,
+            "the snap restarted the clock, so the down after the warning came off it")
     }
 
     @Test(
@@ -1036,9 +1069,10 @@ struct RulesConformanceTests {
             stretched.index + 1, quarter: 5, clock: 117, clockRunning: false,
             "the down finished at 1:57 of overtime, and the clock is dead from there until the snap"
         )
-        trace.expectPlay(
-            stretched.index + 2, quarter: 5, clock: 117 - 6,
-            "the snap at 1:57 costs only the play's own six seconds")
+        guard let after = trace[stretched.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= 117 - 6,
+            "that snap cost nothing, and only the down after it came off the clock")
     }
 
     /// Postseason overtime pairs its periods into halves, and a half's closing rules
@@ -1057,12 +1091,13 @@ struct RulesConformanceTests {
             return
         }
         trace.expectPlay(
-            stretched.index + 1, quarter: 5, clock: 121, clockRunning: true,
-            "the play ended at 2:01 with the clock running")
-        guard let next = trace[stretched.index + 1] else { return }
-        trace.expectPlay(
-            stretched.index + 2, quarter: 5, clock: 121 - huddle - next.outcome.clockRunoff,
-            "no warning: the whole huddle came off the clock, and then the play")
+            stretched.index + 1, quarter: 5, clock: 121 - huddle, clockRunning: true,
+            "no warning to cut the interval: the whole of it came off a clock that read 2:01")
+        guard let next = trace[stretched.index + 1], let after = trace[stretched.index + 2]
+        else { return }
+        #expect(
+            after.situation.clockRemaining <= 121 - huddle - next.outcome.clockRunoff,
+            "and then the down came off it too")
     }
 
     @Test(
@@ -1075,12 +1110,13 @@ struct RulesConformanceTests {
         guard reachedPeriod(6, in: trace), let stretched = stretchedPlay(in: trace, quarter: 6)
         else { return }
         trace.expectPlay(
-            stretched.index + 1, quarter: 6, clock: 121, clockRunning: true,
-            "the play ended at 2:01 of the second overtime period with the clock running")
-        guard let next = trace[stretched.index + 1] else { return }
-        trace.expectPlay(
-            stretched.index + 2, quarter: 6, clock: 120 - next.outcome.clockRunoff,
-            "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
+            stretched.index + 1, quarter: 6, clock: 120, clockRunning: true,
+            "the interval from 2:01 was cut at 2:00: the ball was snapped at the warning")
+        guard let next = trace[stretched.index + 1], let after = trace[stretched.index + 2]
+        else { return }
+        #expect(
+            after.situation.clockRemaining <= 120 - next.outcome.clockRunoff,
+            "the snap restarted the clock, so the down after the warning came off it")
     }
 
     /// A period is extended past its expiry only while the ball is in play (4-8-1). Time
@@ -1200,17 +1236,19 @@ struct RulesConformanceTests {
             before.clockRemaining <= 300 && before.clockRemaining - out.huddle - 6 > 120,
             "the scenario meant the runner out inside five minutes and outside two")
         trace.expectPlay(
-            out.index + 1, quarter: 6, clock: before.clockRemaining - out.huddle - 6,
+            out.index + 1, quarter: 6,
+            clock: before.clockRemaining - out.play.outcome.clockRunoff
+                - intervalFromTheReady(Rules.standard.playClockAfterAPlay),
             clockRunning: true,
-            "the huddle and the play came off, and the clock restarts on the ready: it runs into the next snap"
+            "the down came off, and the clock restarts on the ready: it runs into the next snap"
         )
         guard let next = trace[out.index + 1], let after = trace[out.index + 2] else {
             Issue.record("no play after the one that followed the runner out of bounds")
             return
         }
         #expect(
-            after.situation.clockRemaining < next.situation.clockRemaining - 6,
-            "the next huddle came off the clock as well as the play")
+            after.situation.clockRemaining <= next.situation.clockRemaining - 6,
+            "and on into the one after that, which came off the clock as the down did")
     }
 
     /// The other half of the same asymmetry: a fourth postseason overtime period ends
@@ -1230,13 +1268,13 @@ struct RulesConformanceTests {
         #expect(
             before.clockRemaining <= 300, "the scenario meant the runner out inside five minutes")
         trace.expectPlay(
-            out.index + 1, quarter: 8, clock: before.clockRemaining - out.huddle - 6,
-            clockRunning: false,
-            "the huddle and the play came off, and the clock is dead until the snap")
-        guard let next = trace[out.index + 1] else { return }
-        trace.expectPlay(
-            out.index + 2, quarter: 8, clock: next.situation.clockRemaining - 6,
-            "the next snap costs only the play's own six seconds")
+            out.index + 1, quarter: 8,
+            clock: before.clockRemaining - out.play.outcome.clockRunoff, clockRunning: false,
+            "the down came off and nothing else did: the clock is dead until the snap")
+        guard let next = trace[out.index + 1], let after = trace[out.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= next.situation.clockRemaining - 6,
+            "and that snap started it again, so the down after it came off the clock")
     }
 
     /// The fourth quarter's own window: inside the last five minutes of the second
@@ -1254,13 +1292,13 @@ struct RulesConformanceTests {
         #expect(
             before.clockRemaining <= 300, "the scenario meant the runner out inside five minutes")
         trace.expectPlay(
-            out.index + 1, quarter: 4, clock: before.clockRemaining - out.huddle - 6,
-            clockRunning: false,
-            "the huddle and the play came off, and the clock is dead until the snap")
-        guard let next = trace[out.index + 1] else { return }
-        trace.expectPlay(
-            out.index + 2, quarter: 4, clock: next.situation.clockRemaining - 6,
-            "the next snap costs only the play's own six seconds")
+            out.index + 1, quarter: 4,
+            clock: before.clockRemaining - out.play.outcome.clockRunoff, clockRunning: false,
+            "the down came off and nothing else did: the clock is dead until the snap")
+        guard let next = trace[out.index + 1], let after = trace[out.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= next.situation.clockRemaining - 6,
+            "and that snap started it again, so the down after it came off the clock")
     }
 
     /// Where the window is judged. The article's words are "inside the last five
@@ -1277,8 +1315,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.runnerOutOfBoundsAcrossFiveMinutesOfTheFourthQuarter.run()
         guard let out = outOfBounds(in: trace, quarter: 4) else { return }
         let before = out.play.situation
-        let running = trace.clockRunning(into: out.index) == true
-        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let snapped = Int(before.clockRemaining)
         let dead = snapped - Int(out.play.outcome.clockRunoff)
         #expect(
             snapped > 300, "the scenario meant the play snapped with more than five minutes left")
@@ -1286,11 +1323,11 @@ struct RulesConformanceTests {
         trace.expectPlay(
             out.index + 1, quarter: 4, clock: UInt16(dead), clockRunning: false,
             "the runner went out inside five minutes: the clock is dead until the snap")
-        guard let next = trace[out.index + 1] else { return }
-        trace.expectPlay(
-            out.index + 2, quarter: 4,
-            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
-            "the next snap costs only the play's own seconds, and no huddle")
+        guard let next = trace[out.index + 1], let after = trace[out.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= next.situation.clockRemaining
+                - next.outcome.clockRunoff,
+            "that snap cost nothing, and only the down after it came off the clock")
     }
 
     /// The first half's window is "after the two-minute warning" (4-3-2-a-2), and the
@@ -1307,8 +1344,7 @@ struct RulesConformanceTests {
             .run()
         guard let out = outOfBounds(in: trace, quarter: 2) else { return }
         let before = out.play.situation
-        let running = trace.clockRunning(into: out.index) == true
-        let snapped = Int(before.clockRemaining) - (running ? Int(out.huddle) : 0)
+        let snapped = Int(before.clockRemaining)
         let dead = snapped - Int(out.play.outcome.clockRunoff)
         #expect(snapped > 120, "the scenario meant the play snapped before the warning")
         #expect(dead < 120, "and the runner out of bounds after it")
@@ -1316,11 +1352,11 @@ struct RulesConformanceTests {
             out.index + 1, quarter: 2, clock: UInt16(dead), clockRunning: false,
             "the down that crossed 2:00 is over, the warning is taken, and the clock is dead until the snap"
         )
-        guard let next = trace[out.index + 1] else { return }
-        trace.expectPlay(
-            out.index + 2, quarter: 2,
-            clock: next.situation.clockRemaining - next.outcome.clockRunoff,
-            "the next snap costs only the play's own seconds, and no huddle")
+        guard let next = trace[out.index + 1], let after = trace[out.index + 2] else { return }
+        #expect(
+            after.situation.clockRemaining <= next.situation.clockRemaining
+                - next.outcome.clockRunoff,
+            "that snap cost nothing, and only the down after it came off the clock")
     }
 
     // MARK: The ten-second runoff
@@ -1345,8 +1381,12 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, down: before.down,
             distance: before.distance + 5, ballOn: before.ballOn + 5, "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
-            "the huddle, then ten seconds, and the clock restarts on the ready, not the snap")
+            flag.index + 1,
+            clock: before.clockRemaining - 10
+                - intervalFromTheReady(Rules.standard.playClockAfterARunoff),
+            clockRunning: true,
+            "ten seconds off the clock at the flag, and then the clock restarts on the ready, not the snap"
+        )
     }
 
     /// Rewritten from 4-3-2-e (wave 1 review). This scenario used to run in the fourth
@@ -1370,8 +1410,11 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: true,
-            "the huddle and nothing else: no play happened, and the clock restarts on the ready as though the flag had never flown"
+            flag.index + 1,
+            clock: before.clockRemaining
+                - intervalFromTheReady(Rules.standard.playClockAfterAnAdministrativeStoppage),
+            clockRunning: true,
+            "no runoff and no play, so the clock stands at the flag and then restarts on the ready as though the flag had never flown"
         )
     }
 
@@ -1394,8 +1437,8 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down, no runoff outside two minutes")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: false,
-            "the huddle and nothing else, and the clock waits for the snap")
+            flag.index + 1, clock: before.clockRemaining, clockRunning: false,
+            "no runoff and no play: the clock stands at the flag and waits for the snap")
     }
 
     /// Fourth-quarter timing rules apply in regular-season overtime (16-1-3-e), the
@@ -1417,8 +1460,11 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
-            "the huddle, then ten seconds, and the clock restarts on the ready")
+            flag.index + 1,
+            clock: before.clockRemaining - 10
+                - intervalFromTheReady(Rules.standard.playClockAfterARunoff),
+            clockRunning: true,
+            "ten seconds off the clock at the flag, and then the clock restarts on the ready")
     }
 
     /// Fourth-period timing applies in regular-season overtime (16-1-3-e), so the
@@ -1434,8 +1480,7 @@ struct RulesConformanceTests {
         guard reachedOvertime(trace), let flag = flag(in: trace, quarter: 5) else { return }
         let before = flag.play.situation
         #expect(
-            Int(before.clockRemaining) - Int(flag.huddle) > 300,
-            "the scenario meant the flag to fly outside every window")
+            before.clockRemaining > 300, "the scenario meant the flag to fly outside every window")
         #expect(
             trace.clockRunning(into: flag.index) == true,
             "the scenario meant the clock to be running when the flag flew")
@@ -1443,8 +1488,8 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down, no runoff outside two minutes")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: false,
-            "the huddle and nothing else, and the clock waits for the snap")
+            flag.index + 1, clock: before.clockRemaining, clockRunning: false,
+            "no runoff and no play: the clock stands at the flag and waits for the snap")
     }
 
     /// A second postseason overtime period ends as the first half does (16-1-4-h), and
@@ -1467,8 +1512,11 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle - 10, clockRunning: true,
-            "the huddle, then ten seconds, and the clock restarts on the ready")
+            flag.index + 1,
+            clock: before.clockRemaining - 10
+                - intervalFromTheReady(Rules.standard.playClockAfterARunoff),
+            clockRunning: true,
+            "ten seconds off the clock at the flag, and then the clock restarts on the ready")
     }
 
     /// 4-3-2-e-3 names its periods: the fourth, and regular-season overtime. What
@@ -1485,8 +1533,7 @@ struct RulesConformanceTests {
         guard reachedPeriod(5, in: trace), let flag = flag(in: trace, quarter: 5) else { return }
         let before = flag.play.situation
         #expect(
-            Int(before.clockRemaining) - Int(flag.huddle) > 300,
-            "the scenario meant the flag to fly outside every window")
+            before.clockRemaining > 300, "the scenario meant the flag to fly outside every window")
         #expect(
             trace.clockRunning(into: flag.index) == true,
             "the scenario meant the clock to be running when the flag flew")
@@ -1494,8 +1541,11 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "five yards, same down")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: true,
-            "the huddle and nothing else, and the clock restarts on the ready as though the flag had never flown"
+            flag.index + 1,
+            clock: before.clockRemaining
+                - intervalFromTheReady(Rules.standard.playClockAfterAnAdministrativeStoppage),
+            clockRunning: true,
+            "no runoff and no play, so the clock stands at the flag and then restarts on the ready as though the flag had never flown"
         )
     }
 
@@ -1534,8 +1584,9 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, ballOn: before.ballOn + 5,
             "the five yards stand")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle,
-            "the huddle and nothing else: the trailing defence declined the ten seconds")
+            flag.index + 1, clock: before.clockRemaining,
+            "no ten seconds and no play: the clock stands at the flag, and inside two minutes it waits for the snap"
+        )
     }
 
     /// Instead of the runoff the offence may spend a charged timeout, and then the clock
@@ -1548,7 +1599,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.falseStartAtTwelveSecondsWithATimeout.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
         let before = flag.play.situation
-        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        let flew = Int(before.clockRemaining)
         #expect(flew == 12, "the scenario meant the flag to fly at 0:12, not \(flew)")
         #expect(before.offenseTimeouts > 0, "the scenario meant the offence to have a timeout")
         trace.expectPlay(
@@ -1570,7 +1621,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.falseStartAtEightSecondsOfTheHalf.run()
         guard let flag = flag(in: trace, quarter: 2) else { return }
         let before = flag.play.situation
-        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        let flew = Int(before.clockRemaining)
         #expect(flew == 8, "the scenario meant the flag to fly at 0:08, not \(flew)")
         #expect(before.offenseTimeouts == 0, "the scenario meant the offence to be out of timeouts")
         trace.expectPlay(
@@ -1603,8 +1654,8 @@ struct RulesConformanceTests {
             distance: before.distance - 5, ballOn: before.ballOn - 5,
             "five yards against the defence, the down replayed, and the game not over")
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - flag.huddle, clockRunning: false,
-            "the huddle and nothing else — no snap, so no play time — and the clock waits for the snap"
+            flag.index + 1, clock: before.clockRemaining, clockRunning: false,
+            "the clock stands where the flag stopped it — no snap, so no play time — and waits for the snap"
         )
     }
 
@@ -1701,15 +1752,14 @@ struct RulesConformanceTests {
     }
 
     /// What the game clock was charged getting to the snap after play `index`: the clock
-    /// where that play left it, less the clock where the play after it left it, less that
-    /// play's own time.
+    /// where that play left it, less the clock the next one was snapped on.
     private func chargedBeforeTheSnap(after index: Int, in trace: Trace) -> Int? {
-        guard let next = trace[index + 1], let following = trace[index + 2] else {
-            Issue.record("the scenario needs two downs after the flag to show what the wait cost")
+        guard let play = trace[index], let next = trace[index + 1] else {
+            Issue.record("the scenario needs a down after the flag to show what the wait cost")
             return nil
         }
-        return Int(next.situation.clockRemaining) - Int(following.situation.clockRemaining)
-            - Int(next.outcome.clockRunoff)
+        return Int(play.situation.clockRemaining) - Int(play.outcome.clockRunoff)
+            - Int(next.situation.clockRemaining)
     }
 
     /// What the offence would be charged before the snap after an enforcement if the
@@ -1841,11 +1891,10 @@ struct RulesConformanceTests {
 
     /// The scenario's spike and the clock it was snapped on.
     ///
-    /// A play's recorded situation is the clock at the previous whistle, and the offence's
-    /// interval between downs is charged at the snap when the clock is running, so the
-    /// clock the spike is *snapped* on is the recorded one less that interval — measured
-    /// from the game, never assumed. The two facts a reader of a play-by-play must hold
-    /// together to read a spike at all.
+    /// A play's recorded situation is the clock the ball was snapped on: the offence's
+    /// interval between downs has already come off it. So the clock the spike is snapped
+    /// on is the one on its own record, which is what a reader of a play-by-play reads
+    /// there.
     private func spikeSnappedOn(
         _ trace: Trace, expecting seconds: UInt16
     ) -> (index: Int, play: PlayRecord, snappedOn: UInt16)? {
@@ -1857,15 +1906,11 @@ struct RulesConformanceTests {
             Issue.record("the scenario never spiked the ball")
             return nil
         }
-        guard let huddle = trace.huddle else {
-            Issue.record("the game never showed the offence's interval between downs")
-            return nil
-        }
         guard trace.clockRunning(into: spike.index) == true else {
             Issue.record("the clock was not running into the spike, so there was nothing to stop")
             return nil
         }
-        let snappedOn = spike.play.situation.clockRemaining - huddle
+        let snappedOn = spike.play.situation.clockRemaining
         guard snappedOn == seconds else {
             Issue.record(
                 "the scenario meant the spike snapped with \(seconds) left; it was snapped with \(snappedOn)"
@@ -2049,10 +2094,18 @@ struct RulesConformanceTests {
             flag.index + 1, possession: before.possession, down: before.down,
             distance: before.distance + 5, ballOn: before.ballOn + 5,
             "five yards from the succeeding spot, and the same down")
+        if let previous = trace[flag.index - 1] {
+            #expect(
+                Int(before.clockRemaining)
+                    == Int(previous.situation.clockRemaining)
+                    - Int(previous.outcome.clockRunoff) - Int(fullPlayClock),
+                "the whole play clock ran off the game clock between the whistle and the flag")
+        }
         trace.expectPlay(
-            flag.index + 1, clock: before.clockRemaining - fullPlayClock, clockRunning: true,
-            "the whole play clock ran off the game clock before the whistle, and the clock restarts on the ready"
-        )
+            flag.index + 1,
+            clock: before.clockRemaining
+                - intervalFromTheReady(Rules.standard.playClockAfterAnAdministrativeStoppage),
+            clockRunning: true, "and the clock then restarts on the ready")
     }
 
     /// A change of possession is an administrative stoppage, so the offence taking
@@ -2101,7 +2154,7 @@ struct RulesConformanceTests {
             .run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
         let before = flag.play.situation
-        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        let flew = Int(before.clockRemaining)
         #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
         #expect(before.scoreDifferential == 7, "the scenario meant the offence to lead")
         #expect(before.defenseTimeouts == 0, "the scenario meant the defence to be out of timeouts")
@@ -2126,7 +2179,7 @@ struct RulesConformanceTests {
         let trace = RulesScenario.neutralZoneInfractionInTheLastFortySecondsLevel.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
         let before = flag.play.situation
-        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        let flew = Int(before.clockRemaining)
         #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
         #expect(before.scoreDifferential == 0, "the scenario meant the game level")
         #expect(before.defenseTimeouts == 0, "the scenario meant the defence to be out of timeouts")
@@ -2154,7 +2207,7 @@ struct RulesConformanceTests {
             .neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft.run()
         guard let flag = flag(in: trace, quarter: 4) else { return }
         let before = flag.play.situation
-        let flew = Int(before.clockRemaining) - Int(flag.huddle)
+        let flew = Int(before.clockRemaining)
         #expect(flew == 30, "the scenario meant the flag to fly at 0:30, not \(flew)")
         #expect(before.scoreDifferential == 7, "the scenario meant the offence to lead")
         #expect(before.defenseTimeouts > 0, "the scenario meant the defence to have a timeout")
@@ -2165,7 +2218,10 @@ struct RulesConformanceTests {
             !flag.play.decisions.contains { $0.clockElectionValue == .halfEnded },
             "nothing to elect: the defence has a timeout, so the half cannot end on its foul")
         trace.expectPlay(
-            flag.index + 1, possession: before.possession, quarter: 4, clock: 30,
+            flag.index + 1, possession: before.possession, quarter: 4,
+            clock: 30
+                - intervalFromTheReady(
+                    Rules.standard.playClockAfterADefensiveConservation, at: .hurryUp),
             ballOn: before.ballOn - 5, clockRunning: true,
             "five yards against the defence, the half goes on, and the clock starts on the ready")
     }
@@ -2182,15 +2238,8 @@ struct RulesConformanceTests {
             Issue.record("the scenario never hurt anybody")
             return nil
         }
-        guard let huddle = trace.huddle else {
-            Issue.record("the game never showed the offence's tempo")
-            return nil
-        }
         let index = Int(hurt.occurredOn.index)
-        let running = trace.clockRunning(into: index) == true
-        let after =
-            Int(play.situation.clockRemaining) - (running ? Int(huddle) : 0)
-            - Int(play.outcome.clockRunoff)
+        let after = Int(play.situation.clockRemaining) - Int(play.outcome.clockRunoff)
         #expect(
             play.situation.quarter == 4 && play.situation.clockRemaining < 120,
             "the scenario meant the injury after the two-minute warning")
@@ -2243,7 +2292,9 @@ struct RulesConformanceTests {
             "the record says the defence took the runoff")
         trace.expectPlay(
             hurt.index + 1, possession: before.possession, quarter: 4,
-            clock: hurt.clockAfter - 10, clockRunning: true,
+            clock: hurt.clockAfter - 10
+                - intervalFromTheReady(Rules.standard.playClockAfterARunoff),
+            clockRunning: true,
             "ten seconds come off before the ball is put in play, and the clock starts on the ready"
         )
         #expect(

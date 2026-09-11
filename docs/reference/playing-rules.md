@@ -172,12 +172,13 @@ Which rules must be true of a game, and what checks each, is
   delay of game, and see the period end with **no snap at all**. That is the sport's
   answer, and it is not a knee — a knee is a snap. This engine has no outcome meaning
   *let the play clock expire*, so its caller kneels that down instead. **That is a
-  modelling substitution, not the article**, and it puts a down on the record that was
-  never played, worth about a fifth of a knee a game. —
-  [#101](https://github.com/knissley/football-manager/issues/101) owns the fix and
-  [#49](https://github.com/knissley/football-manager/issues/49) the calibration it
+  modelling substitution, not the article.** It no longer puts a down on the record that
+  the clock could not have snapped — the period ends in the interval before that snap and
+  nothing is written (4-8-1) — so what is left of it is a fourth down elected where the
+  sport would have taken the five yards. —
+  [#49](https://github.com/knissley/football-manager/issues/49) owns the calibration it
   moves; `test:fourthDownKneelStandsInForDecliningTheSnap`,
-  `test:theKneltOutGameEndsOnAFourthDownKnee` pin it meanwhile
+  `test:theKneltOutGameEndsOnAThirdDownKnee` pin it meanwhile
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
   enforcement, a free kick. —
@@ -228,8 +229,11 @@ Which rules must be true of a game, and what checks each, is
   the down is played out first. — `test:touchdownAsTheFirstQuarterExpires`; the converse
   is what ends a knelt-out game, since a period that expires *between* downs ends where
   it stands and there is no further down —
-  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`. What the engine records at
-  that point is a knee rather than nothing, which is the substitution noted under 4-6-1
+  `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`,
+  `test:periodExpiringBetweenDownsRecordsNoDown`. The interval to a snap is between
+  downs, so a period it exhausts ends with nothing snapped and nothing recorded, and it
+  follows that the clock on a play's record is the clock the ball was snapped on —
+  `test:everyPlayIsRecordedWithTheClockItWasSnappedOn`
 - **4-8-2** — A period may be extended by one untimed down when something in the down that
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
   `test:walkOffTryIsTheCallerChoice`; and nothing extends one that expires between downs,

@@ -56,7 +56,8 @@ PlayRecord
   index         UInt16          monotonic within the game; also the seed-split label
   schemaVersion UInt8           the shape this record was written under; 1 today
 
-  situation     Situation       state before the snap
+  situation     Situation       the state at the snap: the clock reads what it read
+                                when the ball was snapped, not at the whistle before
   calls         Calls           what each side chose, and who chose it
   decisions     [DecisionPoint] the observable causal chain
   outcome       Outcome         what happened
@@ -72,12 +73,22 @@ to be made before M5 rather than after.
 
 ```
 Situation
-  quarter, clockRemaining              the play clock is a decision point, below
+  quarter, clockRemaining           the game clock at the snap; the play clock is a
+                                    decision point, below
   down, distance, ballOn            yards from the opponent's goal line
   possession    TeamID
   scoreDiff     Int16              from the possessing team's view
   timeouts      (off: UInt8, def: UInt8)
   personnel     (off: PersonnelGroup, def: DefensivePackage)
+
+**The clock is read at the snap.** The interval between downs — the offence's tempo
+against the play clock in force — comes off the game clock before the situation is built,
+so a field goal and the kickoff that follows it are its own seconds apart on the record
+rather than a huddle apart, and a play-by-play reads like a broadcast log. It is also why
+there is no record of a down the clock could not reach: a period the interval exhausts
+ends there, with nothing snapped (2025 rulebook, 4-8-1). The callers are asked earlier,
+with the clock at the previous whistle, because the tempo they choose is what decides how
+long that interval is.
 
 The down, and nothing about the afternoon. The weather is a fact about the game: it is
 on `GameResult.weather` once, the resolver reads it from its `PlayContext`, and no

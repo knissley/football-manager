@@ -273,27 +273,31 @@ struct EndgameTests {
             "the ball changed hands after the knee")
     }
 
-    /// Not a rule, and the pin says why: it is the same stand-in the fourth-down pin
-    /// above records, seen at the end of a whole game. The sport ends this game between
-    /// downs — the offence lets the forty seconds of 4-6-1 run out, takes the delay of
-    /// the game, and 4-8-1 declines to extend a period whose time expired with the ball
-    /// dead. The engine has no outcome for that, so the game's last play is a
-    /// fourth-down knee: a snap that never happened, at 0:00 of the fourth period.
+    /// What this pins is the caller: that a lead which can be knelt out is knelt to the
+    /// end, so the game's last *recorded* down is a knee. Where the game ends is the
+    /// rules layer's and is football — the period runs out between downs, in the interval
+    /// the offence spends before a snap that never comes (4-8-1), which
+    /// `test:periodExpiringBetweenDownsRecordsNoDown` asserts from the reference.
     ///
-    /// #101 owns the real fix. When it lands this fails, and the sentence becomes that
-    /// the knelt-out game's last *down* is third.
+    /// The last down is the **third**. The engine has no outcome meaning *let the play
+    /// clock expire*, so its caller kneels instead, and on a fourth down with less than a
+    /// play clock left that substitution used to put a knee on the record that the clock
+    /// could never have snapped. It no longer does: the period ends in the interval and
+    /// nothing is written, so the fourth-down knee the caller elects is never played.
+    /// The substitution itself is unchanged and still visible earlier in a game, where
+    /// the clock does reach the snap — `test:fourthDownKneelStandsInForDecliningTheSnap`.
     @Test(
-        "pin · a knelt-out game's last play is a fourth-down knee, because declining the snap is not something this engine can record",
+        "pin · a knelt-out game's last recorded down is a third-down knee: the caller kneels to the end, and the period runs out in the interval before the fourth",
         .tags(.pin)
     )
-    func theKneltOutGameEndsOnAFourthDownKnee() {
+    func theKneltOutGameEndsOnAThirdDownKnee() {
         let trace = mustBeKnelt()
         guard let last = trace.plays.last else {
             Issue.record("the scripted game produced no plays")
             return
         }
         #expect(last.situation.quarter == 4, "the game did not end in regulation")
-        #expect(last.situation.down == .fourth, "the last down was \(last.situation.down)")
+        #expect(last.situation.down == .third, "the last down was \(last.situation.down)")
         #expect(last.outcome.kind == .kneel, "the last play was a \(last.outcome.kind)")
     }
 
