@@ -335,10 +335,10 @@ struct CalibrationTarget: Sendable {
                 "Yards on completions over every attempt, sack yardage not deducted. A completion for a loss counts as the loss."
         ),
         CalibrationTarget(
-            id: "yardsPerPlay", label: "yards per play", low: 5.0, high: 5.8,
+            id: "yardsPerPlay", label: "yards per play", low: 4.8, high: 5.5,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             note:
-                "The harness's definition: pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. A completion for a loss counts as nothing. This is the only row that counts one that way, and its band is the only one derived that way. The league's net figure was 5.5–5.7."
+                "The harness's definition: pass, designed-run and sack yards over every scrimmage play, scramble yards excluded. A completion for a loss counts as nothing. This is the only row that counts one that way, and its band is the only one derived that way. The league's net figure was 5.3–5.4. The band read 5.0–5.8 until 109de07 fixed the derivation's accumulator, which had been dropping sack yardage — negative in every game, so the component never survived its first addition and the numerator lost it entirely."
         ),
         CalibrationTarget(
             id: "yardsPerCompletion", label: "yards per completion", low: 10.3, high: 11.5,

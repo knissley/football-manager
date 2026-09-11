@@ -89,29 +89,75 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:yardsPerPlay` — yards per play | 2023-24 | S1 |
 | `row:yardsPerCompletion` — yards per completion | 2023-24 | S1 |
 
-**`row:yardsPerPlay`'s band is stale and is knowingly left so.** Sack yardage is negative
-on every play that has any, and therefore negative in every game. The accumulator that
-folded the per-season components used `Counter` addition, which discards a key whose
-running total is not strictly positive, so the sack component never survived its first
-addition: the totals simply had no such key, it read back as 0 through the same subscript
-every metric uses, and the numerator of both yards-per-play rows lost it entirely. Nothing
-raised, and the band that came out of the derivation is the band on file.
+**`row:yardsPerPlay`'s band was derived from a corrupted total, and has been corrected.**
+Sack yardage is negative on every play that has any, and therefore negative in every game.
+The accumulator that folded the per-season components used `Counter` addition, which
+discards a key whose running total is not strictly positive, so the sack component never
+survived its first addition: the totals simply had no such key, it read back as 0 through
+the same subscript every metric uses, and the numerator of both yards-per-play rows lost it
+entirely. Nothing raised, and for the life of the tool the band on file was the one that
+came out of that derivation.
 
-Re-derived over the same release with the accumulator corrected, and rounded by the same
-band policy:
+Re-derived over the same release with the accumulator corrected (`109de07`), and rounded by
+the same band policy:
 
-| Row | 2023 | 2024 | Band as derived | On file |
+| Row | 2023 | 2024 | Band as derived | Was on file |
 | --- | --- | --- | --- | --- |
 | `row:yardsPerPlay` — the harness's definition | 5.36 → **5.08** | 5.48 → **5.22** | 5.0–5.8 → **4.8–5.5** | 5.0–5.8 |
 | yards per play, all yards over all scrimmage plays — not a row; the source of the prose figure | 5.54 → **5.27** | 5.70 → **5.44** | — | 5.5–5.7 |
 
-The band is **not** moved here. Correcting a derived source figure is not a retune, and
-moving a band is; the two are kept apart deliberately, so this records the measurement and
-leaves the move to the retune that owns it. Until then `Targets.swift` states 5.0–5.8 with
-a note giving the league's net figure as 5.5–5.7, and
-[match-engine.md](../match-engine.md)'s band table repeats that note. Both are the stale
-derivation. The rule at the top of this file decides which way the disagreement resolves:
-if a number in `Targets.swift` cannot be reproduced by the script, the script wins.
+**The band is moved, and the prose figure with it.** The rule at the top of this file is
+what decides it: if a number in `Targets.swift` cannot be reproduced by the script, the
+script wins. `yardsPerPlayOfficial` is the second row above and is **not** a row in
+`Targets.swift` — it is a script output, and the only thing that quoted it was
+`row:yardsPerPlay`'s prose note, which said 5.5–5.7 and now says 5.3–5.4.
+
+### Correcting a band and retuning to one are different things
+
+They were run together in one sentence here, which is how the correction above sat unmade
+for as long as it did. They are two cases and only the second is a retune:
+
+- **The band is numerically wrong because its derivation was corrupt.** Restoring it is a
+  **defect fix**, and it belongs to whoever found it. No engine constant moves, no engine
+  behaviour moves, and the row is being made to grade against the number its own source
+  always said. This is the case above.
+- **The band is right and the engine does not fit it.** Moving the band would be **a
+  retune**, and it belongs to the retune issue
+  ([#49](https://github.com/knissley/football-manager/issues/49)), which is owner-gated.
+  Nothing else may move it, and a fix that finds a row out of band against a *corrected*
+  target reports the residual there rather than widening anything.
+
+The test for which one you are in is not how far the band moves; it is what changed. If the
+derivation changed, it is the first. If only the engine's reading of it did, it is the
+second.
+
+**What the correction did to the engine's verdict, measured rather than argued.** The
+harness was never corrupted — only the derivation script — so the row and its band were
+measuring different quantities, the engine about 0.15 low against a band about 0.2 high.
+Correcting it removes that mismatch rather than moving a goalpost, and it does so in the
+engine's favour: on the old definition, with sack yardage dropped, seed 11 would read 5.54,
+which is *above* the corrected ceiling. Against the corrected band, at 400 games in release:
+
+| | printed | vs 5.0–5.8, the stale band | vs 4.8–5.5, the corrected one |
+| --- | --- | --- | --- |
+| seed 7 | 5.3 | ok | **ok** |
+| seed 11 | 5.4 | ok | **ok** |
+
+**Both calibration seeds are not the whole story, and the rest of it is a residual.** Read
+at 400 games at each of the thirty seeds the noise sweep uses, the row has a mean of 5.45
+against a corrected ceiling of 5.5, and **ten of the thirty grade `OFF`** — seeds 2, 3, 8,
+9, 14, 16, 17, 19, 27 and 29 — where against the stale band all thirty were `ok`. Six of
+the ten print 5.5 or 5.6 at one decimal and only give up their verdict because a row graded
+outside its band prints the decimals that put it there; reading the rounded column alone
+would have counted five and been wrong by half.
+
+**That is a residual and not a reason to widen anything.** It is case two above, and it is
+[#49](https://github.com/knissley/football-manager/issues/49)'s. Sacks are the component
+whose yardage this row was missing, and `row:sackRate` reads about 4.6 against a band of
+6.1–7.2, so the retune that raises it pushes this row down. The ten seeds sit between
+0.003 and roughly a tenth above the ceiling, which is the order a sack-rate move covers;
+how much exactly is the retune's to measure, and nothing here should be moved on the
+strength of an estimate.
 
 No other row moved. The re-derivation was run over all four seasons both ways and diffed
 in full: the script prints 130 rows — 128 metric rows and two summary rows — and three
@@ -679,7 +725,7 @@ was computed for this file.
 | Fourteen of 272 games reached overtime | 2025 | `row:overtimeRate` |
 | About 345 seconds of overtime played per period, before both teams possessed | 2023-24 | `row:overtimeLength` |
 | Completion rate counting only completions that gained: 61.1–62.4 | 2023-24 | `row:completionPercentage` |
-| Yards per play, the league's net definition: 5.5–5.7 — **stale**, re-derives to 5.3–5.4, see [above](#the-passing-and-running-game-per-team-per-game) | 2023-24 | `row:yardsPerPlay` |
+| Yards per play, the league's net definition: 5.3–5.4 — corrected from 5.5–5.7, see [above](#the-passing-and-running-game-per-team-per-game) | 2023-24 | `row:yardsPerPlay` |
 | First downs per team-game including penalty first downs: 17.8–18.3 | 2023-24 | `row:firstDownsPerTeamGame` |
 | Yards per carry by defenders actually in the box: 4.5–4.7 | 2023-24 | `row:ypcEvenCount` |
 | Even against outnumbered, the sport's own gap: 4.3–4.6 against 4.5–4.7 | 2023-24 | `row:ypcOutnumberedByOne` |
