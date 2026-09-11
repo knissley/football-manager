@@ -1098,7 +1098,12 @@ comparison that was actually run, and say which floor that was.
   mostly a property of the display. It varies by row and, since
   [#108](https://github.com/knissley/football-manager/issues/108), within a row, because a
   row graded outside its band prints extra digits; the column is the average over the thirty
-  readings.
+  readings. The rows to look at before trusting a small σ are the ones where the floor is
+  more than half the σ beside it: **`row:fieldGoalsPerTeamGame`** (floor 0.028, σ 0.053),
+  **`row:safeties`** (0.0029 against 0.0054) and **`row:fourthDownAttempts`** (0.022 against
+  0.044) — each a real measurement, but only just. **`row:playsPerGame`** and
+  **`row:overtimeLength`** are the two rows printed as whole numbers, so they carry the
+  largest floor in the table at 0.29; for `row:playsPerGame` that is two fifths of its 0.73 σ.
 - **†** marks a σ whose raw spread was not more than twice the rounding removed from it.
   Read it as an upper bound; the row's real floor is somewhere below the printed column's
   resolution. Two rows are in that state — `row:spikesPerGame` and
