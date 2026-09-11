@@ -216,6 +216,24 @@ Blocking assignments resolve into actual displacement; the hole is a real gap be
 bodies. The back's vision trait affects which gap he attacks and how quickly he commits.
 Tacklers pursue on real angles. Broken tackles chain.
 
+**What the crude resolver does today** is a hole-quality score and then *three* outcomes,
+which is the part worth keeping when the spatial engine replaces it. The score pays twelve
+a block — twelve for a block won or lost at the point of attack, twelve for a defender the
+offence had no blocker for, six for a blocker with nobody left to take — so it carries the
+count and the blocking in one signed number, and the record publishes it as the play's
+`holeQuality` point. Below a block's worth above an even fight the defence won the point of
+attack and the carry dies at or behind the line. Four blocks clear the play side is washed
+and he is through into the second level. In between is the **ordinary carry**, three to nine
+yards, decided by the back's vision and contact balance against the tackling of the men who
+have to come downhill and meet him — and that is the plurality of carries, as it is in the
+sport.
+
+One line through the score instead of three outcomes is what the run game used to be, and it
+had no middle: a stuff-or-break contest that satisfied all four of the cumulative shape rows
+while putting half the carries at two yards or fewer and paying for the mean out of a flat
+lottery on the tail. The harness prints the whole carry-length histogram now, because four
+cumulative shares cannot see that and a reader can.
+
 ### Special teams
 
 **Partly built.** Kick distance and accuracy from ratings, wind and precipitation are in
@@ -352,7 +370,12 @@ shared draw with no reason behind it would be indistinguishable from an excuse.
 **Explosive plays.** A receiver who beats every defender with an angle on him is in open
 field, not three yards further on. The run game had a burst through the hole from the
 start and the passing game had no equivalent, which is precisely why one had a tail and
-the other did not.
+the other did not. Both are the same mechanism now: a long run is a tackle **missed in
+space**, not a hole that measured well, so the carrier's contact balance is what earns it
+and the blocking only decides whether he gets to the man who has to make that tackle. A
+tackle attempted in space is missed far more often than one made at the line, which is
+what makes a tail possible at all — at the line's rate a carrier would have to beat three
+men in a row, which happens about once in fourteen hundred carries.
 
 The test of this is not the mean. It is whether, over a long enough career, somebody
 breaks a record that looked unattainable — and `Tools/simharness` reports the tails

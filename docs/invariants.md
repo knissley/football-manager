@@ -662,15 +662,27 @@ what every one of them was derived from is in
      play credited him — `test:offendersAreReal`
 113. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
+114. The middle of the run distribution is its largest part: the ordinary carry gains three
+     to nine yards, and there are more of those than of any other kind. The four cumulative
+     shares of entry 97 overlap and a stuff-or-break distribution with nothing between two
+     and ten satisfies all four, so this is the claim they cannot make between them. Derived
+     from `row:carries2orFewer` and `row:carries10plus` rather than sourced on its own, so
+     the band is in the test and not in `Targets.swift`, and the harness prints the whole
+     histogram beside it. — `test:theMiddleIsTheLargestPartOfTheRunGame`
+115. A carry of twenty yards or more has a broken tackle in front of it. A long run is a man
+     beaten, not a hole measured: a tail drawn off the blocking puts the yards on the
+     offensive line and leaves the carrier's contact balance worth nothing where it should
+     show most. — `test:aBreakawayIsAlwaysABrokenTackle`, and yards do not fall as the hole
+     improves — `test:yardsRiseWithTheHole`
 
 ## What the harness cannot check yet
 
-114. A completion is a completion whether it gained a yard, none, or lost one. The record
+116. A completion is a completion whether it gained a yard, none, or lost one. The record
      says a pass was caught, and the harness reads that rather than inferring it from
      positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
      `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-115. Players miss games at about the rate they really do, and heavy rain takes points off a
+117. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail

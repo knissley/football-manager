@@ -394,9 +394,20 @@ struct GoldenSeedTests {
             // downs. `Tools/gamelog --seed 7 --home 3 --away 11` prints a hundred and
             // seventy-eight plays where it printed a hundred and sixty-six, with the
             // clock column reading at the snap throughout.
-            (UInt64(1), UInt64(10_623_083_055_246_833_324)),
-            (UInt64(5), UInt64(4_170_365_452_443_562_427)),
-            (UInt64(12), UInt64(10_212_446_830_659_895_973)),
+            // And moved again by the run game, which is what the constants below are
+            // regenerated from. A carry no longer reads its yards off one line through
+            // the hole quality with a flat lottery on the end of it: the hole decides
+            // which of three things happened — the point of attack lost, the ordinary
+            // carry through it, or the play side washed — and the ordinary one gains
+            // three to nine decided by the carrier's vision and contact balance against
+            // the second level's tackling. The long run is now a tackle missed in space
+            // rather than a draw on a hole that opened. Every carry therefore spends a
+            // different number of draws in a different order, so every game diverges
+            // from its first handoff, and a game that runs for different yards has
+            // different downs, a different clock and different calls after it.
+            (UInt64(1), UInt64(6_050_949_833_214_711_211)),
+            (UInt64(5), UInt64(12_853_860_352_444_125_652)),
+            (UInt64(12), UInt64(5_607_637_589_877_436_753)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
