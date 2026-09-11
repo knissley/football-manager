@@ -89,6 +89,37 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:yardsPerPlay` — yards per play | 2023-24 | S1 |
 | `row:yardsPerCompletion` — yards per completion | 2023-24 | S1 |
 
+**`row:yardsPerPlay`'s band is stale and is knowingly left so.** Sack yardage is negative
+on every play that has any, and therefore negative in every game. The accumulator that
+folded the per-season components used `Counter` addition, which discards a key whose
+running total is not strictly positive, so the sack component never survived its first
+addition: the totals simply had no such key, it read back as 0 through the same subscript
+every metric uses, and the numerator of both yards-per-play rows lost it entirely. Nothing
+raised, and the band that came out of the derivation is the band on file.
+
+Re-derived over the same release with the accumulator corrected, and rounded by the same
+band policy:
+
+| Row | 2023 | 2024 | Band as derived | On file |
+| --- | --- | --- | --- | --- |
+| `row:yardsPerPlay` — the harness's definition | 5.36 → **5.08** | 5.48 → **5.22** | 5.0–5.8 → **4.8–5.5** | 5.0–5.8 |
+| yards per play, all yards over all scrimmage plays — not a row; the source of the prose figure | 5.54 → **5.27** | 5.70 → **5.44** | — | 5.5–5.7 |
+
+The band is **not** moved here. Correcting a derived source figure is not a retune, and
+moving a band is; the two are kept apart deliberately, so this records the measurement and
+leaves the move to the retune that owns it. Until then `Targets.swift` states 5.0–5.8 with
+a note giving the league's net figure as 5.5–5.7, and
+[match-engine.md](../match-engine.md)'s band table repeats that note. Both are the stale
+derivation. The rule at the top of this file decides which way the disagreement resolves:
+if a number in `Targets.swift` cannot be reproduced by the script, the script wins.
+
+No other row moved. The re-derivation was run over all four seasons both ways and diffed
+in full: the script prints 130 rows — 128 metric rows and two summary rows — and three
+moved, these two and the home scoring edge [below](#home-field-and-weather). The other 127
+were identical to the digit, as were the game counts, the win-total sigma and the
+between-club sigma. `row:marginSigma` is among the unmoved, because it is carried as two
+non-negative halves written to survive exactly this.
+
 ### Why the other passes were not caught
 
 Both print with **no band at all**, which is the honest output rather than a gap. The
@@ -373,6 +404,24 @@ why, and nobody should assert a range for it from memory.
 | `row:preSnapRoadVsHome` — pre-snap fouls, road vs home | 2023-24 | S1 |
 | `row:heavyRainPoints` — combined points, heavy rain vs dry | unsourced | — |
 
+The harness prints two more home-field aggregates with **no band at all** — the home win
+rate and the home scoring edge — because most of what they measure is travel, rest and
+short weeks, none of which exists before there is a schedule to travel on (M3). What the
+engine models is the crowd, so the mechanism gets the row and the aggregate gets a note.
+
+Their values, from the run of `scripts/calibration-sources.py` over the 2022-25
+play-by-play release described at the top of this file: the home side won **55.5%** of
+decided games in 2023 and **53.3%** in 2024, and outscored the visitor by **2.68** points
+a game in 2023 and **1.87** in 2024.
+
+Those last two read 2.92 and 2.00 until the script's accumulator was corrected. The
+scoring edge is a *signed* quantity, and the accumulator folded per-season components with
+`Counter` addition, which discards any key whose running total is not strictly positive —
+so each partial sum that dipped below zero was silently thrown away and the edge came out
+overstated. Nothing graded the figure and no harness verdict depended on it, which is why
+it survived. It is stated here as a number about the sport, so it is a claim like any
+other.
+
 ### Scoreboard
 
 | Row | Season | Source |
@@ -582,7 +631,7 @@ was computed for this file.
 | Fourteen of 272 games reached overtime | 2025 | `row:overtimeRate` |
 | About 345 seconds of overtime played per period, before both teams possessed | 2023-24 | `row:overtimeLength` |
 | Completion rate counting only completions that gained: 61.1–62.4 | 2023-24 | `row:completionPercentage` |
-| Yards per play, the league's net definition: 5.5–5.7 | 2023-24 | `row:yardsPerPlay` |
+| Yards per play, the league's net definition: 5.5–5.7 — **stale**, re-derives to 5.3–5.4, see [above](#the-passing-and-running-game-per-team-per-game) | 2023-24 | `row:yardsPerPlay` |
 | First downs per team-game including penalty first downs: 17.8–18.3 | 2023-24 | `row:firstDownsPerTeamGame` |
 | Yards per carry by defenders actually in the box: 4.5–4.7 | 2023-24 | `row:ypcEvenCount` |
 | Even against outnumbered, the sport's own gap: 4.3–4.6 against 4.5–4.7 | 2023-24 | `row:ypcOutnumberedByOne` |
@@ -592,7 +641,7 @@ was computed for this file.
 | Illegal formation was called about twice as often in 2024 as in 2023 | 2023-24 | `row:penalty.illegalFormation` |
 | Twenty-one kick return touchdowns, against fourteen the season before | 2025 | `row:kickReturnTouchdowns.2025` |
 | Five onside kicks recovered of 52 attempted | 2025 | `row:onsideRecovery.2025` |
-| The home side won 53–56% of decided games and outscored by 2–3 points, most of which is not the crowd | 2023-24 | `row:preSnapRoadVsHome` |
+| The home side won 53–56% of decided games and outscored by 1.9–2.7 points, most of which is not the crowd | 2023-24 | `row:preSnapRoadVsHome` |
 
 ## Bands the harness cannot measure
 

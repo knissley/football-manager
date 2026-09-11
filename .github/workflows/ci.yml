@@ -86,6 +86,17 @@ jobs:
       - name: Toolchain
         run: swift --version
 
+      - name: Python
+        # `swift:6.2` ships no `python3` at all — the first run of the calibration
+        # self-test below died with "python3: command not found" — and the band
+        # derivation is Python because the data set it reads is a CSV release. One
+        # package, no recommends, so the step below runs rather than skipping: a check
+        # that quietly does not execute is the failure the self-tests exist to prevent.
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends python3
+          python3 --version
+
       - name: Restore build cache
         uses: actions/cache@v4
         with:
@@ -170,6 +181,16 @@ jobs:
         # scripts/test-census-fixtures/, never compiled and never part of a package, and
         # fails on any difference from the expected list.
         run: ./scripts/test-census.sh --self-test
+
+      - name: Calibration sources self-test
+        # Every sourced band in `Targets.swift` is a ratio of the component sums
+        # `scripts/calibration-sources.py` folds, and that fold got a signed component
+        # wrong for as long as it was written with a counting accumulator — silently, by
+        # dropping the key rather than raising. This runs the accumulator's own cases,
+        # which need no play-by-play release and so run on every push. The derivation
+        # itself cannot run here: the data set is about 20 MB a season and is not, and
+        # will not be, in the repository. See docs/reference/calibration-sources.md.
+        run: python3 scripts/calibration-sources.py --self-test
 
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom

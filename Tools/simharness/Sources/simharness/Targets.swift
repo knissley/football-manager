@@ -754,7 +754,7 @@ struct CalibrationTarget: Sendable {
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             decimals: 2, unit: "x",
             note:
-                "The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 2–3 points, most of which is not the crowd."
+                "The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 1.9–2.7 points, most of which is not the crowd."
         ),
         CalibrationTarget(
             id: "heavyRainPoints", label: "combined points, heavy rain vs dry", low: 2, high: 4,

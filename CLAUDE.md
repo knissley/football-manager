@@ -283,6 +283,16 @@ scripts/test-census.sh                                    # test kinds per targe
                                                           # fails on a @Test with no kind tag.
                                                           # docs/testing.md reads the shares
 scripts/test-census.sh --self-test                        # the census's own fixture test
+python3 scripts/calibration-sources.py --self-test        # the band derivation's accumulator.
+                                                          # Every sourced band is a ratio of
+                                                          # the component sums it folds, and a
+                                                          # counting accumulator drops a
+                                                          # signed one without raising. Needs
+                                                          # no data set, so CI runs it; the
+                                                          # derivation proper needs the
+                                                          # play-by-play release, which is not
+                                                          # in the repo. See
+                                                          # docs/reference/calibration-sources.md
 
 # Planned — land with the backlog
 xcodebuild -scheme FootballManager -destination 'platform=iOS Simulator,name=iPhone 16' test
