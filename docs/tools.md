@@ -335,8 +335,23 @@ that snap's record: `two-minute warning` on its own line, and `timeout: NRW (2 l
 each charged timeout with the side that took it and what it has left. A kick line carries
 its three spots — `D. Dockery 40 yards to GRH 34, L. Wrenfield returns it 7 to GRH 41` —
 so the gross of a returned punt and its return are both there, and a kickoff fielded in
-the end zone says how deep (`67 yards to 2 deep`). A timeout the rules charged after a
-play — instead of a runoff, or for an injury — is still a `clock:` line under that play.
+the end zone says how deep (`67 yards to 2 deep`).
+
+**Every charged timeout prints the same `timeout:` line, whoever called it.** A timeout
+the rules charge after a play — the offence's instead of a ten-second runoff (4-7-1 Item
+1), or an injury timeout after the two-minute warning (4-5-4-a) — keeps its `clock:`
+announcement under that play and now carries the line beneath it:
+
+```
+        clock: injury timeout, charged as a team timeout (4-5-4)
+        timeout: GRH (2 left)
+```
+
+so that `grep 'timeout:'` finds every stoppage of that kind rather than the subset a
+bench asked for. That matters because a trace which hides a clock-stopping event invites
+a reader to explain the seconds it saved by some other mechanism, and one already did:
+three consecutive snaps costing no clock were read as broken interval accounting when
+each had simply followed a timeout.
 
 Aggregates hid every rules bug the September audit found. Each of them is obvious in
 thirty seconds of this output, which is why it exists.

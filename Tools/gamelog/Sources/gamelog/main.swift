@@ -356,6 +356,11 @@ struct Broadcast {
     private var quarter: UInt8 = 1
     private var drive: Drive?
     private var ambiguousShortNames: Set<String> = []
+    /// Which side the man hurt on a play belongs to, by play index. An injury timeout
+    /// after the two-minute warning is charged to the injured player's team (2025
+    /// rulebook, 4-5-4-a), and the election the record carries for it does not say which
+    /// team that was — so it is read off the injury stream and the rosters, which do.
+    private var injuredSide: [UInt16: TeamID] = [:]
 
     /// One team's possession, accumulated only so its summary line can be printed when
     /// it ends.
@@ -493,8 +498,17 @@ struct Broadcast {
     }
 
     /// Walk the stream and return the broadcast, one line at a time.
-    mutating func run(_ plays: [PlayRecord]) -> [String] {
+    mutating func run(
+        _ plays: [PlayRecord], injuries: [InjuryEvent] = [], rosters: [TeamID: [PlayerID]] = [:]
+    ) -> [String] {
         ambiguousShortNames = collidingShortNames(in: plays)
+        var side: [PlayerID: TeamID] = [:]
+        for (team, roster) in rosters {
+            for player in roster { side[player] = team }
+        }
+        for injury in injuries where side[injury.player] != nil {
+            injuredSide[injury.occurredOn.index] = side[injury.player]
+        }
         for play in plays { show(play) }
         closeDrive(after: nil)
         emit("        " + String(repeating: "═", count: 40))
@@ -606,8 +620,40 @@ struct Broadcast {
         // it: the runoff and its alternatives, the last forty seconds, an injury
         // timeout. The record carries it so that a clock that lost ten seconds or a
         // half that ended on a flag reads as what it was.
+        //
+        // A timeout the rules charge after a play is one of these rather than a `.timeout`
+        // before the next snap, so it is printed here — but it is still a charged team
+        // timeout, and a clock-stopping event a reader is counting seconds against has to
+        // be on the page in the one shape he scans for. Hence the same line the dead ball
+        // above prints, under the announcement that explains it.
+        var chargedHere: [TeamID: Int] = [:]
         for election in play.decisions.compactMap(\.clockElectionValue) {
             emit("        clock: \(electionText(election))")
+            guard let charged = teamCharged(by: election, on: play) else { continue }
+            chargedHere[charged, default: 0] += 1
+            // What it has left: what it brought to this snap, less the ones charged to it
+            // since. The situation on the record is the count at the snap, and the rules
+            // charge these after the down, so the subtraction is this play's own.
+            let before =
+                charged == offense ? Int(situation.offenseTimeouts) : Int(situation.defenseTimeouts)
+            let left = max(0, before - (chargedHere[charged] ?? 0))
+            emit("        timeout: \(abbreviation(charged)) (\(left) left)")
+        }
+    }
+
+    /// The side a timeout charged by the rules after a play is charged to, for the two
+    /// elections that charge one. The offence spends its own timeout rather than take the
+    /// ten-second runoff (2025 rulebook, 4-7-1 Item 1); an injury timeout after the
+    /// two-minute warning goes against the injured player's team (4-5-4-a), which the
+    /// election itself does not name and the injury stream does. Every other election
+    /// charges nobody — an excess timeout is by definition a team with none left.
+    private func teamCharged(by election: ClockElection, on play: PlayRecord) -> TeamID? {
+        switch election {
+        case .timeoutInsteadOfRunoff: return play.situation.possession
+        case .injuryTimeoutCharged: return injuredSide[play.index]
+        case .runoff, .runoffDeclined, .clockStartsOnTheSnap, .clockStartsOnTheReady, .halfEnded,
+            .playedOn, .excessInjuryTimeout, .injuryRunoff, .injuryRunoffDeclined:
+            return nil
         }
     }
 
@@ -1094,7 +1140,7 @@ func playByPlayLines(
 
     var broadcast = Broadcast(
         home: home, away: away, players: players, rules: rules, isPostseason: isPostseason)
-    lines += broadcast.run(result.plays)
+    lines += broadcast.run(result.plays, injuries: result.injuries, rosters: result.rosters)
 
     // The scoreboard is the stream summed, and saying so out loud is cheap. If these two
     // ever disagree the printer is wrong or the engine is, and either is worth knowing

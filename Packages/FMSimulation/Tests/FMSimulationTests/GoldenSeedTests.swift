@@ -721,9 +721,26 @@ struct GoldenSeedTests {
             // that bound would move a spot, and a moved spot moves the down and everything
             // after it. Two identical sixty-four-bit checksums across the two enforcements
             // are a play-for-play identical game, so the ceiling bound nowhere in either.
-            (UInt64(1), UInt64(13_153_807_975_940_597_992)),
+            //
+            // And then a foul the non-offending side turned down started stopping the
+            // clock, as 4-4-e has it stop for any foul during a down and 4-3-2-e restarts
+            // it after a penalty enforced or declined alike. The stoppage had been gated
+            // on the accepted branch, so a declined flag on a tackle in bounds left the
+            // clock running; it now costs the same six seconds an accepted one costs — one
+            // `readyForPlayDelay` — or the whole interval inside a late window. The play
+            // clock is untouched: a declination is not the enforcement 4-6-2-e names, so
+            // the forty still runs from the end of the play.
+            //
+            // Two of the three seeds move and one does not, and that was measured rather
+            // than assumed. Counted over the three golden games: seed 1 has one declined
+            // foul and seed 12 has two, every one of them on a down that ended with the
+            // ball live, so each game diverges from the flag onwards. **Seed 5 has no
+            // declined foul at all** — none of its fouls was turned down — so the
+            // mechanism never fires in it and its checksum below is the one it carried
+            // before, unchanged.
+            (UInt64(1), UInt64(2_286_324_558_762_200_546)),
             (UInt64(5), UInt64(1_093_611_880_970_820_037)),
-            (UInt64(12), UInt64(13_259_479_467_292_385_971)),
+            (UInt64(12), UInt64(14_471_466_146_704_126_662)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

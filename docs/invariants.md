@@ -284,21 +284,24 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:twoMinuteWarningDetection`
 47. A foul stops the clock, and where it stops it depends on when it flew: a foul during a
     down stops the clock at the end of that down (4-4-e), and one with the ball already
-    dead stops it as it flies (4-4-g). Enforcement is not free either way. Outside the
+    dead stops it as it flies (4-4-g). Settling it is not free either way, and neither is
+    the settling: **the penalty being turned down costs the clock exactly what taking it
+    costs**, because 4-4-e's condition is that somebody fouled and 4-3-2-e is written over
+    a penalty enforced or declined alike. Outside the
     late-game windows the clock then restarts as though the flag had never flown — on the
     ready-for-play signal, if it was running — and inside the window after the first half's
     warning or the last five minutes of the second it waits for the snap.
     `[2025 · 4-4-e, 4-4-g, 4-3-2-e, 4-3-2-e-1, 4-3-2-e-2]` —
     `test:falseStartInTheThirdQuarterCostsNoTime`,
     `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
-    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`; **modelling**: only the
-    accepted branch is read. 4-4-e stops the clock for a foul during a down whether or not
-    the penalty is taken, and 4-3-2-e restarts it once the penalty is settled either way,
-    but `State.runClock` gates the whole restart on `penalty.wasAccepted`, so a foul the
-    non-offending side turns down leaves the clock as the play's ending left it. That is
-    not a rare corner: the harness's `declined` line under Penalties reads 12.3% at seed 7
-    and 12.7% at seed 11 over four hundred games.
-    [#102](https://github.com/knissley/football-manager/issues/102) owns it
+    `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
+    `test:declinedFoulDuringADownStopsTheClockAtTheEndOfTheDown`,
+    `test:declinedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`; **modelling**: what the
+    declined branch does *not* bring is the short play clock. 4-6-2-e puts the next snap
+    against twenty-five seconds from the whistle after a penalty enforcement, and an
+    article that names an enforcement is read here as not reaching a declination, so the
+    forty of 4-6-1 runs from the end of the play. The book does not settle it — 4-6-2's
+    list of stoppages is open — and this is the narrower reading
 48. An offensive foul that stops the clock before the snap anywhere in the fourth period
     restarts it on the snap, and e-3 reaches no further than that: an offensive foul during
     a fourth-quarter down stops the clock at the end of the down rather than before a snap,
