@@ -2338,6 +2338,19 @@ struct RulesConformanceTests {
     /// a reader of the play-by-play sees is written by the rules layer. Whatever moves
     /// the play clock between downs — a stoppage, a charged timeout, the two-minute
     /// warning — has to move it before the context is built, or the two disagree here.
+    ///
+    /// A snap missing either reading is skipped rather than failed: an absent reading is
+    /// a different complaint from a disagreeing one, and `playClock(on:)` above is the
+    /// test that makes it. The skip is counted because a loop that skips every snap
+    /// passes having compared nothing — measured, not supposed: take the recorded
+    /// readings away and the comparison below is simply never reached, and without the
+    /// count that follows it this test stays green while checking nothing at all.
+    ///
+    /// It does not skip today. Counted over every scenario: **15,448 of 15,448 snaps
+    /// across 99 scenarios reach the comparison, and none is skipped** — so the count
+    /// below is a guard against a future absence, not a live exemption. The number is
+    /// what it was when last counted; a scenario added since moves it, and only a
+    /// scenario that compares *nothing* fails here.
     @Test(
         "contract · the play clock a snap records is the play clock the resolver was handed for it",
         .tags(.contract)
@@ -2345,15 +2358,21 @@ struct RulesConformanceTests {
     func theRecordedPlayClockIsTheOneTheResolverWasHanded() {
         for scenario in RulesScenario.allCases {
             let trace = scenario.run()
+            var compared = 0
             for (index, play) in trace.plays.enumerated() {
                 guard let handed = trace.playClockInForce(into: index),
                     let reading = play.decisions.compactMap(\.playClockReading).first
                 else { continue }
+                compared += 1
                 #expect(
                     handed.seconds == reading.seconds,
                     "\(scenario.rawValue) play \(index): handed \(handed.seconds), recorded \(reading.seconds)"
                 )
             }
+            #expect(
+                compared > 0,
+                "\(scenario.rawValue): none of its \(trace.plays.count) snaps carried both readings, so this scenario compared nothing; every one of them carried both when last counted"
+            )
         }
     }
 

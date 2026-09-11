@@ -80,6 +80,20 @@ So, in this repo:
 - **A floor is a guard, and it has a number behind it.** `count > 10` means "the instrument
   is not broken", not "the claim holds", and the comment says what the measured count
   actually is.
+- **A loop that filters before it asserts says nothing when the filter is empty.** A
+  `guard … else { continue }`, a `where` clause on the sequence, an assertion nested under
+  an `if`: each is a path through the body that asserts nothing, and a loop that takes it
+  on every pass is green having checked nothing at all. It is the quietest way for a test
+  to assert less than it looks like it does — a sample that is too small or a band that is
+  too wide at least runs its assertion. So a loop whose filter is rarer than its sample
+  **counts what it checked and fails on zero**, which is already the suites' idiom in
+  thirty-three places: `#expect(checked > 0, "no tries to check")`. Swept across the test
+  targets of the four packages and the two tools, three hundred and seventy-seven loops
+  contain an assertion and forty-two of them can run to completion without reaching one.
+  None of the nine that could be counted against the shared corpus is empty today — the
+  thinnest is thirteen sacks in six games — so this is a shape to close when a loop is
+  touched rather than a live defect. The count belongs in the test, where it is re-checked
+  on every run, rather than in a sweep somebody has to remember to repeat.
 - **Games are simulated once.** A game is a pure function of its setup, so suites wanting
   the same fixtures read `TestWorld.corpus` rather than each playing them again.
 - **Except where replay is the point.** A determinism test simulates twice and says so
