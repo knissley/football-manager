@@ -175,7 +175,7 @@ struct PenaltyEnforcementTests {
     /// walk-off distance; it is the record's `enforcementSpot` now, in the snapping
     /// team's frame, and `yards` is the distance walked off.
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
+        "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
         .tags(.football)
     )
     func spotFouls() {
@@ -311,7 +311,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot",
+        "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot",
         .tags(.football)
     )
     func interferenceDownfield() {
@@ -326,7 +326,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4 · offensive pass interference is ten from the previous spot, and the down is replayed",
+        "football · Rule 8-5-Penalty · offensive pass interference is ten from the previous spot, and the down is replayed",
         .tags(.football)
     )
     func offensiveInterference() {
@@ -469,7 +469,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · interference in the end zone is first and goal at the 1",
+        "football · Rule 8-5-Penalty, 8-6-1-b · interference in the end zone is first and goal at the 1",
         .tags(.football))
     func interferenceInTheEndZone() {
         let decision = rules.enforce(

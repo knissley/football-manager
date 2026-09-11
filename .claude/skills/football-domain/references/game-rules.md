@@ -244,8 +244,8 @@ Common ones, with what the book says they cost.
 | Illegal block in the back | 10 | | `12-1-3-b` · `test:blockInTheBackDuringARun` |
 | Holding (defense) | 5 | Automatic first down | `8-4-6`, `12-1-6` · `test:defensiveHoldingAtTheThreeIsHalfTheDistance`, `row:penalty.defensiveHolding` |
 | Illegal contact | 5 | Automatic first down | `8-4-4` · `test:everyFoulIsCalled` |
-| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-4` · `test:interferenceInTheEndZoneSpotsAtTheOne`, `test:interferenceInTheEndZoneFromInsideTheTwo`, `row:penalty.defensivePassInterference` |
-| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-4` · `test:offensiveInterference` |
+| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-Penalty`, `8-6-1-b` · `test:interferenceInTheEndZoneSpotsAtTheOne`, `test:interferenceInTheEndZoneFromInsideTheTwo`, `row:penalty.defensivePassInterference` |
+| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-Penalty` · `test:offensiveInterference` |
 | Roughing the passer | 15 | Automatic first down | `12-2-11` · `test:roughingOnACompletion`, `row:penalty.roughingThePasser` |
 | Unnecessary roughness | 15 | Automatic first down if by the defense | `12-2-8` · `row:penalty.unnecessaryRoughness` |
 | Facemask | 15 | Automatic first down if by the defense | `12-2-15` · `test:facemaskAtTheEndOfARun` |

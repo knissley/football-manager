@@ -415,13 +415,14 @@ season is what checks one. A band is evidence about a rate and never about a rul
     or the previous spot, whichever favours the offence. `[2025 · 8-6-1-d]` —
     `test:roughingOnACompletion`
 72. Defensive pass interference is a first down at the spot of the foul.
-    `[2025 · 8-5-4, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
+    `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
 73. Defensive pass interference in the end zone is first and goal at the 1, or half the
-    distance to the goal when the previous spot was inside the 2. `[2025 · 8-5-4, 8-6-1-b]` —
-    `test:interferenceInTheEndZone`, `test:interferenceInTheEndZoneSpotsAtTheOne`,
+    distance to the goal when the previous spot was inside the 2.
+    `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:interferenceInTheEndZone`,
+    `test:interferenceInTheEndZoneSpotsAtTheOne`,
     `test:interferenceInTheEndZoneFromInsideTheTwo`
 74. Offensive pass interference is ten yards from the previous spot, and the down is
-    replayed. `[2025 · 8-5-4]` — `test:offensiveInterference`
+    replayed. `[2025 · 8-5-Penalty]` — `test:offensiveInterference`
 75. Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
     automatic first down when it is the defence's. `[2025 · 12-3-1]` —
     `test:conductFoulAfterThePlay`

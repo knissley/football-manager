@@ -710,11 +710,11 @@ extension RulesScenario {
             ]
         case .interferenceInTheEndZone:
             return [
-                "football · Rule 8-5-4 · defensive pass interference in the end zone is first and goal at the 1"
+                "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference in the end zone is first and goal at the 1"
             ]
         case .interferenceInTheEndZoneFromTheOne:
             return [
-                "football · Rule 8-5-4 · defensive pass interference in the end zone from inside the 2 is half the distance, and still a first down"
+                "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference in the end zone from inside the 2 is half the distance, and still a first down"
             ]
         case .onsideKickRecovered:
             return [

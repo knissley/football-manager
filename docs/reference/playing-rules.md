@@ -384,10 +384,20 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   ball. The defence's restrictions run from the throw until the ball is touched and the
   offence's from the snap; contact nearer the line than that is holding instead. —
   `test:noInterferenceWithoutAThrow`, `test:interferenceIsOnTheTarget`
-- **8-5-4** — Pass interference. The defence's is a first down at the spot of the foul; in
-  the end zone it is first down at the 1, or half the distance to the goal when the previous
-  spot was inside the 2. The offence's is ten from the previous spot and the down is
-  replayed. — `test:spotFouls`, `test:interferenceInTheEndZoneSpotsAtTheOne`,
+- **8-5-4** — A second way the offence draws interference, and the whole of what this
+  article is: a block on a defender more than a yard past the line, either clearly before
+  the throw or, with the ball in the air, near the man it is going to. An ineligible
+  player downfield is 8-3-1's Note instead. Nothing here is about what interference costs
+  or where it is enforced from — that is the section's Penalty below, and 8-6-1-b. — the
+  block is not modelled as its own act; the offence's interference is drawn as 8-5-2's
+  push-off on the target's matchup, which is `test:interferenceIsOnTheTarget`
+- **8-5-Penalty** — What interference costs. The clause closes Rule 8 §5 and the book
+  cites it this way. The defence's is a first down at the spot of the foul; behind the
+  defence's goal line it is first down at the 1 when the previous spot was on or outside
+  the 2, and half the distance from the previous spot when that was inside the 2. The
+  offence's is ten yards from the previous spot — and since the clause takes no down, the
+  down is replayed, which is our inference from it and not a sentence in it. —
+  `test:spotFouls`, `test:interferenceInTheEndZoneSpotsAtTheOne`,
   `test:interferenceInTheEndZoneFromInsideTheTwo`, `test:offensiveInterference`
 - **8-6-1** — Between the snap and the moment a forward pass from behind the line is over,
   a foul by either team is enforced from the previous spot. The catch is the boundary: with
