@@ -478,8 +478,9 @@ struct GameSimulatorTests {
         #expect(concepts.contains(.fieldGoal), "never attempted a field goal")
     }
 
-    /// Nobody kicks a seventy-yarder. The baseline's range is flat and generous; a real
-    /// caller reads its kicker and should beat this.
+    /// Nobody kicks a seventy-yarder. The bound is the longest kick the strongest leg a
+    /// generated league could carry is sent out for, so a caller that reads its kicker
+    /// cannot sneak past it by finding one.
     @Test("Field goals are only attempted from a plausible distance", .tags(.unit))
     func kicksAreInRange() {
         let rules = Rules.standard
@@ -489,7 +490,7 @@ struct GameSimulatorTests {
             where play.calls.offense.concept == .fieldGoal {
                 let length = rules.fieldGoalDistance(ballOn: play.situation.ballOn)
                 #expect(
-                    length <= BaselineCaller.maximumFieldGoal,
+                    length <= PlaceKick.longestAttempt,
                     "attempted a \(length) yard kick")
             }
         }

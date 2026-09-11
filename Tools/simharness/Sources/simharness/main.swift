@@ -338,6 +338,30 @@ report("yardsPerPlay", scrimmageYards / Double(max(1, scrimmage.count)))
 let receptionYards = attemptYards / Double(max(1, completionsThatGained.count))
 report("yardsPerCompletion", receptionYards)
 
+// Why the rest were not caught. `CatchResult` is the only field that says, and everything
+// downstream repeats it — a drop rate, a pass-defensed leaderboard, the narrative layer's
+// sentence about the play — so a label that names the wrong man is a rate that names the
+// wrong man. Read off the decision stream rather than inferred from the outcome, which
+// carries one `.incomplete` for all four ways a pass can fall.
+let catchAttempts = allPlays.compactMap { $0.decisions(ofKind: .catchAttempt).last?.catchResult }
+let drops = catchAttempts.filter { $0 == .dropped }.count
+let brokenUp = catchAttempts.filter { $0 == .brokenUp }.count
+report(
+    "dropsPerTarget",
+    catchAttempts.isEmpty ? nil : Double(drops) / Double(catchAttempts.count) * 100)
+report("passesDefensedPerGame", Double(brokenUp) / Double(max(1, results.count)))
+// The other two ways, printed because the four have to add up for the first two to be
+// read at all: a ball placed where the receiver could not be expected to catch it, and
+// one thrown where nobody could reach it. Both are the passer's, and neither has a band
+// for the same reason the two rows above have none.
+let offTarget = catchAttempts.filter { $0 == .offTarget }.count
+let unreachable = catchAttempts.filter { $0 == .uncatchable }.count
+print(
+    "    \(pad("  off target, out of reach", 28))"
+        + "\(oneDecimal(Double(offTarget) / Double(max(1, catchAttempts.count)) * 100))%  "
+        + "\(oneDecimal(Double(unreachable) / Double(max(1, catchAttempts.count)) * 100))%"
+        + "   (no band: the throw's own two, see dropsPerTarget)")
+
 print("")
 print("  Shape of the stream")
 report("playsPerGame", Double(allPlays.count) / Double(max(1, results.count)))
@@ -530,13 +554,29 @@ for result in results {
 // the offence's alternative to a runoff, an injury timeout — is a clock election on it.
 var timeoutsSpent = 0
 var twoMinuteWarnings = 0
+// The same timeouts split two ways. By side: which bench asked, read off the snap the
+// timeout precedes. By half: where in the game it was spent, which is the interesting
+// split because the allotment is per half and nothing carries out of one — three a half,
+// two in a regular-season overtime period (2025 rulebook, 4-5-1 Item 1) — so a timeout
+// still in hand at a whistle was thrown away.
+var timeoutsByOffense = 0
+var timeoutsByDefense = 0
+var timeoutsByPeriod: [Int] = [0, 0, 0]  // first half, second half, overtime
+var timeoutsChargedByRule = 0
 for play in allPlays {
     let taken = play.timeoutsBeforeTheSnap
     timeoutsSpent += taken.offense + taken.defense
+    timeoutsByOffense += taken.offense
+    timeoutsByDefense += taken.defense
+    let period =
+        play.situation.quarter <= rulesInForce.quarters / 2
+        ? 0 : (play.situation.quarter <= rulesInForce.quarters ? 1 : 2)
+    timeoutsByPeriod[period] += taken.offense + taken.defense
     if play.hasTwoMinuteWarningBeforeTheSnap { twoMinuteWarnings += 1 }
     for election in play.decisions.compactMap(\.clockElectionValue)
     where election == .timeoutInsteadOfRunoff || election == .injuryTimeoutCharged {
         timeoutsSpent += 1
+        timeoutsChargedByRule += 1
     }
 }
 print("")
@@ -550,6 +590,31 @@ let targetedFouls = CalibrationTarget.all.filter { $0.id.hasPrefix("penalty.") }
 for foul in targetedFouls {
     report("penalty.\(foul)", Double(byFoul[foul] ?? 0) / Double(max(1, results.count)))
 }
+// The accepted rate above is the residue of a draw that is larger, and how much larger is
+// the thing a decline can hide: a flag on a pass that is then completed is usually worth
+// declining, so a model that throws one and completes the pass anyway grades on what is
+// left over. Interference is the case that went wrong this way, so the draw is printed
+// beside the accepted rate and so is the share of it that lands on a catch.
+let interference = flags.filter { $0.foul == .defensivePassInterference }
+report("interferenceDrawnPerGame", Double(interference.count) / Double(max(1, results.count)))
+var interferenceOnCompletions = 0
+var offensiveInterferenceOnCompletions = 0
+for play in allPlays where play.outcome.passResult == .complete {
+    for flag in play.outcome.penalties {
+        if flag.foul == .defensivePassInterference { interferenceOnCompletions += 1 }
+        if flag.foul == .offensivePassInterference { offensiveInterferenceOnCompletions += 1 }
+    }
+}
+report(
+    "interferenceOnCompletions",
+    interference.isEmpty
+        ? nil : Double(interferenceOnCompletions) / Double(interference.count) * 100)
+let offensiveInterference = flags.filter { $0.foul == .offensivePassInterference }
+print(
+    "    \(pad("  offensive interference on a catch", 38))"
+        + "\(offensiveInterferenceOnCompletions) of \(offensiveInterference.count) flags drawn"
+        + "   (no target: a push-off that brings a catch back is the sport, 8-5-2)")
+
 for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) })
 where !targetedFouls.contains(foul) {
     print(
@@ -614,6 +679,32 @@ print(
         + "a caller contract, not a league rate: test:aKneelIsNeverFollowedByALivePlay")
 report("spikesPerGame", Double(spikes) / Double(max(1, results.count)))
 report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
+// The same total split by side and by half. No target on any of the four: nothing in
+// docs/reference/calibration-sources.md bands either split, and the play-by-play
+// derivation that would produce one — `timeout_team` against `posteam` for the side,
+// `qtr` for the half — is E2 (#42)'s to run, not a fix's to invent. They are printed
+// because the total alone cannot say whether a bench is spending its second-half
+// timeouts or hoarding them past the whistle, which is the thing the row exists to
+// catch. The by-side and by-half figures count the timeouts a bench asked for; the
+// remainder in the total is charged by rule and the record's election does not name a
+// side (the offence's alternative to a runoff, 4-7-1 Item 1; an injury timeout,
+// 4-5-4-a).
+let gamesPlayed = Double(max(1, results.count))
+print(
+    "    \(pad("by side: offence / defence", 30))"
+        + "\(twoDecimals(Double(timeoutsByOffense) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByDefense) / gamesPlayed))"
+        + "   (no target: unsourced, a band belongs to #42)")
+print(
+    "    \(pad("by half: first / second / OT", 30))"
+        + "\(twoDecimals(Double(timeoutsByPeriod[0]) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByPeriod[1]) / gamesPlayed)) / "
+        + "\(twoDecimals(Double(timeoutsByPeriod[2]) / gamesPlayed))"
+        + "   (no target: unsourced, a band belongs to #42)")
+print(
+    "    \(pad("charged by rule, not called", 30))"
+        + "\(twoDecimals(Double(timeoutsChargedByRule) / gamesPlayed))"
+        + "   (no target: in the total above; a runoff's alternative or an injury timeout)")
 print(
     "    \(pad("two-minute warnings per game", 30))"
         + "\(twoDecimals(Double(twoMinuteWarnings) / Double(max(1, results.count))))"
@@ -680,6 +771,10 @@ var puntGrosses: [Int] = []
 var puntReturnYards: [Int] = []
 var kickoffReturnYards: [Int] = []
 var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
+/// The same kicks with the man who struck them, so a long attempt can be read against
+/// the leg that took it. Read off the record's participants rather than accumulated
+/// beside the simulation, like every other query here.
+var fieldGoalsByKicker: [(distance: Int, good: Bool, leg: Int, touch: Int)] = []
 
 var twoPointTries = 0
 var twoPointGood = 0
@@ -759,8 +854,19 @@ for result in results {
                 puntReturnYards.append(back)
             }
         case .fieldGoal:
-            fieldGoalsByDistance.append(
-                (Int(play.situation.ballOn) + 17, outcome.endedIn == .fieldGoalGood))
+            let length = Int(play.situation.ballOn) + 17
+            let good = outcome.endedIn == .fieldGoalGood
+            fieldGoalsByDistance.append((length, good))
+            if let kicker = outcome.participants.first(where: { $0.role == .kicker }),
+                let man = players[kicker.player]
+            {
+                fieldGoalsByKicker.append(
+                    (
+                        distance: length, good: good,
+                        leg: Int(man.ratings[.kickPower] ?? 0),
+                        touch: Int(man.ratings[.kickAccuracy] ?? 0)
+                    ))
+            }
         case .twoPointConversion:
             twoPointTries += 1
             if outcome.endedIn == .touchdown { twoPointGood += 1 }
@@ -1208,6 +1314,54 @@ let extraPointsGood = extraPoints.filter { $0.outcome.endedIn == .fieldGoalGood 
 report(
     "extraPointsMade",
     extraPoints.isEmpty ? nil : Double(extraPointsGood) / Double(extraPoints.count) * 100)
+
+// How far a club will kick from is its kicker's, so the long attempts have to be readable
+// against the leg that took them or the effect is invisible in an aggregate: a league of
+// identical ranges and a league of different ones produce the same total. No target on any
+// row here. Nothing sources a make rate or an attempt share by leg, which
+// docs/reference/calibration-sources.md records under the bands the harness cannot
+// measure; what grades the model is the aggregate rows above, which these break down.
+print("")
+print(
+    "  Field goals from 45 and beyond, by the kicker   (no target: nothing sources a split by leg)")
+let longAttempts = fieldGoalsByKicker.filter { $0.distance >= 45 }
+@MainActor
+func kickerTier(
+    _ name: String, _ kicks: [(distance: Int, good: Bool, leg: Int, touch: Int)]
+) {
+    guard !kicks.isEmpty else {
+        print("    \(pad(name, 26))—")
+        return
+    }
+    let made = kicks.filter(\.good).count
+    let fifties = kicks.filter { $0.distance >= 50 }
+    let longest = kicks.map(\.distance).max() ?? 0
+    let mean = Double(kicks.map(\.distance).reduce(0, +)) / Double(kicks.count)
+    var line = "    \(pad(name, 26))\(pad(String(kicks.count), 7))"
+    line += "\(pad(oneDecimal(Double(made) / Double(kicks.count) * 100) + "%", 9))"
+    line += "\(pad(String(fifties.count), 7))"
+    line += pad(
+        fifties.isEmpty
+            ? "—"
+            : oneDecimal(Double(fifties.filter(\.good).count) / Double(fifties.count) * 100) + "%",
+        9)
+    line += "\(pad(oneDecimal(mean), 8))\(longest)"
+    print(line)
+}
+// The make columns read against the average and longest beside them and not on their own:
+// a leg that is only ever sent out for the shortest kicks in this range makes a higher
+// share of them than a leg that is sent out for all of them, which is the selection the
+// change introduced rather than a claim that a weak leg kicks better.
+print(
+    "    \(pad("tier", 26))\(pad("45+", 7))\(pad("made", 9))\(pad("50+", 7))\(pad("made", 9))"
+        + "\(pad("avg", 8))longest"
+)
+kickerTier("leg under 70", longAttempts.filter { $0.leg < 70 })
+kickerTier("leg 70 to 79", longAttempts.filter { $0.leg >= 70 && $0.leg < 80 })
+kickerTier("leg 80 and up", longAttempts.filter { $0.leg >= 80 })
+kickerTier("touch under 70", longAttempts.filter { $0.touch < 70 })
+kickerTier("touch 70 to 79", longAttempts.filter { $0.touch >= 70 && $0.touch < 80 })
+kickerTier("touch 80 and up", longAttempts.filter { $0.touch >= 80 })
 
 print("")
 print("  Fourth down")

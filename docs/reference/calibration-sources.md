@@ -89,6 +89,28 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:yardsPerPlay` — yards per play | 2023-24 | S1 |
 | `row:yardsPerCompletion` — yards per completion | 2023-24 | S1 |
 
+### Why the other passes were not caught
+
+Both print with **no band at all**, which is the honest output rather than a gap. The
+play-by-play charts neither a drop nor a break-up: a drop is a charting judgement made by
+a third party watching the film, and the feed names the defender on a pass defensed only
+in the seasons and releases that carry the participation columns. Neither has been
+computed here, and typing a plausible-looking figure in place of an uncomputed one is the
+failure this file exists to prevent.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:dropsPerTarget` — drops per target | unsourced | — |
+| `row:passesDefensedPerGame` — passes defensed per game (both teams) | unsourced | — |
+
+**What a band would have to be computed from.** For drops: a charting release that marks
+one, per target, over the same two seasons the per-play rows use, with the denominator
+targets rather than attempts — a throwaway has no target and must not be in it. For
+passes defensed: the league's own defensive stat, per team-game and doubled for both
+teams, counting balls knocked away and excluding interceptions, which
+`row:interceptionRate` already bands. Until one of those is read, the engine's values are
+observations and nothing grades them.
+
 ### The shape of the stream
 
 | Row | Season | Source |
@@ -113,6 +135,17 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:spikesPerGame` — spikes per game | 2023-24 | S1 |
 | `row:timeoutsPerGame` — timeouts spent per game | 2023-24 | S1 |
 
+The harness also prints that total split **by side** (which bench asked) and **by half**
+(the allotment is per half and nothing carries out of one — three a half, two in a
+regular-season overtime period, 2025 rulebook 4-5-1 Item 1). Neither split is banded, and
+neither is a row: nobody has computed one. What a sourcing would read is in the same
+play-by-play file every `S1` row comes from — `timeout_team` against `posteam` for the
+side, `qtr` for the half — and running it belongs to
+[#42](https://github.com/knissley/football-manager/issues/42) rather than to a fix, so the
+harness prints the two with the reason they have no target beside them. They are printed
+at all because the total alone cannot tell a bench spending its second-half timeouts from
+one hoarding them past the whistle, which is the thing the total exists to catch.
+
 ### The season, which the harness cannot play until M3
 
 | Row | Season | Source |
@@ -135,6 +168,21 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:packageBase` — snaps against base | 2023-24 | S2 |
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
+
+**No share is sourced for any grouping but eleven.** `row:personnel11` is the only
+offensive participation share in `Targets.swift`, and nothing here, in
+[the bands the harness cannot measure](#bands-the-harness-cannot-measure) or in
+[what a generated world claims](#what-a-generated-world-claims-and-nothing-sources) bands
+twelve, ten or an empty set. What the file does source about the rest of the mix is the
+tight end count [below](#who-took-the-snap): 77.1–87.2 tight end player-snaps per team-game
+against 58.9–66.8 plays from scrimmage, which is more than one tight end on the average
+snap however the two bands are paired, and which therefore says that a snap that is not
+eleven personnel mostly carries a second tight end rather than a fourth receiver. A
+caller's mix is set from those two, because there is no figure for twelve to set it from,
+and a twelve-personnel share stated as football without one is a number from memory.
+Computing one is the derivation the rows above already perform — the source's
+participation feed names the grouping on every play — and it is cheap; it is simply not
+done, and this line says so rather than leaving the gap to be filled by remembering.
 
 ### Who took the snap
 
@@ -326,6 +374,28 @@ why, and nobody should assert a range for it from memory.
 | `row:penalty.roughingThePasser` — roughing the passer per game | 2023-24 | S1 |
 | `row:penalty.neutralZoneInfraction` — neutral zone infraction per game | 2023-24 | S1 |
 
+Those ten count **accepted** fouls, which is what the league publishes. Two rows beside
+them count something else and are unsourced for two different reasons.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:interferenceDrawnPerGame` — defensive interference flags thrown, accepted or not | unsourced | — |
+| `row:interferenceOnCompletions` — the share of them on a pass that was then completed | unsourced | — |
+
+The first is a count of flags rather than of enforced fouls, and nobody has computed a
+band for one: the feed carries declined penalties, so it could be computed — per game,
+both teams, the same two seasons — but it has not been, and it is printed because an
+accepted rate is the residue of a draw that may be much larger. Interference is where that
+went wrong: the accepted rate graded near its band while two thirds of the flags were
+flying on passes that were then completed and being declined.
+
+The second is **not a league rate at all** and must not be sourced as one. Its band of zero
+is the engine's own promise, taken from 8-5-1: the foul is contact that spoils an eligible
+receiver's chance at the ball, so on the one matchup this engine draws it on, the flag and
+the catch cannot both have happened. The offence's push-off is excluded and printed beside
+it, because a catch that an offensive interference penalty brings back (8-5-2,
+8-5-Penalty) is the sport working normally.
+
 ## The figures stated in words
 
 A band is a pair of numbers and says nothing about how thin the sample under it was. These
@@ -398,6 +468,21 @@ third twenty-two, about a third twenty-three and a seventh to a quarter twenty-f
 `DraftHistory.entryAge` draws 20/45/25/10 across the same four ages, which is a year young.
 
 None of the three is banded: a number nobody asserts is a note, not a target.
+
+**What a kick is worth by the leg that struck it.** The kicking rows above are aggregates
+over everybody who kicked: `row:fieldGoals50plus` says the league makes 63.7-74.9% from
+fifty and beyond, and says nothing about how that splits between the leg that is trusted
+from fifty-eight and the one that is not trusted from forty-eight. The engine now models
+that split — `PlaceKick` reads `kickPower` as well as `kickAccuracy`, and how far a club
+will kick from follows from it — and the harness prints attempts and makes from
+forty-five and beyond by leg tier so the split is visible. **Nothing sources a band for
+it.** The shape was fitted to the aggregate rows above and to the two ends the sport does
+state plainly — a league-average kicker's curve, which is the aggregate, and a man who is
+not a kicker at all — not to a published make rate by leg. So the printed tiers carry no
+target and none should be invented for them: what grades the model is the aggregate rows
+it was fitted to, `row:fieldGoals50plus` and `row:fieldGoalAttempts50plus`. A band here
+would need a per-kicker distance-by-distance split computed from the play-by-play with
+kickers grouped by something standing in for leg, which nothing in this repository does.
 
 ## Where the harness measures something else
 

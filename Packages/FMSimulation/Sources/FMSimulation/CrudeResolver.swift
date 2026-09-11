@@ -574,7 +574,15 @@ public struct CrudeResolver: PlayResolver {
         // and it exists on exactly one matchup: the man the pass was thrown to and the
         // man covering him. The defence's is a spot foul (8-6-1-b) and the spot is where
         // the ball was going, in the offence's frame with zero meaning the end zone.
-        if penalty == nil {
+        //
+        // Not on a throw nobody could have reached, though: 8-5-3-c makes contact that
+        // would otherwise be interference legal when the pass is clearly uncatchable by
+        // the players involved, and `.uncatchable` is the record's name for that throw.
+        // The article's exception to its own clause is the offence's blocking downfield
+        // (8-3-2, 8-5-4), which is not modelled as an act of its own, so the gate covers
+        // both kinds here. Without it a spot foul is handed out at the catch point for
+        // contact the rules do not make a foul at all.
+        if penalty == nil, placement != .uncatchable {
             penalty = Penalties.onTheThrow(
                 defender: target.defender, receiver: target.receiver,
                 separationCentimetres: target.separation, routeDepth: depth.yards,
@@ -582,10 +590,15 @@ public struct CrudeResolver: PlayResolver {
                 personnel: personnel, context: context, random: &random)
         }
 
+        // The foul is drawn first and the catch resolved with it in hand, which is the
+        // order 8-5-1 puts them in: the defence's interference is contact that spoiled
+        // the receiver's chance at the ball, so it is the reason the pass was not caught
+        // rather than something that happened alongside a catch.
         let catchResult = catchOutcome(
             placement: placement, separation: target.separation,
             hands: rating(.catching, target.receiver, personnel, context),
             ballHawk: rating(.ballHawk, target.defender, personnel, context),
+            interferedWith: penalty?.foul == .defensivePassInterference,
             contested: isTry, conditions: Conditions.handling(context.weather),
             random: &random)
         decisions.append(
@@ -662,7 +675,7 @@ public struct CrudeResolver: PlayResolver {
                 decisions
             )
 
-        case .dropped, .brokenUp, .uncatchable:
+        case .dropped, .brokenUp, .uncatchable, .offTarget:
             return (
                 Outcome(
                     kind: recorded(.pass), yards: 0, endedIn: .incomplete,
@@ -1341,38 +1354,18 @@ public struct CrudeResolver: PlayResolver {
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
 
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
-        let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
-        // The league-average kicker's curve, in two segments: near-automatic inside
-        // thirty, a gentle slope through the range teams actually kick from, and a
-        // steeper fall past the mid-forties. A single line from twenty-five was too
-        // steep in the middle — it made forty-somethings 69% against a real 82%, and it
-        // ran the extra point through the same slope, so kicks were missed at 15% when
-        // the sport misses them at 5%.
-        // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
-        // these modules link without libm, and `Tools/playsize` is the guard that proves it.
-        let carry = Conditions.kickingAdjustment(
-            context.weather, altitudeFeet: context.altitudeFeet)
-        let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
-        var chance: Double
-        if length <= 30 {
-            chance = 0.95
-        } else if length <= 45 {
-            chance = 0.95 - Double(length - 30) * 0.010
-        } else {
-            chance = 0.80 - Double(length - 45) * 0.017
-        }
-        // A try is kicked from the middle of the field by a kicker nobody is trying very
-        // hard to block, and the sport converts it at a better rate than a field goal of
-        // the same length. Running it through the field-goal curve unmodified is what
-        // made extra points a coin-flip-adjacent 85%.
-        if concept == .extraPoint { chance += 0.025 }
-        // Centred on an average leg, so the curve above *is* the league average rather
-        // than a floor everybody beats.
-        chance += (accuracy - 68) * 0.004
-        if context.weather.precipitation != .none { chance -= 0.03 }
-
-        let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
+        // The curve is `PlaceKick`'s, and so is the caller's range: a coach who sends the
+        // unit out and the ball that is struck have to be the same model of the same kick,
+        // or the coach is right about a game nobody is playing. Both ratings are read —
+        // the touch sets the level and the leg sets how fast the chance falls once the
+        // kick is long enough for the leg to be what is being asked for.
+        let good = random.nextBool(
+            probability: PlaceKick.makeChance(
+                rawLength: rawLength,
+                leg: rating(.kickPower, SlotLayout.specialist, personnel, context),
+                accuracy: rating(.kickAccuracy, SlotLayout.specialist, personnel, context),
+                isTry: concept == .extraPoint, context: context))
         return (
             Outcome(
                 kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,
@@ -1481,10 +1474,28 @@ public struct CrudeResolver: PlayResolver {
         return .uncatchable
     }
 
+    /// What became of the throw at the catch point, and whose incompletion it was.
+    ///
+    /// Three men can be at fault and the record has a label for each: the placement says
+    /// whether the ball was one the receiver could have caught, and the separation says
+    /// whether the defender could reach it. Reading neither — calling every failed catch
+    /// with the receiver open a drop — charged the passer's worst throws to the man they
+    /// were thrown at, which is three quarters of all incompletions landing on the
+    /// receiver.
+    ///
+    /// `interferedWith` is a defensive interference foul already drawn on this matchup.
+    /// It is the reason the ball was not caught (2025 rulebook, 8-5-1: contact that
+    /// spoils an eligible receiver's chance at the ball, from the throw until the ball is
+    /// touched), so it settles the catch before anything is drawn: a foul that hindered
+    /// him and a ball he caught anyway are two events that cannot both have happened.
     private func catchOutcome(
         placement: BallPlacement, separation: Int, hands: Double, ballHawk: Double,
-        contested: Bool = false, conditions: Double = 0, random: inout SplittableRandom
+        interferedWith: Bool = false, contested: Bool = false, conditions: Double = 0,
+        random: inout SplittableRandom
     ) -> CatchResult {
+        // Ahead of the placement check only for readability: 8-5-3-c means no flag is
+        // drawn on an uncatchable ball, so the two cannot both be true.
+        if interferedWith { return .brokenUp }
         if placement == .uncatchable { return .uncatchable }
 
         var catchChance: Double
@@ -1512,6 +1523,11 @@ public struct CrudeResolver: PlayResolver {
         pickChance -= Double(separation - 130) * 0.0006
         if random.nextBool(probability: min(0.5, max(0.005, pickChance))) { return .intercepted }
 
+        // Placement decides whose incompletion it is, and only then does separation
+        // decide which of the two men at the catch point it belongs to. A poor ball is
+        // the throw's: it reached the receiver, so it is not `.uncatchable`, and it was
+        // not one he could be expected to catch, so it is not his drop either.
+        if placement == .poor { return .offTarget }
         return separation < 110 ? .brokenUp : .dropped
     }
 
