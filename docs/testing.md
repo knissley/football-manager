@@ -88,8 +88,12 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 ## The census as it stands
 
 Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, plus
-the two tests that came with a receiver training ball security, at 917 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
-the output is right and this table is stale.
+the two tests that came with a receiver training ball security: **917 tests, counted with
+`./scripts/test-census.sh` at `3372f1e`.** The commit is part of the number. A census with
+no commit beside it is a claim about a tree nobody can go back to, which is the way a
+snapshot misleads — it reads as current long after it has stopped being true.
+`./scripts/test-census.sh` reprints it; if this table and that output disagree, the output
+is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -126,7 +130,7 @@ sideline, the aimed punt and the two kickoffs.
 | The resolver — `CrudeResolver`, the contest curve, out of bounds, punting and the kickoff (FMSimulation) | 6 — 20.7% | 11 | 10 | 2 | 29 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 
-Three findings come straight off that table.
+Three findings come straight off that table, and a fourth off what it cannot show.
 
 **The resolver asserts little football, and what it does assert is shape rather than
 rate.** Six of its twenty-nine tests do, every one of them added by wave 3. Two came with
@@ -168,8 +172,8 @@ the untagged-test problem this issue set out to fix.
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
 FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
-the first census, and 45.9% — 94 of 205 — now. Nearly `0.0%` football is the right answer
-there, not a gap.
+the first census, and 46.1% — 95 of 206 — at `3372f1e`. Nearly `0.0%` football is the right
+answer there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be
 made up like a real one.** [#67](https://github.com/knissley/football-manager/issues/67)
@@ -181,6 +185,37 @@ seasons of week-1 rosters, with the derivation in
 An aggregate about a *roster* is exactly as sourceable as one about a game, and the harness
 cannot see it, so it is the test that has to. Nobody's name, club or number is in the repo
 for it — a count is not a likeness.
+
+**One football test in 206 is about the right order of magnitude, and the wrong reason for
+being exactly one.** That one is the first-season share above; the count is `3372f1e`'s,
+and the paragraph before this one is why most of it is right. What a share cannot show is
+that a generation claim has twice failed to be written as football, and at least once for
+no better reason than that there was no band to write it against:
+
+- [#115](https://github.com/knissley/football-manager/issues/115) asked for a football
+  test that a receiver does not fumble more often per touch than a back. The articles
+  available to it establish that the sport draws no distinction between two ball
+  carriers — which is the premise — and say nothing about the rate, which was the
+  assertion. No per-position fumbles-per-touch band is sourced anywhere in this
+  repository and none could be obtained, so it landed `.contract`. That is the correct
+  tag for an unsourced claim. It is not a satisfying way to have arrived at it.
+- [#90](https://github.com/knissley/football-manager/issues/90) is usually described as
+  the second instance and is not the same case. Its entry-age mix *was* measured, from
+  the same weekly-roster release the first-season share comes from and under the same
+  band policy, on a branch that has not merged. What stops it is that no setting of the
+  generation constants reproduces that mix, because the shape the ages are drawn from is
+  wrong — a modelling decision for the owner, not a band anybody is missing. The two are
+  worth keeping apart: *no band exists* and *the band exists and the model cannot reach
+  it* call for different work, and only the first is a sourcing problem.
+
+So the tally is one instance rather than two, which is still enough to write the question
+down. What a band for the rest of generation's claims would have to be computed from is
+listed in
+[`reference/calibration-sources.md`](reference/calibration-sources.md#what-a-generated-world-claims-and-nothing-sources),
+with a judgement per line: of six, two are not worth computing and two more are not
+sourcing problems at all. That list states no figures. Writing a plausible-looking one in
+place of a number nobody has computed is the failure the whole reference directory exists
+to prevent, so a line there that says no source was located is finished as it stands.
 
 ## Why the rule exists
 
