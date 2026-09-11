@@ -672,6 +672,18 @@ struct GoldenSeedTests {
             // both the reading on the record and the odds the offence is beaten by the
             // interval, and from there the game diverges.
             //
+            // And then the pass rush was given a window that spans the holds it is read
+            // against. A beaten blocker's man used to arrive on a uniform 1,500-2,899 ms
+            // while the routes asked for 1,400 through 3,400, so three of the five pass
+            // concepts sat outside the window and their pressure verdict was a constant.
+            // He now arrives from 1,000 ms on a core of the same width with a tail that
+            // halves every half second. All three seeds move for that alone, and every one
+            // of them has to: the draw is a different draw on the first lost rep of the
+            // game, the number of values it consumes is itself random now, and both the
+            // verdict and the stream diverge from there. There is no snap in any of the
+            // three that could have come out the same by luck, so — unlike the warning
+            // above — a seed that did *not* move would be the thing worth investigating.
+            //
             // And moved by the world rather than by the engine, which is the other half of
             // where the constants below come from. `WorldGenerator` draws a league's talent
             // on a width that is sourced now rather than assumed, so every club's offset is
@@ -681,36 +693,37 @@ struct GoldenSeedTests {
             //
             // The width did **not** move in this merge, and `GoldenWorldTests` is the
             // evidence — it did not move either, because nothing here reaches `FMGeneration`.
-            // Engine source did move, in the play clock above, and the width was deliberately
+            // Engine source did move, in the pass rush above, and the width was deliberately
             // not re-derived for it: the width is derived from engine measurements and is
             // provisional by construction, so it is re-derived when the branch that owns it
             // lands and not again because a later branch moved the engine. The drift is
-            // recorded instead, and `row:betweenTeamSigma` is what keeps it visible. Both
-            // parents' constants fall to the pair of mechanisms together, and all three
-            // below were checked against both before they were written down.
+            // recorded instead, and `row:betweenTeamSigma` is what keeps it visible.
             //
-            // And moved by half the distance, on one seed only and only once the two
-            // mechanisms above were put together. The ceiling of 14-2-1 caps a walk-off
-            // at the midpoint between the spot of enforcement and the goal line the
-            // offending team defends, and it now does so whenever the walk-off would
-            // carry the ball past that midpoint rather than only when it would reach the
-            // goal line itself. On its own branch that changed no golden at all: across
-            // the three games there, forty-five accepted penalties all walked their
-            // nominal yardage and none met the ceiling.
+            // And moved by half the distance, once the ceiling of 14-2-1 started capping
+            // every walk-off at the midpoint between the spot of enforcement and the goal
+            // line the offending team defends rather than only a walk-off that would reach
+            // the goal line itself. On its own branch that changed no golden: across the
+            // three games there, forty-five accepted penalties all walked their nominal
+            // yardage and none met the ceiling. Against the wider talent spread it moves
+            // seed 5, which has a taunting foul enforced from around the 26 — fifteen yards
+            // where thirteen is half the distance.
             //
-            // The talent width above makes seed 5 a different game, and that game has a
-            // taunting foul enforced from around the 26 — fifteen yards where thirteen is
-            // half the distance, which the old reading walked in full and this one stops
-            // on the midpoint. Seeds 1 and 12 still meet the ceiling nowhere and are
-            // unchanged from this merge's first parent. Checked rather than assumed, by
-            // walking every accepted penalty in all three games and reading the distance
-            // assessed against the foul's nominal yardage: seed 5's other two shortened
-            // records are a spot foul, which carries no nominal yardage and never reaches
-            // the helper, and a fifteen from the 15, where the walk-off would have reached
-            // the goal line and both readings give the same seven.
-            (UInt64(1), UInt64(12_939_006_183_879_276_582)),
-            (UInt64(5), UInt64(16_849_145_678_717_754_854)),
-            (UInt64(12), UInt64(5_587_817_126_695_655_428)),
+            // So seed 5 below carries three mechanisms at once: a different eleven men
+            // drawn to a different ceiling, a pass rush arriving on a window that spans the
+            // route holds, and a walk-off that stops on the midpoint.
+            //
+            // **Seeds 1 and 12 are unchanged from this merge's first parent, and that was
+            // checked rather than inherited.** The ceiling binds only where the goal line
+            // is nearer than twice the penalty's yardage, and the note above about which
+            // seeds meet it was written against different games — the pass rush makes these
+            // three games different games, so it does not carry. What settles it is that
+            // the checksum folds `situation.ballOn` for every play in the stream: a clamp
+            // that bound would move a spot, and a moved spot moves the down and everything
+            // after it. Two identical sixty-four-bit checksums across the two enforcements
+            // are a play-for-play identical game, so the ceiling bound nowhere in either.
+            (UInt64(1), UInt64(13_153_807_975_940_597_992)),
+            (UInt64(5), UInt64(1_093_611_880_970_820_037)),
+            (UInt64(12), UInt64(13_259_479_467_292_385_971)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

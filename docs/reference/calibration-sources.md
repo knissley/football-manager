@@ -806,11 +806,24 @@ doing, never a number, because none of these has been computed either.
 dropback pooled over every dropback there is, 2023-24, source S2. Nothing here splits it:
 not by pass depth, not by play action, not by the time the passer held the ball. That is a
 rate rather than a rule, so [`playing-rules.md`](playing-rules.md) has nothing to say about
-it either, and the question the gap leaves open is a live one. The resolver asks the pocket
-to hold 3,000 ms on play action and 3,400 ms on a deep drop, and a beaten blocker is beaten
-somewhere between 1,500 ms and 2,899 ms — so both holds sit past the latest a rusher can
-arrive, and the pressure verdict cannot separate the two concepts at all. Measured over
-2,450 paired dropbacks each, it returns them identical to the snap.
+it either, and the question the gap leaves open is a live one.
+
+**And nothing here sources when a pass rush arrives either**, which is the same gap read
+from the other side. The engine decides pressure by asking whether the first man home beat
+the hold the concept asks for, so it needs a distribution for the arrival, and this file
+bands none — no time-to-pressure, no time-to-sack, nothing that would shape one. So the
+arrival window is an explicit modelling decision rather than a sourced one, in the sense
+`GameClock.readyForPlayDelay` is: it is stated, with its consequence, under *Pass play* in
+[`../match-engine.md`](../match-engine.md), and it is not a number anybody computed from a
+season. What the reference *does* constrain is the **level** — `row:pressureRate` — and
+that is the rush win multiplier's to answer for, not the window's.
+
+This mattered concretely. The arrival used to be drawn on `[1500, 2899]` while the holds
+ran from 1,400 ms to 3,400 ms, so three of the five pass concepts sat outside the window
+entirely: a screen was un-pressurable by construction at exactly 0.0000, and play action
+and a deep drop came back pressured on the *same* 1,362 of 2,450 paired dropbacks,
+identical to the snap. A window that spans the holds fixes the instrument; it does not
+answer the question above, and a retune should not read it as if it had.
 
 The derivation, if it is ever wanted: S2 is the participation release this file already
 reads for `row:pressureRate` — one row per play, already joined to the play-by-play by
@@ -822,9 +835,11 @@ this line. A play-action flag is a second question and a harder one, since a pas
 is not something every feed publishes.
 
 Worth doing only when something turns on it, and today nothing does. What the suite asserts
-about the hold is `test:pressureNeverFallsAsTheHoldGrows`, and that is a `.contract` — a
-longer hold is never pressured less often than a shorter one off the same rush, which
-follows from the resolver's own definition of pressure and needs no band. A band becomes
-wanted the day somebody means to separate those two holds on purpose: that is a modelling
-change, it would move `row:pressureRate` with it, and it should not be made on the strength
-of a figure nobody computed.
+about the hold is `test:pressureNeverFallsAsTheHoldGrows` and
+`test:theArrivalWindowSpansTheRouteHolds`, and both are `.contract` — a longer hold is never
+pressured less often than a shorter one off the same rush, and every hold has arrivals on
+both sides of it. Both follow from the resolver's own definition of pressure and need no
+band. A band becomes wanted the day somebody means to separate two holds on purpose, or to
+shape the arrival from a season rather than from the model: either is a modelling change, it
+would move `row:pressureRate` with it, and it should not be made on the strength of a figure
+nobody computed.
