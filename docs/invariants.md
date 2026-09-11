@@ -749,13 +749,17 @@ what every one of them was derived from is in
      play credited him — `test:offendersAreReal`
 116. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
-117. The middle of the run distribution is its largest part: the ordinary carry gains three
-     to nine yards, and there are more of those than of any other kind. The four cumulative
-     shares of entry 97 overlap and a stuff-or-break distribution with nothing between two
-     and ten satisfies all four, so this is the claim they cannot make between them. Derived
-     from `row:carries2orFewer` and `row:carries10plus` rather than sourced on its own, so
-     the band is in the test and not in `Targets.swift`, and the harness prints the whole
-     histogram beside it. — `test:theMiddleIsTheLargestPartOfTheRunGame`
+117. The middle of the run distribution is a large part of it: the ordinary carry gains three
+     to nine yards, of which there are at least an even share of the three kinds and more
+     than there are carries of ten or more. Derived from `row:carries2orFewer` and
+     `row:carries10plus` rather than sourced on its own — every carry falls in exactly one
+     of three, so those two banded at 40.6–46.5 and 9.6–11.2 put the middle between 42.3
+     and 49.8, with no band of its own in `Targets.swift`. **That derivation runs both ways,
+     so the two rows of entry 100 grade the 42.3 floor between them** over four hundred
+     games at two seeds, and the test asserts the two weaker claims above, which forty games
+     can resolve and the bands imply with room. The harness prints the whole histogram and
+     the derived middle beside them, ungraded. — `test:theMiddleIsTheLargestPartOfTheRunGame`,
+     `row:carries2orFewer`, `row:carries10plus`
 118. A carry of twenty yards or more has a broken tackle in front of it. A long run is a man
      beaten, not a hole measured: a tail drawn off the blocking puts the yards on the
      offensive line and leaves the carrier's contact balance worth nothing where it should
