@@ -33,13 +33,18 @@ struct PenaltyTests {
     ///
     /// **What each slice actually carries**, measured on the tree this was written
     /// against, so that the floors below are floors rather than hopes: the first six games
-    /// hold 105 flags between them of 20 distinct fouls; eight hold 6 offensive holds on
-    /// dropbacks; ten hold 26 defensive interference calls; thirty hold 83 interference
+    /// hold 105 flags between them of 20 distinct fouls; all thirty hold 6 offensive holds
+    /// on dropbacks; ten hold 26 defensive interference calls; thirty hold 83 interference
     /// calls of either kind and 20 flags on downs where nobody threw; and the nine of
     /// `offendersAreReal`, which are six of these and three between another pair of clubs,
     /// hold 154. The thinnest of those is the six holds, which is what a floor of one is
     /// guarding: a change that stops drawing holding on dropbacks at all fails it, and one
     /// that draws a few fewer does not.
+    ///
+    /// **The six holds are the whole thirty, and they used to be claimed for the first
+    /// eight.** Counted on this tree the eight-game prefix holds exactly one, and a claim
+    /// resting on one occurrence is not a claim: `holdsAreExplicable` therefore reads all
+    /// thirty, which costs nothing because every game here is already played.
     private static let neutral: [GameResult] = (UInt64(1)...30).map { game(seed: $0) }
 
     /// The paired noise comparison's two sides, each played once and read by both tests.
@@ -84,10 +89,19 @@ struct PenaltyTests {
     /// It used to read `.pressureAllowed`, which was the same thing back when every lost
     /// rep was called pressure; it is not any more — a blocker can lose and the ball be
     /// gone before his man arrives — and a hold drawn on that rep is still explicable.
+    ///
+    /// **All thirty games, and the margin is still thin.** A hold on a dropback is drawn
+    /// about once in five games here, so the eight this used to read carried exactly one
+    /// of them and `checked > 0` was a coin the engine tossed rather than a floor. Thirty
+    /// carry six, with a leave-one-game-out jackknife standard error of 2.15 — a margin of
+    /// 2.8 errors, which is thin enough that the next reader should know it: a change that
+    /// halves the hold rate on dropbacks would leave this green about one time in twenty.
+    /// Thirty is every game the shared corpus has, and reading them is free; resolving it
+    /// properly would mean playing more, which is the suite-time budget's to spend.
     @Test("A hold on a pass play has a lost rep behind it", .tags(.contract))
     func holdsAreExplicable() {
         var checked = 0
-        for (play, flag) in flags(seeds: 1...8)
+        for (play, flag) in flags(seeds: 1...30)
         where flag.foul == .offensiveHolding && play.outcome.kind.isDropback {
             checked += 1
             #expect(
@@ -233,38 +247,93 @@ struct PenaltyTests {
     /// advantage *emerges* — rather than a bonus applied after the fact, which the
     /// engine's honesty pillar would have to swallow.
     ///
-    /// **Sixty games a side, not twelve.** Twelve games hold about twenty road pre-snap
-    /// fouls, and the lift being measured is a fifth of that — so the comparison was
-    /// reading the sample rather than the mechanism, and it passed on the size of a
-    /// rounding error. [#67](https://github.com/knissley/football-manager/issues/67) moved
-    /// the generated world (older rosters, ratings with them) and the twelve-game counts
-    /// came out 19 quiet against 18 loud while the same games at sixty seeds gave 106
-    /// against 126. On the tree before that change the two samples were 30 against 36 and
-    /// 117 against 151: the mechanism is the same size on both, and only the small sample
-    /// disagrees with it. Paired — the same seeds, the same games, one thing different — so
-    /// what is left after the pairing is the noise and nothing else.
+    /// **Sixty games a side could not settle it, so the draw is forced instead.** Sixty
+    /// quiet games hold 116 road pre-snap fouls and sixty loud ones hold 130, a lift of
+    /// 14 with a leave-one-game-out jackknife standard error of 8.46. That is a margin of
+    /// 1.7 errors: a comparison that says *loud is more* about four times in five whatever
+    /// the engine does, which is not a test of anything. It had already been widened once,
+    /// from twelve games to sixty, for the same reason — and sixty is where widening stops
+    /// paying, because the quantity is a hundred-odd occurrences in two hundred games.
+    ///
+    /// So the two grounds are put to `Penalties.preSnap` directly, ten thousand snaps
+    /// each, with a fresh stream per snap seeded identically on both sides. Everything but
+    /// the crowd is the same object: the same personnel, the same call, the same
+    /// situation, the same men. Noise enters that draw in exactly one place — the false
+    /// start's probability, which rises with it — and `nextBool(probability:)` fires when
+    /// one uniform falls under that probability, so on a shared stream the set of snaps
+    /// that false-start at a quiet ground is a **subset** of the set that false-start at a
+    /// loud one. That is the mechanism stated exactly, with no tolerance in it: noise may
+    /// only add false starts, never move one somewhere else.
+    ///
+    /// What is left with any sampling error in it is whether it adds *any*, and that is
+    /// 32 added snaps in ten thousand against an expectation of 28.8 — better than five
+    /// standard errors, and a run that added none is a one-in-a-million-million event.
+    ///
+    /// **What a forced draw cannot see is the wire**, so the last check keeps it: the
+    /// stadium's noise has to reach the draw through a whole game rather than stopping in
+    /// the setup. Sixty seeds played at both grounds come out as different games 49 times;
+    /// were the wire dead they would come out identical 60 times. The floor below is 30, a
+    /// margin of about six errors. Those games are played for `noiseSparesTheHomeTeam`
+    /// whatever this test does, so reading them here costs nothing.
     @Test("A loud stadium raises the road team's procedural fouls", .tags(.unit))
     func crowdNoiseIsTheMechanism() {
-        func roadPreSnapFouls(_ games: [GameResult]) -> Int {
-            var count = 0
-            for result in games {
-                for play in result.plays {
-                    for flag in play.outcome.penalties
-                    where flag.foul.isPreSnap && flag.offendingTeam == play.situation.possession
-                        && play.situation.possession == TeamID(2)
-                    {
-                        count += 1
-                    }
+        let (_, chart, players) = TestWorld.team(seed: 4)
+        let situation = Situation(
+            quarter: 1, clockRemaining: 600, down: .first, distance: 10, ballOn: 60,
+            possession: TeamID(1))
+        let calls = Calls(
+            offense: OffensiveCall(concept: .quickPass), defense: .baseCoverThree,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+
+        /// The snaps of a shared stream on which a road offence at this ground false-starts.
+        func falseStarts(noise: UInt8) -> Set<Int> {
+            let context = PlayContext(
+                offense: TeamID(1), defense: TeamID(2),
+                offenseRotation: chart.rotation(), defenseRotation: chart.rotation(),
+                players: players,
+                offenseScheme: TeamScheme(offense: .westCoast, defense: .nickelMatch),
+                defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
+                crowdNoise: noise, offenseIsHome: false, rules: .standard)
+            // One lineup for the whole sweep, drawn off its own stream, so that the snaps
+            // below differ in the crowd and in nothing else.
+            var lineupRandom = SplittableRandom(seed: 4)
+            let personnel = Lineup.onField(
+                context, concept: .quickPass, situation: situation, random: &lineupRandom)
+            var snaps: Set<Int> = []
+            for snap in 0..<10_000 {
+                var random = SplittableRandom(seed: 900_000 &+ UInt64(snap))
+                if let flag = Penalties.preSnap(
+                    situation: situation, calls: calls, context: context, personnel: personnel,
+                    random: &random), flag.foul == .falseStart
+                {
+                    snaps.insert(snap)
                 }
             }
-            return count
+            return snaps
         }
 
-        let quiet = roadPreSnapFouls(Self.quiet)
-        let deafening = roadPreSnapFouls(Self.deafening)
+        let quiet = falseStarts(noise: 20)
+        let deafening = falseStarts(noise: 100)
         #expect(
-            deafening > quiet,
-            "noise made no difference to the road team: \(quiet) quiet, \(deafening) loud")
+            quiet.isSubset(of: deafening),
+            "\(quiet.subtracting(deafening).count) snaps false-started at a quiet ground and not at a loud one"
+        )
+        #expect(
+            deafening.count > quiet.count,
+            "noise made no difference to the road team: \(quiet.count) quiet, \(deafening.count) loud"
+        )
+
+        // And the crowd reaches the draw through a played game, not only through a context
+        // a test built.
+        var differing = 0
+        for (atQuiet, atDeafening) in zip(Self.quiet, Self.deafening)
+        where atQuiet.plays.map(\.outcome) != atDeafening.plays.map(\.outcome) {
+            differing += 1
+        }
+        #expect(
+            differing > 30,
+            "only \(differing) of 60 seeds played a different game at the two grounds: the stadium's noise is not reaching the draw"
+        )
     }
 
     /// And it has to be *asymmetric*, or it is not home field advantage — it is weather.
