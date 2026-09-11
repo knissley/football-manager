@@ -593,9 +593,10 @@ report(
     "interferenceOnCompletions",
     interference.isEmpty
         ? nil : Double(interferenceOnCompletions) / Double(interference.count) * 100)
+let offensiveInterference = flags.filter { $0.foul == .offensivePassInterference }
 print(
     "    \(pad("  offensive interference on a catch", 38))"
-        + "\(offensiveInterferenceOnCompletions) of \(byFoul["offensivePassInterference"] ?? 0) accepted"
+        + "\(offensiveInterferenceOnCompletions) of \(offensiveInterference.count) flags drawn"
         + "   (no target: a push-off that brings a catch back is the sport, 8-5-2)")
 
 for (foul, count) in byFoul.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) })
