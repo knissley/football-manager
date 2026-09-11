@@ -491,7 +491,8 @@ public struct CrudeResolver: PlayResolver {
         // named what would end it: an arrival before 1,500 ms. `PassRushArrival` starts
         // at 1,000 ms, so both exits are live, which is the football (a try can be
         // sacked, and a quarterback can run one in when the pocket goes). Measured over
-        // twenty thousand two-point passes: 13.0% pressured, 1.8% sacked, 1.1% scrambled.
+        // the 19,638 tries in twenty thousand two-point passes, the rest being wiped out
+        // by a flag before the snap: 12.2% pressured, 1.8% sacked, 1.0% scrambled.
         // Neither exit carries a pass result, because on neither did the ball leave, so
         // `passResultsAreWherePassesAre` reads the throw decision rather than the kind
         // and the register in docs/play-record.md carries both rows.

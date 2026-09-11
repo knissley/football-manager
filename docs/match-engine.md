@@ -255,12 +255,17 @@ identical across concepts by construction:
 | concept | hold | pressured, old window | pressured, this one |
 |---|---|---|---|
 | `screen` | 1,400 ms | 0.0000 — below the old floor | 0.0939 |
-| `quickPass` | 1,700 ms | 0.0976 | 0.1976 |
-| `mediumPass` | 2,600 ms | 0.4706 | 0.4494 |
-| `playAction` | 3,000 ms | 0.5559 — above the old ceiling | 0.4963 |
-| `deepPass` | 3,400 ms | 0.5559 — the same 1,362 snaps | 0.5253 |
+| `quickPass` | 1,700 ms | 0.1000 | 0.1963 |
+| `mediumPass` | 2,600 ms | 0.4698 | 0.4494 |
+| `playAction` | 3,000 ms | 0.5551 — above the old ceiling | 0.4955 |
+| `deepPass` | 3,400 ms | 0.5551 — the same 1,360 snaps | 0.5245 |
 
-`row:pressureRate` rises with it, to 33.2% and 32.7% at harness seeds 7 and 11 against a
+The old window put nothing below 1,400 ms and nothing above 3,400; this one puts 230 of
+1,360 first arrivals below the shortest hold and 75 above the longest, on a sample running
+1,001 ms to 5,503 ms. Adjacent concepts now differ on 251, 620, 113 and 71 snaps of the
+2,450, against 245, 906, 209 and **zero** before.
+
+`row:pressureRate` rises with it, to 33.3% and 32.5% at harness seeds 7 and 11 against a
 band of 27.8–32.3, so the row reads `OFF` at both. That is a level, it is the multiplier's
 to set and not this window's, and it is recorded as a residual rather than absorbed here.
 

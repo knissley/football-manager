@@ -372,8 +372,9 @@ a beaten blocker's man could not reach the quarterback before 1,500 ms either, s
 resolver's pressure branches were dead on a try — not by rule, but because two constants
 happened to touch. The pass rush now arrives on a window that spans every hold it is
 compared against, starting at 1,000 ms, so a try can be sacked and a quarterback can run
-one in, which is the football. Measured over twenty thousand two-point passes through the
-crude resolver: 13.0% pressured, 1.8% sacked, 1.1% scrambled.
+one in, which is the football. Measured through the crude resolver over the 19,638 tries
+in twenty thousand two-point passes — the rest wiped out by a flag before the snap: 12.2%
+pressured, 1.8% sacked, 1.0% scrambled.
 
 **Neither carries a `passResult`**, because on neither did the ball leave. That is the one
 place where a reader cannot get the answer from `kind`: an ordinary dropback that ends in
