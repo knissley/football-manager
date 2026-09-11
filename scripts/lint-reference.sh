@@ -590,6 +590,12 @@ fi
 # ---------------------------------------------------------------------------
 
 targets=()
+
+# Hidden directories are pruned, which is what keeps a `.build` tree out of the
+# walk. SwiftPM writes generated `.swift` files under one, so without this the
+# number of files scanned depends on whether the packages have been built — and a
+# count nobody else can reproduce is the kind of measurement this script exists to
+# stop. `InvariantsTraceabilityTests` skips them for the same reason.
 add_tree() {
     local dir=$1 pattern=$2 before=${#targets[@]}
     if [ ! -d "$dir" ]; then
@@ -598,7 +604,7 @@ add_tree() {
     fi
     while IFS= read -r file; do
         targets+=("$file")
-    done < <(find "$dir" -name "$pattern" | sort)
+    done < <(find "$dir" -name '.*' -type d -prune -o -name "$pattern" -print | sort)
     if [ "${#targets[@]}" -eq "$before" ]; then
         echo "lint-reference: $dir holds no $pattern — it would be scanned as nothing" >&2
         exit 2
