@@ -575,8 +575,167 @@ struct EndgameTests {
         }
     }
 
+    // MARK: - The kneel sequence, forced rather than sampled
+
+    /// Whether the caller kneels, given the clock it is standing over and the interval
+    /// in force before the snap.
+    private func kneels(
+        _ situation: Situation, clockRunning: Bool, playClock: PlayClock
+    ) -> Bool {
+        var random = SplittableRandom(seed: 1)
+        return caller.offensiveCall(
+            for: situation, classified: SituationClass(situation),
+            context: context(clockRunning: clockRunning, playClock: playClock), random: &random
+        ).concept == .kneel
+    }
+
+    /// The down after a knee, in the terms the next call reads: one down on, a yard
+    /// further back, and a yard more to gain.
+    private func afterAKnee(_ situation: Situation, clock: UInt16) -> Situation? {
+        guard let next = situation.down.next, next != .fourth else { return nil }
+        return self.situation(
+            down: next, distance: situation.distance + 1, ballOn: situation.ballOn + 1,
+            quarter: situation.quarter, clock: clock,
+            differential: situation.scoreDifferential,
+            offenseTimeouts: situation.offenseTimeouts,
+            defenseTimeouts: situation.defenseTimeouts)
+    }
+
+    /// The forced fixture the sweep below cannot be: a kneel sequence played out down by
+    /// down, against both futures the book allows between two knees.
+    ///
+    /// The promise is monotonicity, and it is the one the count makes about itself. The
+    /// clock the next snap faces is exactly what this knee leaves — the interval of
+    /// 4-6-1 and the two seconds of the knee, or the knee alone when a charged timeout
+    /// leaves the clock waiting for the snap (4-3-2) — so a lead that can be knelt out on
+    /// this down can still be knelt out on the next. Where that fails the caller kneels,
+    /// kneels again and then runs an ordinary play, which is the thing
+    /// `aKneelIsNeverFollowedByALivePlay` forbids and can only find in a sample by luck.
+    ///
+    /// Both futures are swept because only one of them is the easy one. With the interval
+    /// running, the clock and the count fall by the same amount and monotonicity is
+    /// arithmetic. With a charged timeout, the count loses an interval it was spending —
+    /// and stays sound only because the timeout that erased it is one of the ones the
+    /// count had already deducted.
+    @Test(
+        "contract · a kneel sequence stays a kneel sequence down by down, whether the interval runs or the defence stops the clock",
+        .tags(.contract))
+    func aKneelSequenceIsMonotoneDownByDown() {
+        let rules = Rules.standard
+        let afterAPlay = rules.playClockAfterAPlay
+        let afterAStoppage = rules.playClockAfterAnAdministrativeStoppage
+        let knee = UInt16(2)
+        let interval = GameClock.elapsed(
+            playDuration: knee, tempo: .bleedClock, playClock: afterAPlay,
+            previousBehavior: .keepsRunning
+        ).total
+
+        var swept = 0
+        for quarter in [UInt8(2), UInt8(4)] {
+            for differential in [Int16(1), 7, 14] {
+                for defenseTimeouts in UInt8(0)...3 {
+                    for down in [Down.first, .second, .third] {
+                        for clock in UInt16(3)...150 {
+                            let now = situation(
+                                down: down, quarter: quarter, clock: clock,
+                                differential: differential, defenseTimeouts: defenseTimeouts)
+                            guard kneels(now, clockRunning: true, playClock: afterAPlay) else {
+                                continue
+                            }
+                            swept += 1
+
+                            // The interval runs, and the knee takes its two seconds.
+                            if clock > interval, let next = afterAKnee(now, clock: clock - interval)
+                            {
+                                #expect(
+                                    kneels(next, clockRunning: true, playClock: afterAPlay),
+                                    "knelt on \(down) at \(clock) with \(defenseTimeouts) against, then would not on \(next.down) at \(next.clockRemaining)"
+                                )
+                            }
+
+                            // Or the defence spends one in that interval instead. Nothing
+                            // comes off the clock, this snap is taken against a stopped
+                            // one (4-3-2) and a twenty-five from the whistle (4-6-2), and
+                            // the defence has one fewer to spend.
+                            guard defenseTimeouts > 0, clock > knee else { continue }
+                            var stillStanding = now
+                            stillStanding.defenseTimeouts = defenseTimeouts - 1
+                            #expect(
+                                kneels(
+                                    stillStanding, clockRunning: false, playClock: afterAStoppage),
+                                "knelt on \(down) at \(clock), then would not once the defence stopped the clock there"
+                            )
+
+                            // The knee is still taken, and it starts the clock again:
+                            // it ends in bounds, so the next interval is the ordinary
+                            // forty of 4-6-1 running.
+                            guard var next = afterAKnee(now, clock: clock - knee) else { continue }
+                            next.defenseTimeouts = defenseTimeouts - 1
+                            #expect(
+                                kneels(next, clockRunning: true, playClock: afterAPlay),
+                                "knelt on \(down) at \(clock), then would not on \(next.down) at \(next.clockRemaining) after a charged timeout"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        #expect(swept > 100, "the sweep found only \(swept) knees, so it asserts almost nothing")
+    }
+
+    /// What the count cannot absorb, pinned so that it is written down rather than
+    /// discovered again.
+    ///
+    /// Monotonicity survives a charged timeout because the timeout that erased the
+    /// interval is one the count had already deducted. It does not survive a stoppage
+    /// that costs the defence nothing — a foul on the knee accepted by the leading side,
+    /// or a timeout charged to the *offence* by rule. The interval goes and the deduction
+    /// stays, so the count falls by a whole interval while the clock falls by the two
+    /// seconds of the knee, and the caller plays the next down.
+    ///
+    /// **This is the engine's answer, not the sport's.** A coach whose sequence is broken
+    /// really does decide again, and on a fourth down he really does punt rather than
+    /// hand the ball back at midfield — so "kneel anyway" is not obviously the right
+    /// football, and the shape stays open on
+    /// [#49](https://github.com/knissley/football-manager/issues/49) rather than being
+    /// fixed here. What *was* fixed is the stoppage that produced every instance of it in
+    /// twenty-four thousand games: a quarterback hurt taking a knee
+    /// (`test:noInjuryOnADownNobodyWasHitOn`).
+    ///
+    /// The numbers are a real possession, measured before the fix: a side up fourteen
+    /// kneels on first and ten with thirty-eight seconds of the first half left and the
+    /// defence holding two timeouts, is handed the clock back, and throws on second.
+    @Test(
+        "pin · a kneel sequence broken by a stoppage the defence did not pay for is not resumed: the count loses an interval it had already deducted for",
+        .tags(.pin))
+    func aKneelSequenceIsNotResumedAfterAStoppageTheDefenceDidNotPayFor() {
+        let afterAStoppage = Rules.standard.playClockAfterAnAdministrativeStoppage
+        let committed = situation(
+            down: .first, quarter: 2, clock: 38, differential: 14, defenseTimeouts: 2)
+        #expect(
+            kneels(committed, clockRunning: false, playClock: afterAStoppage),
+            "the sequence never started, so the pin asserts nothing")
+
+        guard let handedBack = afterAKnee(committed, clock: 36) else {
+            Issue.record("second down does not exist")
+            return
+        }
+        #expect(
+            kneels(handedBack, clockRunning: false, playClock: afterAStoppage) == false,
+            "the caller now kneels here — good news, and this pin is what has to be rewritten")
+    }
+
     /// The other half of the same promise, over seeded games rather than a script: a
     /// possession that has started kneeling never produces another kind of snap.
+    ///
+    /// Sixty seeded games is a floor and not the measurement. The situation this forbids
+    /// needs a leading side inside two minutes *and* a stoppage inside the sequence, and a
+    /// sample this size contains one about as often as it does not — which is how it
+    /// stayed green through a defect that a wider sample prints on every run. The claim
+    /// with power behind it is `test:aKneelSequenceIsMonotoneDownByDown` above, which
+    /// forces the situation rather than waiting for it, and
+    /// `test:noInjuryOnADownNobodyWasHitOn`, which forces the stoppage that used to break
+    /// it.
     @Test(
         "contract · once the baseline kneels, every later snap of that possession is a kneel",
         .tags(.contract))
