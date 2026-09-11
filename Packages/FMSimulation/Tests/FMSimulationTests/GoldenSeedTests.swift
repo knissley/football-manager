@@ -422,9 +422,46 @@ struct GoldenSeedTests {
             // stream. Neither parent's constants could survive, because each was computed
             // without the other's mechanism, and no subset of the mechanisms above
             // reproduces these numbers.
-            (UInt64(1), UInt64(12_846_516_332_598_426_273)),
-            (UInt64(5), UInt64(18_162_519_760_039_925_891)),
-            (UInt64(12), UInt64(6_072_345_254_296_759_821)),
+            // And moved by the catch, in three ways the checksum mixes through the catch
+            // decision and through the draws each one spends. A defensive interference
+            // foul now settles the catch instead of sitting beside it (2025 rulebook,
+            // 8-5-1): the flag is drawn at the throw and the catch is resolved with it in
+            // hand, so the pass is incomplete and the result is the defender's, where two
+            // thirds of those flags used to fly on passes that were then completed. No
+            // interference of either kind is drawn on a throw the record calls
+            // uncatchable, which 8-5-3-c makes legal contact. And placement now decides
+            // whose incompletion an uncaught ball was: a poor one is the throw's, and
+            // `CatchResult` has a case for it, where every failed catch with the receiver
+            // open used to be charged to him as a drop. Each interference draw that ends
+            // a catch early leaves the catch and interception draws unspent, and each
+            // uncatchable throw leaves the interference draw unspent, so every stream
+            // after the first of them in a game diverges. `Tools/gamelog --seed 7
+            // --home 3 --away 11` prints a hundred and sixty-five plays where it printed
+            // a hundred and seventy-eight, with nine drops where it printed eighteen and
+            // five interference calls that are now five incompletions accepted at the
+            // spot, where all four of the defence's were completions and every one was
+            // declined.
+            //
+            // And the pocket and the catch then met in this merge, which is where the
+            // constants below come from. On one side the pocket gets one verdict a snap,
+            // taken against the moment the ball came out, so far fewer dropbacks are
+            // pressured. On the other a defensive interference flag settles the catch,
+            // no flag is drawn on a throw nobody could reach, and placement decides whose
+            // incompletion an uncaught ball was. The two reach each other on the same
+            // snaps, and in both directions. Pressure is what makes a throw inaccurate,
+            // so a pocket that holds puts more balls on target and fewer where they could
+            // not be caught — which moves the mix of drops, break-ups and off-target
+            // throws the other side is labelling, and the uncatchable throws it declines
+            // to flag. A sack that is no longer taken is a throw instead, so there is a
+            // catch to resolve and a matchup to draw interference on where there was
+            // neither. And a flag that now ends the catch is accepted at the spot, which
+            // keeps a drive alive and hands the pocket more dropbacks to judge. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanism, and no subset of the mechanisms above reproduces these
+            // numbers.
+            (UInt64(1), UInt64(4_939_048_633_176_101_979)),
+            (UInt64(5), UInt64(8_162_782_535_497_224_204)),
+            (UInt64(12), UInt64(9_333_661_618_843_993_380)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

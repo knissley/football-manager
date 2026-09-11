@@ -89,6 +89,28 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:yardsPerPlay` — yards per play | 2023-24 | S1 |
 | `row:yardsPerCompletion` — yards per completion | 2023-24 | S1 |
 
+### Why the other passes were not caught
+
+Both print with **no band at all**, which is the honest output rather than a gap. The
+play-by-play charts neither a drop nor a break-up: a drop is a charting judgement made by
+a third party watching the film, and the feed names the defender on a pass defensed only
+in the seasons and releases that carry the participation columns. Neither has been
+computed here, and typing a plausible-looking figure in place of an uncomputed one is the
+failure this file exists to prevent.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:dropsPerTarget` — drops per target | unsourced | — |
+| `row:passesDefensedPerGame` — passes defensed per game (both teams) | unsourced | — |
+
+**What a band would have to be computed from.** For drops: a charting release that marks
+one, per target, over the same two seasons the per-play rows use, with the denominator
+targets rather than attempts — a throwaway has no target and must not be in it. For
+passes defensed: the league's own defensive stat, per team-game and doubled for both
+teams, counting balls knocked away and excluding interceptions, which
+`row:interceptionRate` already bands. Until one of those is read, the engine's values are
+observations and nothing grades them.
+
 ### The shape of the stream
 
 | Row | Season | Source |
@@ -299,6 +321,28 @@ comes out of `onField` rather than out of the substitution the engine made.
 | `row:penalty.illegalFormation` — illegal formation per game | 2023-24 | S1 |
 | `row:penalty.roughingThePasser` — roughing the passer per game | 2023-24 | S1 |
 | `row:penalty.neutralZoneInfraction` — neutral zone infraction per game | 2023-24 | S1 |
+
+Those ten count **accepted** fouls, which is what the league publishes. Two rows beside
+them count something else and are unsourced for two different reasons.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:interferenceDrawnPerGame` — defensive interference flags thrown, accepted or not | unsourced | — |
+| `row:interferenceOnCompletions` — the share of them on a pass that was then completed | unsourced | — |
+
+The first is a count of flags rather than of enforced fouls, and nobody has computed a
+band for one: the feed carries declined penalties, so it could be computed — per game,
+both teams, the same two seasons — but it has not been, and it is printed because an
+accepted rate is the residue of a draw that may be much larger. Interference is where that
+went wrong: the accepted rate graded near its band while two thirds of the flags were
+flying on passes that were then completed and being declined.
+
+The second is **not a league rate at all** and must not be sourced as one. Its band of zero
+is the engine's own promise, taken from 8-5-1: the foul is contact that spoils an eligible
+receiver's chance at the ball, so on the one matchup this engine draws it on, the flag and
+the catch cannot both have happened. The offence's push-off is excluded and printed beside
+it, because a catch that an offensive interference penalty brings back (8-5-2,
+8-5-Penalty) is the sport working normally.
 
 ## The figures stated in words
 

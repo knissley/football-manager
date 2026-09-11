@@ -195,6 +195,30 @@ dropbacks on which the passer was got to (`row:pressureRate`, 2023-24, source S2
 reps lost — and reading a lost rep as pressure is what put the engine at 74% of dropbacks
 against a real rate near a third.
 
+**The catch names the man it was down to**, because nothing else in the record does: the
+outcome carries one `.incomplete` for all four ways a pass can fail, and every reader
+downstream — a drop rate, a pass-defensed leaderboard, the sentence the narrative layer
+writes — repeats whatever `CatchResult` says. So the label is chosen from the placement
+one decision earlier and the separation on the decision itself:
+
+```
+.dropped        the receiver's: a ball he could have caught, and did not
+.brokenUp       the defender's: he was in reach, or he interfered and the foul is the
+                reason it was not caught (2025 rulebook, 8-5-1)
+.offTarget      the passer's: it arrived, and it was not a ball the receiver could be
+                expected to catch
+.uncatchable    the passer's at its worst: thrown where nobody could reach it, which is
+                the throw 8-5-3-c makes contact on legal
+```
+
+`.offTarget` and `.uncatchable` are deliberately two cases and not one. They are the same
+man's fault and not the same throw, and the record has to keep them apart for the reason
+the whole enum exists: a reader that cannot tell "he put it where nobody could catch it"
+from "nobody could have reached it" has the same conflation one field along from the one
+that used to charge both to the receiver. Every failed catch with the receiver open was a
+drop until then — three quarters of all incompletions, 86% of them on a ball the record
+itself called slightly off or poor.
+
 Four more are the rules layer's rather than the resolver's, and name no player:
 
 ```
@@ -307,7 +331,7 @@ whether or not anybody scored on it (2025 rulebook, 11-3-1, 11-3-2-e). So `kind`
 |---|---|---|---|
 | caught in the end zone | `.touchdown` | `.complete` | the snap yard |
 | caught short of it | `.tackled` / `.outOfBounds` | `.complete` | what he got |
-| dropped, broken up, off target | `.incomplete` | `.incomplete` | 0 |
+| dropped, broken up, off target, out of reach | `.incomplete` | `.incomplete` | 0 |
 | thrown away | `.incomplete` | `.incomplete` | 0 |
 | intercepted | `.intercepted` | `.intercepted` | 0, with `finalSpot` and `possessionLostAt` |
 | a flag before the snap | — the play is `.penaltyOnly`, as any snap is | | |
