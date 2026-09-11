@@ -45,9 +45,15 @@ public struct PlayerSlot: Sendable, Hashable, Codable, Comparable {
 /// every observer would see them and per-observer trait discovery would collapse
 /// (see docs/play-record.md).
 public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
-    /// A blocker lost. `value` is milliseconds from the snap.
+    /// The verdict on a dropback's pocket: a rusher reached the quarterback before the
+    /// ball was out. `primary` is the blocker he beat, `secondary` is the rusher, and
+    /// `value` is milliseconds from the snap to his arrival. A dropback carries this or
+    /// `pressureHeld`, never both and never two of either — which rep was lost is a
+    /// different fact, recorded by `blockResult`.
     case pressureAllowed = 0
-    /// A blocker held through the play. `value` is milliseconds sustained.
+    /// The other verdict: the ball was out before any rusher arrived. `value` is the
+    /// milliseconds the protection had to sustain, and the pair named is the rush that
+    /// came closest.
     case pressureHeld = 1
     /// The quarterback worked to a read. `detail` is the progression index,
     /// `value` is the receiver's separation in centimetres.
@@ -61,7 +67,9 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case catchAttempt = 5
     /// A tackle was attempted. `detail` is a `TackleResult`.
     case tackleAttempt = 6
-    /// A block resolved. `detail` is a `BlockResult`.
+    /// A block resolved. `detail` is a `BlockResult`. On a dropback there is one per
+    /// pass-rush rep and `value` is milliseconds from the snap: how long the blocker
+    /// sustained, or when the rusher he lost to arrived.
     case blockResult = 7
     /// A running lane opened or did not. `detail` is the gap, `value` is a
     /// quality score.
