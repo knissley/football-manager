@@ -212,6 +212,43 @@ differential flipped would be two vocabularies again, and is explicitly wrong.
 Situation buckets are also the index the caller uses to shortlist plays, so this is on
 the [cost](#cost) path as well as the correctness one.
 
+### Fourth down, and whose range it is
+
+A fourth down is three questions: can this kicker reach, is the kick worth taking against
+what a punt buys, and is the down worth keeping. The first two belong to the kicker and are
+answered in `PlaceKick`; the third is the caller's chart and is answered in `goesForIt`.
+
+**Range is the kicker's.** It used to be two constants on `BaselineCaller` —
+`routineFieldGoal` at 51 and `maximumFieldGoal` at 55 — whose own comment said the baseline
+"has no kicker to consult". Both are gone. A club's range is now the man the lineup will
+put in the specialist slot: how far his leg reaches, less the four yards between a kick he
+would take with a game left to play and one he will try as a half runs out. The old pair is
+still in there, in the only form that survives the change — an average leg's reach *is* 55
+and his routine range *is* 51, so the league's median kicker kicks from exactly where he
+kicked from before, and the change is a spread around him rather than a move of him.
+
+**The caller and the physics are one model.** They used to be two, and that was the real
+defect: the make draw read `kickAccuracy` and never `kickPower`, so a leg was worth the
+same from twenty yards as from fifty-five, while the caller read neither. A club with a
+punter filling in took the same fifty-two yarder as a club with a leg, and the model then
+told it the kick was better than a coin flip. `PlaceKick` is now the single curve and both
+sides read it — the caller to decide whether to send the unit out, the resolver to draw the
+ball — so the conditions arrive in both at once: a wind in his face makes a fifty-two yarder
+play longer than fifty-two and shortens the range by exactly that much.
+
+**`goesForIt` did not change, and inherits the aggression.** It already asked whether a
+fourth down was worth keeping when a kick was not on offer, so shortening one club's range
+turns the fourth-and-short and fourth-and-medium between the opponent's 35 and 45 from a
+kick into a play — for the club whose kicker cannot get there, which is what a club with a
+poor kicker does. A club with a leg kicks them, as it should.
+
+**What the range does not yet do is bind on the odds.** `PlaceKick.routineOdds` says a
+routine attempt needs about even money, and as the curve stands that almost never decides
+anything: the fall past the mid-forties leaves an average leg better than even out to
+sixty-four yards, which is well past where any leg is sent out for a kick, so reach decides
+nearly every attempt. That is the make curve's *level* at long range reading high rather
+than the caller reading it wrong, and the level is a retune's to move.
+
 ## The defensive coordinator
 
 Structurally identical to the offensive one — same profile shape, same gameplan

@@ -378,9 +378,22 @@ struct GoldenSeedTests {
             // to the ball and breaks a tackle on a number in the sixties where he did it
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
-            (UInt64(1), UInt64(16_544_674_377_827_432_735)),
-            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
-            (UInt64(12), UInt64(3_133_720_638_961_547_474)),
+            // And moved by the kicker, deliberately, by the engine. A place kick now
+            // reads both of his ratings rather than one: the touch sets the level as it
+            // always did, and the leg sets how fast the chance falls once the kick is
+            // long enough for a leg to be what is being asked for — so a man who cannot
+            // get the ball there misses from fifty-five where he used to miss from
+            // fifty-five as often as a kicker having a bad day. The caller reads the same
+            // curve instead of two flat numbers, so how far a club will kick from is its
+            // kicker's and no longer the league's: a median leg's range is exactly where
+            // the flat numbers put it, a strong leg's is further and a weak leg's nearer,
+            // and the fourth downs that fall outside it are gone for or punted by the
+            // chart that was already there. The first snap that differs in each of the
+            // three games is a fourth down that was a kick and is now a play, and
+            // everything after it is a different game.
+            (UInt64(1), UInt64(10_775_965_967_008_702_120)),
+            (UInt64(5), UInt64(8_247_887_513_568_260_569)),
+            (UInt64(12), UInt64(15_608_083_433_732_865_613)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

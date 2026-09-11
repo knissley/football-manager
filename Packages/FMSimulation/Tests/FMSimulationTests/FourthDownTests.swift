@@ -341,4 +341,67 @@ struct FieldGoalRangeTests {
             call(leg: 88, quarter: 1, clock: 800) == .fieldGoal,
             "a strong leg takes the same fifty-yarder in the first quarter")
     }
+
+    /// The caller's belief and the physics are one model or they are two, and two is how
+    /// a coach ends up certain about a game nobody is playing. This is the test that
+    /// would have caught it: the make model the ball is drawn against *is* the make model
+    /// the decision was taken with, at the same distance, for the same man, in the same
+    /// weather.
+    ///
+    /// Two halves, and both are needed. That the resolver's own draws land on the shared
+    /// curve, so the curve is not a second opinion the caller keeps to itself; and that
+    /// every routine attempt the caller makes is one the shared curve puts at better than
+    /// the routine odds, so no unit is sent out for a kick the model does not back.
+    @Test(
+        "contract · the caller's decision and the make draw are the same curve",
+        .tags(.contract))
+    func theDecisionAndTheDrawAreOneModel() {
+        // The draws land on the curve. Twenty thousand kicks is about a third of a point
+        // of standard error, so a hundredth and a half is loose enough not to flake and
+        // tight enough that a second curve anywhere in the resolver shows up.
+        for (leg, touch) in [
+            (UInt8(45), UInt8(45)), (UInt8(75), UInt8(76)), (UInt8(92), UInt8(88)),
+        ] {
+            for ballOn in [UInt8(13), UInt8(23), UInt8(33)] {
+                let context = FourthDownTests.context(leg: leg, touch: touch)
+                let man = PlaceKick.kicker(for: context)
+                let modelled = PlaceKick.makeChance(
+                    rawLength: Rules.standard.fieldGoalDistance(ballOn: ballOn), leg: man.leg,
+                    accuracy: man.accuracy, isTry: false, context: context)
+                let drawn = makeRate(from: ballOn, leg: leg, touch: touch)
+                #expect(
+                    drawn > modelled - 0.015 && drawn < modelled + 0.015,
+                    "from \(ballOn) with leg \(leg): drew \(drawn) against a model of \(modelled)"
+                )
+            }
+        }
+
+        // And nothing is sent out that the model does not back. Every spot on the field,
+        // every leg a generated league can carry, on a routine down where no half is
+        // ending.
+        for leg in stride(from: UInt8(20), through: UInt8(99), by: 8) {
+            let context = FourthDownTests.context(leg: leg, touch: 70)
+            let man = PlaceKick.kicker(for: context)
+            for ballOn in UInt8(1)...UInt8(70) {
+                let situation = Situation(
+                    quarter: 2, clockRemaining: 600, down: .fourth, distance: 8, ballOn: ballOn,
+                    possession: TeamID(1), scoreDifferential: 0)
+                var random = SplittableRandom(seed: 4)
+                let concept = caller.offensiveCall(
+                    for: situation, classified: SituationClass(situation), context: context,
+                    random: &random
+                ).concept
+                guard concept == .fieldGoal else { continue }
+                let length = Rules.standard.fieldGoalDistance(ballOn: ballOn)
+                #expect(
+                    PlaceKick.makeChance(
+                        rawLength: length, leg: man.leg, accuracy: man.accuracy, isTry: false,
+                        context: context) >= PlaceKick.routineOdds,
+                    "sent the unit out for a \(length) yarder the model puts under even odds")
+                #expect(
+                    Double(length) <= PlaceKick.reach(leg: man.leg) - PlaceKick.routineMargin,
+                    "sent the unit out for a \(length) yarder with a leg of \(man.leg)")
+            }
+        }
+    }
 }

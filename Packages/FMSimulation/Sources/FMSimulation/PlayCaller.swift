@@ -416,22 +416,6 @@ public struct BaselineCaller: PlayCaller {
 
     // MARK: - Offence
 
-    /// The longest kick the baseline will attempt.
-    ///
-    /// A flat number, because the baseline has no kicker to consult. A real caller reads
-    /// his kicker's leg and the weather, and that is one of the things it should beat
-    /// this by.
-    public static let maximumFieldGoal = 55
-
-    /// The longest kick worth attempting when a punt is still a sensible alternative.
-    ///
-    /// A fifty-five yarder is a real option at the end of a half, when the choice is
-    /// between a long kick and nothing. On a first-quarter fourth down it is a bad trade
-    /// against forty yards of field position, and treating every kick inside the maximum
-    /// as automatic is what made this caller attempt a fifty-five yarder on fourth and
-    /// one from the opponent's thirty-eight.
-    public static let routineFieldGoal = 51
-
     public func offensiveCall(
         for situation: Situation, classified: SituationClass, context: PlayContext,
         random: inout SplittableRandom
@@ -459,11 +443,21 @@ public struct BaselineCaller: PlayCaller {
     ) -> PlayConcept? {
         let kickLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
 
-        // A long kick is worth attempting when the alternative is nothing — the end of a
-        // half, or a game that is decided here. Otherwise it is a bad trade against the
-        // field position a punt buys.
+        // Range is the kicker's, not the league's. It used to be two flat numbers whose
+        // own comment said this caller had no kicker to consult, so every club's fiftieth
+        // yard sat in the same place whoever was standing there — and the make model,
+        // which read the touch and never the leg, disagreed with both. `PlaceKick` is the
+        // one model now: it reads the man the lineup will put in the specialist slot, the
+        // wind he is kicking into and the air he is kicking through, and answers the
+        // caller's question and the resolver's with the same arithmetic.
+        //
+        // A long kick is worth trying when the alternative is nothing — the end of a half,
+        // or a game that is decided here — and is a bad trade against the field position a
+        // punt buys when there is a game left to play. That difference belongs to the
+        // kicker too, so it is `PlaceKick` that holds it.
         let stretching = classified.time.isEndgame || classified.time == .twoMinuteFirstHalf
-        let inRange = kickLength <= (stretching ? Self.maximumFieldGoal : Self.routineFieldGoal)
+        let inRange = PlaceKick.isInRange(
+            rawLength: kickLength, context: context, aHalfIsEnding: stretching)
 
         // Behind, late: a punt is a surrender, and a kick is only worth taking if it ties
         // the game or wins it.
