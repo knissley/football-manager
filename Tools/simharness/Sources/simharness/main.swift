@@ -722,6 +722,10 @@ var puntGrosses: [Int] = []
 var puntReturnYards: [Int] = []
 var kickoffReturnYards: [Int] = []
 var fieldGoalsByDistance: [(distance: Int, good: Bool)] = []
+/// The same kicks with the man who struck them, so a long attempt can be read against
+/// the leg that took it. Read off the record's participants rather than accumulated
+/// beside the simulation, like every other query here.
+var fieldGoalsByKicker: [(distance: Int, good: Bool, leg: Int, touch: Int)] = []
 
 var twoPointTries = 0
 var twoPointGood = 0
@@ -801,8 +805,19 @@ for result in results {
                 puntReturnYards.append(back)
             }
         case .fieldGoal:
-            fieldGoalsByDistance.append(
-                (Int(play.situation.ballOn) + 17, outcome.endedIn == .fieldGoalGood))
+            let length = Int(play.situation.ballOn) + 17
+            let good = outcome.endedIn == .fieldGoalGood
+            fieldGoalsByDistance.append((length, good))
+            if let kicker = outcome.participants.first(where: { $0.role == .kicker }),
+                let man = players[kicker.player]
+            {
+                fieldGoalsByKicker.append(
+                    (
+                        distance: length, good: good,
+                        leg: Int(man.ratings[.kickPower] ?? 0),
+                        touch: Int(man.ratings[.kickAccuracy] ?? 0)
+                    ))
+            }
         case .twoPointConversion:
             twoPointTries += 1
             if outcome.endedIn == .touchdown { twoPointGood += 1 }
@@ -1205,6 +1220,54 @@ let extraPointsGood = extraPoints.filter { $0.outcome.endedIn == .fieldGoalGood 
 report(
     "extraPointsMade",
     extraPoints.isEmpty ? nil : Double(extraPointsGood) / Double(extraPoints.count) * 100)
+
+// How far a club will kick from is its kicker's, so the long attempts have to be readable
+// against the leg that took them or the effect is invisible in an aggregate: a league of
+// identical ranges and a league of different ones produce the same total. No target on any
+// row here. Nothing sources a make rate or an attempt share by leg, which
+// docs/reference/calibration-sources.md records under the bands the harness cannot
+// measure; what grades the model is the aggregate rows above, which these break down.
+print("")
+print(
+    "  Field goals from 45 and beyond, by the kicker   (no target: nothing sources a split by leg)")
+let longAttempts = fieldGoalsByKicker.filter { $0.distance >= 45 }
+@MainActor
+func kickerTier(
+    _ name: String, _ kicks: [(distance: Int, good: Bool, leg: Int, touch: Int)]
+) {
+    guard !kicks.isEmpty else {
+        print("    \(pad(name, 26))—")
+        return
+    }
+    let made = kicks.filter(\.good).count
+    let fifties = kicks.filter { $0.distance >= 50 }
+    let longest = kicks.map(\.distance).max() ?? 0
+    let mean = Double(kicks.map(\.distance).reduce(0, +)) / Double(kicks.count)
+    var line = "    \(pad(name, 26))\(pad(String(kicks.count), 7))"
+    line += "\(pad(oneDecimal(Double(made) / Double(kicks.count) * 100) + "%", 9))"
+    line += "\(pad(String(fifties.count), 7))"
+    line += pad(
+        fifties.isEmpty
+            ? "—"
+            : oneDecimal(Double(fifties.filter(\.good).count) / Double(fifties.count) * 100) + "%",
+        9)
+    line += "\(pad(oneDecimal(mean), 8))\(longest)"
+    print(line)
+}
+// The make columns read against the average and longest beside them and not on their own:
+// a leg that is only ever sent out for the shortest kicks in this range makes a higher
+// share of them than a leg that is sent out for all of them, which is the selection the
+// change introduced rather than a claim that a weak leg kicks better.
+print(
+    "    \(pad("tier", 26))\(pad("45+", 7))\(pad("made", 9))\(pad("50+", 7))\(pad("made", 9))"
+        + "\(pad("avg", 8))longest"
+)
+kickerTier("leg under 70", longAttempts.filter { $0.leg < 70 })
+kickerTier("leg 70 to 79", longAttempts.filter { $0.leg >= 70 && $0.leg < 80 })
+kickerTier("leg 80 and up", longAttempts.filter { $0.leg >= 80 })
+kickerTier("touch under 70", longAttempts.filter { $0.touch < 70 })
+kickerTier("touch 70 to 79", longAttempts.filter { $0.touch >= 70 && $0.touch < 80 })
+kickerTier("touch 80 and up", longAttempts.filter { $0.touch >= 80 })
 
 print("")
 print("  Fourth down")

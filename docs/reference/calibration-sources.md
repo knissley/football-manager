@@ -384,6 +384,21 @@ third twenty-two, about a third twenty-three and a seventh to a quarter twenty-f
 
 None of the three is banded: a number nobody asserts is a note, not a target.
 
+**What a kick is worth by the leg that struck it.** The kicking rows above are aggregates
+over everybody who kicked: `row:fieldGoals50plus` says the league makes 63.7-74.9% from
+fifty and beyond, and says nothing about how that splits between the leg that is trusted
+from fifty-eight and the one that is not trusted from forty-eight. The engine now models
+that split — `PlaceKick` reads `kickPower` as well as `kickAccuracy`, and how far a club
+will kick from follows from it — and the harness prints attempts and makes from
+forty-five and beyond by leg tier so the split is visible. **Nothing sources a band for
+it.** The shape was fitted to the aggregate rows above and to the two ends the sport does
+state plainly — a league-average kicker's curve, which is the aggregate, and a man who is
+not a kicker at all — not to a published make rate by leg. So the printed tiers carry no
+target and none should be invented for them: what grades the model is the aggregate rows
+it was fitted to, `row:fieldGoals50plus` and `row:fieldGoalAttempts50plus`. A band here
+would need a per-kicker distance-by-distance split computed from the play-by-play with
+kickers grouped by something standing in for leg, which nothing in this repository does.
+
 ## Where the harness measures something else
 
 Two rows measure a definition of their own rather than the source's, and the difference

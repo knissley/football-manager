@@ -435,6 +435,26 @@ struct GoldenSeedTests {
             // and leaves the game clock waiting for the snap — which changes how much of
             // the period the next snap costs, which changes what is called on the snap
             // after that, and the stream diverges from there.
+            //
+            // And moved by the kicker, deliberately, by the engine. A place kick now
+            // reads both of his ratings rather than one: the touch sets the level as it
+            // always did, and the leg sets how fast the chance falls once the kick is
+            // long enough for a leg to be what is being asked for — so a man who cannot
+            // get the ball there misses from fifty-five where he used to miss from
+            // fifty-five as often as a kicker having a bad day. The caller reads the same
+            // curve instead of two flat numbers, so how far a club will kick from is its
+            // kicker's and no longer the league's: a median leg's range is exactly where
+            // the flat numbers put it, a strong leg's is further and a weak leg's nearer,
+            // and the fourth downs that fall outside it are gone for or punted by the
+            // chart that was already there. On the tree this mechanism was written on,
+            // the first snap that differed in each of the three games was a fourth down
+            // that was a kick and is now a play. Measured here, it reaches none of the
+            // three: no fourth-down decision and no attempt in those three games comes
+            // out differently, which is what a median leg's range being exactly where
+            // the two flat numbers were looks like from inside three games. So the
+            // constants below are the ones the benches left, unmoved by the kicker —
+            // this mechanism is measured in the harness's kicking rows, and a golden of
+            // three games is not where it shows.
             (UInt64(1), UInt64(234_699_460_847_983_132)),
             (UInt64(5), UInt64(9_111_295_861_296_310_314)),
             (UInt64(12), UInt64(450_169_252_029_078_525)),
