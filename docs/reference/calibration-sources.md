@@ -136,6 +136,21 @@ Season is the real-league season the band describes; source is the key above. A 
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
 
+**No share is sourced for any grouping but eleven.** `row:personnel11` is the only
+offensive participation share in `Targets.swift`, and nothing here, in
+[the bands the harness cannot measure](#bands-the-harness-cannot-measure) or in
+[what a generated world claims](#what-a-generated-world-claims-and-nothing-sources) bands
+twelve, ten or an empty set. What the file does source about the rest of the mix is the
+tight end count [below](#who-took-the-snap): 77.1–87.2 tight end player-snaps per team-game
+against 58.9–66.8 plays from scrimmage, which is more than one tight end on the average
+snap however the two bands are paired, and which therefore says that a snap that is not
+eleven personnel mostly carries a second tight end rather than a fourth receiver. A
+caller's mix is set from those two, because there is no figure for twelve to set it from,
+and a twelve-personnel share stated as football without one is a number from memory.
+Computing one is the derivation the rows above already perform — the source's
+participation feed names the grouping on every play — and it is cheap; it is simply not
+done, and this line says so rather than leaving the gap to be filled by remembering.
+
 ### Who took the snap
 
 Player-snaps per team-game on plays from scrimmage, by the roster position group of each

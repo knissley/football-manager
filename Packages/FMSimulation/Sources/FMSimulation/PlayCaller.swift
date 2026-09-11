@@ -183,8 +183,13 @@ extension PlayCaller {
             default: return .eleven
             }
         }
+        // A passing down outside two minutes is still played from the ordinary grouping.
+        // Four and five receivers are what a team sends out when the clock is the
+        // opponent, not when the sticks are: `row:snaps.receiver` (S2, 2023-24) is
+        // 150.3-171.0 receiver player-snaps per team-game, which does not survive a
+        // fourth receiver on every third and long as well.
         if classified.isMustPass {
-            return random.nextBool(probability: 0.11) ? .ten : .eleven
+            return .eleven
         }
         if classified.isClockBurn {
             switch random.next(upperBound: 100) {
@@ -193,13 +198,21 @@ extension PlayCaller {
             default: return .eleven
             }
         }
-        // Otherwise the modern default, with a heavier look mixed in — about two thirds
-        // of the sport's snaps are eleven personnel.
+        // Otherwise the modern default, with a second tight end mixed in. Two sourced
+        // rows set this split between them (S2, 2023-24, in
+        // `docs/reference/calibration-sources.md`). `row:personnel11` puts eleven
+        // personnel on 62.3-71.9% of snaps, and seventy-two here lands about the middle
+        // of that band once the branches above have taken their share of the game.
+        // What is left is a second tight end rather than a fourth receiver:
+        // `row:snaps.tightEnd` is 77.1-87.2 tight end player-snaps per team-game against
+        // `row:snaps.quarterback`'s 58.9-66.8, which is one a snap by construction, so
+        // the sport has more than one tight end on the average snap and a grouping that
+        // is not eleven personnel is mostly the one with two of them. Twelve takes what
+        // a fourth receiver used to, and twenty-one keeps its share.
         switch random.next(upperBound: 100) {
-        case ..<74: return .eleven
-        case ..<89: return .twelve
-        case ..<96: return .twentyOne
-        default: return .ten
+        case ..<72: return .eleven
+        case ..<93: return .twelve
+        default: return .twentyOne
         }
     }
 
@@ -208,6 +221,11 @@ extension PlayCaller {
     /// A defence substitutes to match: three receivers get a nickel back, four get a
     /// dime. Guessing wrong is the cost of guessing, and the offence declaring first is
     /// what makes it a decision at all.
+    ///
+    /// Nickel is what a modern defence lines up in, and base is the substitution rather
+    /// than the other way round: `row:packageNickel` (S2, 2023-24) puts five defensive
+    /// backs on 61.6-69.2% of snaps against `row:packageBase`'s 20.2-25.0 for four, and
+    /// nickel's floor is above half of every snap played.
     public func package(
         for situation: Situation, classified: SituationClass, random: inout SplittableRandom
     ) -> DefensivePackage {
@@ -219,21 +237,31 @@ extension PlayCaller {
         }
 
         switch situation.offensePersonnel.wideReceivers {
-        case 5: return .quarter
-        case 4: return .dime
+        // Five receivers and four both get a dime. Seven defensive backs against an
+        // empty set leaves four men in the front, which is a prevent look rather than an
+        // answer to a grouping a team snaps from on an ordinary down; `prevent` below is
+        // where that eleven belongs.
+        case 5, 4: return .dime
         case 3:
-            // Against three receivers, nickel is the default answer — but a defence that
-            // matches personnel every single time is a defence nobody can ever catch out,
-            // and the count mismatch is where the chess match pays. Real defences stay in
-            // their base front against eleven personnel about a quarter of the time,
-            // betting on the run, and wear the extra receiver when they are wrong.
+            // Against three receivers the nickel back comes on, and on an ordinary down
+            // he stays on. A defence that answered eleven personnel from its base front
+            // a quarter of the time was one nobody could catch out, but it was also one
+            // playing four defensive backs on a third of every snap, which is not the
+            // shape of the sport: the two bands above leave base with about the share
+            // the heavier groupings take and no more.
+            //
+            // The mismatch survives where it is a bet rather than a habit. In short
+            // yardage a defence commits to the run and wears the extra receiver when it
+            // is wrong, and on a down where the offence has to throw the sixth back is
+            // on offer — which, with four and five receivers already answered above, is
+            // what puts a dime on the field on third and long.
             if classified.downAndDistance.isShortYardage {
                 return random.nextBool(probability: 0.55) ? .base : .nickel
             }
             if classified.isMustPass {
                 return random.nextBool(probability: 0.15) ? .dime : .nickel
             }
-            return random.nextBool(probability: 0.24) ? .base : .nickel
+            return .nickel
         default:
             // Two or fewer: heavy personnel, and a base defence unless the down says
             // otherwise.

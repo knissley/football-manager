@@ -378,9 +378,22 @@ struct GoldenSeedTests {
             // to the ball and breaks a tackle on a number in the sixties where he did it
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
-            (UInt64(1), UInt64(16_544_674_377_827_432_735)),
-            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
-            (UInt64(12), UInt64(3_133_720_638_961_547_474)),
+            //
+            // And moved by the caller, which is the engine. Who each side sends out
+            // changed on three counts: the offence's ordinary-down grouping is eleven
+            // personnel or a second tight end where a fourth receiver used to be mixed
+            // in, a passing down outside two minutes is played from eleven personnel
+            // rather than sometimes from four receivers, and the defence answers three
+            // receivers on an ordinary down with its nickel back every time instead of
+            // staying in a four-back front about a quarter of the time. An empty set is
+            // answered with six defensive backs rather than seven. Both sides' draws
+            // move with all four — two of them are gone, so every stream downstream of a
+            // snap is spent in a different order — and the eleven men on each side of
+            // the ball are different men on a large share of snaps, which changes what
+            // the play produced and not merely what it was called.
+            (UInt64(1), UInt64(3_097_397_357_425_565_242)),
+            (UInt64(5), UInt64(13_006_628_379_972_733_677)),
+            (UInt64(12), UInt64(17_882_734_551_021_768_756)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
