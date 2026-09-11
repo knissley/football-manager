@@ -90,6 +90,18 @@ ends there, with nothing snapped (2025 rulebook, 4-8-1). The callers are asked e
 with the clock at the previous whistle, because the tempo they choose is what decides how
 long that interval is.
 
+**One part of the interval is charged earlier still: the two-minute warning.** When the
+clock reaches 2:00 between downs it stops there, and what the warning leaves on the play
+clock is twenty-five seconds from the Referee's whistle rather than the forty that had
+been counting down (4-6-2, 4-6-3-a). That is the clock the snap is played against, so it
+is settled before the snap is prepared — before the resolver is asked whether the offence
+beats the interval and before the context it is handed is built — and the `.playClock`
+decision on the record is then the same clock. The rest of the interval is free, the game
+clock being stopped, so nothing about the game clock depends on which of the two it is.
+The callers are still asked at the previous whistle, so for that one snap a caller reads
+the forty while the down is played against the twenty-five: they are asked before the
+warning falls, for the same reason they are asked before the interval is charged.
+
 The down, and nothing about the afternoon. The weather is a fact about the game: it is
 on `GameResult.weather` once, the resolver reads it from its `PlayContext`, and no
 situation carries it. It sat on every situation for a while — about a hundred and fifty

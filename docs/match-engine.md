@@ -291,7 +291,9 @@ overtime too (16-1-3-e). The two-minute warning is in overtime as well, and post
 overtime is timed as 16-1-4-h pairs its periods into halves (#74). The play clock is
 counted in the rules layer — forty from the end of a play, twenty-five from the whistle
 after an administrative stoppage, thirty after a runoff — and a delay of game is that
-clock expiring rather than a rate drawn beside it (4-6); the last forty seconds of a
+clock expiring rather than a rate drawn beside it (4-6). A two-minute warning taken
+between downs is one of those stoppages, so it is taken before the snap it precedes is
+prepared and that snap is played against the twenty-five (#128); the last forty seconds of a
 half (4-7-3) and the injury timeout after the two-minute warning (4-5-4) are modelled
 with their elections as caller decisions, and every choice a side makes about the clock
 between downs is written into the play's decision log (#76). The runoff after a replay

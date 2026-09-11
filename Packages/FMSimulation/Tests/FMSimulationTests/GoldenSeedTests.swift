@@ -653,9 +653,27 @@ struct GoldenSeedTests {
             // parent's constants could survive, because each was computed without the
             // other's mechanisms. Checked before they were written down: all three seeds
             // differ from both parents of this merge.
+            //
+            // And then the two-minute warning started leaving what the book says it
+            // leaves. A warning taken between downs is an administrative stoppage, so the
+            // snap it precedes is against twenty-five seconds from the Referee's whistle
+            // rather than the forty that had been counting down (4-6-2, 4-6-3-a), and the
+            // clock is settled before the snap is prepared so that the record, the
+            // context and the draw against the interval all read it. Measured over the
+            // shared corpus: forty games carry sixty warnings between downs and
+            // twenty-one during a down, so this is about a snap and a half a game.
+            //
+            // Two of the three seeds move and one does not, which was checked rather than
+            // assumed. Seed 1's only warning between downs falls after a down that was
+            // itself a stoppage, so that snap was already on the short clock and the
+            // reading it records is the one it recorded before — its checksum below is
+            // unchanged, and the same number it carried through the merge above. Seeds 5
+            // and 12 each have a snap that moves from forty to twenty-five, which moves
+            // both the reading on the record and the odds the offence is beaten by the
+            // interval, and from there the game diverges.
             (UInt64(1), UInt64(13_662_653_904_281_590_993)),
-            (UInt64(5), UInt64(4_471_667_699_963_928_594)),
-            (UInt64(12), UInt64(12_598_138_263_296_020_470)),
+            (UInt64(5), UInt64(18_134_028_555_637_264_242)),
+            (UInt64(12), UInt64(9_331_547_378_743_938_053)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

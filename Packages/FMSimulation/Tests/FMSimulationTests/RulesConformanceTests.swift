@@ -2257,6 +2257,106 @@ struct RulesConformanceTests {
             "the huddle happened during the timeout, so the offence is on the ball sooner")
     }
 
+    /// The first snap of the drill, which is the one the two-minute warning falls in
+    /// front of: the play before it ends at 2:01 with the clock running, the hurry-up
+    /// interval reaches 2:00, and the warning ends the interval there (3-41). The
+    /// football fact the two tests below rest on, so it is asserted rather than assumed.
+    private func snapTheWarningPrecedes(in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard
+            let opening = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.endedIn == .incomplete
+            })
+        else {
+            Issue.record("the drill never threw the ball away in the fourth quarter")
+            return nil
+        }
+        guard opening.play.hasTwoMinuteWarningBeforeTheSnap else {
+            Issue.record("the warning did not fall in the interval before this snap")
+            return nil
+        }
+        return opening
+    }
+
+    /// The two-minute warning is one of the administrative stoppages 4-6-2 lists by name,
+    /// and what it leaves is twenty-five seconds from the Referee's whistle. The article
+    /// says so in terms even when the forty of 4-6-1 is already counting down, and
+    /// 4-6-3-a says it again from the other side. So the snap the warning precedes is
+    /// taken against the short clock, and its record says which clock that was.
+    ///
+    /// The warning also stops the game clock at 2:00 and it waits for the snap (3-41,
+    /// 4-3-2), so the rest of the interval costs the offence nothing: which of the two
+    /// play clocks is in force changes no reading of the game clock anywhere in the
+    /// drill, and `test:everyPlayIsRecordedWithTheClockItWasSnappedOn` walks the same
+    /// seven downs to say so.
+    @Test(
+        "football · Rule 4-6-2, 4-6-3-a · a two-minute warning between downs leaves twenty-five seconds from the Referee's whistle, and the snap it precedes is taken against them though the forty was already counting down",
+        .tags(.football)
+    )
+    func theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds() {
+        let trace = RulesScenario.twoMinuteDrill.run()
+        guard let opening = snapTheWarningPrecedes(in: trace) else { return }
+        #expect(
+            opening.play.situation.clockRemaining == Rules.standard.twoMinuteWarning,
+            "the interval ended at 2:00, which is where the warning stopped the clock")
+        guard let reading = playClock(on: opening.play) else { return }
+        #expect(
+            reading.seconds == Rules.standard.playClockAfterStoppage,
+            "the warning is an administrative stoppage, so twenty-five from the whistle")
+        #expect(reading.remaining > 0, "and the offence put the ball in play inside them")
+    }
+
+    /// And only that snap. The warning is spent on the one down it preceded; the down
+    /// after it is an ordinary one, and the forty of 4-6-1 runs from the moment it ends.
+    ///
+    /// This is the half of the pair the engine used to get right by accident and then
+    /// wrong: the short clock was written onto the snap *after* the one the warning
+    /// preceded, which is one down too late.
+    @Test(
+        "football · Rule 4-6-1 · the second snap after a two-minute warning is against the ordinary forty seconds, counted from the end of the down before it",
+        .tags(.football)
+    )
+    func theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock() {
+        let trace = RulesScenario.twoMinuteDrill.run()
+        guard let opening = snapTheWarningPrecedes(in: trace),
+            let next = trace[opening.index + 1]
+        else { return }
+        #expect(
+            next.hasTwoMinuteWarningBeforeTheSnap == false,
+            "the warning is taken once a half, and the down before this one was ordinary")
+        guard let reading = playClock(on: next) else { return }
+        #expect(
+            reading.seconds == Rules.standard.playClock,
+            "an ordinary down leaves forty seconds from its own end")
+    }
+
+    /// The play clock the record names is the play clock the resolver was handed, on
+    /// every snap of every rules scenario.
+    ///
+    /// Two readers of one fact, and a game in which they disagree is a game whose record
+    /// describes a down that was not played: the draw that decides whether the offence
+    /// beats the interval takes the clock off the context, and the `.playClock` decision
+    /// a reader of the play-by-play sees is written by the rules layer. Whatever moves
+    /// the play clock between downs — a stoppage, a charged timeout, the two-minute
+    /// warning — has to move it before the context is built, or the two disagree here.
+    @Test(
+        "contract · the play clock a snap records is the play clock the resolver was handed for it",
+        .tags(.contract)
+    )
+    func theRecordedPlayClockIsTheOneTheResolverWasHanded() {
+        for scenario in RulesScenario.allCases {
+            let trace = scenario.run()
+            for (index, play) in trace.plays.enumerated() {
+                guard let handed = trace.playClockInForce(into: index),
+                    let reading = play.decisions.compactMap(\.playClockReading).first
+                else { continue }
+                #expect(
+                    handed.seconds == reading.seconds,
+                    "\(scenario.rawValue) play \(index): handed \(handed.seconds), recorded \(reading.seconds)"
+                )
+            }
+        }
+    }
+
     // MARK: The last forty seconds of a half
 
     /// The defence cannot use a dead-ball foul to run the clock
