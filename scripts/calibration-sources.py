@@ -13,6 +13,7 @@ Usage:
     scripts/calibration-sources.py <dir with play_by_play_<season>.csv.gz and
                                     pbp_participation_<season>.csv>
     scripts/calibration-sources.py --rosters <dir with roster_weekly_<season>.csv>
+    scripts/calibration-sources.py --self-test   # the accumulator's own test; needs no data
 
 Input files are the release assets `pbp/play_by_play_<season>.csv.gz` and
 `pbp_participation/pbp_participation_<season>.csv` of the nflverse-data project. They are
@@ -93,6 +94,11 @@ PENALTY_ROWS = [
     ("Roughing the Passer", "roughingThePasser"),
     ("Neutral Zone Infraction", "neutralZoneInfraction"),
 ]
+
+
+def sum_components(parts):
+    """Add per-game component dicts together."""
+    return sum((Counter(part) for part in parts), Counter())
 
 
 def flag(row, key):
@@ -758,7 +764,78 @@ def rosters(directory):
     print(f"first-season share band\t{low:.3f}\t{high:.3f}\tseasons {'+'.join(map(str, ROSTER_SEASONS))}")
 
 
+# --- the self-test ----------------------------------------------------------
+#
+# `sum_components` is the whole derivation's arithmetic: every band on file is a ratio of
+# the sums it returns. Its failure mode is silent -- a dropped key reads back as 0 and
+# nothing raises -- so it gets a test of its own, in the shape `scripts/lint-sim.sh
+# --self-test` uses. It needs no data set, so CI can run it.
+
+
+def self_test():
+    """Sum a signed series, the case a counting accumulator gets wrong.
+
+    Marked `shared ground` are the cases a `Counter` fold also gets right; every other
+    case here is red under one.
+    """
+    failures = 0
+
+    def check(name, got, want):
+        nonlocal failures
+        ok = got == want
+        if not ok:
+            failures += 1
+        print(f"{'ok  ' if ok else 'FAIL'}  {name}")
+        if not ok:
+            print(f"          expected {want!r}")
+            print(f"          got      {got!r}")
+
+    # The case this test exists for: a partial sum that dips below zero on the way up.
+    # A counting accumulator drops the key at the dip and restarts, so it reports 8.
+    swings = [{"edge": -3.0}, {"edge": 10.0}, {"edge": -2.0}]
+    check("a signed series whose partial sum goes negative is carried", sum_components(swings)["edge"], 5.0)
+
+    # Negative in every part -- sack yardage is -- so a counting accumulator never lets the
+    # key exist at all and the metric above it reads a clean, wrong 0.
+    always = [{"sack": -20.0}, {"sack": -31.0}, {"sack": -14.0}]
+    check("a component negative in every part survives", sum_components(always)["sack"], -65.0)
+
+    check("a lone negative part is carried", sum_components([{"d": -4.0}])["d"], -4.0)
+
+    # A total that ends non-positive, reached from above: -3, not a missing key.
+    check("a total that ends below zero is carried", sum_components([{"d": 5.0}, {"d": -8.0}])["d"], -3.0)
+
+    check("shared ground: counting is unchanged", dict(sum_components([{"n": 1, "g": 1}, {"n": 2}, {"g": 3}])), {"n": 3, "g": 4})
+    check("shared ground: a component no part mentions reads 0", sum_components([])["absent"], 0)
+    check("shared ground: a total of exactly zero reads 0", sum_components([{"d": 4.0}, {"d": -4.0}])["d"], 0.0)
+
+    # A per-game part as `read_season` actually builds one: flags that are 0 for this game
+    # sitting beside the signed component. The flags must not disturb it.
+    games = [
+        {"games": 1, "tie": 0, "homeEdge": -7.0, "sackYards": -31.0},
+        {"games": 1, "tie": 0, "homeEdge": 3.0, "sackYards": -12.0},
+    ]
+    folded = sum_components(games)
+    check("a game-shaped part: the signed components survive beside zero flags", (folded["homeEdge"], folded["sackYards"], folded["games"], folded["tie"]), (-4.0, -43.0, 2, 0))
+
+    # The control. Everything above is an assertion about `sum_components`; this one is an
+    # assertion about the accumulator it must never be written as, so that the cases above
+    # are known to be capable of going red rather than merely observed to be green.
+    trap = sum((Counter(part) for part in swings), Counter())
+    check("control: a Counter fold really does drop the dip, and so would fail the first case", trap["edge"], 8.0)
+    dropped = sum((Counter(part) for part in always), Counter())
+    check("control: a Counter fold really does lose an all-negative component entirely", "sack" in dropped, False)
+
+    if failures:
+        print(f"\ncalibration-sources: self-test FAILED — {failures} case(s).")
+        sys.exit(1)
+    print("\ncalibration-sources: self-test clean — the accumulator carries signed components.")
+
+
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "--self-test":
+        self_test()
+        return
     if len(sys.argv) == 3 and sys.argv[1] == "--rosters":
         rosters(sys.argv[2])
         return
@@ -781,7 +858,7 @@ def main():
             file=sys.stderr,
         )
 
-    totals = {season: sum(seasons[season].values(), Counter()) for season in SEASONS}
+    totals = {season: sum_components(seasons[season].values()) for season in SEASONS}
 
     print("id\t" + "\t".join(str(s) for s in SEASONS) + "\tse400\tlow\thigh\tseasons\tlabel")
     for identifier, label, sourced, decimals, metric in METRICS:

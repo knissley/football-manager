@@ -171,6 +171,16 @@ jobs:
         # fails on any difference from the expected list.
         run: ./scripts/test-census.sh --self-test
 
+      - name: Calibration sources self-test
+        # Every sourced band in `Targets.swift` is a ratio of the component sums
+        # `scripts/calibration-sources.py` folds, and that fold got a signed component
+        # wrong for as long as it was written with a counting accumulator — silently, by
+        # dropping the key rather than raising. This runs the accumulator's own cases,
+        # which need no play-by-play release and so run on every push. The derivation
+        # itself cannot run here: the data set is about 20 MB a season and is not, and
+        # will not be, in the repository. See docs/reference/calibration-sources.md.
+        run: python3 scripts/calibration-sources.py --self-test
+
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom
 
