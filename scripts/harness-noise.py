@@ -743,6 +743,11 @@ class Floor:
         # q^2/12; a row the harness widened at some seeds gives less, which is the point
         # of the widening.
         rounding = mean([_rounding(values[one]) for one in self.seeds]) if self.seeds else 0.0
+        # Published beside every sigma, because a floor read off a rounded column is partly
+        # a fact about the column. This is the sigma the printing alone contributes, q/sqrt(12)
+        # for the row's own last digit — about 0.029 for a row printed to 0.1. A measured
+        # sigma of the same size is not a measurement of the engine.
+        self.printing = math.sqrt(rounding)
         self.total_true = deconvolve(self.total, rounding)
         # A sigma whose square is mostly the rounding it had to be corrected for is not a
         # measurement of the row; it is a measurement of the printed column's last digit.
@@ -880,10 +885,10 @@ def report(path):
     """The per-row table, as markdown, for `docs/reference/calibration-sources.md`."""
     _header, _seeds, floors = analyse(path)
     print(
-        "| row | mean | min–max | σ seed-to-seed | σ same league | σ league | model σ | "
-        "same league / model | seed-to-seed / model | edge margin | verdicts seen |"
+        "| row | mean | min–max | σ seed-to-seed | σ same league | σ league | σ from printing | "
+        "model σ | same league / model | seed-to-seed / model | edge margin | verdicts seen |"
     )
-    print("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
+    print("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
     for floor in floors:
         target = floor.target
         decimals = max(2, target.decimals + 1)
@@ -896,7 +901,7 @@ def report(path):
 
         margin = floor.edge_margin
         print(
-            "| `row:%s` | %s | %s–%s | %s | %s | %s | %s | %s | %s | %s | %s |"
+            "| `row:%s` | %s | %s–%s | %s | %s | %s | %s | %s | %s | %s | %s | %s |"
             % (
                 target.id,
                 number(floor.mean, decimals),
@@ -905,6 +910,7 @@ def report(path):
                 sigma(floor.total_true, floor.total_resolved),
                 sigma(floor.within_true, floor.within_resolved),
                 sigma(floor.world),
+                number(floor.printing, decimals),
                 number(floor.model, decimals) if floor.model else "—",
                 "—" if floor.within_ratio is None else number(floor.within_ratio, 2) + "x",
                 "—" if floor.total_ratio is None else number(floor.total_ratio, 2) + "x",
@@ -914,10 +920,65 @@ def report(path):
         )
 
 
+def scaling(path):
+    """The cross-seed spread at each game count, as a check on the decomposition.
+
+    Independent of the prefix contrast that produces the two components: this just takes the
+    spread across seeds at 100, 200 and 400 games and asks how it falls. Sampling noise falls
+    as 1/sqrt(games), so a purely-sampling row would read 2.00; world-to-world variation does
+    not fall at all, so a purely-league row reads 1.00. A row reading between the two is a
+    mixture, and that is what the decomposition claims every row is.
+    """
+    _header, _seeds, table = read_sweep(path)
+    ratios = []
+    for (ident, games, field), row in sorted(table.items()):
+        if games != FULL_GAMES or field != "value" or ident.startswith("count:"):
+            continue
+        spreads = {}
+        for count in GAME_COUNTS:
+            cells = table.get((ident, count, "value"), {})
+            numbers = [as_number(one) for one in cells.values()]
+            if len(numbers) < 25:
+                break
+            spreads[count] = stdev(numbers)
+        if len(spreads) != len(GAME_COUNTS) or spreads[FULL_GAMES] <= 0:
+            continue
+        ratios.append((spreads[QUARTER_GAMES] / spreads[FULL_GAMES], ident, spreads))
+    return sorted(ratios)
+
+
 def summary(path):
     """The findings the table is read for, printed rather than eyeballed."""
     _header, seeds, floors = analyse(path)
     print("seeds: %d     rows measured: %d" % (len(seeds), len(floors)))
+
+    ratios = scaling(path)
+    if ratios:
+        ordered = [one for one, _ident, _spreads in ratios]
+        middle = ordered[len(ordered) // 2]
+        print(
+            "\nhow the cross-seed spread falls as the run gets longer — sigma(%d games) over "
+            "sigma(%d games), where 2.00 is pure sampling and 1.00 is pure league (%d rows):"
+            % (QUARTER_GAMES, FULL_GAMES, len(ordered))
+        )
+        print(
+            "  median %.2f, quartiles %.2f and %.2f, range %.2f–%.2f"
+            % (
+                middle,
+                ordered[len(ordered) // 4],
+                ordered[3 * len(ordered) // 4],
+                ordered[0],
+                ordered[-1],
+            )
+        )
+        print(
+            "  %d rows at or above 1.80 (sampling-dominated), %d at or below 1.20 "
+            "(league-dominated)"
+            % (
+                len([one for one in ordered if one >= 1.8]),
+                len([one for one in ordered if one <= 1.2]),
+            )
+        )
 
     flipped = [one for one in floors if one.flips]
     print("\nrows whose printed verdict is not the same at every seed (%d):" % len(flipped))
@@ -1324,6 +1385,11 @@ def self_test():
     )
     check("flip detected", floor.flips, True)
     check("verdicts listed", floor.verdicts, ["OFF", "ok"])
+    # The sigma the printed column contributes on its own: q/sqrt(12) for a one-decimal row.
+    # It is published beside every measured sigma, so it gets a known answer of its own.
+    close("sigma from printing", floor.printing, 0.1 / math.sqrt(12.0), 1e-9)
+    wider = Floor(flipping, {1: "19.50", 2: "20.50"}, {HALF_GAMES: {}}, {}, {})
+    close("a widened reading prints finer", wider.printing, 0.01 / math.sqrt(12.0), 1e-9)
     steady = Floor(flipping, {1: "15.0", 2: "15.2"}, {HALF_GAMES: {}}, {1: "ok", 2: "ok"}, {})
     check("no flip", steady.flips, False)
 

@@ -1099,15 +1099,24 @@ Three things it does that a plain spread does not:
   every game's draws, so a seed-to-seed spread is a combined figure. The sweep also runs
   200- and 100-game prefixes of the same seed — which are the *same* league playing the same
   first n games — so the difference between a prefix and the full run is a contrast in which
-  the league cancels. That gives a same-league floor, and the rest is the league's share.
+  the league cancels. That gives a same-league floor, and the rest is the league's share. The
+  same three game counts give an independent check on that split, which `--summary` prints
+  first: sampling error falls as `1/√games` and league variation does not, so the ratio
+  `σ(100)/σ(400)` reads 2.00 for a purely-sampling row and 1.00 for a purely-league one.
 - **It corrects for the printed column.** There is no machine-readable mode, so the sweep
   reads printed values, and since #108 a row's precision depends on its own verdict and so
   varies by seed. The rounding of each individual reading is removed from each σ, and a σ
   that was mostly rounding is marked rather than printed as a measurement.
 - **It checks itself.** The 100-game prefix is a second, longer lever arm on the same
-  quantity and must give the same answer; `--replicate <other.tsv>` compares the floors
-  against a sweep on a disjoint set of seeds. Both agreements are recorded in the reference
-  doc, with numbers.
+  quantity and must give the same answer; `--replicate` compares the floors against a sweep
+  on a disjoint set of seeds, and that second sweep is committed too, as
+  [`harness-noise-replication.tsv`](reference/harness-noise-replication.tsv) at seeds 31–60:
+
+  ```bash
+  python3 scripts/harness-noise.py --replicate docs/reference/harness-noise-replication.tsv
+  ```
+
+  Both agreements are recorded in the reference doc, with numbers.
 
 Re-take the sweep in the same commit as any change that moves engine behaviour, the way a
 golden is regenerated. `--resume` merges into an existing sweep so a long one can be taken

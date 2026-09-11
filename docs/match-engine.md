@@ -711,11 +711,13 @@ comparison you actually ran, and **say which floor that was**:
 So: "moved 0.4, floor 0.9, same seed" is an argument. "Moved 0.4, smaller than the noise"
 is not, because it does not say which noise.
 
-Three things follow that are worth knowing before reaching for `--games`:
+Four things follow that are worth knowing before reaching for `--games`:
 
-- **Fifty-five of 127 rows print a different verdict at different seeds on an unchanged
-  tree.** For those rows an `ok`/`OFF` mark is a fact about the seed. Check the row against
-  the *verdicts seen* column before treating a flip as a finding.
+- **Fifty-five of the 112 rows that carry a pass/fail grade print a different verdict at
+  different seeds on an unchanged tree** — 49% of them. (127 rows print a value; the other
+  fifteen are marked `stale` or `unsourced`, which says something about the band's provenance
+  and cannot move with the seed.) For those rows an `ok`/`OFF` mark is a fact about the seed.
+  Check the row against the *verdicts seen* column before treating a flip as a finding.
 - **For twenty-one rows most of the spread is the league, not the games**, and the league
   part does not shrink with `--games` at all: a longer run plays more games in the *same*
   league. `--games 1000` narrows the sampling half and leaves the rest exactly where it was.
