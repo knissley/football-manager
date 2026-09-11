@@ -1041,7 +1041,12 @@ def summary(path):
         % len(crossing)
     )
     _spread_of_ratios([one.total_ratio for one in crossing])
-    for floor in sorted(crossing, key=lambda one: -one.total_ratio)[:12]:
+    # Every row outside a factor of two, not a top-n: the point of the comparison is to name
+    # the rows where the model a reviewer would reach for is wrong, and a truncated list
+    # hides exactly the rows at the bottom of it.
+    for floor in sorted(crossing, key=lambda one: -one.total_ratio):
+        if 0.5 < floor.total_ratio < 2.0:
+            continue
         print(
             "  %-34s measured %s vs model %s  (%.2fx)"
             % (floor.target.id, number(floor.total_true, 3), number(floor.model, 3), floor.total_ratio)
