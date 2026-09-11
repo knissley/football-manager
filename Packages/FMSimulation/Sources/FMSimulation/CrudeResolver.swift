@@ -1281,38 +1281,18 @@ public struct CrudeResolver: PlayResolver {
             rushers: personnel.front, personnel: personnel, context: context, random: &random)
 
         let rawLength = context.rules.fieldGoalDistance(ballOn: situation.ballOn)
-        let accuracy = rating(.kickAccuracy, SlotLayout.specialist, personnel, context)
 
-        // The league-average kicker's curve, in two segments: near-automatic inside
-        // thirty, a gentle slope through the range teams actually kick from, and a
-        // steeper fall past the mid-forties. A single line from twenty-five was too
-        // steep in the middle — it made forty-somethings 69% against a real 82%, and it
-        // ran the extra point through the same slope, so kicks were missed at 15% when
-        // the sport misses them at 5%.
-        // Wind, cold, snow and thin air, before the curve is consulted. No `rounded()`:
-        // these modules link without libm, and `Tools/playsize` is the guard that proves it.
-        let carry = Conditions.kickingAdjustment(
-            context.weather, altitudeFeet: context.altitudeFeet)
-        let length = rawLength - Int(carry + (carry < 0 ? -0.5 : 0.5))
-        var chance: Double
-        if length <= 30 {
-            chance = 0.95
-        } else if length <= 45 {
-            chance = 0.95 - Double(length - 30) * 0.010
-        } else {
-            chance = 0.80 - Double(length - 45) * 0.017
-        }
-        // A try is kicked from the middle of the field by a kicker nobody is trying very
-        // hard to block, and the sport converts it at a better rate than a field goal of
-        // the same length. Running it through the field-goal curve unmodified is what
-        // made extra points a coin-flip-adjacent 85%.
-        if concept == .extraPoint { chance += 0.025 }
-        // Centred on an average leg, so the curve above *is* the league average rather
-        // than a floor everybody beats.
-        chance += (accuracy - 68) * 0.004
-        if context.weather.precipitation != .none { chance -= 0.03 }
-
-        let good = random.nextBool(probability: min(0.99, max(0.02, chance)))
+        // The curve is `PlaceKick`'s, and so is the caller's range: a coach who sends the
+        // unit out and the ball that is struck have to be the same model of the same kick,
+        // or the coach is right about a game nobody is playing. Both ratings are read —
+        // the touch sets the level and the leg sets how fast the chance falls once the
+        // kick is long enough for the leg to be what is being asked for.
+        let good = random.nextBool(
+            probability: PlaceKick.makeChance(
+                rawLength: rawLength,
+                leg: rating(.kickPower, SlotLayout.specialist, personnel, context),
+                accuracy: rating(.kickAccuracy, SlotLayout.specialist, personnel, context),
+                isTry: concept == .extraPoint, context: context))
         return (
             Outcome(
                 kind: concept == .extraPoint ? .extraPoint : .fieldGoal, yards: 0,

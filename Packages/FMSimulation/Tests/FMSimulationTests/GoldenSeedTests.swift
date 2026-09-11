@@ -422,6 +422,7 @@ struct GoldenSeedTests {
             // stream. Neither parent's constants could survive, because each was computed
             // without the other's mechanism, and no subset of the mechanisms above
             // reproduces these numbers.
+            //
             // And moved by the catch, in three ways the checksum mixes through the catch
             // decision and through the draws each one spends. A defensive interference
             // foul now settles the catch instead of sitting beside it (2025 rulebook,
@@ -459,9 +460,97 @@ struct GoldenSeedTests {
             // parent's constants could survive, because each was computed without the
             // other's mechanism, and no subset of the mechanisms above reproduces these
             // numbers.
-            (UInt64(1), UInt64(4_939_048_633_176_101_979)),
-            (UInt64(5), UInt64(8_162_782_535_497_224_204)),
-            (UInt64(12), UInt64(9_333_661_618_843_993_380)),
+            //
+            // And moved again by the benches spending their timeouts. Nothing in the
+            // rules layer changed; what changed is when a coach asks for one. A defence a
+            // single score down now stops the clock through the whole five-minute
+            // clock-burn window rather than only inside the last three and a third, an
+            // offence with the ball in the last minute of either half stops it rather
+            // than keep a timeout it cannot carry past the whistle, and an offence on
+            // third or fourth and short facing a play clock it is not going to beat
+            // spends one instead of the five yards. A charged timeout is an
+            // administrative stoppage, so each one resets the play clock to the short one
+            // and leaves the game clock waiting for the snap — which changes how much of
+            // the period the next snap costs, which changes what is called on the snap
+            // after that, and the stream diverges from there.
+            //
+            // And moved by the kicker, deliberately, by the engine. A place kick now
+            // reads both of his ratings rather than one: the touch sets the level as it
+            // always did, and the leg sets how fast the chance falls once the kick is
+            // long enough for a leg to be what is being asked for — so a man who cannot
+            // get the ball there misses from fifty-five where he used to miss from
+            // fifty-five as often as a kicker having a bad day. The caller reads the same
+            // curve instead of two flat numbers, so how far a club will kick from is its
+            // kicker's and no longer the league's: a median leg's range is exactly where
+            // the flat numbers put it, a strong leg's is further and a weak leg's nearer,
+            // and the fourth downs that fall outside it are gone for or punted by the
+            // chart that was already there. On the tree this mechanism was written on,
+            // the first snap that differed in each of the three games was a fourth down
+            // that was a kick and is now a play. Measured again on the three callers
+            // assembled, before the catch below joined them, it reached none of the
+            // three: no fourth-down decision and no attempt in those three games came
+            // out differently, which is what a median leg's range being exactly where
+            // the two flat numbers were looks like from inside three games. So this
+            // mechanism is measured in the harness's kicking rows, where it moves
+            // attempts from fifty and beyond by three points of share; a golden of three
+            // games is not where it shows.
+            //
+            // And moved by the caller, which is the engine. Who each side sends out
+            // changed on three counts: the offence's ordinary-down grouping is eleven
+            // personnel or a second tight end where a fourth receiver used to be mixed
+            // in, a passing down outside two minutes is played from eleven personnel
+            // rather than sometimes from four receivers, and the defence answers three
+            // receivers on an ordinary down with its nickel back every time instead of
+            // staying in a four-back front about a quarter of the time. An empty set is
+            // answered with six defensive backs rather than seven. Both sides' draws
+            // move with all four — two of them are gone, so every stream downstream of a
+            // snap is spent in a different order — and the eleven men on each side of
+            // the ball are different men on a large share of snaps, which changes what
+            // the play produced and not merely what it was called.
+            //
+            // And the bench, the kicker and the huddle then met in this merge, which is
+            // where the constants below come from. On one side a bench spends timeouts
+            // where the sport spends them, and each charged one resets the play clock to
+            // the short interval and leaves the game clock waiting for the snap. On
+            // another, how far a club will kick from is its kicker's rather than the
+            // league's, and the fourth downs outside that range are gone for or punted
+            // instead. On the third, the grouping and the front are the sport's: eleven
+            // personnel answered by a nickel back every time, a second tight end where a
+            // fourth receiver used to be. The three reach each other on the same snaps.
+            // Different men on the field produce a different play, so the down and
+            // distance after it differ, so the fourth down the kicker's range is asked
+            // about is a different fourth down at a different spot — and the score and
+            // clock a bench reads before spending a timeout are the ones those drives
+            // left. Run the other way, a timeout that costs the next snap less of the
+            // period changes which downs a period has room for at all, and a down that
+            // is never played is a grouping never sent out and a kick never attempted.
+            // Neither parent's constants could survive, and none of the three branches'
+            // could either: each was computed on a tree without the other two, and all
+            // three were computed before the interval was charged at the snap and the
+            // pocket got one verdict.
+            //
+            // And the three callers then met the catch, in this merge, which is where
+            // the constants below come from. On one side a bench spends its timeouts,
+            // range is the kicker's and the grouping and the front are the sport's. On
+            // the other an interference foul settles the catch rather than sitting
+            // beside it, no flag is drawn on a throw nobody could reach, and a poor
+            // throw is the throw's incompletion rather than the receiver's drop. They
+            // reach each other on the same snaps and in both directions: a flag that now
+            // ends a catch and is accepted at the spot keeps a drive alive, so the
+            // fourth down the kicker's range would have been asked about never arrives
+            // and the clock a bench reads at the two-minute warning is a different one;
+            // run the other way, a defence that answers three receivers from its nickel
+            // back covers those throws with a fifth defensive back, so which balls are
+            // catchable at all — and therefore which flags are drawn and which
+            // incompletions are whose — is decided by a secondary that was not on the
+            // field before. Neither parent's constants could survive, because each was
+            // computed without the other's mechanisms, and no subset of the mechanisms
+            // above reproduces these numbers. Checked before they were written down: all
+            // three seeds differ from both parents of this merge, from each of the three
+            // caller branches, and from both intermediate merges on this branch.
+            (UInt64(1), UInt64(18_059_936_834_785_840_009)),
+            (UInt64(5), UInt64(450_664_120_030_719_106)),
+            (UInt64(12), UInt64(12_428_643_440_527_402_903)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -135,6 +135,17 @@ observations and nothing grades them.
 | `row:spikesPerGame` — spikes per game | 2023-24 | S1 |
 | `row:timeoutsPerGame` — timeouts spent per game | 2023-24 | S1 |
 
+The harness also prints that total split **by side** (which bench asked) and **by half**
+(the allotment is per half and nothing carries out of one — three a half, two in a
+regular-season overtime period, 2025 rulebook 4-5-1 Item 1). Neither split is banded, and
+neither is a row: nobody has computed one. What a sourcing would read is in the same
+play-by-play file every `S1` row comes from — `timeout_team` against `posteam` for the
+side, `qtr` for the half — and running it belongs to
+[#42](https://github.com/knissley/football-manager/issues/42) rather than to a fix, so the
+harness prints the two with the reason they have no target beside them. They are printed
+at all because the total alone cannot tell a bench spending its second-half timeouts from
+one hoarding them past the whistle, which is the thing the total exists to catch.
+
 ### The season, which the harness cannot play until M3
 
 | Row | Season | Source |
@@ -157,6 +168,21 @@ observations and nothing grades them.
 | `row:packageBase` — snaps against base | 2023-24 | S2 |
 | `row:ypcEvenCount` — yards per carry, even count | 2023-24 | S2 |
 | `row:ypcOutnumberedByOne` — yards per carry, outnumbered by one | 2023-24 | S2 |
+
+**No share is sourced for any grouping but eleven.** `row:personnel11` is the only
+offensive participation share in `Targets.swift`, and nothing here, in
+[the bands the harness cannot measure](#bands-the-harness-cannot-measure) or in
+[what a generated world claims](#what-a-generated-world-claims-and-nothing-sources) bands
+twelve, ten or an empty set. What the file does source about the rest of the mix is the
+tight end count [below](#who-took-the-snap): 77.1–87.2 tight end player-snaps per team-game
+against 58.9–66.8 plays from scrimmage, which is more than one tight end on the average
+snap however the two bands are paired, and which therefore says that a snap that is not
+eleven personnel mostly carries a second tight end rather than a fourth receiver. A
+caller's mix is set from those two, because there is no figure for twelve to set it from,
+and a twelve-personnel share stated as football without one is a number from memory.
+Computing one is the derivation the rows above already perform — the source's
+participation feed names the grouping on every play — and it is cheap; it is simply not
+done, and this line says so rather than leaving the gap to be filled by remembering.
 
 ### Who took the snap
 
@@ -416,6 +442,21 @@ third twenty-two, about a third twenty-three and a seventh to a quarter twenty-f
 `DraftHistory.entryAge` draws 20/45/25/10 across the same four ages, which is a year young.
 
 None of the three is banded: a number nobody asserts is a note, not a target.
+
+**What a kick is worth by the leg that struck it.** The kicking rows above are aggregates
+over everybody who kicked: `row:fieldGoals50plus` says the league makes 63.7-74.9% from
+fifty and beyond, and says nothing about how that splits between the leg that is trusted
+from fifty-eight and the one that is not trusted from forty-eight. The engine now models
+that split — `PlaceKick` reads `kickPower` as well as `kickAccuracy`, and how far a club
+will kick from follows from it — and the harness prints attempts and makes from
+forty-five and beyond by leg tier so the split is visible. **Nothing sources a band for
+it.** The shape was fitted to the aggregate rows above and to the two ends the sport does
+state plainly — a league-average kicker's curve, which is the aggregate, and a man who is
+not a kicker at all — not to a published make rate by leg. So the printed tiers carry no
+target and none should be invented for them: what grades the model is the aggregate rows
+it was fitted to, `row:fieldGoals50plus` and `row:fieldGoalAttempts50plus`. A band here
+would need a per-kicker distance-by-distance split computed from the play-by-play with
+kickers grouped by something standing in for leg, which nothing in this repository does.
 
 ## Where the harness measures something else
 
