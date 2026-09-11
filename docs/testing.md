@@ -40,6 +40,52 @@ a misspelt prefix in a display name is just a string that counts as something el
 Selecting a run by tag is a Swift Testing feature; SwiftPM on the 6.2 toolchain does not
 expose a flag for it, so the census reads the tags out of the source instead.
 
+### Sampled tests and fixtures
+
+A test that walks simulated games and asserts on what it finds is answering a different
+question from one that constructs the case it needs, and the two get confused because both
+look like coverage.
+
+**A sampled test answers "does this occur in play."** It plays games the engine's own
+callers called and reports what turned up. That is a real question — a case the resolver
+can produce and no caller ever reaches is a case nothing downstream will ever see — and
+only games can answer it. What a sample cannot do is *settle* anything rarer than it is
+big: its size buys a probability, not a proof, and doubling it halves a miss rather than
+removing one.
+
+**A fixture answers "is the contract kept."** It constructs the case — a concept resolved
+from the spot that produces the exit, a penalty draw run directly, a scripted game built
+around the play — and then there is nothing left to draw. It fails immediately, names the
+thing that stopped working, and costs a fraction of the games it replaces.
+
+Conflating them is how three `.contract` tests in `FMSimulation` passed on which games they
+happened to draw rather than on their contract holding, each exposed only when an unrelated
+change re-drew the stream. One was hiding a live rules bug: twenty games contained no
+intercepted two-point try, so nobody saw that the resolver labelled one an ordinary pass —
+and the rules layer, reading the kind, then handed the interceptors a kickoff the scoring
+side owed. The response to a re-drawn sample was three times a bigger sample, forty to
+ninety to two hundred and forty games in one suite, which bought probability with runtime
+and never bought certainty.
+
+So, in this repo:
+
+- **Coverage is a fixture's job.** "Can the engine produce this at all" is asserted against
+  a forced draw, never against a batch of games big enough to stumble into one.
+  `TestWorld.coverageSweep()` is that draw for the event vocabulary; every foul is asserted
+  against the `Penalties` draw that throws it.
+- **A sample keeps the other question, and states its size.** Every sampled test says in its
+  doc comment how its size was derived from the measured rate of the rarest thing it
+  asserts, with the arithmetic. "Forty games" with no reasoning is what produced all three
+  failures.
+- **A floor is a guard, and it has a number behind it.** `count > 10` means "the instrument
+  is not broken", not "the claim holds", and the comment says what the measured count
+  actually is.
+- **Games are simulated once.** A game is a pure function of its setup, so suites wanting
+  the same fixtures read `TestWorld.corpus` rather than each playing them again.
+- **Except where replay is the point.** A determinism test simulates twice and says so
+  beside the call: served from a shared value it compares a value with itself and passes
+  whatever the engine does.
+
 ## Counting it
 
 ```bash
