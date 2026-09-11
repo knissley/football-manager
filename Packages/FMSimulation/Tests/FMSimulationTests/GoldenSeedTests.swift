@@ -122,7 +122,8 @@ struct GoldenSeedTests {
             // second, neither reads either, and no play produced anything different;
             // `Tools/gamelog` prints the same game before and after.
             //
-            // And by the record a third time: `PlayRecord.schemaVersion`, which is 1,
+            // And by the record a third time: `PlayRecord.schemaVersion`, which was 1
+            // when it began being mixed in here,
             // and the concept the offence called, now held by value as
             // `OffensiveCall.concept` rather than pointed at through a stand-in design
             // identifier, are mixed in from here on. The concept was always on the
@@ -738,9 +739,30 @@ struct GoldenSeedTests {
             // declined foul at all** — none of its fouls was turned down — so the
             // mechanism never fires in it and its checksum below is the one it carried
             // before, unchanged.
-            (UInt64(1), UInt64(2_286_324_558_762_200_546)),
-            (UInt64(5), UInt64(1_093_611_880_970_820_037)),
-            (UInt64(12), UInt64(14_471_466_146_704_126_662)),
+            //
+            // And moved by the record alone, by what the coverage loop writes down. The
+            // point that said the quarterback read a man is gone — its `detail` is
+            // documented as the place in the play's read order, no concept carries one,
+            // and the only index the loop could supply was its own iteration order — and
+            // the separation it carried has moved onto the `.coverageAssignment` for the
+            // same receiver, where it is a fact about the coverage rather than about a
+            // read nobody made. The checksum mixes every decision point's kind, value and
+            // tick, so all three move: a dropback writes up to four points fewer, and
+            // each coverage point it does write now carries a separation where it carried
+            // a zero. **Nothing a play produced changed.** No draw was spent or saved —
+            // neither point touches the random stream — and `Tools/gamelog --seed 7
+            // --home 3 --away 11` prints the same hundred and sixty-three plays and the
+            // same 20-37, byte for byte, before and after. The whole engine suite was
+            // green either side of the change but for the three constants below.
+            //
+            // The record's version went to 2 with it, and the checksum mixes that too, so
+            // the constants below carry both. The bump is for the separation and not for
+            // the missing read: a reader of a version-1 record finds zero on every
+            // coverage point and would report that nobody ever got open, which is the one
+            // kind of change the version byte exists to mark.
+            (UInt64(1), UInt64(3_661_745_701_896_168_722)),
+            (UInt64(5), UInt64(5_845_656_920_195_514_401)),
+            (UInt64(12), UInt64(8_685_030_339_744_826_913)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

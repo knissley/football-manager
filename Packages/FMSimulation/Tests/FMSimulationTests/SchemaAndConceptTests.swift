@@ -26,9 +26,13 @@ struct SchemaAndConceptTests {
     /// tests are promises about every record in the sample and hold at any size.
     private static let sample: [GameResult] = TestWorld.corpus
 
+    /// The literal is here so the version cannot move by accident: a bump is a deliberate
+    /// act and this is what makes it one. It reads 2 since a coverage assignment began
+    /// carrying the separation the matchup produced, which in a version-1 record is zero
+    /// on every one of them.
     @Test("Every record carries the current schema version", .tags(.contract))
     func everyRecordIsVersioned() {
-        #expect(PlayRecord.currentSchemaVersion == 1)
+        #expect(PlayRecord.currentSchemaVersion == 2)
         for result in Self.sample {
             for play in result.plays {
                 #expect(

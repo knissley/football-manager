@@ -151,6 +151,69 @@ struct CrudeResolverTests {
         }
     }
 
+    /// The coverage matchup is the one point that says who was covering whom and how far
+    /// apart they finished, and both halves of that have to be readable off it: a query
+    /// that swaps the two slots credits the receiver with the coverage, and one that
+    /// finds no separation on it has no way to say an open man was thrown past.
+    ///
+    /// The separation is asserted against the arrival on the same play rather than
+    /// against a constant, because the two are the same number by construction — the
+    /// throw goes to a read, and the read's separation is what the ball arrives into —
+    /// so this fails if either point stops carrying it or they stop agreeing.
+    @Test(
+        "A coverage assignment names the defender, his receiver and their separation",
+        .tags(.contract))
+    func coverageAssignmentsCarryTheMatchup() {
+        var matched = 0
+        for seed in UInt64(1)...4 {
+            for play in game(seed: seed).plays {
+                for point in play.decisions where point.kind == .coverageAssignment {
+                    #expect(
+                        point.primary.isOffense == false,
+                        "a coverage assignment whose primary is an offensive slot")
+                    #expect(
+                        point.secondary.isOffense,
+                        "a coverage assignment whose secondary is a defensive slot")
+                    #expect(point.value > 0, "a coverage assignment with no separation on it")
+                }
+                guard let arrival = play.decisions.first(where: { $0.kind == .ballArrival }),
+                    let matchup = play.decisions.first(where: {
+                        $0.kind == .coverageAssignment && $0.secondary == arrival.primary
+                    })
+                else { continue }
+                matched += 1
+                #expect(
+                    matchup.value == arrival.value,
+                    "the coverage and the arrival disagree about how open he was")
+                #expect(
+                    matchup.primary == arrival.secondary,
+                    "the man covering him is not the man the ball arrived over")
+            }
+        }
+        #expect(matched > 0, "four games produced no throw with a coverage matchup behind it")
+    }
+
+    /// The read is the one decision the engine cannot honestly write. `DecisionKind` says
+    /// every case is something a film-study analyst could determine and that a read's
+    /// `detail` is the progression index; the engine has no progression, so the only
+    /// index it could put there is the order its own loop happened to run in, which is
+    /// not on the film. Nothing downstream may be given a number of that kind to read, so
+    /// the point is not emitted until there is a progression for it to index into.
+    ///
+    /// What the coverage loop does know — who was covering whom, and how far apart they
+    /// finished — is on the `.coverageAssignment` beside it, which is why nothing is lost
+    /// by the silence.
+    @Test("No decision claims a read the engine never made", .tags(.contract))
+    func noReadWithoutAProgression() {
+        for seed in UInt64(1)...8 {
+            for play in game(seed: seed).plays {
+                #expect(
+                    !play.decisions.contains { $0.kind == .readProgression },
+                    "a read progression was recorded with no progression to index into")
+            }
+        }
+    }
+
     /// Decisions happen in order. A ball arriving before it was thrown is a causal chain
     /// nobody can read.
     @Test("Decisions are ordered in time", .tags(.contract))
