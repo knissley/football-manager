@@ -785,7 +785,7 @@ extension RulesScenario {
             ]
         case .roughingTheKickerOnAMissedFieldGoal:
             return [
-                "football · Rule 12-2-12 · roughing the kicker on a missed field goal is fifteen yards and a first down"
+                "football · Rule 12-2-12, 14-2-1 · roughing the kicker on a missed field goal is a first down, the fifteen capped at half the distance from the 20"
             ]
         case .runningIntoTheKickerOnAMadeFieldGoal:
             return [
