@@ -128,23 +128,43 @@ struct CalibrationTarget: Sendable {
         self.note = note
     }
 
-    func format(_ value: Double) -> String {
-        let scale = pow10(decimals)
+    func format(_ value: Double) -> String { format(value, decimals: decimals) }
+
+    /// The row's value at a precision that is not necessarily its own. Everything that
+    /// prints a table asks `printed(_:inBand:)` which precision to use; this is how it
+    /// prints one once it has decided.
+    func format(_ value: Double, decimals places: Int) -> String {
+        digits(value, decimals: places) + unit
+    }
+
+    private func digits(_ value: Double, decimals places: Int) -> String {
+        let scale = pow10(places)
         let scaled = Int((value * scale).rounded())
         // Format the magnitude and prefix the sign: a value in (-1, 0) has a whole part of
         // zero, which carries no sign of its own.
         let sign = scaled < 0 ? "-" : ""
         let magnitude = abs(scaled)
         let whole = magnitude / Int(scale)
-        if decimals == 0 { return "\(sign)\(whole)\(unit)" }
-        var digits = "\(magnitude % Int(scale))"
-        while digits.count < decimals { digits = "0" + digits }
-        return "\(sign)\(whole).\(digits)\(unit)"
+        if places == 0 { return "\(sign)\(whole)" }
+        var fraction = "\(magnitude % Int(scale))"
+        while fraction.count < places { fraction = "0" + fraction }
+        return "\(sign)\(whole).\(fraction)"
     }
 
-    var band: String {
+    var band: String { band(decimals: decimals) }
+
+    func band(decimals places: Int) -> String {
         guard let low, let high else { return "none" }
-        return "\(format(low).dropLast(unit.count))-\(format(high).dropLast(unit.count))"
+        return "\(digits(low, decimals: places))-\(digits(high, decimals: places))"
+    }
+
+    /// The value and the band as one row of the table prints them, given what the grade
+    /// beside them says: `true` in band, `false` out of it, `nil` for a row the grade did
+    /// not read against its band at all (one sourced under another rulebook, or unsourced).
+    ///
+    /// Both are printed at the row's own precision.
+    func printed(_ value: Double, inBand: Bool?) -> (value: String, band: String) {
+        (format(value, decimals: decimals), band(decimals: decimals))
     }
 
     private func pow10(_ power: Int) -> Double {

@@ -95,6 +95,18 @@ func pad(_ value: String, _ width: Int) -> String {
     return padded
 }
 
+/// Pad to `width`, and never to less than the content plus the two spaces every column
+/// keeps between fields.
+///
+/// The value and band columns are the two whose content has no fixed width: a row near a
+/// band edge prints extra decimals (see `CalibrationTarget.printed(_:inBand:)`), and a
+/// field that runs into the next one is a field no reader splitting on runs of two spaces
+/// can see — the CI job summary's parser included. A long value makes its own row ragged
+/// rather than taking the column away from every other row.
+func column(_ value: String, _ width: Int) -> String {
+    pad(value, max(width, value.count + 2))
+}
+
 func oneDecimal(_ value: Double) -> String {
     let scaled = Rounding.toNearest(value * 10)
     let magnitude = abs(scaled)
@@ -127,20 +139,27 @@ func report(_ id: String, _ value: Double?) {
     }
     for target in targets {
         let verdict: String
+        // What the grade read: `true` in band, `false` out of it, `nil` for a row it did
+        // not read against the band at all. `printed` needs the same answer the verdict
+        // was taken from, because the precision the row prints at follows from it.
+        var inBand: Bool?
         if staleTargets[target.id] != nil {
             verdict = "stale"
         } else if target.season == .unsourced {
             verdict = "unsourced"
         } else if let value, let low = target.low, let high = target.high {
-            let inBand = value >= low && value <= high
-            verdict = target.gate ? (inBand ? "ok" : "OFF") : (inBand ? "(ok)" : "(OFF)")
+            let within = value >= low && value <= high
+            inBand = within
+            verdict = target.gate ? (within ? "ok" : "OFF") : (within ? "(ok)" : "(OFF)")
         } else {
             verdict = "n/a"
         }
         verdicts[verdict, default: []].append(target.id)
+        let shown = value.map { target.printed($0, inBand: inBand) }
         print(
-            "  " + pad(target.label, labelWidth) + pad(value.map(target.format) ?? "—", 9)
-                + pad(target.band, 14) + pad(verdict, 11) + pad(target.season.printed, 9)
+            "  " + pad(target.label, labelWidth) + column(shown?.value ?? "—", 9)
+                + column(shown?.band ?? target.band, 14) + pad(verdict, 11)
+                + pad(target.season.printed, 9)
                 + pad(CalibrationTarget.sourceKey(for: target.source), 5)
                 + target.rulesSensitiveTo.map(\.rawValue).sorted().joined(separator: ","))
     }
