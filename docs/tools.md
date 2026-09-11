@@ -1070,6 +1070,72 @@ carrying one row of every category, and the report they must produce. The fixtur
 `README.md` says what each row is there for. It needs no toolchain and no harness run, so
 CI runs it on every push.
 
+## harness-noise.py — the noise floor
+
+```bash
+swift build -c release --package-path Tools/simharness
+python3 scripts/harness-noise.py --sweep --seeds 1-30    # ~12 minutes; writes the TSV
+python3 scripts/harness-noise.py --report                # the markdown table
+python3 scripts/harness-noise.py --summary               # the findings, not the table
+python3 scripts/harness-noise.py --self-test             # no toolchain, no harness run
+```
+
+`harness-compare.sh` above answers "what moved between these two runs". This answers the
+question a reviewer asks straight afterwards: **is that further than the row moves when
+nothing changes at all?** It runs one unchanged tree at many seeds and records every graded
+row's value and verdict at each, then reports the spread.
+
+The output that matters is committed —
+[`docs/reference/harness-noise-sweep.tsv`](reference/harness-noise-sweep.tsv) is the raw
+per-seed table with the commit, the machine and each chunk of runs in its header, and the
+per-row floors are the table under
+[*The measured noise floor*](reference/calibration-sources.md#the-measured-noise-floor).
+**Read the floors there rather than re-running**, unless engine behaviour has moved since
+the commit the sweep names.
+
+Three things it does that a plain spread does not:
+
+- **It separates the two things a seed changes.** One `--seed` picks the world *and* seeds
+  every game's draws, so a seed-to-seed spread is a combined figure. The sweep also runs
+  200- and 100-game prefixes of the same seed — which are the *same* league playing the same
+  first n games — so the difference between a prefix and the full run is a contrast in which
+  the league cancels. That gives a same-league floor, and the rest is the league's share. The
+  same three game counts give an independent check on that split, which `--summary` prints
+  first: sampling error falls as `1/√games` and league variation does not, so the ratio
+  `σ(100)/σ(400)` reads 2.00 for a purely-sampling row and 1.00 for a purely-league one.
+- **It corrects for the printed column.** There is no machine-readable mode, so the sweep
+  reads printed values, and since #108 a row's precision depends on its own verdict and so
+  varies by seed. The rounding of each individual reading is removed from each σ, and a σ
+  that was mostly rounding is marked rather than printed as a measurement.
+- **It checks itself.** The 100-game prefix is a second, longer lever arm on the same
+  quantity and must give the same answer; `--replicate` compares the floors against a sweep
+  on a disjoint set of seeds, and that second sweep is committed too, as
+  [`harness-noise-replication.tsv`](reference/harness-noise-replication.tsv) at seeds 31–60:
+
+  ```bash
+  python3 scripts/harness-noise.py --replicate docs/reference/harness-noise-replication.tsv
+  ```
+
+  Both agreements are recorded in the reference doc, with numbers.
+
+Re-take the sweep in the same commit as any change that moves engine behaviour, the way a
+golden is regenerated. `--resume` merges into an existing sweep so a long one can be taken
+in chunks that each fit a single foreground call.
+
+### Its self-test
+
+```bash
+python3 scripts/harness-noise.py --self-test
+```
+
+Exercises the parts that are quietly wrong when they are wrong: the `Targets.swift` scan,
+the run parser against a fixture carrying a row that prints extra decimals, two rows sharing
+a label and told apart by their season, a row with no value and a tabular-looking line that
+is not a row; the TSV round trip; and the statistics against known answers, including a
+synthetic sweep whose league and sampling components are set by hand and must both be
+recovered. It needs no toolchain, no harness run and no data set, so CI runs it on every
+push.
+
 ## test-census — what the suite asserts
 
 ```bash

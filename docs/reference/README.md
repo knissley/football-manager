@@ -1,6 +1,7 @@
 # Reference
 
-**Status: built.** Two files, both of them hand-entered and both of them checked.
+**Status: built.** Two hand-entered files, both checked, and two machine-written data files
+beside them that are regenerated rather than edited.
 
 This directory is the external truth an agent verifies against **instead of its own
 memory**. CLAUDE.md's rule 10 says a claim about the sport cites a rule number and a
@@ -10,7 +11,15 @@ number came from. This is where both live.
 - [`playing-rules.md`](playing-rules.md) — the rules the engine implements, one entry per
   article of the **2025** rulebook, paraphrased in our own words. Look a number up here.
 - [`calibration-sources.md`](calibration-sources.md) — where every calibration band came
-  from: the real-league season, the data set, and the figures the tree states in words.
+  from: the real-league season, the data set, and the figures the tree states in words. Its
+  last section is the other half of the same question: how far each row moves **when nothing
+  changes**, measured rather than modelled.
+- [`harness-noise-sweep.tsv`](harness-noise-sweep.tsv) and
+  [`harness-noise-replication.tsv`](harness-noise-replication.tsv) — the raw per-seed
+  readings the noise floors are computed from, at seeds 1–30 and at a disjoint 31–60.
+  **Written by `scripts/harness-noise.py --sweep`, not by hand**; each names the commit, the
+  machine and the contiguous chunks of runs it was taken in. They carry no band and no
+  claim — they are readings — so nothing here has to be checked against the rulebook.
 
 ## Why it exists
 
@@ -32,7 +41,9 @@ gain*, *half the distance to the goal* have no synonyms worth having.
 
 **No data sets.** The calibration bands are aggregates typed in by hand, with the season
 and the source named per row. No play-by-play file is checked in, and neither is any real
-player, team or league name ([ADR-0005](../adr/0005-generated-fictional-content.md)).
+player, team or league name ([ADR-0005](../adr/0005-generated-fictional-content.md)). The
+two `harness-noise-*.tsv` files are not an exception: every number in them came out of our
+own simulator, about our own fictional leagues.
 
 ## How this relates to everything else
 

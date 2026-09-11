@@ -240,6 +240,16 @@ jobs:
         # will not be, in the repository. See docs/reference/calibration-sources.md.
         run: python3 scripts/calibration-sources.py --self-test
 
+      - name: Harness noise self-test
+        # The noise floor beside every band in docs/reference/calibration-sources.md is
+        # read off the harness's printed table by scripts/harness-noise.py, so its parser
+        # is the part most likely to go quietly wrong — a row printing extra decimals, two
+        # rows sharing a label, a tabular-looking line that is not a row. This runs its
+        # fixtures and its statistics against known answers, including a synthetic sweep
+        # whose two components are set by hand. The sweep proper takes twelve minutes of
+        # release compute and is committed rather than re-run here.
+        run: python3 scripts/harness-noise.py --self-test
+
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom
 
