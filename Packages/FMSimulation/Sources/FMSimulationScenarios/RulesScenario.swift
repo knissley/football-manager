@@ -148,8 +148,12 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case missedFieldGoalFromTheTen = "missed-field-goal-from-the-ten"
     case missedFieldGoalFromTheTwenty = "missed-field-goal-from-the-twenty"
     case defensiveHoldingAtTheThree = "defensive-holding-at-the-three"
+    case defensiveHoldingAtTheSeven = "defensive-holding-at-the-seven"
     case falseStartAtTheOwnThree = "false-start-at-the-own-three"
+    case falseStartAtTheOwnSeven = "false-start-at-the-own-seven"
     case facemaskAtTheEndOfARun = "facemask-at-the-end-of-a-run"
+    case facemaskAtTheTwenty = "facemask-at-the-twenty"
+    case twoPointTryWalkedOutAndBackIn = "two-point-try-walked-out-and-back-in"
     case interferenceInTheEndZone = "interference-in-the-end-zone"
     case interferenceInTheEndZoneFromTheOne = "interference-in-the-end-zone-from-the-one"
     case onsideKickRecovered = "onside-kick-recovered"
@@ -339,8 +343,12 @@ extension RulesScenario {
         case .missedFieldGoalFromTheTen: return RulesScenarios.missedFieldGoal(from: 10)
         case .missedFieldGoalFromTheTwenty: return RulesScenarios.missedFieldGoal(from: 20)
         case .defensiveHoldingAtTheThree: return RulesScenarios.defensiveHoldingAtTheThree
+        case .defensiveHoldingAtTheSeven: return RulesScenarios.defensiveHoldingAtTheSeven
         case .falseStartAtTheOwnThree: return RulesScenarios.falseStartAtTheOwnThree
+        case .falseStartAtTheOwnSeven: return RulesScenarios.falseStartAtTheOwnSeven
         case .facemaskAtTheEndOfARun: return RulesScenarios.facemaskAtTheEndOfARun
+        case .facemaskAtTheTwenty: return RulesScenarios.facemaskAtTheTwenty
+        case .twoPointTryWalkedOutAndBackIn: return RulesScenarios.twoPointTryWalkedOutAndBackIn
         case .interferenceInTheEndZone: return RulesScenarios.interferenceInTheEndZone
         case .interferenceInTheEndZoneFromTheOne:
             return RulesScenarios.interferenceInTheEndZoneFromTheOne
@@ -734,13 +742,29 @@ extension RulesScenario {
             return [
                 "football · Rule 8-4-6, 12-1-6, 14-4 (closest section) · defensive holding at the 3 is half the distance and a first down"
             ]
+        case .defensiveHoldingAtTheSeven:
+            return [
+                "football · Rule 14-2-1, 8-4-6 · five yards against the defence from the 7 is half the distance, because five is more than half of seven"
+            ]
         case .falseStartAtTheOwnThree:
             return [
                 "football · Rule 7-4-2, 14-4 (closest section) · a false start at the own 3 is half the distance to the goal line"
             ]
+        case .falseStartAtTheOwnSeven:
+            return [
+                "football · Rule 14-2-1, 7-4-2 · a false start seven yards out from the offence's own goal line is half the distance back, not five yards"
+            ]
         case .facemaskAtTheEndOfARun:
             return [
                 "football · Rule 12-2-15, 14-4 (closest section) · a facemask at the end of a 20-yard run is 15 more from the end of the run, and a first down"
+            ]
+        case .facemaskAtTheTwenty:
+            return [
+                "football · Rule 14-2-1, 12-2-15 · fifteen yards against the defence from the 20 is half the distance, because fifteen is more than half of twenty"
+            ]
+        case .twoPointTryWalkedOutAndBackIn:
+            return [
+                "football · Rule 14-2-1, 11-3-3, 11-3-3 Item 2 · a five-yard defensive foul on a try snapped from the 7 is half the distance, and a try is not exempt from the ceiling"
             ]
         case .interferenceInTheEndZone:
             return [
