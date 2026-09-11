@@ -455,9 +455,45 @@ struct GoldenSeedTests {
             // constants below are the ones the benches left, unmoved by the kicker —
             // this mechanism is measured in the harness's kicking rows, and a golden of
             // three games is not where it shows.
-            (UInt64(1), UInt64(234_699_460_847_983_132)),
-            (UInt64(5), UInt64(9_111_295_861_296_310_314)),
-            (UInt64(12), UInt64(450_169_252_029_078_525)),
+            //
+            // And moved by the caller, which is the engine. Who each side sends out
+            // changed on three counts: the offence's ordinary-down grouping is eleven
+            // personnel or a second tight end where a fourth receiver used to be mixed
+            // in, a passing down outside two minutes is played from eleven personnel
+            // rather than sometimes from four receivers, and the defence answers three
+            // receivers on an ordinary down with its nickel back every time instead of
+            // staying in a four-back front about a quarter of the time. An empty set is
+            // answered with six defensive backs rather than seven. Both sides' draws
+            // move with all four — two of them are gone, so every stream downstream of a
+            // snap is spent in a different order — and the eleven men on each side of
+            // the ball are different men on a large share of snaps, which changes what
+            // the play produced and not merely what it was called.
+            //
+            // And the bench, the kicker and the huddle then met in this merge, which is
+            // where the constants below come from. On one side a bench spends timeouts
+            // where the sport spends them, and each charged one resets the play clock to
+            // the short interval and leaves the game clock waiting for the snap. On
+            // another, how far a club will kick from is its kicker's rather than the
+            // league's, and the fourth downs outside that range are gone for or punted
+            // instead. On the third, the grouping and the front are the sport's: eleven
+            // personnel answered by a nickel back every time, a second tight end where a
+            // fourth receiver used to be. The three reach each other on the same snaps.
+            // Different men on the field produce a different play, so the down and
+            // distance after it differ, so the fourth down the kicker's range is asked
+            // about is a different fourth down at a different spot — and the score and
+            // clock a bench reads before spending a timeout are the ones those drives
+            // left. Run the other way, a timeout that costs the next snap less of the
+            // period changes which downs a period has room for at all, and a down that
+            // is never played is a grouping never sent out and a kick never attempted.
+            // Neither parent's constants could survive, and none of the three branches'
+            // could either: each was computed on a tree without the other two, and all
+            // three were computed before the interval was charged at the snap and the
+            // pocket got one verdict. Measured, not inferred — all three seeds here
+            // differ from `main`, from each of the three branches, and from both
+            // intermediate merges.
+            (UInt64(1), UInt64(13_867_949_726_705_134_045)),
+            (UInt64(5), UInt64(11_131_384_483_688_191_318)),
+            (UInt64(12), UInt64(5_132_592_281_361_854_766)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -46,6 +46,26 @@ This turns the project's biggest technical risk into a mechanic. A great coordin
 makes simming ahead safe; a bad one is a reason to take the wheel yourself — and a
 reason to go hire someone better in the offseason.
 
+### What the offence sends out
+
+**Built.** `PlayCaller.personnel(for:situation:classified:random:)` answers it, and the
+answer lands on `Situation` rather than on the call because personnel is public
+information: the offence substitutes first, and the defence answers what it sees.
+
+The mix the baseline caller runs is the sport's, and two sourced participation rows set it
+between them ([calibration-sources.md](reference/calibration-sources.md), S2, 2023-24).
+`row:personnel11` puts eleven personnel — one back, one tight end, three receivers — on
+62.3-71.9% of snaps, so that is the grouping a team lines up in. What is *not* eleven
+personnel is mostly a second tight end rather than a fourth receiver: `row:snaps.tightEnd`
+is 77.1-87.2 tight end player-snaps per team-game against `row:snaps.quarterback`'s
+58.9-66.8, which is one a snap by construction, so the sport has more than one tight end on
+the average snap. Four and five receivers are what a team sends out when the clock is the
+opponent — two minutes and a score down — and not what it sends out on first and ten.
+
+The repository sources no share for twelve personnel itself. What it sources is the tight
+end count, so the ordinary-down mix is set from that and from the eleven-personnel band,
+and a share for twelve is a consequence of the two rather than an input.
+
 ### Gameplan is constraints, not commands
 
 **Designed, not built.** There is no `Gameplan` type; see [gameplan.md](gameplan.md).
@@ -296,6 +316,30 @@ DefensiveCall
 
 A play designer that produces a call the engine already understands beats an engine
 that needs a new case per call.
+
+#### Nickel is the base defence
+
+The package is not a flavour of the call, it is who is on the field, and it follows the
+grouping the offence declared. Three receivers get a nickel back, four or five get a dime,
+and a grouping with a second back or a second tight end gets the four-back front the sport
+still calls base — which is the substitution now, not the default. `row:packageNickel` puts
+five defensive backs on 61.6-69.2% of snaps and `row:packageBase` four on 20.2-25.0%
+([calibration-sources.md](reference/calibration-sources.md), S2, 2023-24): the two bands do
+not overlap, and nickel's floor is above half of every snap played.
+
+The mismatch is the point of substituting at all, and it survives where it is a bet rather
+than a habit. In short yardage a defence commits to the run against three receivers and
+wears the extra receiver when it is wrong; on a down where the offence has to throw, the
+sixth defensive back is on offer. What it no longer does is answer eleven personnel from a
+four-back front on an ordinary down, which it used to do about a quarter of the time and
+which left four defensive backs on a third of every snap played.
+
+One cost of that is worth writing down rather than discovering. With the four-back front
+reserved to the heavier groupings, a first-and-ten carry from eleven personnel never meets
+a seven-man box, so `row:ypcOutnumberedByOne` has no carries to measure and prints `n/a`
+instead of a number. Getting it back means the defence answering a two-tight-end grouping
+from nickel some of the time — the same thesis carried one step further, and not something
+the package rule does today.
 
 ### Every call gives something up
 
