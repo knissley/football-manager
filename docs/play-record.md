@@ -145,14 +145,44 @@ DecisionPoint
 `DecisionKind` cases, all film-observable:
 
 ```
-.pressureAllowed(rusher, blocker, ms)     .pressureHeld(blocker, rusher, ms)
+.pressureAllowed(blocker, rusher, ms)     .pressureHeld(blocker, rusher, ms)
+                                          the pocket, once: got there, or did not
 .readProgression(index, receiver, separationCm)
 .throwDecision(.primary | .checkdown | .throwaway | .scramble | .sack)
 .ballArrival(receiver, separationCm, placement)
 .catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
 .blockResult(blocker, defender, result)   .holeQuality(gap, quality)
+  one per rep, run or pass, with `value` the milliseconds it lasted
 .coverageAssignment(defender, receiver, technique)
 ```
+
+**What a pass play records, and how much of it.** A dropback's points are fixed by its
+personnel, not by how the play went, so the count is answerable before the snap:
+
+| point | how many, per dropback |
+|---|---|
+| `.blockResult` | one per pass-rush rep — rushers, capped by the men in protection |
+| `.pressureAllowed` / `.pressureHeld` | exactly one between them, and none at all on a snap with no rep to resolve |
+| `.coverageAssignment` | one per route runner the coverage matched, up to four |
+| `.readProgression` | one per route runner, up to four |
+| `.throwDecision` | one — the throw, the throwaway, the scramble or the sack |
+| `.ballArrival` | one, on a snap where the ball was thrown |
+| `.catchAttempt` | one, where it arrived to somebody |
+| `.tackleAttempt` | up to three, after a catch, a scramble or a sack |
+
+So a four-man rush against eleven personnel that ends in a completion records four block
+results, one pocket verdict, four coverage assignments, four reads, a throw, an arrival, a
+catch and up to three tackle attempts.
+
+**The rep and the pressure are two different facts.** A rusher beating his blocker is a
+`.blockResult` with `BlockResult.lost` and the milliseconds he took. Whether the
+quarterback ever felt it is the pocket verdict, decided against the moment the ball came
+out: `.pressureAllowed` names the first man home when he arrived before the throw,
+`.pressureHeld` says the protection lasted as long as it had to and names the rush that
+came closest. That is the split the pressure rate is banded on — the statistic counts
+dropbacks on which the passer was got to (`row:pressureRate`, 2023-24, source S2), not
+reps lost — and reading a lost rep as pressure is what put the engine at 74% of dropbacks
+against a real rate near a third.
 
 Four more are the rules layer's rather than the resolver's, and name no player:
 

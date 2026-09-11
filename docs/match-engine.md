@@ -471,7 +471,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | dropbacks of 10 or more | 23.8-27.8% | 2023-24 | — | S1 | yes | — |
 | dropbacks of 20 or more | 7.7-8.6% | 2023-24 | — | S1 | yes | — |
 | dropbacks of 40 or more | 1.0-1.5% | 2023-24 | — | S1 | yes | — |
-| pressure rate per dropback | 27.8-32.3% | 2023-24 | — | S2 | yes | Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback on which a blocker lost. |
+| pressure rate per dropback | 27.8-32.3% | 2023-24 | — | S2 | yes | Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback whose record says a rusher reached the quarterback before the ball was out; a rep lost after the throw is a lost rep and not a pressure. |
 | completions for 0 or fewer yards | 4.0-5.6% | 2023-24 | — | S1 | yes | Share of all completions. |
 | drives ending in a punt | 32.8-39.0% | 2023-24 | — | S1 | yes | — |
 | drives ending in a touchdown | 19.2-23.8% | 2023-24 | — | S1 | yes | — |

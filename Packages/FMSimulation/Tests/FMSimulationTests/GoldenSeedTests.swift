@@ -378,9 +378,21 @@ struct GoldenSeedTests {
             // to the ball and breaks a tackle on a number in the sixties where he did it
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
-            (UInt64(1), UInt64(16_544_674_377_827_432_735)),
-            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
-            (UInt64(12), UInt64(3_133_720_638_961_547_474)),
+            //
+            // And moved again because the pocket has a clock in it. A rusher who beats
+            // his blocker is recorded as having beaten him and nothing more; the pocket
+            // gets one verdict a snap, and it is pressure only if the man got there
+            // before the ball was out. That alone moves every dropback's stream — a
+            // `.blockResult` a rep where a `.pressureAllowed` or a `.pressureHeld` used
+            // to be, and one verdict after the read instead of one point per rep — and
+            // the checksum mixes every decision point. With it, the rep win rate is the
+            // pressure rate's lever now that it is no longer the pressure rate itself,
+            // and it is set from that row, so fewer rushers win, fewer get home, fewer
+            // sacks and scrambles are taken and every drive after one of them is a
+            // different drive.
+            (UInt64(1), UInt64(2_985_244_367_170_848_607)),
+            (UInt64(5), UInt64(4_346_335_552_291_261_011)),
+            (UInt64(12), UInt64(10_515_672_238_553_167_705)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

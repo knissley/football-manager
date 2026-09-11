@@ -54,7 +54,12 @@ struct PenaltyTests {
 
     /// The whole point of drawing a hold at the moment a blocker loses: the flag and the
     /// reason for it are the same event. *He held because he was beaten in 1.9 seconds*,
-    /// with the pressure decision sitting right there in the record.
+    /// with the lost rep sitting right there in the record.
+    ///
+    /// The rep is what this asks about, so it reads the `.blockResult` that records it.
+    /// It used to read `.pressureAllowed`, which was the same thing back when every lost
+    /// rep was called pressure; it is not any more — a blocker can lose and the ball be
+    /// gone before his man arrives — and a hold drawn on that rep is still explicable.
     @Test("A hold on a pass play has a lost rep behind it", .tags(.contract))
     func holdsAreExplicable() {
         var checked = 0
@@ -63,7 +68,8 @@ struct PenaltyTests {
             checked += 1
             #expect(
                 play.decisions.contains {
-                    $0.kind == .pressureAllowed && $0.primary == flag.offender
+                    $0.kind == .blockResult && $0.blockResultValue == .lost
+                        && $0.primary == flag.offender
                 },
                 "a hold by somebody who never lost his rep")
         }
