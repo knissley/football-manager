@@ -105,7 +105,7 @@ struct GoldenWorldTests {
             // trained stream is shared with everything a player is built from after his
             // ratings, so did his build, his combine, his name, his college and every man
             // drawn after him. The checksum reads all of it, so all three worlds moved.
-            (UInt64(1), UInt64(6_630_896_047_649_438_373)),
+            (UInt64(1), UInt64(10_261_439_880_186_297_053)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -126,8 +126,22 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(17_631_849_051_726_543_646)),
-            (UInt64(7), UInt64(619_117_896_926_255_886)),
+            //
+            // And all three once more when `WorldGenerator.strengthSpread` stopped being
+            // eight — a number with no source — and became the width the sport's own
+            // between-club spread of point differential implies. Every club's offset is a
+            // different number, so every roster is built to a different ceiling and every
+            // man drawn after the first is a different man; the checksum reads all of it.
+            // This is generation changing, not coverage widening: the leagues really are
+            // different leagues. The width is neither of the two numbers first computed:
+            // the floor and the slope it is solved from are properties of the engine, and
+            // the engine moved twice underneath it — the run game grew a middle, and the
+            // defence learned to answer two tight ends with a fifth defensive back some of
+            // the time. Each time the same three steps were re-run against the same sourced
+            // target. See the constant's own comment, and the rule in
+            // `calibration-sources.md` for when a re-measurement is worth acting on.
+            (UInt64(5), UInt64(13_874_155_947_617_604_630)),
+            (UInt64(7), UInt64(12_647_015_549_021_856_984)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

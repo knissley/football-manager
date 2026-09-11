@@ -671,9 +671,26 @@ struct GoldenSeedTests {
             // and 12 each have a snap that moves from forty to twenty-five, which moves
             // both the reading on the record and the odds the offence is beaten by the
             // interval, and from there the game diverges.
-            (UInt64(1), UInt64(13_662_653_904_281_590_993)),
-            (UInt64(5), UInt64(18_134_028_555_637_264_242)),
-            (UInt64(12), UInt64(9_331_547_378_743_938_053)),
+            //
+            // And moved by the world rather than by the engine, which is the other half of
+            // where the constants below come from. `WorldGenerator` draws a league's talent
+            // on a width that is sourced now rather than assumed, so every club's offset is
+            // a different number, every roster is built to a different ceiling, and every
+            // man drawn after the first is a different man. Nothing in `FMSimulation`
+            // changed for that reason: the same code plays a different pair of teams.
+            //
+            // The width did **not** move in this merge, and `GoldenWorldTests` is the
+            // evidence — it did not move either, because nothing here reaches `FMGeneration`.
+            // Engine source did move, in the play clock above, and the width was deliberately
+            // not re-derived for it: the width is derived from engine measurements and is
+            // provisional by construction, so it is re-derived when the branch that owns it
+            // lands and not again because a later branch moved the engine. The drift is
+            // recorded instead, and `row:betweenTeamSigma` is what keeps it visible. Both
+            // parents' constants fall to the pair of mechanisms together, and all three
+            // below were checked against both before they were written down.
+            (UInt64(1), UInt64(12_939_006_183_879_276_582)),
+            (UInt64(5), UInt64(10_961_565_527_291_462_682)),
+            (UInt64(12), UInt64(5_587_817_126_695_655_428)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
