@@ -577,8 +577,11 @@ what every one of them was derived from is in
 [`reference/calibration-sources.md`](reference/calibration-sources.md).
 
 91. A team scores about what a real team scores, and the game's points come mostly from
-    touchdowns and then from field goals. — `row:points`, `row:pointsFromTouchdowns`,
-    `row:pointsFromFieldGoals`, `row:gamesWithin3`, `row:gamesWithin7`
+    touchdowns and then from field goals. Games finish about as far apart as real ones, and
+    about as much of that distance is one club being better than the other. —
+    `row:points`, `row:pointsFromTouchdowns`, `row:pointsFromFieldGoals`,
+    `row:gamesWithin3`, `row:gamesWithin7`, `row:gamesBy14plus`, `row:marginSigma`,
+    `row:betweenTeamSigma`
 92. Games end tied about as rarely as they really do, reach overtime about as often, and
     play about as much of the overtime period. — `row:tiesPerGame`, `row:overtimeRate`,
     `row:overtimeLength`

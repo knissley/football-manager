@@ -140,9 +140,9 @@ public enum WorldGenerator {
 
     /// One strength per team, drawn from the seed and centred on the league.
     ///
-    /// Two properties, and both matter. The draw is uniform on ±`strengthSpread` rather
-    /// than Gaussian, because a league wants genuine contenders and genuine rebuilds at
-    /// its edges and a normal draw puts almost everyone in the middle. And the result is
+    /// Two properties, and both matter. The draw is uniform on ±`spread` rather than
+    /// Gaussian, because a league wants genuine contenders and genuine rebuilds at its
+    /// edges and a normal draw puts almost everyone in the middle. And the result is
     /// centred — the mean offset is subtracted from every team — so the league's overall
     /// mean does not wander with the seed and a calibration run at seed 7 is comparable
     /// with one at seed 11.
@@ -151,8 +151,12 @@ public enum WorldGenerator {
     /// identifier order, which is what makes the world reproducible, but the value owes
     /// nothing to the position — which is exactly the bug this replaces, where team 0 was
     /// always the worst club in the league and team 31 always the best.
+    ///
+    /// `spread` is how wide to draw, in overall points either side of the middle.
+    /// `strengthSpread` is the league the game ships; a caller passes something else only to
+    /// measure how the world responds to it, which is what sets the shipped value.
     static func strengths(
-        count: Int, using random: inout SplittableRandom
+        count: Int, spread: Double = strengthSpread, using random: inout SplittableRandom
     )
         -> [RosterGenerator.Strength]
     {
@@ -160,7 +164,7 @@ public enum WorldGenerator {
         var offsets: [Double] = []
         offsets.reserveCapacity(count)
         for _ in 0..<count {
-            offsets.append(random.nextDouble(in: -strengthSpread..<strengthSpread))
+            offsets.append(random.nextDouble(in: -spread..<spread))
         }
         let mean = offsets.reduce(0, +) / Double(count)
         return offsets.map { RosterGenerator.Strength(offset: $0 - mean) }
@@ -195,6 +199,9 @@ public enum WorldGenerator {
     ///   - collegeCount: how many colleges the world's players come from.
     ///   - draftShape: the shape of the draft classes in the pipeline.
     ///   - rivalrySettings: how much history the rivalries carry.
+    ///   - strengthSpread: how wide to draw the league's talent, in overall points either
+    ///     side of the middle. The shipped league's width by default; a caller passes
+    ///     something else only to measure how the world responds to it.
     /// - Returns: the world, or the reason the shape is not a league.
     public static func generate(
         seed: UInt64,
@@ -204,7 +211,8 @@ public enum WorldGenerator {
         parts: Parts = .all,
         collegeCount: Int = 120,
         draftShape: DraftClassGenerator.ClassShape = .standard,
-        rivalrySettings: RivalryGenerator.Settings = .standard
+        rivalrySettings: RivalryGenerator.Settings = .standard,
+        strengthSpread: Double = strengthSpread
     ) -> Result<GeneratedWorld, GenerationFailure> {
         let root = SplittableRandom(seed: seed)
 
@@ -230,7 +238,8 @@ public enum WorldGenerator {
         let teams = generatedLeague.teams.sorted { $0.id.rawValue < $1.id.rawValue }
 
         var strengthRandom = root.split(Stream.strength.rawValue)
-        let drawn = strengths(count: teams.count, using: &strengthRandom)
+        let drawn = strengths(
+            count: teams.count, spread: strengthSpread, using: &strengthRandom)
 
         var strengths: [TeamID: RosterGenerator.Strength] = [:]
         var identities: [TeamID: SchemeIdentity.Identity] = [:]

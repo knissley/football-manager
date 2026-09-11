@@ -284,6 +284,36 @@ comes out of `onField` rather than out of the substitution the engine made.
 | --- | --- | --- |
 | `row:gamesWithin3` — games within 3 | 2023-24 | S1 |
 | `row:gamesWithin7` — games within 7 | 2023-24 | S1 |
+| `row:gamesBy14plus` — games decided by 14 or more | 2023-24 | S1 |
+| `row:marginSigma` — spread of the point differential | 2023-24 | S1 |
+| `row:betweenTeamSigma` — spread of it that is the clubs | 2023-24 | S1 |
+
+The first two say how often a game is close. The last three say how far apart the scores
+get, and how much of that distance is the clubs rather than the afternoon — which is what
+tells a league drawn too wide from an engine that is simply wild.
+
+`row:marginSigma` is the standard deviation of the home side's points less the road
+side's, over games: 14.40 in 2023 and 14.43 in 2024. `row:gamesBy14plus` is the share
+decided by two scores or more: 37.5% and 33.1%. Both come off the same finals the two
+`gamesWithin` rows read and add nothing to the derivation but arithmetic.
+
+`row:betweenTeamSigma` is the club part of `row:marginSigma`, and it is the one that took
+a decision. Each club's point differential is gathered by club and split the way a one-way
+random-effects model splits any repeated measure: the variance of the club season means,
+less the pooled within-club variance divided by the games each club played. The
+subtraction is the whole point — a season is short, so the spread of the club *means* is
+inflated by exactly that much, and without the correction a league of identical clubs
+reports a spread it does not have. That gives **4.83 in 2023 and 5.73 in 2024**, and
+`scripts/calibration-sources.py` prints it beside the win-total sigma on every run.
+
+What it assumes is in the script's own doc comment, and all of it is listed there because
+the number sets a generation constant: a roughly balanced schedule, home field as a
+constant rather than a club trait, and a club's strength not moving during the season.
+Each of those, violated, pushes the estimate **up** — schedule imbalance and in-season
+drift both read as between-club spread — so it is an upper estimate of a club's true
+spread and not a lower one. The band is not a gate for a second reason: four hundred games
+gives a club twenty-five, and at that length the estimator's own error is about as wide as
+the band.
 
 ### The ten most common accepted fouls, per game, both teams
 

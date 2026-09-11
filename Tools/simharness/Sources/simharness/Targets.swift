@@ -749,6 +749,26 @@ struct CalibrationTarget: Sendable {
             id: "gamesWithin7", label: "games within 7", low: 44.5, high: 57.0,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             unit: "%"),
+        CalibrationTarget(
+            id: "gamesBy14plus", label: "games decided by 14 or more", low: 28.2, high: 42.4,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%",
+            note:
+                "The other end of the two rows above: 37.5% of games in 2023 and 33.1% in 2024. A league drawn too wide shows here first."
+        ),
+        CalibrationTarget(
+            id: "marginSigma", label: "spread of the point differential", low: 13.2, high: 15.6,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            note:
+                "Standard deviation of home points less away points, over games. 14.40 in 2023 and 14.43 in 2024."
+        ),
+        CalibrationTarget(
+            id: "betweenTeamSigma", label: "spread of it that is the clubs", low: 4.6, high: 6.0,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: false,
+            decimals: 2,
+            note:
+                "The club part of the row above, by a one-way split of each club's differential: 4.83 in 2023 and 5.73 in 2024. This is what WorldGenerator.strengthSpread is set from. Not a gate — 400 games gives a club 25, and the estimator's own error is about as wide as the band."
+        ),
 
         // The ten most common accepted fouls, per game, both teams.
         CalibrationTarget(

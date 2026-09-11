@@ -23,6 +23,7 @@ var seed: UInt64 = 2030
 var rulebookOption: Int?
 var timing = true
 var worldChecksumOnly = false
+var strengthSpread = WorldGenerator.strengthSpread
 
 var arguments = CommandLine.arguments.dropFirst().makeIterator()
 while let argument = arguments.next() {
@@ -38,6 +39,12 @@ while let argument = arguments.next() {
         }
         rulebookOption = season
     case "--no-timing": timing = false
+    case "--strength-spread":
+        guard let value = Double(arguments.next() ?? ""), value >= 0 else {
+            print("--strength-spread takes a number of overall points, zero or more")
+            exit(1)
+        }
+        strengthSpread = value
     case "--world-checksum-only": worldChecksumOnly = true
     case "--targets-markdown":
         print(CalibrationTarget.markdownTable())
@@ -55,6 +62,12 @@ while let argument = arguments.next() {
                                    \(engineRulebookSeason) targets
               --no-timing          leave out the Budget block at the end, so two runs of
                                    the same binary at the same seed are byte-identical
+              --strength-spread <points>
+                                   draw the league's talent this far either side of the
+                                   middle instead of \(WorldGenerator.strengthSpread).
+                                   A measuring instrument, not a setting: it is how the
+                                   shipped width was settled against row:betweenTeamSigma,
+                                   and a run that passes it is not a calibration run
               --world-checksum-only
                                    generate the world for the seed, print its checksum
                                    line and exit without simulating. What
@@ -151,7 +164,7 @@ func header() {
 // HarnessWorld's, so the harness's tests can build the same world and the checksum below
 // is provably taken over the one the games are played in.
 let world: WorldGenerator.GeneratedWorld
-switch HarnessWorld.generate(seed: seed) {
+switch HarnessWorld.generate(seed: seed, strengthSpread: strengthSpread) {
 case .failure(let error):
     print("could not generate a league:")
     for explanation in error.explanations { print("  - \(explanation)") }
@@ -1412,6 +1425,54 @@ report(
     "gamesWithin3", Double(margins.filter { $0 <= 3 }.count) / Double(max(1, results.count)) * 100)
 report(
     "gamesWithin7", Double(margins.filter { $0 <= 7 }.count) / Double(max(1, results.count)) * 100)
+report(
+    "gamesBy14plus",
+    Double(margins.filter { $0 >= 14 }.count) / Double(max(1, results.count)) * 100)
+
+// The spread of the point differential, and how much of it is the clubs rather than the
+// afternoon. The share rows above say how often a game is close; these two say how far
+// apart the scores get and why, which is what tells a wide league from a wild engine.
+let differentials = results.map { Double($0.homeScore) - Double($0.awayScore) }
+let differentialMean = differentials.reduce(0, +) / Double(max(1, differentials.count))
+let differentialVariance =
+    differentials.reduce(0.0) { $0 + ($1 - differentialMean) * ($1 - differentialMean) }
+    / Double(max(1, differentials.count))
+report("marginSigma", differentialVariance.squareRoot())
+
+// One club's differential per game, gathered by club, and split the way
+// scripts/calibration-sources.py splits the real seasons: the spread of the club means
+// less the pooled within-club spread over the games each club played. The subtraction is
+// the point — a short season inflates the spread of the means by exactly that much — and
+// without it a league of identical clubs would report a spread it does not have.
+var differentialsByTeam: [TeamID: [Double]] = [:]
+for (index, entry) in conditions.enumerated() where index < results.count {
+    let result = results[index]
+    let edge = Double(result.homeScore) - Double(result.awayScore)
+    differentialsByTeam[entry.home, default: []].append(edge)
+    differentialsByTeam[entry.setup.away.id, default: []].append(-edge)
+}
+// Sorted by identifier: a fold over a dictionary's own order would make the number depend
+// on hashing rather than on the games (ADR-0003).
+let byTeam = differentialsByTeam.sorted { $0.key.rawValue < $1.key.rawValue }.map(\.value)
+if byTeam.count > 1, byTeam.allSatisfy({ $0.count > 1 }) {
+    let teamMeans = byTeam.map { $0.reduce(0, +) / Double($0.count) }
+    let meanOfMeans = teamMeans.reduce(0, +) / Double(teamMeans.count)
+    let betweenTeams =
+        teamMeans.reduce(0.0) { $0 + ($1 - meanOfMeans) * ($1 - meanOfMeans) }
+        / Double(teamMeans.count - 1)
+    var withinSum = 0.0
+    var withinDegrees = 0
+    for (team, values) in zip(teamMeans, byTeam) {
+        withinSum += values.reduce(0.0) { $0 + ($1 - team) * ($1 - team) }
+        withinDegrees += values.count - 1
+    }
+    let withinTeams = withinSum / Double(withinDegrees)
+    let gamesEach = Double(byTeam.reduce(0) { $0 + $1.count }) / Double(byTeam.count)
+    let variance = betweenTeams - withinTeams / gamesEach
+    report("betweenTeamSigma", variance > 0 ? variance.squareRoot() : 0)
+} else {
+    report("betweenTeamSigma", nil)
+}
 
 print("")
 print("  Verdicts")
