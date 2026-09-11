@@ -92,21 +92,41 @@ jobs:
         # derivation is Python because the data set it reads is a CSV release. One
         # package, no recommends, so the step below runs rather than skipping: a check
         # that quietly does not execute is the failure the self-tests exist to prevent.
+        #
+        # The mirror is what makes this expensive, not the package. Both images fetch
+        # the same thing — about 51 MB of package indices and 14 MB of archives, nine
+        # files — and both spend four to five seconds unpacking them. The amd64 image
+        # points at archive.ubuntu.com and security.ubuntu.com, which answered this
+        # runner at 0.1 to 0.6 MB/s: 87 s of index, 128 s of download, 219 s in all,
+        # and between 123 s and 886 s over five earlier runs. The arm64 image points at
+        # ports.ubuntu.com instead, which answered at 6 to 11 MB/s and finished in
+        # twelve seconds flat. Nothing else differs — same packages, same versions,
+        # same unpack.
+        #
+        # Runners are Azure virtual machines and azure.archive.ubuntu.com is the
+        # in-datacentre mirror the runner's own host image uses, so point the fetch
+        # there. The rewrite names only the two hostnames the amd64 image ships, so it
+        # is a no-op on arm64 — which is already fast, and is not carried on that
+        # mirror anyway. If the mirror does not answer, the step puts the image's own
+        # sources back and tries again rather than failing: the mirror is a speed-up,
+        # and the self-test below has to run even on a day the speed-up is unavailable.
         run: |
-          echo "== where apt fetches from =="
-          cat /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
-          echo "== index state before update =="
-          ls /var/lib/apt/lists/ 2>/dev/null | head -40 || true
-          du -sh /var/lib/apt/lists/ 2>/dev/null || true
-          echo "== apt-get update =="
-          time apt-get update -qq
-          du -sh /var/lib/apt/lists/ 2>/dev/null || true
-          echo "== download the debs, nothing else =="
-          time apt-get install -y -qq --no-install-recommends --download-only python3
-          du -sh /var/cache/apt/archives/ 2>/dev/null || true
-          ls -l /var/cache/apt/archives/*.deb 2>/dev/null || true
-          echo "== unpack and configure, already downloaded =="
-          time apt-get install -y -qq --no-install-recommends python3
+          sources=/etc/apt/sources.list.d/ubuntu.sources
+          original="${RUNNER_TEMP:-/tmp}/ubuntu.sources.as-the-image-ships-it"
+          if [ -f "$sources" ]; then
+            cp "$sources" "$original"
+            sed -i -e 's|//archive\.ubuntu\.com/ubuntu/|//azure.archive.ubuntu.com/ubuntu/|g' \
+                   -e 's|//security\.ubuntu\.com/ubuntu/|//azure.archive.ubuntu.com/ubuntu/|g' \
+                   "$sources"
+          fi
+          if ! { apt-get update -qq && apt-get install -y -qq --no-install-recommends python3; }; then
+            echo "::warning::the Azure mirror did not answer; refetching from the sources the image ships"
+            if [ -f "$original" ]; then
+              cp "$original" "$sources"
+            fi
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends python3
+          fi
           python3 --version
 
       - name: Restore build cache
