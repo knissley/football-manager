@@ -558,7 +558,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | punts returned | 40.5-45.3% | 2023-24 | — | S1 | yes | Share of punts fielded and run back; fair catches, downed and touchbacks are not. |
 | snaps inside own 10 | 1.55-1.84 | 2023-24 | — | S1 | yes | Scrimmage plays per team-game. |
 | safeties per team-game | 0.01-0.05 | 2023-24 | — | S1 | yes | — |
-| pre-snap fouls, road vs home | 0.94-1.19x | 2023-24 | — | S1 | yes | The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 2–3 points, most of which is not the crowd. |
+| pre-snap fouls, road vs home | 0.94-1.19x | 2023-24 | — | S1 | yes | The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 1.9–2.7 points, most of which is not the crowd. |
 | combined points, heavy rain vs dry | 2.0-4.0 | unsourced | — | — | no | Points lower in heavy rain. The play-by-play does not grade rain, so nobody has cited this; needs --games 1000. |
 | games within 3 | 19.6-29.3% | 2023-24 | — | S1 | yes | — |
 | games within 7 | 44.5-57.0% | 2023-24 | — | S1 | yes | — |
@@ -611,7 +611,7 @@ third was fixed the same way: completion percentage counted only completions tha
 until the record could say a pass was caught, and it reads `Outcome.passResult` now.
 
 Home win rate and the home scoring edge are printed **without** a target. In 2023–24 the
-home side won 53–56% of decided games and outscored the visitor by two to three points,
+home side won 53–56% of decided games and outscored the visitor by 1.9 to 2.7 points,
 and most of that is travel, rest and short weeks — none of which exists before there is a
 schedule to travel on (M3). What the engine models is the crowd, so the mechanism (the
 pre-snap foul ratio) gets the target and the aggregate gets a note.
