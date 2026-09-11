@@ -83,6 +83,8 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "runner-out-of-bounds-across-five-minutes-of-the-fourth-quarter"
     case runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter =
         "runner-out-of-bounds-across-the-two-minute-warning-of-the-second-quarter"
+    case periodExpiringBetweenDowns = "period-expiring-between-downs"
+    case twoMinuteDrill = "two-minute-drill"
 
     // Fouls before the snap late in a half
     case falseStartInsideTwoMinutes = "false-start-inside-two-minutes"
@@ -232,12 +234,14 @@ extension RulesScenario {
         case .kickoffFairCaught: return RulesScenarios.kickoffFairCaught
         case .playEndingJustBeforeTheTwoMinuteWarning:
             return RulesScenarios.playStretchedToEnd(quarter: 4, at: 121)
+        // Snapped above 2:00 and dead below it, so the warning falls in the down and
+        // not in the interval before it.
         case .playRunningPastTheTwoMinuteWarning:
-            return RulesScenarios.playStretchedToEnd(quarter: 2, at: 117)
+            return RulesScenarios.playStretchedToEnd(quarter: 2, at: 117, snappedAfter: 120)
         case .playEndingJustBeforeTheTwoMinuteWarningOfOvertime:
             return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121)
         case .playRunningPastTheTwoMinuteWarningOfOvertime:
-            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 117)
+            return RulesScenarios.playStretchedToEnd(quarter: 5, at: 117, snappedAfter: 120)
         case .playEndingAtTwoMinutesOfAFirstPostseasonOvertimePeriod:
             return RulesScenarios.playStretchedToEnd(quarter: 5, at: 121, postseasonDecidedIn: 6)
         case .playEndingJustBeforeTheTwoMinuteWarningOfASecondPostseasonOvertimePeriod:
@@ -256,6 +260,12 @@ extension RulesScenario {
         case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
             return RulesScenarios.playStretchedToEnd(
                 quarter: 2, at: 110, endedIn: .outOfBounds, snappedAfter: 120)
+        // A play ends at 0:20 of the first quarter with the clock running, and the
+        // offence's tempo is longer than what is left: the interval alone exhausts the
+        // period.
+        case .periodExpiringBetweenDowns:
+            return RulesScenarios.playStretchedToEnd(quarter: 1, at: 20)
+        case .twoMinuteDrill: return RulesScenarios.twoMinuteDrill
 
         case .falseStartInsideTwoMinutes: return RulesScenarios.falseStartInsideTwoMinutes
         case .falseStartInTheThirdQuarter: return RulesScenarios.falseStartInTheThirdQuarter
@@ -557,6 +567,14 @@ extension RulesScenario {
         case .runnerOutOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarter:
             return [
                 "football · Rule 4-3-2-a-2, 3-41, 4-4-h · a runner out of bounds after the two-minute warning of the second quarter, on a play snapped before it, stops the clock until the snap: the warning is taken as that down ends"
+            ]
+        case .periodExpiringBetweenDowns:
+            return [
+                "football · Rule 4-8-1, 4-3-2 · a period the interval between downs exhausts ends there, and no down is snapped or recorded"
+            ]
+        case .twoMinuteDrill:
+            return [
+                "football · Rule 4-3-2, 3-41 · the clock a play is recorded with is the clock it was snapped on, through a two-minute drill"
             ]
 
         case .falseStartInsideTwoMinutes:

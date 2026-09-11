@@ -120,7 +120,10 @@ public enum FieldZone: UInt8, CaseIterable, Sendable, Hashable, Codable {
 public struct Situation: Sendable, Hashable, Codable {
 
     public var quarter: UInt8
-    /// Seconds remaining in the quarter.
+    /// Seconds remaining in the quarter **at the snap** — after the interval between
+    /// downs has come off the clock, not before it. On a play record that is the reading
+    /// a play-by-play prints beside the down, and it is why a field goal and the kickoff
+    /// that follows it are seconds apart rather than a huddle apart.
     public var clockRemaining: UInt16
     public var down: Down
     /// Yards needed for a new set of downs.

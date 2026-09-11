@@ -134,22 +134,23 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 ## The census as it stands
 
 Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, plus
-the two tests that came with a receiver training ball security: **917 tests, counted with
-`./scripts/test-census.sh` at `3372f1e`.** The commit is part of the number. A census with
-no commit beside it is a claim about a tree nobody can go back to, which is the way a
-snapshot misleads — it reads as current long after it has stopped being true.
-`./scripts/test-census.sh` reprints it; if this table and that output disagree, the output
-is right and this table is stale.
+the two tests that came with a receiver training ball security and the two that came with
+the clock on a play record reading at the snap: **919 tests, counted with
+`./scripts/test-census.sh` on the merge of `dfbe17b` with #101.** The commit is part of the
+number. A census with no commit beside it is a claim about a tree nobody can go back to,
+which is the way a snapshot misleads — it reads as current long after it has stopped being
+true. `./scripts/test-census.sh` reprints it; if this table and that output disagree, the
+output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 54 — 14.4% | 33 — 8.8% | 286 — 76.1% | 3 | 376 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 115 — 40.5% | 91 — 32.0% | 70 — 24.6% | 8 | 284 |
+| FMSimulation | 117 — 40.9% | 91 — 31.8% | 70 — 24.5% | 8 | 286 |
 | simharness | 0 — 0.0% | 11 — 78.6% | 3 — 21.4% | 0 | 14 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **170 — 18.5%** | **237 — 25.8%** | **499 — 54.4%** | **11** | **917** |
+| **all** | **172 — 18.7%** | **237 — 25.8%** | **499 — 54.3%** | **11** | **919** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -172,7 +173,7 @@ sideline, the aimed punt and the two kickoffs.
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 51 — 44.7% | 6 | 54 | 3 | 114 |
-| Rules conformance — the scripted games (FMSimulation) | 98 — 98.0% | 0 | 0 | 2 | 100 |
+| Rules conformance — the scripted games (FMSimulation) | 100 — 98.0% | 0 | 0 | 2 | 102 |
 | The resolver — `CrudeResolver`, the contest curve, out of bounds, punting and the kickoff (FMSimulation) | 6 — 20.7% | 11 | 10 | 2 | 29 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 

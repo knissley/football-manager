@@ -20,12 +20,15 @@ import FMSimulation
 // scenario a tool cannot name is one nobody can watch, and that is the thing this
 // arrangement is here to prevent.
 //
-// Two conventions the clock scenarios rest on, neither of them a rule. A play's recorded
-// situation is the moment the previous play ended, and the offence's tempo — the huddle —
-// is charged at the snap when the clock is running, so a play snapped on a running clock
-// ends at `clock - huddle - clockRunoff`; the huddle is measured from the game itself,
-// never assumed. And a flag before the snap flies when the snap was due: the huddle has
-// elapsed, no play time has, and only then does any runoff come off.
+// Two conventions the clock scenarios rest on, neither of them a rule. The resolver is
+// asked about a snap with the clock as the play before it left it, because the tempo the
+// caller chose is what decides how long the interval to the snap will be; the rules layer
+// then charges that interval and records the down with the clock it was really snapped
+// on. So a script that needs a play to end at a particular second works from
+// `clock - huddle` while an assertion over the stream reads the snap itself, and the
+// huddle is measured from the game rather than assumed. And a flag before the snap flies
+// when the snap was due: the interval has elapsed, no play time has, and only then does
+// any runoff come off.
 
 /// The rules-conformance scenarios, as scripted games.
 ///
@@ -47,11 +50,12 @@ public enum RulesScenarios {
     /// it throws an interception, so the right side always gets the last snap, which it
     /// takes at its first snap inside the closing minute.
     ///
-    /// Two windows, not one. The right side's is a minute because snaps are never more
-    /// than a play clock apart, so no walk down the clock can step over it. The wrong
-    /// side's is wider: a snap on a running clock costs a huddle before the play, so an
-    /// interception thrown inside the last thirty-odd seconds can expire the period
-    /// itself. Inside two minutes the wrong side's first snap after taking the ball
+    /// Two windows, not one, and the right side's is read at the snap. Its window is a
+    /// minute because snaps are never more than a play clock apart, so no walk down the
+    /// clock can step over it, and the first snap inside it is therefore always one the
+    /// clock can still reach. The wrong side's is wider: a snap on a running clock costs
+    /// a huddle before the play, so an interception thrown inside the last thirty-odd
+    /// seconds can expire the period itself. Inside two minutes the wrong side's first snap after taking the ball
     /// over is huddle-free — the clock stops on a change of possession — and any later
     /// snap of its own comes with more than a huddle left, so it always gives the ball
     /// back with time on the clock.
@@ -62,8 +66,14 @@ public enum RulesScenarios {
     {
         { snap in
             guard snap.isScrimmage, snap.quarter == quarter else { return snap.neutral }
+            // The clock the ball will be snapped on, which on a running clock is the
+            // offence's interval below the reading the resolver is asked with. It is the
+            // second the touchdown has to run out, and a snap the clock cannot reach at
+            // all is a period that ends with no down in it (4-8-1).
+            let snapped =
+                snap.clockIsRunning ? snap.clock - min(snap.clock, snap.huddle ?? 0) : snap.clock
             if snap.differential == differential {
-                return snap.clock <= 60 ? snap.touchdownAsTimeExpires() : snap.neutral
+                return snapped <= 60 ? snap.touchdown(seconds: max(1, snapped)) : snap.neutral
             }
             return snap.clock <= 120 ? .interception(to: 50) : snap.neutral
         }
@@ -412,6 +422,42 @@ public enum RulesScenarios {
         }
     }
 
+    /// The last two minutes of the fourth quarter, at hurry-up, with every second of it
+    /// dictated rather than drawn.
+    ///
+    /// The walk down the period stretches one play to end at 2:01 — the clock running,
+    /// the warning not yet taken — and that play gains ten, so the drill opens first and
+    /// ten however the walk left the chains. From there the offence throws it away on one
+    /// down and is tackled in bounds for a yard on the next, so the clock alternates
+    /// between running into a snap and being dead into it. That alternation is the whole
+    /// point: a drill lives on 4-3-2, where the interval before a snap costs the offence
+    /// seconds only when nothing has stopped the clock.
+    ///
+    /// The eight seconds a hurry-up offence spends reaching the line is the engine's
+    /// tempo table (`Tempo.hurryUp`, pinned by `test:tempoOrdering`) and not a rule. What
+    /// is football is where those eight seconds land on the record.
+    static var twoMinuteDrill: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(
+                offensiveTempo: { $0.quarter == 4 && $0.clockRemaining <= 121 ? .hurryUp : .normal }
+            )
+        ) { snap in
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            // The drill proper. Read off the play before rather than off the down, so
+            // that the alternation is the same whoever has the ball.
+            if snap.clock <= 121 {
+                return snap.previous?.outcome.endedIn == .incomplete
+                    ? .rush(1, seconds: 6) : .incompletion(seconds: 5)
+            }
+            // The walk down to it. A stretched play cannot skip the window, because a
+            // snap on a running clock comes at most a huddle and a play after the last.
+            guard snap.down != .fourth, let huddle = snap.huddle else { return snap.neutral }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            guard snapped > 121, snapped - 121 <= 130 else { return snap.neutral }
+            return .rush(10, seconds: UInt16(snapped - 121))
+        }
+    }
+
     /// A walk down `quarter` in which a runner goes out of bounds: on each snap taken
     /// with the clock running and `window` on it, except one straight after another such
     /// play, so that what follows the first is a plod and the restart can be read off
@@ -722,8 +768,16 @@ public enum RulesScenarios {
 
     /// The same flag at 0:30 against a leading offence, with the defence's timeouts
     /// intact.
+    /// The half goes on after this flag, so the offence has to be able to reach another
+    /// snap: the clock restarts on the ready (4-7-1 Item 2) and an offence at normal
+    /// tempo would not get there from 0:30, which would end the period between downs
+    /// (4-8-1) and hide what this scenario is for. At hurry-up it gets there.
     static var neutralZoneInfractionInTheLastFortySecondsWithADefensiveTimeoutLeft: ScriptedGame {
-        lateFlag(.neutralZoneInfraction, window: 41...119, by: 7, flagAt: 30, opening: leadBySeven)
+        lateFlag(
+            .neutralZoneInfraction, window: 41...119, by: 7, flagAt: 30, opening: leadBySeven,
+            caller: ScriptedCaller(offensiveTempo: {
+                $0.quarter == 4 && $0.clockRemaining <= 40 ? .hurryUp : .normal
+            }))
     }
 
     // MARK: An injury after the two-minute warning

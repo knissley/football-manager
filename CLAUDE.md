@@ -34,8 +34,7 @@ overtime its two-minute warning and postseason overtime its timing. Wave 2's rec
 track closed S14 (B2 #22) and the two record gaps wave 1 left — the spot where possession
 was lost, and a kicking-team kickoff touchdown (#58). Wave 3's D track then made `Rules`
 the 2025 book, gave the kickoff its landing zone and its aiming points, and put a foul on
-a scoring play on the try or the free kick where the rules put it. Still open is the
-re-try after a foul on a try (#48).
+a scoring play on the try or the free kick where the rules put it.
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
