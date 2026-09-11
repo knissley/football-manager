@@ -279,6 +279,12 @@ FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh         # Needs a corpus, whic
                                                           # repo and will not be: with none it
                                                           # says so and exits 0. The self-test
                                                           # ships its own. See docs/tools.md
+FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh --messages
+                                                          # the same scan over the commit
+                                                          # messages the branch adds. RUN IT
+                                                          # BEFORE YOU PUSH: after the push a
+                                                          # message is only fixable by
+                                                          # rewriting published history
 scripts/test-census.sh                                    # test kinds per target and per suite;
                                                           # fails on a @Test with no kind tag.
                                                           # docs/testing.md reads the shares

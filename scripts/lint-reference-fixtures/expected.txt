@@ -12,6 +12,12 @@
 # of the gate, so the lint cannot see it. That absence is the blind spot, and absence is
 # weak evidence on its own — the self-test also scans that file at nine and requires a
 # hit, so a scanner that had simply stopped working could not satisfy both.
+#
+# messages/ is absent because it is not scanned as part of this tree at all. Those four
+# files are commit messages, not documents: the self-test commits them into a throwaway
+# repository and runs the commit-message check against it, so their expected hits are
+# asserted there — by commit, by count and by which side of the merge base each falls on
+# — rather than as a path and a line number here.
 scripts/lint-reference-fixtures/docs/citations.md:11: citation-no such article
 scripts/lint-reference-fixtures/docs/one-line.md:10: reproduced-line
 scripts/lint-reference-fixtures/docs/wrapped.md:14: reproduced-joined

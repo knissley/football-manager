@@ -1,0 +1,8 @@
+Read the exchange record out to the captains
+
+Our note left the reading out. Say in the note that record is
+read aloud to the captains before the finish is settled, because
+a captain who has not heard it cannot dispute it.
+
+Invented text for scripts/lint-reference.sh --self-test. Not a
+rulebook and not from one.
