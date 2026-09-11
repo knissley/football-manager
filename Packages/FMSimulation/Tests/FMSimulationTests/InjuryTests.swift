@@ -10,15 +10,25 @@ import Testing
 @Suite("Injuries")
 struct InjuryTests {
 
-    private func game(seed: UInt64) -> GameResult {
-        TestWorld.game(seed: seed)
+    /// The twelve games every test in here reads a prefix of.
+    ///
+    /// Five tests walked their own runs of seeds — eight, ten, ten, twelve, five — and
+    /// each simulated its own, which was forty-five games played to read twelve. The runs
+    /// are prefixes of one another, so a test that says ten games still reads exactly the
+    /// ten games it said; it just does not play them again.
+    ///
+    /// Twelve is what the rate asks. Measured on this fixture, a game produces about 3.7
+    /// injuries — 24 across the first eight games, 32 across ten and 45 across twelve — so
+    /// the smallest run any test takes carries two dozen of them and the floors below fire
+    /// when nobody is getting hurt rather than when a draw came up short.
+    private static let sample: [GameResult] = (UInt64(1)...12).map { TestWorld.game(seed: $0) }
+
+    private func games(_ seeds: ClosedRange<UInt64>) -> ArraySlice<GameResult> {
+        Self.sample[Int(seeds.lowerBound - 1)...Int(seeds.upperBound - 1)]
     }
 
     private func injuries(_ seeds: ClosedRange<UInt64>) -> [(GameResult, InjuryEvent)] {
-        seeds.flatMap { seed in
-            let result = game(seed: seed)
-            return result.injuries.map { (result, $0) }
-        }
+        games(seeds).flatMap { result in result.injuries.map { (result, $0) } }
     }
 
     @Test("Players get hurt, and most knocks are brief", .tags(.unit))
@@ -60,8 +70,7 @@ struct InjuryTests {
     /// falls out of the depth chart with nothing else changing.
     @Test("A player forced out takes no further snaps", .tags(.contract))
     func hurtPlayersLeaveTheField() {
-        for seed in UInt64(1)...8 {
-            let result = game(seed: seed)
+        for result in games(1...8) {
             for injury in result.injuries where injury.leavesTheGame {
                 guard let index = result.plays.firstIndex(where: { $0.id == injury.occurredOn })
                 else { continue }
@@ -163,9 +172,12 @@ struct InjuryTests {
         #expect(fragile > sturdy, "sturdy \(sturdy) missed more than fragile \(fragile)")
     }
 
+    /// **Simulated twice on purpose**, which is why this does not read the shared sample
+    /// above: a replay test served from a remembered result compares a value with itself
+    /// and passes whatever the engine does.
     @Test("The same seed produces the same injuries", .tags(.contract))
     func deterministic() {
-        #expect(game(seed: 5).injuries == game(seed: 5).injuries)
+        #expect(TestWorld.game(seed: 5).injuries == TestWorld.game(seed: 5).injuries)
     }
 }
 
@@ -328,11 +340,15 @@ struct NonContactInjuryTests {
 
     /// The resolver had no way to produce a scramble at all, so `PlayKind.scramble` was a
     /// case nothing could reach and a quarterback could not be hurt running.
+    /// Five games, because a scramble is not rare: fourteen of them across these five,
+    /// measured, which is three a game. The floor is a guard against the resolver losing
+    /// the exit entirely, which is the state this was written out of.
+    private static let sample: [GameResult] = (UInt64(1)...5).map { TestWorld.game(seed: $0) }
+
     @Test("Quarterbacks actually scramble", .tags(.unit))
     func scramblesHappen() {
-        var scrambles: [PlayRecord] = []
-        for seed in UInt64(1)...5 {
-            scrambles.append(contentsOf: scrambleGame(seed: seed))
+        let scrambles = Self.sample.flatMap { result in
+            result.plays.filter { $0.outcome.kind == PlayKind.scramble }
         }
         #expect(scrambles.isEmpty == false, "five games and nobody ever escaped the pocket")
         for play in scrambles {
@@ -343,9 +359,5 @@ struct NonContactInjuryTests {
                 "a scramble with no decision to scramble")
             #expect(play.outcome.participants.contains { $0.role == .passer })
         }
-    }
-
-    private func scrambleGame(seed: UInt64) -> [PlayRecord] {
-        TestWorld.game(seed: seed).plays.filter { $0.outcome.kind == .scramble }
     }
 }

@@ -18,11 +18,16 @@ import Testing
 @Suite("Who was on the field")
 struct OnFieldTests {
 
-    private static func game(seed: UInt64) -> GameResult {
-        TestWorld.game(seed: seed, game: GameID(seed))
-    }
-
-    private static let sample: [GameResult] = (UInt64(1)...20).map(game(seed:))
+    /// The standard corpus, whose size is derived where it is defined. Twenty games were
+    /// enough for everything asserted here — the thinnest is the try-kick at 5.4 a game —
+    /// and this reads forty because the corpus is forty and simulated once: a suite that
+    /// asked for its own twenty would pay for twenty more games to assert less.
+    ///
+    /// Every promise here but the last is made of every snap, so its size is a question of
+    /// evidence rather than of the draw. The last one skips a team whose starting
+    /// quarterback was hurt and counts what is left; forty games are eighty team-games, and
+    /// the floor fires only if every one of them lost its starter.
+    private static let sample: [GameResult] = TestWorld.corpus
 
     /// The roster the slot indexes: the possessing team's for the offensive slots, the
     /// other side's for the defensive ones — which on a kickoff makes the kicking team

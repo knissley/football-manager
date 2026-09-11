@@ -17,9 +17,19 @@ import Testing
 @Suite("Timeouts and the warning on the record")
 struct DeadBallRecordTests {
 
-    private static let sample: [GameResult] = (UInt64(1)...40).map {
-        TestWorld.game(seed: $0, game: GameID($0))
-    }
+    /// The standard corpus, whose size is derived where it is defined. Both promises in
+    /// here are made of every pair of consecutive snaps rather than of an event the
+    /// sample has to contain — a timeout that is not on the record fails on the pair it
+    /// is missing from — so nothing in here depends on the draw.
+    ///
+    /// The two floors at the end of each test are guards on the instrument, and both have
+    /// a number behind them. Forty games record 146 timeouts taken before a snap, so a
+    /// floor of a hundred fires when timeouts have stopped being recorded rather than when
+    /// a few fewer were taken. The warning is not a draw at all — a period that reaches two
+    /// minutes has exactly one, so forty games have two apiece and any overtime adds its
+    /// own; eighty-one were measured. The floor of eighty is therefore very nearly the
+    /// count itself, which is the right floor for something that is not drawn.
+    private static let sample: [GameResult] = TestWorld.corpus
 
     /// Each team's timeouts as one situation carries them, keyed by team.
     private func counts(_ situation: Situation, in result: GameResult) -> [TeamID: Int] {
