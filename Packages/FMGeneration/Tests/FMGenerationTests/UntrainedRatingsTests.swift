@@ -71,6 +71,82 @@ struct UntrainedRatingsTests {
         #expect(try mean(of: .blockShedding, at: .wideReceiver, seed: 8) < 40)
     }
 
+    /// A receiver and a tight end carry the ball, so ball security is theirs to train.
+    ///
+    /// Asserted on **where the number comes from** rather than on how big it is. An
+    /// untrained key is drawn from `untrainedStream`, a substream split on the man's own
+    /// identifier, so two men built from the same stream state under different identifiers
+    /// share every trained rating and differ on the untrained ones. Carrying and break
+    /// tackle have to fall on the trained side of that line at both receiving positions —
+    /// and the passing keys beside them have to stay on the untrained side, or the check
+    /// would pass just as well on a generator that had stopped splitting at all.
+    ///
+    /// The magnitude is checked against the table rather than against a remembered figure:
+    /// the row a man who never carries draws from is read out of `untrainedTable` here, and
+    /// a trained receiver has to sit clear of two spreads above its centre.
+    @Test(
+        "contract: a receiver's and a tight end's carrying is a trained draw, not the untrained table's",
+        .tags(.contract))
+    func receiversTrainBallSecurity() throws {
+        // The `ballCarrying · everyone` row: what a man whose job never asks him to carry
+        // the ball draws from. A tackle is the plainest such man.
+        let neverCarries = try #require(
+            PlayerGenerator.untrainedRow(for: .carrying, at: .leftTackle),
+            "the untrained table no longer has a ball-carrying row for a tackle")
+        let untrainedBound = neverCarries.centre + 2 * neverCarries.spread
+
+        // Keys neither receiving position trains, and does not derive from the athlete:
+        // the positive control that the identifier split still moves an untrained draw.
+        let untrainedKeys: [RatingKey] = [
+            .throwPower, .throwAccuracyShort, .throwAccuracyMedium, .throwAccuracyDeep,
+            .underPressure, .playAction, .powerMove, .finesseMove, .blockShedding,
+            .manCoverage, .zoneCoverage, .ballHawk, .kickPower, .puntPower,
+        ]
+
+        for position in [Position.wideReceiver, Position.tightEnd] {
+            for key in [RatingKey.carrying, .breakTackle] {
+                #expect(
+                    RatingKey.keys(for: position).contains(key),
+                    "\(position) does not train \(key)")
+            }
+
+            // The same stream state, two identifiers. Only the untrained substream differs.
+            let stream = SplittableRandom(seed: 4_115)
+            var first = stream
+            var second = stream
+            let one = PlayerGenerator.player(
+                id: PlayerID(1), position: position, targetCeiling: 75, age: 27,
+                season: season, colleges: [], using: &first)
+            let two = PlayerGenerator.player(
+                id: PlayerID(2), position: position, targetCeiling: 75, age: 27,
+                season: season, colleges: [], using: &second)
+
+            let moved = untrainedKeys.filter { one.ratings[$0] != two.ratings[$0] }
+            #expect(
+                !moved.isEmpty,
+                "\(position): no untrained key moved between identifiers, so this proves nothing")
+
+            for key in [RatingKey.carrying, .breakTackle] {
+                let mine = one.ratings.value(key, or: Ratings.untrainedFloor)
+                let his = two.ratings.value(key, or: Ratings.untrainedFloor)
+                #expect(
+                    mine == his,
+                    """
+                    \(position) \(key) moved with the identifier — \(mine) against \(his), \
+                    so it is drawn from the untrained table rather than trained
+                    """)
+            }
+
+            let security = try mean(of: .carrying, at: position, seed: 115)
+            #expect(
+                security > untrainedBound,
+                """
+                \(position) carrying averages \(security), at or under the \(untrainedBound) \
+                a man whose job never asks him to carry the ball draws
+                """)
+        }
+    }
+
     /// The table is not flat: a job that sometimes asks for something sits above one
     /// that never does. A safety catches what is thrown at him; a kicker has punted; a
     /// receiver has been asked to block.

@@ -95,7 +95,17 @@ struct GoldenWorldTests {
             // byte-identical to what it was, and the league's own-position overall mean
             // and spread at seed 7 are unchanged to the last digit, which
             // `CrossPositionTests.ownPositionMomentsAreUnmoved` holds them to.
-            (UInt64(1), UInt64(7_309_623_555_750_118_049)),
+            //
+            // And all three once more when a receiver and a tight end came to train ball
+            // security. Carrying and break tackle are among the keys both positions draw
+            // around their own quality now, where they were filled in from the untrained
+            // table's ball-carrying row: the two draws moved from the identifier-split
+            // untrained substream to the trained stream, so both positions' numbers moved
+            // — carrying from 24.6 and 24.9 to 69.5 and 69.4 at seed 7 — and, because the
+            // trained stream is shared with everything a player is built from after his
+            // ratings, so did his build, his combine, his name, his college and every man
+            // drawn after him. The checksum reads all of it, so all three worlds moved.
+            (UInt64(1), UInt64(6_630_896_047_649_438_373)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -116,8 +126,8 @@ struct GoldenWorldTests {
             // harness by hundreds of lines in the reviewer's repro. Wider
             // coverage, not different generation: no world changed, and the run before
             // and after is byte-identical.
-            (UInt64(5), UInt64(18_354_701_017_619_372_289)),
-            (UInt64(7), UInt64(7_324_417_558_444_531_952)),
+            (UInt64(5), UInt64(17_631_849_051_726_543_646)),
+            (UInt64(7), UInt64(619_117_896_926_255_886)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

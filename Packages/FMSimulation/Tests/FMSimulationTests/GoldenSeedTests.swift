@@ -364,9 +364,23 @@ struct GoldenSeedTests {
             // the aiming choice both read. Neither parent's constants could survive,
             // because each was computed without the other's mechanisms, and no subset of
             // the mechanisms above reproduces these numbers.
-            (UInt64(1), UInt64(18_221_643_139_207_046_522)),
-            (UInt64(5), UInt64(1_879_505_917_188_062_581)),
-            (UInt64(12), UInt64(17_078_191_025_272_067_907)),
+            //
+            // And moved again by the world, not by the engine: nothing in `FMSimulation`
+            // changed. A receiver and a tight end train ball security now — carrying and
+            // break tackle are drawn around their own quality instead of being filled in
+            // from the untrained table's ball-carrying row — so the two draws moved from
+            // the identifier-split untrained substream to the trained stream. Both
+            // positions' numbers moved with them, carrying from about 25 to about 69, and
+            // so did everything the trained stream reaches after a man's ratings: his
+            // build, his combine, his name, his college and every man drawn after him.
+            // `TestWorld` is `WorldGenerator.generate`, so both rosters are different
+            // men, and the engine reads the two moved keys directly — a receiver holds on
+            // to the ball and breaks a tackle on a number in the sixties where he did it
+            // on one in the twenties. A game between different men who run after the catch
+            // differently is a different game.
+            (UInt64(1), UInt64(16_544_674_377_827_432_735)),
+            (UInt64(5), UInt64(7_222_475_489_552_116_410)),
+            (UInt64(12), UInt64(3_133_720_638_961_547_474)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

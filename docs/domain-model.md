@@ -164,9 +164,8 @@ substream of the player's own, so the ratings he does train are exactly what the
 without it. Three readings of that table are the generator's rather than its author's,
 and are stated beside the rows: "linemen" is the offensive line, so a defensive lineman
 carries what he takes away at the defenders' 35; a key the table does not name for a
-position — a receiver's carrying and breakTackle, a back's route running, a corner's
-pass-rush moves — takes its family's row for everyone, which is the family's lowest
-stated centre; and pursuit and hit power are derived from speed and strength for
+position — a back's route running, a corner's pass-rush moves, a lineman's vision — takes
+its family's row for everyone, which is the family's lowest stated centre; and pursuit and hit power are derived from speed and strength for
 *everyone* who does not train them, not only for offensive linemen, so a corner hits at
 half his strength and a receiver covering a kick pursues at half his speed plus ten,
 where the family's row would have put both at 25. `overall(at:)`
@@ -177,6 +176,17 @@ receiver evaluated at quarterback was scored on his awareness and speed alone an
 *better* quarterback than a receiver, and the engine substituted a man's overall for any
 rating he lacked. The families the keys fall into (`RatingKey.Family`) are what the
 untrained table is written in.
+
+**Ball security is a receiver's trained skill, not something the table fills in for him.**
+A wide receiver and a tight end train carrying and breakTackle, because a man who has
+completed a catch is a runner and the sport has one definition of a runner and one of a
+fumble, neither of them by position (2025 rulebook, 3-27, 3-2-5, 8-1-3). Left off the
+positional keys, both fell to the ball-carrying family's row for everyone, centred on 25 —
+a league of receivers who held the ball like men who had never carried it, against 66 for
+the backfield — and the fumble draw reads the carrier's carrying and nothing else about
+him, so a receiver was at about one and a half times a back's chance of losing it on every
+contact after a catch. The wide receiver trains elusiveness too; the tight end does not,
+and his still follows his agility.
 
 `Ratings` is a **flat array indexed by `RatingKey.rawValue`, plus a two-word presence
 bitmap** rather than a dictionary: a lookup is an array read with no hashing, and the
