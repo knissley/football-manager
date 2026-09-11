@@ -18,8 +18,21 @@ struct CrudeResolverTests {
         return (setup, setup.players)
     }
 
+    /// The eight games the tests below read a prefix of.
+    ///
+    /// Six tests walked four, six, six, eight, four and four seeds and each simulated its
+    /// own, which was thirty-three games played to read eight. The runs are prefixes of
+    /// one another, so nothing here reads a different game from the one it used to.
+    ///
+    /// Every promise in this suite is made of *every* play of its kind in the run it
+    /// takes, not of a play the run has to contain, so the size is a question of how much
+    /// evidence rather than of what the draw held: four games hold about six hundred snaps
+    /// and eight about twelve hundred, and the thinnest thing any of them looks at is the
+    /// interception, at 1.4 a game.
+    private static let sample: [GameResult] = (UInt64(1)...8).map { TestWorld.game(seed: $0) }
+
     private func game(seed: UInt64 = 5) -> GameResult {
-        TestWorld.game(seed: seed)
+        Self.sample[Int(seed) - 1]
     }
 
     // MARK: - The causal chain
@@ -211,6 +224,11 @@ struct CrudeResolverTests {
 
     /// Rotation means backups play. If the same eleven took every snap, depth on a
     /// roster would be invisible.
+    ///
+    /// One game, and one is the right number: the claim is about a single game's rotation,
+    /// so a second would be a second instance of the same claim rather than more evidence
+    /// for it. The floor is two starting elevens plus a few, which fires when nobody is
+    /// rotating at all.
     @Test("More than a starting eleven appears over a game", .tags(.contract))
     func rotationReachesBackups() {
         let result = game()
@@ -222,8 +240,10 @@ struct CrudeResolverTests {
 
     @Test("The same seed resolves identically", .tags(.contract))
     func deterministic() {
-        let first = game(seed: 12)
-        let second = game(seed: 12)
+        // Simulated twice on purpose, so this does not read the shared sample above: a
+        // replay test served from a remembered result compares a value with itself.
+        let first = TestWorld.game(seed: 12)
+        let second = TestWorld.game(seed: 12)
         #expect(first.plays.map(\.outcome) == second.plays.map(\.outcome))
         #expect(first.plays.map(\.decisions) == second.plays.map(\.decisions))
     }

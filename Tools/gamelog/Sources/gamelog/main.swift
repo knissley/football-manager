@@ -700,11 +700,9 @@ struct Broadcast {
     /// the clock: a field goal on the first snap of a second overtime period was
     /// credited fifteen minutes of possession.
     ///
-    /// That drive ended when the ball crossed the line. What the record carries is the
-    /// clock as it stood *before* the interval to the snap was burned — the reading at
-    /// the end of the play before it — and how long the play itself took. So a walk-off
-    /// is that reading plus the play: short by the pre-snap interval, which is nowhere
-    /// in the stream and nothing here can recover, and never past the end of the period.
+    /// That drive ended when the ball crossed the line. The record carries the clock the
+    /// ball was snapped on and how long the play itself took, so a walk-off is that
+    /// reading plus the play, and never past the end of the period.
     private func endOfGame(on last: PlayRecord) -> Int {
         let periodEnd = elapsed(quarter: last.situation.quarter, remaining: 0)
         guard last.situation.quarter > rules.quarters else { return periodEnd }

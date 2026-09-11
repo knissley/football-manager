@@ -34,8 +34,7 @@ overtime its two-minute warning and postseason overtime its timing. Wave 2's rec
 track closed S14 (B2 #22) and the two record gaps wave 1 left — the spot where possession
 was lost, and a kicking-team kickoff touchdown (#58). Wave 3's D track then made `Rules`
 the 2025 book, gave the kickoff its landing zone and its aiming points, and put a foul on
-a scoring play on the try or the free kick where the rules put it. Still open is the
-re-try after a foul on a try (#48).
+a scoring play on the try or the free kick where the rules put it.
 
 The fixes are an issue backlog, tracked in **#1**. Read that issue and
 [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
@@ -242,13 +241,17 @@ swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
-swift test  --package-path Packages/FMSimulation          # the engine's own suite. Minutes,
-                                                          # not seconds: ~145s of test time
-                                                          # here and ~3min of wall clock with
-                                                          # the build. The "~45s" this line
-                                                          # used to say was four times out —
-                                                          # #106 measured 201s and owns
-                                                          # bringing it back under a budget
+swift test  --package-path Packages/FMSimulation          # the engine's own suite, and the one
+                                                          # with a budget: under two minutes of
+                                                          # test time on a four-core container.
+                                                          # Measured there: 85-111s over five
+                                                          # runs, against 170-200s before the
+                                                          # samples were shared. Machines differ
+                                                          # by a factor of two, so measure yours
+                                                          # rather than trusting the number.
+                                                          # What keeps it under: one shared game
+                                                          # corpus, and coverage asserted against
+                                                          # a forced draw. See docs/tools.md
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content

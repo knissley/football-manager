@@ -176,6 +176,13 @@ extension GameSimulator {
             possession == setup.home.id ? homeScore - awayScore : awayScore - homeScore
         }
 
+        /// The game as a snap sees it.
+        ///
+        /// Read inside `apply`, after the interval between downs has come off, this is
+        /// the situation at the snap, and it is what the record carries. Read by the
+        /// simulator before it asks its callers, it is the situation at the previous
+        /// whistle — which is when a caller really chooses, since the tempo it picks is
+        /// what decides how long the interval is.
         func situation() -> Situation {
             Situation(
                 quarter: clock.quarter,
@@ -340,23 +347,24 @@ extension GameSimulator {
 
         /// The situation as it reads when a flag flies before the snap: the interval
         /// before the flag has elapsed if the clock was running into it, and nothing
-        /// else has.
+        /// else has. The callers are asked with this one, before the rules layer charges
+        /// the same interval and writes the same reading onto the record.
         func situationAtTheFlag(tempo: Tempo, foul: Foul?) -> Situation {
             var probe = clock
             _ = probe.run(
-                huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: setup.rules,
+                intervalBeforeTheSnap(tempo: tempo, foul: foul), rules: setup.rules,
                 isPostseason: setup.isPostseason)
             var atTheFlag = situation()
             atTheFlag.clockRemaining = probe.secondsRemaining
             return atTheFlag
         }
 
-        /// The clock spent before a flag before the snap, when the clock ran into the
-        /// interval. For a delay of game it is the whole play clock: the flag *is* the
-        /// play clock expiring (4-6-1, 4-6-4). For any other foul it is the offence's
-        /// tempo, since the flag flies when the snap was due. Nothing during a kickoff
-        /// or a try, where the clock is dead.
-        private func huddleBeforeTheFlag(tempo: Tempo, foul: Foul?) -> GameClock.Elapsed {
+        /// The clock spent between one whistle and the next snap, when the clock ran
+        /// into the interval (4-3-2): the offence's tempo against the play clock in
+        /// force. For a delay of game it is the whole play clock instead, because the
+        /// flag *is* the play clock expiring and there is no snap (4-6-1, 4-6-4).
+        /// Nothing before a free kick or a try, where the clock is dead.
+        private func intervalBeforeTheSnap(tempo: Tempo, foul: Foul?) -> GameClock.Elapsed {
             guard !pendingKickoff && !pendingTry else {
                 return GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
             }
@@ -369,6 +377,26 @@ extension GameSimulator {
                 ).beforeSnap)
         }
 
+        /// Charge the interval between downs, before the down exists.
+        ///
+        /// The order is the football. A period is kept going past its expiry only while
+        /// the ball is live (4-8-1); an interval between downs is not a down, so a period
+        /// the interval alone exhausts ends where it stands with nothing snapped — which
+        /// the caller reads off `clock.isExpired` here. And what is left when the
+        /// interval has come off *is* the clock the ball was snapped on, so it is the
+        /// clock the record carries.
+        ///
+        /// Returns whether the two-minute warning fell in the interval. It is a stoppage
+        /// between downs (3-41), taken at 2:00 with the rest of the interval free, and it
+        /// goes at the front of the record of the snap that follows it.
+        private mutating func runTheIntervalBeforeTheSnap(tempo: Tempo, foul: Foul?) -> Bool {
+            let taken = clock.run(
+                intervalBeforeTheSnap(tempo: tempo, foul: foul), rules: setup.rules,
+                isPostseason: setup.isPostseason)
+            if taken { beforeTheSnap.append(.twoMinuteWarning) }
+            return taken
+        }
+
         // MARK: - Applying a play
 
         mutating func apply(
@@ -376,8 +404,28 @@ extension GameSimulator {
             onField: [UInt8] = Array(repeating: PlayRecord.vacant, count: PlayerSlot.count),
             deadBall: DeadBallChoices? = nil
         ) {
-            let before = situation()
             let rules = setup.rules
+
+            // The interval between downs comes off first, so that the situation built
+            // below reads at the snap rather than at the whistle before it. A flag before
+            // the snap has its own interval — the whole play clock for a delay of game,
+            // which is the play clock expiring — and ends at the flag rather than at a
+            // snap that never came.
+            let deadBallFoul = outcome.kind == .penaltyOnly ? outcome.penalties.first?.foul : nil
+            // Whether the period was already over before the interval, which is not this
+            // rule's case: an untimed down is owed at 0:00 and has to be played, and the
+            // try is one (4-8-2-c, 11-3-1).
+            let alreadyExpired = clock.isExpired
+            let warningInTheInterval = runTheIntervalBeforeTheSnap(
+                tempo: calls.offense.tempo, foul: deadBallFoul)
+            // The period ran out *in* the interval: no down was snapped, so there is no
+            // down to resolve, enforce or record (4-8-1).
+            if clock.isExpired && !alreadyExpired {
+                endThePeriodIfExpired()
+                return
+            }
+
+            let before = situation()
 
             var effective = outcome
             var advancement: Advancement
@@ -408,9 +456,10 @@ extension GameSimulator {
                 situation: before)
             score(advancement)
             if effective.kind == .penaltyOnly {
-                runClockForDeadBallFoul(effective, choices: deadBall, tempo: calls.offense.tempo)
+                runClockForDeadBallFoul(
+                    effective, choices: deadBall, warningInTheInterval: warningInTheInterval)
             } else {
-                runClock(effective, advancement: advancement, tempo: calls.offense.tempo)
+                runClock(effective, advancement: advancement)
             }
             let wasKickoff = pendingKickoff
             let replayed = effective.kind == .penaltyOnly
@@ -497,7 +546,10 @@ extension GameSimulator {
             }
         }
 
-        private mutating func runClock(_ outcome: Outcome, advancement: Advancement, tempo: Tempo) {
+        /// The clock through the down that has just been recorded, and what it does after
+        /// it. The interval that reached the snap has already come off — see
+        /// `runTheIntervalBeforeTheSnap` — so what is charged here is the down itself.
+        private mutating func runClock(_ outcome: Outcome, advancement: Advancement) {
             let rules = setup.rules
 
             let elapsed: GameClock.Elapsed
@@ -532,13 +584,13 @@ extension GameSimulator {
                     ? rules.playClockAfterAnAdministrativeStoppage : rules.playClockAfterAPlay
                 return
             } else {
-                elapsed = GameClock.elapsed(
-                    playDuration: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6,
-                    tempo: tempo,
-                    playClock: playClock,
-                    previousBehavior: previousBehavior)
+                elapsed = GameClock.Elapsed(
+                    duringPlay: outcome.clockRunoff > 0 ? outcome.clockRunoff : 6, beforeSnap: 0)
             }
 
+            // Whether the warning fell in *this down*. One that fell in the interval
+            // before it is already on this snap's record and is not this question: the
+            // clock this down leaves behind is what the down did to it.
             let warningTaken = clock.run(elapsed, rules: rules, isPostseason: setup.isPostseason)
             if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
 
@@ -590,23 +642,22 @@ extension GameSimulator {
         }
 
         /// The clock after a flag before the snap. No play happened, so no play time is
-        /// charged; the huddle is, if the clock was running into it, and the flag stops
-        /// the clock the moment it flies, the ball being dead already (4-4-g). Then the
+        /// charged; the interval to the flag already has been, and the flag stops the
+        /// clock the moment it flies, the ball being dead already (4-4-g). Then the
         /// runoff, where it applies (4-7-1), and how the clock restarts (4-3-2-e).
+        ///
+        /// `warningInTheInterval` is whether the two-minute warning fell before the flag,
+        /// which the interval charged for the whole play knows and this cannot see.
         private mutating func runClockForDeadBallFoul(
-            _ outcome: Outcome, choices: DeadBallChoices?, tempo: Tempo
+            _ outcome: Outcome, choices: DeadBallChoices?, warningInTheInterval: Bool
         ) {
             let rules = setup.rules
             let clockWasRunning = previousBehavior != .stopsUntilSnap
-            let foul = outcome.penalties.first?.foul
-            let warningTaken = clock.run(
-                huddleBeforeTheFlag(tempo: tempo, foul: foul), rules: rules,
-                isPostseason: setup.isPostseason)
-            if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
             // The clock at the flag is running only if it was running into the interval
-            // and nothing stopped it on the way: neither the two-minute warning nor the
-            // period running out.
-            let runningAtTheFlag = clockWasRunning && !warningTaken && !clock.isExpired
+            // and the warning did not stop it on the way. The period running out is not
+            // a case here: an interval that exhausts a period ends it before any of this,
+            // with no down and no flag.
+            let runningAtTheFlag = clockWasRunning && !warningInTheInterval
             // A penalty enforcement is an administrative stoppage, so unless a rule below
             // resets the play clock otherwise, the next snap is against the short one
             // (4-6-2-e).
@@ -800,8 +851,12 @@ extension GameSimulator {
             )
         }
 
-        /// A period that a runoff between downs has exhausted ends as it would have at
-        /// the end of a play: the next period, or the game.
+        /// A period that time between downs has exhausted — a runoff, the last-forty-
+        /// seconds election, or simply the interval to a snap that never came — ends as
+        /// it would have at the end of a play: the next period, or the game. Nothing
+        /// extends it, because nothing was live (4-8-1); the advancement is the state as
+        /// it stands, and `replayed` says no down happened, so an overtime possession is
+        /// not ended by it either.
         private mutating func endThePeriodIfExpired() {
             guard clock.isExpired else { return }
             checkForEnd(

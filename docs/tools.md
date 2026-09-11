@@ -450,15 +450,13 @@ swift run gamelog --scenario defensive-holding-on-a-play-ending-in-bounds | head
 swift run gamelog --scenario defensive-holding-inside-five-minutes-of-the-fourth-quarter | grep -B1 -A2 "defensive holding"
 swift run gamelog --scenario offensive-holding-in-the-fourth-quarter-outside-five-minutes | grep -B1 -A2 "offensive holding"
 
-# What a spike costs (4-4-f, 8-2-1 Item 3). **Read the clock at the snap, not at the line.**
-# A play's printed clock is the previous whistle's, and the offence's interval between
-# downs is charged at the snap: the spike printed at 0:13 was snapped at 0:05, left 0:04,
-# and the fourth down is snapped at 0:04 and played. Reading the printed clock as the snap
-# clock is what makes a spike look like it costs nine seconds. The spike is play 300 of
-# 354, so grep for it — the tail of this scripted game is the overtime a 0–0 tie runs into.
+# What a spike costs (4-4-f, 8-2-1 Item 3). The printed clock is the clock the ball was
+# snapped on, so this reads straight off the page: the spike is snapped at 0:05, costs its
+# own second, and the fourth down is snapped at 0:04 and played. Grep for it — the tail of
+# this scripted game is the overtime a 0–0 tie runs into.
 swift run gamelog --scenario spike-snapped-at-five-seconds-on-third-down | grep -B1 -A1 "spikes it to stop the clock"
 
-# The same read twenty seconds out: printed at 0:28, snapped at 0:20, fourth down at 0:19.
+# The same twenty seconds out: the spike at 0:20, the fourth down at 0:19.
 swift run gamelog --scenario spike-snapped-at-twenty-seconds | grep -B1 -A1 "spikes it to stop the clock"
 
 # A13 (#85): the late out-of-bounds window is judged where the runner stepped out. A
@@ -514,15 +512,30 @@ Every one of these is a hard-failing step of the `test` job in
 `Tools/simharness` since #9 and `Tools/gamelog` since #87, because nothing else compiles
 either tool's tests, or in gamelog's case the tool itself.
 
-**FMSimulation is the long one, and how long has been wrong in the docs for a while.**
-This line and CLAUDE.md's both said `~45s`. Measured on this tree: **144 s of test time**
-for the 283 tests, about **three minutes of wall clock** with the build, and the
-vocabulary-coverage suite alone is **54 s** when it is the only thing running. The
-suites run in parallel, so the total is nearer the longest pole than the sum.
-[H6 · #106](https://github.com/knissley/football-manager/issues/106) measured 201 s on a
-different machine, found that widened game samples are most of the growth, and owns
-getting it back under a stated budget — with fixtures that construct a rare case rather
-than samples big enough to stumble into one. Until it lands, budget minutes.
+**FMSimulation is the long one, and it has a budget: under two minutes of test time on a
+four-core Linux container, and no suite simulates a game another suite has already
+played.**
+
+The second half of that sentence is what holds the first half up, and it is the part to
+check when the number moves. Coverage — *can the engine produce this at all* — is asserted
+against a forced draw that constructs its cases, never against a batch of games big enough
+to stumble into one. Games are for the other question, *does this happen in play*, and
+every suite that asks it reads `TestWorld.corpus`: forty games, played once, with the
+number derived from the rarest thing anybody asserts over it.
+
+How the number got out of hand is worth keeping. This line and CLAUDE.md's both said
+`~45s` for a long time while the truth was minutes, because the answer to a test that went
+red when a sample was re-drawn had three times been a bigger sample: the vocabulary
+suite's went forty, ninety, two hundred and forty. That suite alone was **54 s** when it
+was the only thing running.
+
+Measured, four-core container, five runs of the whole FMSimulation suite: **85–111 s**,
+against **170–200 s** for the same suite on the same machine before the sharing. An
+earlier measurement on a different machine read 144 s for the same before-state and
+[#106](https://github.com/knissley/football-manager/issues/106) read 201 s on a third, so
+machines here differ by a factor of two — **measure yours rather than trusting the
+number**, and compare a before and an after taken back to back. The suites run in
+parallel, so the total is nearer the longest pole than the sum.
 
 Every `@Test` in all six targets carries a kind tag, and
 [`test-census`](#test-census--what-the-suite-asserts) below fails on one that does not.

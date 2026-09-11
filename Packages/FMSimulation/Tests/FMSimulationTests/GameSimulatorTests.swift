@@ -423,8 +423,13 @@ struct GameSimulatorTests {
         let lengths: Set<UInt8> = [
             rules.playClock, rules.playClockAfterStoppage, rules.playClockAfterRunoff,
         ]
-        for seed in UInt64(1)...6 {
-            for play in TestWorld.game(seed: seed).plays {
+        // Six games of the shared corpus. The promise is made of every snap in them
+        // rather than of one they have to contain, so the size says how much evidence
+        // there is and nothing about what the draw held: six games are about nine hundred
+        // snaps, and a reading that is missing or wrong on any of them fails here.
+        for result in TestWorld.corpus.prefix(6) {
+            let seed = result.game.rawValue
+            for play in result.plays {
                 let readings = play.decisions.compactMap(\.playClockReading)
                 #expect(
                     readings.count == 1,
@@ -569,8 +574,11 @@ struct GameSimulatorTests {
     func theCallAndTheFieldAgreeOnThePackage() {
         var mismatches = 0
         var checked = 0
-        for seed in UInt64(1)...40 {
-            for play in TestWorld.game(seed: seed, game: GameID(seed)).plays {
+        // The whole corpus, and the floor names what it holds: forty games are some six
+        // thousand snaps, every one of them checked. There is nothing here for a draw to
+        // miss — a single snap that disagrees fails the test.
+        for result in TestWorld.corpus {
+            for play in result.plays {
                 checked += 1
                 if play.calls.defense.package != play.situation.defensePackage { mismatches += 1 }
             }

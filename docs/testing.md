@@ -40,6 +40,52 @@ a misspelt prefix in a display name is just a string that counts as something el
 Selecting a run by tag is a Swift Testing feature; SwiftPM on the 6.2 toolchain does not
 expose a flag for it, so the census reads the tags out of the source instead.
 
+### Sampled tests and fixtures
+
+A test that walks simulated games and asserts on what it finds is answering a different
+question from one that constructs the case it needs, and the two get confused because both
+look like coverage.
+
+**A sampled test answers "does this occur in play."** It plays games the engine's own
+callers called and reports what turned up. That is a real question — a case the resolver
+can produce and no caller ever reaches is a case nothing downstream will ever see — and
+only games can answer it. What a sample cannot do is *settle* anything rarer than it is
+big: its size buys a probability, not a proof, and doubling it halves a miss rather than
+removing one.
+
+**A fixture answers "is the contract kept."** It constructs the case — a concept resolved
+from the spot that produces the exit, a penalty draw run directly, a scripted game built
+around the play — and then there is nothing left to draw. It fails immediately, names the
+thing that stopped working, and costs a fraction of the games it replaces.
+
+Conflating them is how three `.contract` tests in `FMSimulation` passed on which games they
+happened to draw rather than on their contract holding, each exposed only when an unrelated
+change re-drew the stream. One was hiding a live rules bug: twenty games contained no
+intercepted two-point try, so nobody saw that the resolver labelled one an ordinary pass —
+and the rules layer, reading the kind, then handed the interceptors a kickoff the scoring
+side owed. The response to a re-drawn sample was three times a bigger sample, forty to
+ninety to two hundred and forty games in one suite, which bought probability with runtime
+and never bought certainty.
+
+So, in this repo:
+
+- **Coverage is a fixture's job.** "Can the engine produce this at all" is asserted against
+  a forced draw, never against a batch of games big enough to stumble into one.
+  `TestWorld.coverageSweep()` is that draw for the event vocabulary; every foul is asserted
+  against the `Penalties` draw that throws it.
+- **A sample keeps the other question, and states its size.** Every sampled test says in its
+  doc comment how its size was derived from the measured rate of the rarest thing it
+  asserts, with the arithmetic. "Forty games" with no reasoning is what produced all three
+  failures.
+- **A floor is a guard, and it has a number behind it.** `count > 10` means "the instrument
+  is not broken", not "the claim holds", and the comment says what the measured count
+  actually is.
+- **Games are simulated once.** A game is a pure function of its setup, so suites wanting
+  the same fixtures read `TestWorld.corpus` rather than each playing them again.
+- **Except where replay is the point.** A determinism test simulates twice and says so
+  beside the call: served from a shared value it compares a value with itself and passes
+  whatever the engine does.
+
 ## Counting it
 
 ```bash
@@ -88,18 +134,24 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 ## The census as it stands
 
 Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, plus
-the two tests that came with a receiver training ball security, at 917 tests. `./scripts/test-census.sh` reprints it; if this table and that output disagree,
-the output is right and this table is stale.
+the two tests that came with a receiver training ball security, the two that came with the
+clock on a play record reading at the snap and the three that came with the pocket getting
+one verdict a snap: **922 tests, counted with `./scripts/test-census.sh` on the merge of
+`0a154dd` with #36.** The commit is part of the
+number. A census with no commit beside it is a claim about a tree nobody can go back to,
+which is the way a snapshot misleads — it reads as current long after it has stopped being
+true. `./scripts/test-census.sh` reprints it; if this table and that output disagree, the
+output is right and this table is stale.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 54 — 14.4% | 33 — 8.8% | 286 — 76.1% | 3 | 376 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 115 — 40.5% | 91 — 32.0% | 70 — 24.6% | 8 | 284 |
+| FMSimulation | 119 — 41.2% | 92 — 31.8% | 70 — 24.2% | 8 | 289 |
 | simharness | 0 — 0.0% | 11 — 78.6% | 3 — 21.4% | 0 | 14 |
 | gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **170 — 18.5%** | **237 — 25.8%** | **499 — 54.4%** | **11** | **917** |
+| **all** | **174 — 18.9%** | **238 — 25.8%** | **499 — 54.1%** | **11** | **922** |
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -115,21 +167,22 @@ forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement*, *T
 touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the defaults come
 from* — the last three joined when wave 3's D track put a foul on a scoring play where the
 rules put it, gave the free kick its spots, and made `Rules` say which book it is. The
-resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting* and *The dynamic
-kickoff* — the last three are the resolver's own suites, split out when wave 3 gave it the
-sideline, the aimed punt and the two kickoffs.
+resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting*, *The dynamic
+kickoff* and *The pocket* — the last four are the resolver's own suites, split out when
+wave 3 gave it the sideline, the aimed punt, the two kickoffs and a pocket with a clock in
+it.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 51 — 44.7% | 6 | 54 | 3 | 114 |
-| Rules conformance — the scripted games (FMSimulation) | 98 — 98.0% | 0 | 0 | 2 | 100 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting and the kickoff (FMSimulation) | 6 — 20.7% | 11 | 10 | 2 | 29 |
+| Rules conformance — the scripted games (FMSimulation) | 100 — 98.0% | 0 | 0 | 2 | 102 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff and the pocket (FMSimulation) | 8 — 25.0% | 12 | 10 | 2 | 32 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 
-Three findings come straight off that table.
+Three findings come straight off that table, and a fourth off what it cannot show.
 
 **The resolver asserts little football, and what it does assert is shape rather than
-rate.** Six of its twenty-nine tests do, every one of them added by wave 3. Two came with
+rate.** Eight of its thirty-two tests do, every one of them added by wave 3. Two came with
 the sideline and the aimed punt: where a play ends laterally is a clock decision (4-3-2-a)
 and a punt from plus territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those
 two asserts only what its articles actually say — the *direction* of the sideline lever,
@@ -138,8 +191,12 @@ The magnitudes that shipped inside them (a trailing offence reaching the sidelin
 often as a leading one, above a fifth of its tackles; fewer than 15% of plus-territory
 punts reaching the end zone) came from the issues that built those levers rather than from
 an article or a sourced season, so they are pinned beside the football tests instead of
-inside them, and are the two `.pin` in that row. Its parametric rates — completion
-percentage, sack rate, interception rate — are asserted by the harness's sourced bands
+inside them, and are the two `.pin` in that row. Two more came with the pocket and are the
+same shape: a rusher who arrived after the ball was gone pressured nobody, and pressure
+rises with how long the quarterback needs. Both assert the *direction* the definition of
+the statistic implies (`row:pressureRate`, 2023-24, source S2) and leave the rate itself to
+the band. Its parametric rates — completion percentage, sack rate, pressure rate,
+interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
 as a football test for a rate, and it does; but the census cannot see it, because
 `simharness`'s own tests check that the table matches
@@ -168,8 +225,8 @@ the untagged-test problem this issue set out to fix.
 league is fiction ([ADR-0005](adr/0005-generated-fictional-content.md)); what it owes is
 determinism, structure, and a plausible spread — which is why `.contract` is
 FMGeneration's largest share after `.unit`, and the highest of the four packages: 38.2% in
-the first census, and 45.9% — 94 of 205 — now. Nearly `0.0%` football is the right answer
-there, not a gap.
+the first census, and 46.1% — 95 of 206 — at `3372f1e`. Nearly `0.0%` football is the right
+answer there, not a gap.
 
 The exception, and the shape of any other: **a league of fictional people still has to be
 made up like a real one.** [#67](https://github.com/knissley/football-manager/issues/67)
@@ -181,6 +238,37 @@ seasons of week-1 rosters, with the derivation in
 An aggregate about a *roster* is exactly as sourceable as one about a game, and the harness
 cannot see it, so it is the test that has to. Nobody's name, club or number is in the repo
 for it — a count is not a likeness.
+
+**One football test in 206 is about the right order of magnitude, and the wrong reason for
+being exactly one.** That one is the first-season share above; the count is `3372f1e`'s,
+and the paragraph before this one is why most of it is right. What a share cannot show is
+that a generation claim has twice failed to be written as football, and at least once for
+no better reason than that there was no band to write it against:
+
+- [#115](https://github.com/knissley/football-manager/issues/115) asked for a football
+  test that a receiver does not fumble more often per touch than a back. The articles
+  available to it establish that the sport draws no distinction between two ball
+  carriers — which is the premise — and say nothing about the rate, which was the
+  assertion. No per-position fumbles-per-touch band is sourced anywhere in this
+  repository and none could be obtained, so it landed `.contract`. That is the correct
+  tag for an unsourced claim. It is not a satisfying way to have arrived at it.
+- [#90](https://github.com/knissley/football-manager/issues/90) is usually described as
+  the second instance and is not the same case. Its entry-age mix *was* measured, from
+  the same weekly-roster release the first-season share comes from and under the same
+  band policy, on a branch that has not merged. What stops it is that no setting of the
+  generation constants reproduces that mix, because the shape the ages are drawn from is
+  wrong — a modelling decision for the owner, not a band anybody is missing. The two are
+  worth keeping apart: *no band exists* and *the band exists and the model cannot reach
+  it* call for different work, and only the first is a sourcing problem.
+
+So the tally is one instance rather than two, which is still enough to write the question
+down. What a band for the rest of generation's claims would have to be computed from is
+listed in
+[`reference/calibration-sources.md`](reference/calibration-sources.md#what-a-generated-world-claims-and-nothing-sources),
+with a judgement per line: of six, two are not worth computing and two more are not
+sourcing problems at all. That list states no figures. Writing a plausible-looking one in
+place of a number nobody has computed is the failure the whole reference directory exists
+to prevent, so a line there that says no source was located is finished as it stands.
 
 ## Why the rule exists
 

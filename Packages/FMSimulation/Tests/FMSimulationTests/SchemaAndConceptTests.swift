@@ -15,9 +15,16 @@ import Testing
 @Suite("The record's version and its concept")
 struct SchemaAndConceptTests {
 
-    private static let sample: [GameResult] = (UInt64(1)...20).map {
-        TestWorld.game(seed: $0, game: GameID($0))
-    }
+    /// The standard corpus, whose size is derived where it is defined.
+    ///
+    /// **It used to be twenty, and twenty was too few for the one thing here that has to
+    /// occur.** `conceptAgreesWithTheOutcome` below requires every concept in the book to
+    /// have been called, and the thinnest of them is a two-point run at a quarter of a
+    /// game: twenty games expect five and miss altogether about seven times in a
+    /// thousand, with the two-point pass and the onside kick not far behind at 0.28 each.
+    /// Forty expect ten and miss about five times in a hundred thousand. The other two
+    /// tests are promises about every record in the sample and hold at any size.
+    private static let sample: [GameResult] = TestWorld.corpus
 
     @Test("Every record carries the current schema version", .tags(.contract))
     func everyRecordIsVersioned() {
@@ -123,10 +130,10 @@ struct SchemaAndConceptTests {
     /// this test asked for a pass and was red on every sack, which was the test's error
     /// and not the engine's.
     ///
-    /// Twenty games is a sample of what a *caller* calls, and it is kept for that: it is
-    /// the only check here that the concepts a game reaches are the concepts the record
-    /// carries. It is not a sample of what a *resolver* returns, and it never was — the
-    /// exhaustive form of this promise is `everyExitAgreesWithTheConcept` above, which
+    /// A corpus of games is a sample of what a *caller* calls, and it is kept for that:
+    /// it is the only check here that the concepts a game reaches are the concepts the
+    /// record carries. It is not a sample of what a *resolver* returns, and it never was —
+    /// the exhaustive form of this promise is `everyExitAgreesWithTheConcept` above, which
     /// walks the exits instead of hoping to draw them.
     @Test("The concept on the record agrees with the outcome's kind", .tags(.contract))
     func conceptAgreesWithTheOutcome() {
@@ -146,6 +153,6 @@ struct SchemaAndConceptTests {
         }
         #expect(
             concepts == Set(PlayConcept.allCases),
-            "twenty games never called \(Set(PlayConcept.allCases).subtracting(concepts))")
+            "forty games never called \(Set(PlayConcept.allCases).subtracting(concepts))")
     }
 }

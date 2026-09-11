@@ -379,6 +379,22 @@ struct GoldenSeedTests {
             // on one in the twenties. A game between different men who run after the catch
             // differently is a different game.
             //
+            // And moved by the clock, by the engine. The interval between downs is
+            // charged before the situation is built rather than after it is recorded, so
+            // every play's recorded clock moves from the end of the play before to the
+            // moment the ball was snapped. Three things follow that the checksum can see.
+            // A period the interval alone exhausts now ends with **no down recorded**
+            // (2025 rulebook, 4-8-1), and a play removed from the end of a period removes
+            // every later play's seed split with it, so each of these games diverges
+            // wholly from its first such period. The two-minute warning taken between
+            // downs now belongs to the snap that follows it rather than to the one after
+            // that, and no longer buys the offence a free interval on the down after the
+            // warning. And a caller reading the clock at the previous whistle, which is
+            // where it still reads it, is asked about a game that no longer carries those
+            // downs. `Tools/gamelog --seed 7 --home 3 --away 11` prints a hundred and
+            // seventy-eight plays where it printed a hundred and sixty-six, with the
+            // clock column reading at the snap throughout.
+            //
             // And moved again because the pocket has a clock in it. A rusher who beats
             // his blocker is recorded as having beaten him and nothing more; the pocket
             // gets one verdict a snap, and it is pressure only if the man got there
@@ -390,9 +406,25 @@ struct GoldenSeedTests {
             // and it is set from that row, so fewer rushers win, fewer get home, fewer
             // sacks and scrambles are taken and every drive after one of them is a
             // different drive.
-            (UInt64(1), UInt64(2_985_244_367_170_848_607)),
-            (UInt64(5), UInt64(4_346_335_552_291_261_011)),
-            (UInt64(12), UInt64(10_515_672_238_553_167_705)),
+            //
+            // And the two clocks then met in this merge, which is where the constants below
+            // come from. On one side the interval between downs is charged before the
+            // situation is built, so a period that interval alone exhausts records no down
+            // at all. On the other the pocket has a clock in it: one verdict a snap taken
+            // against the moment the ball came out, with the rep win rate as that row's
+            // lever now that it is no longer the row itself, so fewer rushers get home and
+            // fewer sacks and scrambles are taken. The two reach each other on the same
+            // snaps. A sack that is no longer taken is a different outcome with a different
+            // runoff and a different next spot, so the period reaches its end at a
+            // different whistle and a different set of intervals is the one that exhausts
+            // it; and a down the clock no longer records is a dropback whose reps are never
+            // drawn, so the pocket verdict that snap would have carried never enters the
+            // stream. Neither parent's constants could survive, because each was computed
+            // without the other's mechanism, and no subset of the mechanisms above
+            // reproduces these numbers.
+            (UInt64(1), UInt64(12_846_516_332_598_426_273)),
+            (UInt64(5), UInt64(18_162_519_760_039_925_891)),
+            (UInt64(12), UInt64(6_072_345_254_296_759_821)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

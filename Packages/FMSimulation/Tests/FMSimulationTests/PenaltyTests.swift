@@ -14,7 +14,7 @@ struct PenaltyTests {
     /// The stadium is fixed rather than the home team's, because noise is the variable
     /// under test: a generated ground brings its own, and the quiet-versus-loud comparison
     /// below would then be measuring two grounds instead of one mechanism.
-    private func game(
+    private static func game(
         seed: UInt64, noise: UInt8 = 50, home: Int = 0, away: Int = 1
     ) -> GameResult {
         TestWorld.game(
@@ -22,13 +22,37 @@ struct PenaltyTests {
             stadium: Stadium(name: "Test Field", capacity: 68_000, noise: noise))
     }
 
-    private func flags(
-        seeds: ClosedRange<UInt64>, noise: UInt8 = 50
-    ) -> [(PlayRecord, PenaltyRecord)] {
-        seeds.flatMap { seed in
-            game(seed: seed, noise: noise).plays.flatMap { play in
-                play.outcome.penalties.map { (play, $0) }
-            }
+    /// The thirty games at the neutral setting that every test but the noise pair reads.
+    ///
+    /// **One set, sliced, rather than a set per test.** Six tests below walk the first
+    /// six, eight, ten or thirty of these seeds, and each used to simulate its own: a
+    /// hundred and two games to read thirty. A game is a pure function of its setup, so
+    /// the seventh reading of seed 3 is the same football as the first — and the slices
+    /// are prefixes of one another, so a test that says six games still reads exactly the
+    /// six games it said.
+    ///
+    /// **What each slice actually carries**, measured on the tree this was written
+    /// against, so that the floors below are floors rather than hopes: the first six games
+    /// hold 105 flags between them of 20 distinct fouls; eight hold 6 offensive holds on
+    /// dropbacks; ten hold 26 defensive interference calls; thirty hold 83 interference
+    /// calls of either kind and 20 flags on downs where nobody threw; and the nine of
+    /// `offendersAreReal`, which are six of these and three between another pair of clubs,
+    /// hold 154. The thinnest of those is the six holds, which is what a floor of one is
+    /// guarding: a change that stops drawing holding on dropbacks at all fails it, and one
+    /// that draws a few fewer does not.
+    private static let neutral: [GameResult] = (UInt64(1)...30).map { game(seed: $0) }
+
+    /// The paired noise comparison's two sides, each played once and read by both tests.
+    /// The two tests are the same sixty fixtures counted twice over, once for each side of
+    /// the ball, so playing them twice was a hundred and twenty games nobody needed.
+    private static let quiet: [GameResult] = (UInt64(1)...60).map { game(seed: $0, noise: 20) }
+    private static let deafening: [GameResult] = (UInt64(1)...60).map {
+        game(seed: $0, noise: 100)
+    }
+
+    private func flags(seeds: ClosedRange<UInt64>) -> [(PlayRecord, PenaltyRecord)] {
+        Self.neutral[Int(seeds.lowerBound - 1)...Int(seeds.upperBound - 1)].flatMap { result in
+            result.plays.flatMap { play in play.outcome.penalties.map { (play, $0) } }
         }
     }
 
@@ -176,8 +200,8 @@ struct PenaltyTests {
     @Test("Every flag names a player the record identifies", .tags(.contract))
     func offendersAreReal() {
         let games =
-            (UInt64(1)...6).map { game(seed: $0) }
-            + (UInt64(1)...3).map { game(seed: $0, home: 3, away: 6) }
+            Array(Self.neutral.prefix(6))
+            + (UInt64(1)...3).map { Self.game(seed: $0, home: 3, away: 6) }
         var checked = 0
         for result in games {
             for play in result.plays {
@@ -221,10 +245,9 @@ struct PenaltyTests {
     /// what is left after the pairing is the noise and nothing else.
     @Test("A loud stadium raises the road team's procedural fouls", .tags(.unit))
     func crowdNoiseIsTheMechanism() {
-        func roadPreSnapFouls(noise: UInt8) -> Int {
+        func roadPreSnapFouls(_ games: [GameResult]) -> Int {
             var count = 0
-            for seed in UInt64(1)...60 {
-                let result = game(seed: seed, noise: noise)
+            for result in games {
                 for play in result.plays {
                     for flag in play.outcome.penalties
                     where flag.foul.isPreSnap && flag.offendingTeam == play.situation.possession
@@ -237,8 +260,8 @@ struct PenaltyTests {
             return count
         }
 
-        let quiet = roadPreSnapFouls(noise: 20)
-        let deafening = roadPreSnapFouls(noise: 100)
+        let quiet = roadPreSnapFouls(Self.quiet)
+        let deafening = roadPreSnapFouls(Self.deafening)
         #expect(
             deafening > quiet,
             "noise made no difference to the road team: \(quiet) quiet, \(deafening) loud")
@@ -259,10 +282,9 @@ struct PenaltyTests {
     /// the shuffle and not of a mechanism.
     @Test("Noise does not punish the home team", .tags(.unit))
     func noiseSparesTheHomeTeam() {
-        func homePreSnapFouls(noise: UInt8) -> Int {
+        func homePreSnapFouls(_ games: [GameResult]) -> Int {
             var count = 0
-            for seed in UInt64(1)...60 {
-                let result = game(seed: seed, noise: noise)
+            for result in games {
                 for play in result.plays {
                     for flag in play.outcome.penalties
                     where flag.foul.isPreSnap && flag.offendingTeam == play.situation.possession
@@ -275,8 +297,8 @@ struct PenaltyTests {
             return count
         }
 
-        let quiet = homePreSnapFouls(noise: 20)
-        let deafening = homePreSnapFouls(noise: 100)
+        let quiet = homePreSnapFouls(Self.quiet)
+        let deafening = homePreSnapFouls(Self.deafening)
         #expect(
             deafening <= quiet + (quiet / 3) + 3,
             "the home crowd punished its own offence: \(quiet) quiet, \(deafening) loud")

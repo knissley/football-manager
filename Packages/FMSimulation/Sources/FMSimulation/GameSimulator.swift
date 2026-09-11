@@ -175,6 +175,10 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
     /// loudly at the end of a test rather than hanging a season.
     private static var playLimit: Int { 400 }
 
+    /// The same ceiling on snaps attempted rather than written, which is the one a loop
+    /// can always be counted on to reach.
+    private static var snapLimit: Int { 2 * playLimit }
+
     /// Whether this free kick is kicked onside: the book has to permit one and the coach
     /// has to want one, in that order.
     ///
@@ -197,12 +201,19 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         var state = State(setup: setup)
         let root = SplittableRandom(seed: setup.seed)
 
-        while !state.isOver && state.plays.count < Self.playLimit {
+        // The limit is on snaps *attempted* rather than on downs written, because not
+        // every attempt writes one: a period the interval before the snap exhausts ends
+        // there with no down (2025 rulebook, 4-8-1), and a loop counted on the record
+        // alone would not advance through one. A game reaches the play limit long before
+        // this, and every period can lose at most the one down time ran out under.
+        var attempts = 0
+        while !state.isOver && state.plays.count < Self.playLimit && attempts < Self.snapLimit {
             // Every play draws from its own stream, split from the game's seed by index.
             // Nothing about play N depends on how many draws play N-1 happened to make,
             // so a change to one resolver's internals cannot shift the rest of the game.
             var random = root.split(UInt64(state.plays.count))
             step(&state, random: &random)
+            attempts += 1
         }
 
         return state.result()
@@ -369,6 +380,12 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // rules layer then uses whichever of the answers the foul makes relevant.
         let deadBall = deadBallChoices(
             for: resolved.outcome, in: state, tempo: calls.offense.tempo)
+        // How many downs the game had written before this one. A down the clock never
+        // reached is not written at all — the interval between downs can exhaust the
+        // period, and the period then ends with nothing snapped (2025 rulebook, 4-8-1) —
+        // and the injury draw below has to know, or it draws a second injury on the last
+        // down that *was* played.
+        let recorded = state.plays.count
         state.apply(
             resolved.outcome, calls: calls, decisions: resolved.decisions,
             onField: state.rosterIndices(of: onField), deadBall: deadBall)
@@ -377,7 +394,9 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // event can point at the snap it happened on. The injury timeout it brings is a
         // clock rule after the two-minute warning (4-5-4), and the choices that rule
         // puts to the callers are asked here, with the situation as it now stands.
-        if let play = state.plays.last, let injury = injuries(play, context, &random) {
+        if state.plays.count > recorded, let play = state.plays.last,
+            let injury = injuries(play, context, &random)
+        {
             state.injuries.append(injury)
             if injury.leavesTheGame { state.hurt.insert(injury.player) }
             if let team = team(of: injury.player, on: play, context: context) {

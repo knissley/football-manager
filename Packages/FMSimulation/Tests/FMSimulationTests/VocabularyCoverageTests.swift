@@ -11,11 +11,31 @@ import Testing
 /// test cannot catch that, because every unit involved is correct on its own — the type
 /// is fine, the resolver is fine, and the gap is that they never meet.
 ///
-/// So this suite asserts the *join*: sim a batch of games and check what came out
-/// against the vocabulary that exists. It is deliberately two-directional. A case the
-/// engine cannot yet produce has to be named in the register below with a reason, and
-/// the moment one of those *starts* being produced the test fails too, so the register
-/// cannot quietly rot into a list of things that used to be true.
+/// So this suite asserts the *join*, and it asserts it in two pieces, because the join
+/// has two halves and only one of them is a question about games.
+///
+/// **Can the engine produce this at all** is settled by `TestWorld.coverageSweep()`, a
+/// forced draw: every concept from its own spot, the backed-up spot that is the only
+/// place a safety can happen, a man-coverage call, and punts at volume. The rarest
+/// branches of the rarest draws are asserted one level lower still, against the draw
+/// itself. None of it depends on which games came up.
+///
+/// **Does a real game reach it** is settled by a small sample of games, which is the only
+/// thing a sample is good for and is kept for exactly that. What the sample may be asked
+/// is bounded by what it is big enough to see, and the table in `sampled` says what that
+/// is.
+///
+/// This suite used to ask both questions of one batch of games, and the batch grew from
+/// forty to ninety to two hundred and forty chasing cases a sample cannot settle: a
+/// blindside block turns up about once every thirty-six games, so ninety of them was a
+/// coin flip that any change to the play mix re-tossed. Doubling a sample halves the
+/// chance of missing a rare case; it never makes the answer certain, and it costs the
+/// runtime forever.
+///
+/// It is deliberately two-directional throughout. A case the engine cannot yet produce
+/// has to be named in the register below with a reason, and the moment one of those
+/// *starts* being produced the test fails too, so the register cannot quietly rot into a
+/// list of things that used to be true.
 ///
 /// See `docs/roadmap.md` — "Audit owed at the end of M1".
 @Suite("Vocabulary coverage")
@@ -31,15 +51,21 @@ struct VocabularyCoverageTests {
         .blocked: "M3 — no rush lane exists on a kick, so nothing can get a hand up."
     ]
 
+    /// The forced draw. Constructed once and shared, because every assertion below reads
+    /// the same sweep.
+    private static let forced: [TestWorld.Resolution] = TestWorld.coverageSweep()
+
+    // MARK: - The smoke sample
+
     /// Which two clubs of the eight-team world play the *n*-th game.
     ///
-    /// It used to be team 0 against team 1 in every one of the ninety, which was fine
-    /// while a seed re-rolled the whole league: ninety seeds meant ninety different
-    /// grounds. Since [decision 215](../../../../docs/design-decisions.md) the
-    /// franchises are curated, so that would be the same fixture in the same stadium
-    /// ninety times over, and a sample of one building is thinner than it looks — a punt
-    /// downed inside the ten is the sort of thing noise, altitude and a roof all reach.
-    /// Walking the pairing visits all eight grounds, both domes among them.
+    /// It used to be team 0 against team 1 in every one of them, which was fine while a
+    /// seed re-rolled the whole league: ninety seeds meant ninety different grounds.
+    /// Since [decision 215](../../../../docs/design-decisions.md) the franchises are
+    /// curated, so that would be the same fixture in the same stadium over and over, and
+    /// a sample of one building is thinner than it looks — a punt downed inside the ten
+    /// is the sort of thing noise, altitude and a roof all reach. Walking the pairing
+    /// visits all eight grounds, both domes among them.
     private static func pairing(_ seed: UInt64) -> (home: Int, away: Int) {
         let teams = UInt64(TestWorld.shape.totalTeams)
         // One ahead by at least one and at most `teams - 1`, so the away side is never
@@ -48,60 +74,78 @@ struct VocabularyCoverageTests {
         return (Int(home), Int((home + 1 + (seed / teams) % (teams - 1)) % teams))
     }
 
-    private static func result(seed: UInt64) -> GameResult {
+    /// Twenty games, and what twenty games can be asked.
+    ///
+    /// This is the "does it happen in a real game" sample, and its size is the rate of
+    /// the rarest thing asserted over it. Measured over 240 games of this same walk, per
+    /// game: the kickoff 10.9, the pass 62.7, the rush 60.2, a play that was nothing but
+    /// a flag 6.2, the punt 8.6, the try-kick 5.4, the field goal 3.4, the sack 4.2, the
+    /// scramble 3.2, the kneel 2.5, the two-point try 0.54. Twenty games expect at least
+    /// ten of the thinnest of those and miss one altogether about five times in a hundred
+    /// thousand.
+    ///
+    /// Two kinds are left out of `everydayKinds` below because twenty games cannot carry
+    /// them, and neither is re-admitted by making the sample bigger: the spike at 0.2 a
+    /// game would want thirty-five, and a safety at 0.067 a game would want a hundred
+    /// and four. Both are asserted against the sweep, where they are constructed rather
+    /// than waited for.
+    private static let sampled: [PlayRecord] = (UInt64(1)...20).flatMap { seed -> [PlayRecord] in
         let (home, away) = pairing(seed)
-        return TestWorld.game(seed: seed, home: home, away: away)
+        return TestWorld.game(seed: seed, home: home, away: away).plays
     }
 
-    /// Enough games that a rare-but-reachable case is not a coin flip.
-    ///
-    /// A safety happens about three times in a hundred team-games, so forty games left
-    /// roughly a one-in-eleven chance of seeing none — and this suite duly went red for
-    /// it once field position improved enough to make being backed up rare. Simulated
-    /// once and shared, because six assertions over one stream costs what one used to.
-    ///
-    /// Ninety was not comfortable for the rarest cases in here, and two of them are
-    /// rarer than illegal touching. Illegal touching needs a punt that is downed or run
-    /// out of bounds — about 1.1 a game — and then a 1.8% roll on top, so ninety games
-    /// expect two of them and see none about one time in six.
-    ///
-    /// The blindside block is thinner still. It is one fifth of the downfield-block
-    /// draw, which is itself about a 1.4% roll on a run that got into space or a kick
-    /// that got returned: measured over 400 games of this fixture walk, sixty-one
-    /// downfield-block fouls, of which eleven were blindside blocks — about one every
-    /// thirty-six games. Ninety of them is a coin flip that any change to the play mix
-    /// re-tosses, and this suite duly went red on it. Two hundred and forty is where the
-    /// expected count is comfortably above one. (The eleven were not evenly spread
-    /// across the four hundred, which nothing here explains and which is worth a look of
-    /// its own; a dedicated fixture that forces the draw would settle it for good, and
-    /// is what this sample should eventually be replaced by for the rare cases.)
-    private static let sampled: [PlayRecord] = (UInt64(1)...240).flatMap { result(seed: $0).plays }
+    /// The vocabulary a fixture between two ordinary clubs reaches several times over, so
+    /// that a sample of twenty games is a fair instrument for it. Every rate in the list
+    /// above is at least half an occurrence a game.
+    private static let everydayKinds: [PlayKind] = [
+        .rush, .pass, .sack, .scramble, .punt, .fieldGoal, .extraPoint, .twoPointConversion,
+        .kickoff, .kneel, .penaltyOnly,
+    ]
 
-    private static func plays() -> [PlayRecord] { sampled }
+    @Test("A real game reaches the everyday vocabulary", .tags(.contract))
+    func aGameReachesTheEverydayVocabulary() {
+        let kinds = Set(Self.sampled.map(\.outcome.kind))
+        for kind in Self.everydayKinds {
+            #expect(kinds.contains(kind), "no snap in twenty games was a \(kind)")
+        }
+        // The other direction of the same claim: the sample is what the engine plays, so
+        // a kind it should never call in a normal game must not be in it either.
+        for (kind, reason) in Self.unreachableKinds {
+            #expect(
+                !kinds.contains(kind),
+                "\(kind) is produced now — take it out of the register (was: \(reason))")
+        }
+    }
+
+    // MARK: - What the engine can produce at all
 
     @Test("Every play kind the engine claims to model actually occurs", .tags(.contract))
     func everyKindIsReachable() {
-        let seen = Set(Self.plays().map(\.outcome.kind))
+        let seen = Set(Self.forced.map(\.outcome.kind))
         for kind in PlayKind.allCases where Self.unreachableKinds[kind] == nil {
-            #expect(seen.contains(kind), "no snap in ninety games was a \(kind)")
+            #expect(seen.contains(kind), "no cell of the sweep produced a \(kind)")
         }
     }
 
     @Test("Every play ending the engine claims to model actually occurs", .tags(.contract))
     func everyEndingIsReachable() {
-        let seen = Set(Self.plays().map(\.outcome.endedIn))
+        let seen = Set(Self.forced.map(\.outcome.endedIn))
         for ending in PlayEnding.allCases where Self.unreachableEndings[ending] == nil {
-            #expect(seen.contains(ending), "no play in ninety games ended in \(ending)")
+            #expect(seen.contains(ending), "no cell of the sweep ended in \(ending)")
         }
     }
 
     /// The other direction, and the one that keeps the register honest: when a milestone
     /// makes one of these reachable, this fails and the entry has to come out.
+    ///
+    /// Read over the sweep *and* the sample, because a register entry is a claim that
+    /// nothing anywhere produces the case — and the sweep is the wider net of the two.
     @Test("The unreachable register describes the engine as it is", .tags(.contract))
     func registerIsCurrent() {
-        let plays = Self.plays()
-        let kinds = Set(plays.map(\.outcome.kind))
-        let endings = Set(plays.map(\.outcome.endedIn))
+        let kinds = Set(Self.forced.map(\.outcome.kind))
+            .union(Self.sampled.map(\.outcome.kind))
+        let endings = Set(Self.forced.map(\.outcome.endedIn))
+            .union(Self.sampled.map(\.outcome.endedIn))
 
         for (kind, reason) in Self.unreachableKinds {
             #expect(
@@ -115,105 +159,232 @@ struct VocabularyCoverageTests {
         }
     }
 
-    /// Fouls that are reachable but too rare for a ninety-game sample to decide, and are
-    /// therefore asserted against the draw that produces them instead.
-    ///
-    /// **Measured, not assumed.** The three downfield-block fouls share one draw and the
-    /// engine reaches it about a tenth of a game: twelve times in ninety games, nine of
-    /// them the block in the back. The other two are a fifth and a seventh of that draw,
-    /// so whether either turns up is close to a coin flip — and over 260 games of a later
-    /// sample, twenty-one draws produced neither. A sample cannot settle a case at that
-    /// rate; enlarging it only moves the coin flip.
-    ///
-    /// So the join this suite exists to check is still checked here for
-    /// `.illegalBlockInTheBack`, which shares the draw, comes from real games and appears;
-    /// and the two rarer branches of the same draw are checked where the branch is taken,
-    /// in `everyBranchOfTheRareDrawsIsReachable`. What is left unasserted is only that a
-    /// game *reaches* that draw, and the block in the back asserts exactly that.
-    ///
-    /// **How rare the draw is, is a calibration matter and not this suite's.** A tenth of
-    /// a game is well under the sport's rate for these fouls; the retune owns it
-    /// ([#49](https://github.com/knissley/football-manager/issues/49)).
-    static let tooRareToSample: [Foul: String] = [
-        .illegalBlindsideBlock: "a fifth of the downfield-block draw, which fires 0.13 a game",
-        .lowBlock: "a seventh of the same draw",
-    ]
+    // MARK: - Fouls, at the draw that decides them
 
-    /// Fouls are the same question as play kinds, and the answer was worse: `Foul` has
-    /// thirty-three cases, every one of them with its yardage, its side and its
+    /// Every foul in the book, asserted against the draw that produces it.
+    ///
+    /// `Foul` has thirty-three cases, every one with its yardage, its side and its
     /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
-    /// of them. There was no offensive pass interference in the league, nobody was ever
-    /// called for lining up wrong, and a kicker could be run over with impunity.
+    /// of them: there was no offensive pass interference in the league, nobody was ever
+    /// called for lining up wrong, and a kicker could be run over with impunity. That is
+    /// what this test was written for.
+    ///
+    /// It used to ask a batch of games, and could not honestly ask about half of them.
+    /// The three downfield-block fouls share one draw the engine reaches about a tenth of
+    /// a game; a fifth of those are the blindside block, so it lands once every thirty-six
+    /// games and ninety games was a coin flip that a change to the play mix re-tossed. A
+    /// register of "too rare to sample" grew up around that, and the entries in it were
+    /// asserted against their own draw instead — which is what every foul is now, because
+    /// the distinction was never about the foul. It was about the instrument.
+    ///
+    /// Each entry drives one of the resolver's penalty draws directly, many times, and
+    /// names the branches of `Foul` that draw can return. Between them they account for
+    /// all thirty-three: a foul in `Foul.allCases` that no entry claims fails below, so a
+    /// new case cannot be added without saying which draw throws it.
+    ///
+    /// The counts are not arbitrary. `Penalties.preSnap` gets forty thousand because its
+    /// thinnest branch is a substitution that did not beat the whistle — under a tenth of
+    /// one per cent of snaps at a normal tempo, sixteen in forty thousand measured — and
+    /// the rest get twenty thousand, where the thinnest branch anywhere is the chop block
+    /// at thirteen and the low block at fourteen. Every branch is expected in double
+    /// figures or close to it; none is a coin flip.
     @Test("Every foul the rules define actually gets called", .tags(.contract))
     func everyFoulIsCalled() {
-        // Nothing. Every foul in the book gets thrown.
-        let unreachable: [Foul: String] = [:]
-
-        let called = Set(Self.plays().flatMap(\.outcome.penalties).map(\.foul))
-        for foul in Foul.allCases
-        where unreachable[foul] == nil && Self.tooRareToSample[foul] == nil {
-            #expect(called.contains(foul), "\(foul) was never called in ninety games")
+        var drawn: Set<Foul> = []
+        var claimed: Set<Foul> = []
+        for (name, expected, draws) in Self.foulDraws {
+            claimed.formUnion(expected)
+            for foul in expected {
+                #expect(draws.contains(foul), "\(name) never returned \(foul)")
+            }
+            drawn.formUnion(draws)
         }
-        for (foul, reason) in unreachable {
-            #expect(!called.contains(foul), "\(foul) is called now (was: \(reason))")
+
+        for foul in Foul.allCases {
+            #expect(
+                claimed.contains(foul),
+                "no draw claims \(foul): a foul nothing in here throws is a foul nothing throws")
+            #expect(drawn.contains(foul), "\(foul) is unreachable in every draw that can throw it")
         }
     }
 
-    /// The other half of `tooRareToSample`: the branches a ninety-game sample cannot
-    /// decide, taken against the draw that decides them.
+    /// One row per draw: what it is, which fouls it is the only source of, and what it
+    /// actually returned when it was run.
     ///
-    /// It is the same claim — the engine can produce this foul — asserted where it is
-    /// settled rather than where it is diluted. A branch that stopped being reachable
-    /// fails here immediately instead of after a resample.
-    @Test("Every branch of a draw too rare to sample is still reachable", .tags(.contract))
-    func everyBranchOfTheRareDrawsIsReachable() {
+    /// Built once because `everyFoulIsCalled` is the only reader; it is here rather than
+    /// inline so that the claim — *these draws between them are the whole of `Foul`* —
+    /// reads as a table.
+    private static let foulDraws: [(name: String, expected: [Foul], drawn: Set<Foul>)] = {
         let context = TestWorld.context(seed: 5)
         var setUp = SplittableRandom(seed: 1)
-        let personnel = Lineup.onField(
+        let midfield = Situation(
+            quarter: 1, clockRemaining: 900, down: .first, distance: 10, ballOn: 50,
+            possession: context.offense)
+        let dropback = Lineup.onField(
+            context, concept: .mediumPass, situation: midfield, random: &setUp)
+        let kick = Lineup.onField(
             context, concept: .punt,
             situation: Situation(
                 quarter: 1, clockRemaining: 900, down: .fourth, distance: 10, ballOn: 60,
                 possession: context.offense),
             random: &setUp)
 
-        var drawn: Set<Foul> = []
-        var root = SplittableRandom(seed: 99)
-        for index in 0..<20_000 {
-            var stream = root.split(UInt64(index))
-            if let foul = Penalties.onDownfieldBlock(
-                blockers: SlotLayout.catchPursuit.map(\.0), onOffense: false,
-                personnel: personnel, context: context, random: &stream)
-            {
-                drawn.insert(foul.foul)
+        func sweep(_ count: Int, _ draw: (inout SplittableRandom) -> PenaltyRecord?) -> Set<Foul> {
+            var found: Set<Foul> = []
+            var root = SplittableRandom(seed: 99)
+            for index in 0..<count {
+                var stream = root.split(UInt64(index))
+                if let penalty = draw(&stream) { found.insert(penalty.foul) }
             }
+            return found
         }
 
-        for (foul, reason) in Self.tooRareToSample {
-            #expect(drawn.contains(foul), "\(foul) is unreachable in its own draw (\(reason))")
-        }
-        #expect(
-            drawn.contains(.illegalBlockInTheBack),
-            "the draw these share no longer produces the one the game sample sees")
-    }
+        // Hurry-up with a man in motion, because three of the procedural branches are
+        // gated on exactly that: the tempo the defence cannot substitute against and the
+        // shifting that is how a formation gets called wrong.
+        let tempo = Calls(
+            offense: OffensiveCall(concept: .mediumPass, tempo: .hurryUp, usedMotion: true),
+            defense: .manFreeBlitz, offensiveCaller: .automatic, defensiveCaller: .automatic)
+
+        return [
+            (
+                "Penalties.preSnap",
+                [
+                    .falseStart, .delayOfGame, .illegalFormation, .illegalMotion, .illegalShift,
+                    .illegalSubstitution, .offside, .neutralZoneInfraction, .encroachment,
+                    .tooManyMenOnField,
+                ],
+                sweep(40_000) { random in
+                    Penalties.preSnap(
+                        situation: midfield, calls: tempo, context: context, personnel: dropback,
+                        random: &random)
+                }
+            ),
+            (
+                "Penalties.whenBeatenBlocking",
+                [.offensiveHolding, .illegalUseOfHands, .tripping, .chopBlock],
+                sweep(20_000) { random in
+                    Penalties.whenBeatenBlocking(
+                        blocker: PlayerSlot(6), personnel: dropback, context: context,
+                        random: &random)
+                }
+            ),
+            (
+                "Penalties.whenBeatenInCoverage",
+                [.defensiveHolding, .illegalContact],
+                sweep(20_000) { random in
+                    Penalties.whenBeatenInCoverage(
+                        defender: PlayerSlot(18), receiver: PlayerSlot(2),
+                        separationCentimetres: 300, personnel: dropback, context: context,
+                        random: &random)
+                }
+            ),
+            (
+                "Penalties.onTheThrow",
+                [.defensivePassInterference, .offensivePassInterference],
+                sweep(20_000) { random in
+                    Penalties.onTheThrow(
+                        defender: PlayerSlot(18), receiver: PlayerSlot(2),
+                        separationCentimetres: 300, routeDepth: 14, catchPoint: 30,
+                        personnel: dropback, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.onContact, on the quarterback",
+                [.roughingThePasser],
+                sweep(20_000) { random in
+                    Penalties.onContact(
+                        tackler: PlayerSlot(11), isQuarterback: true, personnel: dropback,
+                        context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.onContact, on a ball carrier",
+                [.unnecessaryRoughness, .facemask, .illegalUseOfHelmet, .horseCollarTackle],
+                sweep(20_000) { random in
+                    Penalties.onContact(
+                        tackler: PlayerSlot(11), isQuarterback: false, personnel: dropback,
+                        context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.onDownfieldBlock",
+                [.illegalBlockInTheBack, .illegalBlindsideBlock, .lowBlock],
+                sweep(20_000) { random in
+                    Penalties.onDownfieldBlock(
+                        blockers: SlotLayout.catchPursuit.map(\.0), onOffense: false,
+                        personnel: kick, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.onLineRelease, on a screen",
+                [.ineligibleReceiverDownfield, .illegalManDownfield],
+                sweep(20_000) { random in
+                    Penalties.onLineRelease(
+                        blockers: dropback.blockers(includingEligibles: false), isScreen: true,
+                        personnel: dropback, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.onKick",
+                [.roughingTheKicker, .runningIntoTheKicker],
+                sweep(20_000) { random in
+                    Penalties.onKick(
+                        rushers: kick.front, personnel: kick, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.afterThePlay, after a sack",
+                [.unsportsmanlikeConduct, .taunting],
+                sweep(20_000) { random in
+                    Penalties.afterThePlay(
+                        Outcome(kind: .sack, yards: -7, endedIn: .tackled), personnel: dropback,
+                        context: context, random: &random)
+                }
+            ),
+            (
+                // The one foul the resolver draws itself rather than through `Penalties`:
+                // a cover man touching a punt before the returner does. It has no
+                // function to call, so the sweep's punt cell is its draw.
+                "CrudeResolver, a cover man first to a punt",
+                [.illegalTouching],
+                Set(forced.flatMap(\.outcome.penalties).map(\.foul))
+                    .intersection([.illegalTouching])
+            ),
+        ]
+    }()
 
     /// A dead-ball foul is drawn after a play worth reacting to, and for a long time "a
     /// play" meant a run: `afterThePlay` was called from the run path alone, so no
     /// completion and no sack in the league ever drew a word afterwards. Two thirds of a
     /// team's snaps are dropbacks, so two thirds of the sport's shoving matches could not
     /// happen.
+    ///
+    /// **This one reads the standard corpus rather than the sweep or the walk**, and the
+    /// reason is the run half. The draw is only offered a play worth reacting to — a sack,
+    /// or a gain of fourteen — and a run goes fourteen about one time in eighty, so a
+    /// conduct foul after a run is 0.175 a game: seven across the corpus's forty,
+    /// measured, against forty-eight after a dropback. Twenty games of the walk above
+    /// would expect three and a half of them, which is the kind of margin that goes red
+    /// on a nudge; forty thousand swept runs would cost several seconds to say the same
+    /// thing. The corpus is forty games that six other suites have already paid for, so
+    /// reading it here costs nothing and is the widest sample available.
     @Test("Conduct fouls are drawn after passes and sacks, not only after runs", .tags(.contract))
     func conductFoulsFollowThePassingGame() {
         let conduct: Set<Foul> = [.unsportsmanlikeConduct, .taunting]
         var afterADropback = 0
         var afterARun = 0
-        for play in Self.plays()
+        for play in TestWorld.corpus.flatMap(\.plays)
         where play.outcome.penalties.contains(where: { conduct.contains($0.foul) }) {
-            if play.outcome.kind == .pass || play.outcome.kind == .sack { afterADropback += 1 }
-            if play.outcome.kind == .rush { afterARun += 1 }
+            let kind = play.outcome.kind
+            if kind == .pass || kind == .sack { afterADropback += 1 }
+            if kind == .rush { afterARun += 1 }
         }
-        #expect(afterARun > 0, "no conduct foul followed a run in ninety games")
-        #expect(afterADropback > 0, "no conduct foul followed a pass or a sack in ninety games")
+        #expect(afterARun > 0, "no conduct foul followed a run in forty games")
+        #expect(afterADropback > 0, "no conduct foul followed a pass or a sack in forty games")
     }
+
+    // MARK: - Who is credited, and for what
 
     /// The mirror of an unreachable case: a credit handed to somebody who did not earn
     /// it. Coverage tests cannot see this one — the role *is* produced — so it needs its
@@ -222,9 +393,17 @@ struct VocabularyCoverageTests {
     /// Every run play used to credit all four defensive linemen with a tackle in the
     /// blocking loop, before anybody had touched the ball. The role looked healthy and
     /// the leaderboard was nonsense.
+    ///
+    /// This one stays on games rather than on the sweep, and it is the one test in here
+    /// that should: it is a claim about *proportions* across a real play mix, and the
+    /// sweep's mix is whatever its cells happen to add up to. Nothing here has to occur,
+    /// so nothing here can be missed by a draw — every assertion is a share of a total
+    /// that twenty games make large. Measured over 240 games of this walk, a game holds
+    /// about 123 tackles, so twenty hold some two and a half thousand, and the tolerance
+    /// below is a tenth of them.
     @Test("Tackles are spread across the defence, not banked by the front", .tags(.contract))
     func tacklesReachTheWholeDefense() {
-        let tackles = Self.plays()
+        let tackles = Self.sampled
             .flatMap(\.outcome.participants)
             .filter { $0.role == .tackler }
 
@@ -247,7 +426,7 @@ struct VocabularyCoverageTests {
 
         // Roughly one tackle per snap that ends in contact. Well over that means
         // somebody is being credited for being on the field.
-        let contactPlays = Self.plays().filter { $0.outcome.kind.isScrimmagePlay }.count
+        let contactPlays = Self.sampled.filter { $0.outcome.kind.isScrimmagePlay }.count
         #expect(
             Double(total) / Double(contactPlays) < 1.1,
             "\(total) tackles across \(contactPlays) plays from scrimmage")
@@ -260,6 +439,11 @@ struct VocabularyCoverageTests {
     /// a long snapper, and none of them had ever been on the field — the resolver read
     /// kick accuracy and punt power off the *quarterback's* slot, so a team's kicker had
     /// no bearing on whether it made kicks.
+    ///
+    /// The long snapper is why this reads the sweep. He is credited only when he does
+    /// something on a kick, which is ten times in two hundred and forty games — one game
+    /// in twenty-four — so a sample that happened to contain one of them was reporting
+    /// its luck. The sweep snaps four thousand punts and does not have to be lucky.
     @Test("Every position on a roster gets on the field", .tags(.contract))
     func everyPositionPlays() {
         // Nothing. Every position a team carries takes a snap: the specialists on kicks,
@@ -267,9 +451,9 @@ struct VocabularyCoverageTests {
         // linebacker when the defence is in base. It was three positions short of this
         // before the kicking game and personnel substitution were wired in.
         let unreachable: [Position: String] = [:]
-        let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.position))
+        let seen = Set(Self.forced.flatMap(\.outcome.participants).map(\.position))
         for position in Position.allCases where unreachable[position] == nil {
-            #expect(seen.contains(position), "no \(position) took a snap in ninety games")
+            #expect(seen.contains(position), "no \(position) took a snap in the sweep")
         }
         for (position, reason) in unreachable {
             #expect(
@@ -285,9 +469,10 @@ struct VocabularyCoverageTests {
         let unreachable: [PlayRole: String] = [
             .assistTackler: "M5 — the crude resolver credits a single tackler."
         ]
-        let seen = Set(Self.plays().flatMap(\.outcome.participants).map(\.role))
+        let seen = Set(Self.forced.flatMap(\.outcome.participants).map(\.role))
+            .union(Self.sampled.flatMap(\.outcome.participants).map(\.role))
         for role in PlayRole.allCases where unreachable[role] == nil {
-            #expect(seen.contains(role), "nobody in ninety games was credited as \(role)")
+            #expect(seen.contains(role), "nobody in the sweep was credited as \(role)")
         }
         for (role, reason) in unreachable {
             #expect(
@@ -336,19 +521,19 @@ struct VocabularyCoverageTests {
     ]
     static let unreachableBallPlacements: [BallPlacement: String] = [:]
 
-    /// Every value of one detail enum the sample's decision points carry, read through
-    /// the typed accessor so a byte belonging to another kind is never reinterpreted.
+    /// Every value of one detail enum the sweep's decision points carry, read through the
+    /// typed accessor so a byte belonging to another kind is never reinterpreted.
     private static func details<Detail: Hashable>(
         _ read: (DecisionPoint) -> Detail?
     ) -> Set<Detail> {
-        Set(plays().flatMap(\.decisions).compactMap(read))
+        Set(forced.flatMap(\.decisions).compactMap(read))
     }
 
     private func checkRegister<Detail: Hashable & CaseIterable>(
         _ name: String, seen: Set<Detail>, register: [Detail: String]
     ) {
         for detail in Detail.allCases where register[detail] == nil {
-            #expect(seen.contains(detail), "no decision in ninety games carried \(name).\(detail)")
+            #expect(seen.contains(detail), "no decision in the sweep carried \(name).\(detail)")
         }
         for (detail, reason) in register {
             #expect(

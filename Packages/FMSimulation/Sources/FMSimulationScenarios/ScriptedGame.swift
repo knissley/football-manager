@@ -73,10 +73,12 @@ public struct Snap: Sendable {
     /// next when the clock is running — its tempo — measured from the plays so far rather
     /// than assumed. `nil` until two snaps have shown it.
     ///
-    /// The engine records a play's situation at the moment the previous play ended and
-    /// charges the huddle at the snap, so a play snapped with the clock running ends at
-    /// `clock - huddle - clockRunoff`. A scenario that needs a play to end at a particular
-    /// second stretches its runoff by this.
+    /// The resolver is asked about a snap with the clock as the previous play left it,
+    /// because the tempo the caller chose is what decides how long the interval to the
+    /// snap will be; the rules layer then charges that interval and records the down with
+    /// the clock it was really snapped on. So a play the clock ran into is snapped at
+    /// `clock - huddle` and ends `clockRunoff` after that, and a scenario that needs a
+    /// play to end at a particular second stretches its runoff by this.
     public let huddle: UInt16?
 }
 
@@ -499,7 +501,31 @@ struct ScenarioResolver: PlayResolver {
             var huddle: UInt16?
         }
 
-        var clockRunning: [Bool] { state.withLock { $0.entries.map(\.clockIsRunning) } }
+        /// Whether the clock was running into each **recorded** snap.
+        ///
+        /// The resolver is asked about a down before the rules layer knows whether the
+        /// down happened: a period the interval before the snap exhausts ends there and
+        /// nothing is snapped or written (2025 rulebook, 4-8-1). So there is one entry
+        /// per question and one play per answer that counted, and the two are paired
+        /// here by the period they belong to — the only entry that can go unanswered is
+        /// one at the end of a period, and the play that follows it is in the next.
+        func clockRunning(alignedTo plays: [PlayRecord]) -> [Bool] {
+            state.withLock { state in
+                var aligned: [Bool] = []
+                var index = state.entries.startIndex
+                for play in plays {
+                    while index < state.entries.endIndex,
+                        state.entries[index].situation.quarter != play.situation.quarter
+                    {
+                        index += 1
+                    }
+                    guard index < state.entries.endIndex else { break }
+                    aligned.append(state.entries[index].clockIsRunning)
+                    index += 1
+                }
+                return aligned
+            }
+        }
 
         /// The offence's tempo, from the first pair of snaps in one period that showed
         /// it: the clock ran into the first, and the second came later than the first
@@ -514,11 +540,13 @@ struct ScenarioResolver: PlayResolver {
 
         fileprivate func count() -> Int { state.withLock { $0.entries.count } }
 
-        /// The side the scenario had a player hurt on at play `index`, if any.
-        fileprivate func injured(at index: Int) -> Side? {
-            state.withLock {
-                $0.entries.indices.contains(index) ? $0.entries[index].injured : nil
-            }
+        /// The side the scenario had a player hurt on the snap just resolved, if any.
+        ///
+        /// The last entry and not the play's index: the injury draw runs immediately
+        /// after the snap the resolver was last asked about, and a down the clock never
+        /// reached leaves an entry with no play, so the two numberings part company.
+        fileprivate func injuredOnTheLastSnap() -> Side? {
+            state.withLock { $0.entries.last?.injured }
         }
 
         fileprivate func append(_ entry: Entry) {
@@ -558,7 +586,7 @@ struct ScenarioResolver: PlayResolver {
     func scriptedInjury(
         on play: PlayRecord, context: PlayContext
     ) -> InjuryEvent? {
-        guard let side = log.injured(at: Int(play.index)) else { return nil }
+        guard let side = log.injuredOnTheLastSnap() else { return nil }
         let rotation = side == .offense ? context.offenseRotation : context.defenseRotation
         guard let hurt = rotation.first?.player else { return nil }
         return InjuryEvent(player: hurt, occurredOn: play.id, cause: .contact, gamesOut: 0)
@@ -612,7 +640,8 @@ public struct ScriptedGame {
         )
         .simulate(setup)
         return Trace(
-            result: result, clockRunning: log.clockRunning, huddle: log.huddle,
+            result: result, clockRunning: log.clockRunning(alignedTo: result.plays),
+            huddle: log.huddle,
             home: setup.home.id, away: setup.away.id)
     }
 }
