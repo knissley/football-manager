@@ -13,12 +13,15 @@ struct EndgameTests {
 
     private let caller = BaselineCaller()
 
-    private func context(clockRunning: Bool) -> PlayContext {
+    /// `playClock` is the interval in force before the snap: the forty of 4-6-1 from the
+    /// end of the previous play by default, the twenty-five of 4-6-2 from the Referee's
+    /// whistle after an administrative stoppage.
+    private func context(clockRunning: Bool, playClock: PlayClock? = nil) -> PlayContext {
         PlayContext(
             offense: TeamID(1), defense: TeamID(2), offenseRotation: [], defenseRotation: [],
             players: [:], offenseScheme: TeamScheme(offense: .westCoast, defense: .nickelMatch),
             defenseScheme: TeamScheme(offense: .airRaid, defense: .fourThreeUnder),
-            clockIsRunning: clockRunning, rules: .standard)
+            clockIsRunning: clockRunning, playClock: playClock, rules: .standard)
     }
 
     private func situation(
@@ -333,11 +336,12 @@ struct EndgameTests {
     // MARK: - Timeouts
 
     private func callsTimeout(
-        _ situation: Situation, isOffense: Bool, clockRunning: Bool = true
+        _ situation: Situation, isOffense: Bool, clockRunning: Bool = true,
+        playClock: PlayClock? = nil
     ) -> Bool {
         caller.callsTimeout(
             for: situation, classified: SituationClass(situation), isOffense: isOffense,
-            context: context(clockRunning: clockRunning))
+            context: context(clockRunning: clockRunning, playClock: playClock))
     }
 
     @Test("A trailing offence spends timeouts to keep the clock", .tags(.unit))
@@ -387,6 +391,116 @@ struct EndgameTests {
         #expect(
             callsTimeout(situation(quarter: 1, clock: 600, differential: -4), isOffense: true)
                 == false)
+    }
+
+    /// The arithmetic is all rulebook. A down that ends in bounds leaves the game clock
+    /// running, and the next snap has forty seconds of play clock in front of it that the
+    /// offence in front is entitled to spend to the last second (2025 rulebook, 4-6-1). A
+    /// charged timeout takes one of those intervals away, because the game clock then
+    /// waits for the snap (4-3-2), and a team has three of them a half and nothing to
+    /// carry them into (4-5-1 Item 1).
+    ///
+    /// So a defence one score down inside the last five minutes is holding two minutes of
+    /// game clock in its hand, and every interval it lets run is forty seconds of that
+    /// spent on nothing. Three of them is the difference between a drive and a kneel-down.
+    /// What is the coach's here is *which* down he stops it on; what is not is letting a
+    /// full play clock run while he still holds one and still needs the ball.
+    ///
+    /// Read from the other bench: this is the same scripted game the victory-formation
+    /// tests read, where the leading side grinds out the fourth quarter a yard at a time
+    /// and the trailing side has to decide what its timeouts are for.
+    @Test(
+        "football · Rules 4-6-1, 4-3-2, 4-5-1 Item 1 · a defence one score down inside the last five minutes does not let a full play clock run after a tackle in bounds while it still holds a timeout",
+        .tags(.football))
+    func aTrailingDefenceDoesNotLetThePlayClockRun() {
+        let trace = mustBeKnelt()
+        let playClock = Int(Rules.standard.playClockAfterAPlay.seconds)
+        var pairs = 0
+        for (previous, next) in zip(trace.plays, trace.plays.dropFirst()) {
+            // The same possession, inside the last five minutes of the fourth period,
+            // after a down that ended in bounds with the defence still holding one.
+            guard previous.situation.quarter == 4, next.situation.quarter == 4 else { continue }
+            guard previous.situation.clockRemaining <= 300 else { continue }
+            guard previous.situation.possession == next.situation.possession else { continue }
+            guard previous.outcome.kind != .penaltyOnly, next.outcome.kind != .penaltyOnly else {
+                continue
+            }
+            guard previous.outcome.endedIn == .tackled else { continue }
+            guard previous.situation.defenseTimeouts > 0 else { continue }
+
+            pairs += 1
+            let elapsed =
+                Int(previous.situation.clockRemaining) - Int(next.situation.clockRemaining)
+            #expect(
+                elapsed < playClock,
+                "play \(previous.index): \(elapsed) seconds ran between snaps at \(previous.situation.clockRemaining) with \(previous.situation.defenseTimeouts) timeouts in hand"
+            )
+        }
+        #expect(pairs > 0, "the script never put the trailing side on defence inside five minutes")
+    }
+
+    /// Two clocks, and the book says which is in force. Forty seconds from the end of the
+    /// previous play is the ordinary one (2025 rulebook, 4-6-1); after an administrative
+    /// stoppage — a change of possession, an enforcement, a charged timeout, the
+    /// two-minute warning — it is twenty-five from the Referee's whistle (4-6-2), and the
+    /// offence has that much to get a call in, a grouping on and the ball snapped. Fail
+    /// and the ball stays dead for a delay of game (4-6-4), which is five yards.
+    ///
+    /// Five yards is not the same price on every down. On first and ten it is a down
+    /// replayed with two behind it; on third and one it is third and six, and third and
+    /// six is a punt. With the game clock already stopped the alternative costs nothing
+    /// but the timeout itself, because a charged timeout leaves the game clock waiting
+    /// for the snap it was already waiting for (4-3-2).
+    ///
+    /// What the book settles is the price on each side of the trade — the clock in force,
+    /// and the five yards. Which way a coach takes it is his, and the assertions here are
+    /// written so that a caller which ignored either input fails them: one that never read
+    /// `PlayContext.playClock` would answer the same on both clocks, and one that never
+    /// read the down would answer the same on first and ten.
+    @Test(
+        "football · Rules 4-6-1, 4-6-2, 4-6-4, 4-3-2 · an offence facing the twenty-five-second clock on third and short with the game clock stopped spends a timeout rather than the five yards, and does not on the forty or on first and ten",
+        .tags(.football))
+    func anOffenceSpendsATimeoutRatherThanTakeTheFiveYards() {
+        let short = Rules.standard.playClockAfterAnAdministrativeStoppage
+        let ordinary = Rules.standard.playClockAfterAPlay
+        func thirdAndOne(
+            quarter: UInt8 = 3, clock: UInt16 = 600, differential: Int16 = 0, timeouts: UInt8 = 3
+        ) -> Situation {
+            situation(
+                down: .third, distance: 1, quarter: quarter, clock: clock,
+                differential: differential, offenseTimeouts: timeouts)
+        }
+
+        #expect(
+            callsTimeout(
+                thirdAndOne(), isOffense: true, clockRunning: false, playClock: short),
+            "third and one on the twenty-five with the clock stopped is a timeout, not a flag")
+        #expect(
+            callsTimeout(
+                thirdAndOne(), isOffense: true, clockRunning: false, playClock: ordinary)
+                == false,
+            "forty seconds is an interval the offence can beat")
+        #expect(
+            callsTimeout(
+                situation(quarter: 3, clock: 600), isOffense: true, clockRunning: false,
+                playClock: short) == false,
+            "five yards on first and ten is a down replayed, not a drive")
+        #expect(
+            callsTimeout(
+                thirdAndOne(timeouts: 0), isOffense: true, clockRunning: false, playClock: short)
+                == false,
+            "there was nothing left to spend")
+        // With the game clock running the timeout costs the clock too, and only a game a
+        // single possession decides is worth that.
+        #expect(
+            callsTimeout(
+                thirdAndOne(differential: 3), isOffense: true, clockRunning: true,
+                playClock: short))
+        #expect(
+            callsTimeout(
+                thirdAndOne(differential: 20), isOffense: true, clockRunning: true,
+                playClock: short) == false,
+            "three scores up, the five yards are not worth a timeout and the clock")
     }
 
     // MARK: - In a real game
