@@ -536,6 +536,12 @@ public struct CrudeResolver: PlayResolver {
                         detail: ThrowDecision.scramble.rawValue,
                         value: Int16(pressureAt ?? 2_000)))
 
+                // He is out of the pocket with the ball, which is the moment 8-4-7 takes
+                // illegal contact off this down and leaves defensive holding on it. The
+                // coverage rep above was settled before the quarterback had decided
+                // anything, so what it drew is worth asking about again now that he has.
+                penalty = Penalties.afterLeavingThePocket(penalty)
+
                 let scramble = tackleSequence(
                     carrier: SlotLayout.quarterback, pursuit: SlotLayout.scramblePursuit,
                     personnel: personnel, context: context,

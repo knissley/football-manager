@@ -56,6 +56,17 @@ window between the throw and the ball being touched — so both kinds are drawn 
 once a target has been chosen. A sack, a scramble and a throwaway carry no
 interference at all.
 
+**Illegal contact also has an end, and defensive holding does not share it.**
+`[2025 · 8-4-7]`: the moment the quarterback carries the ball out of the pocket,
+illegal contact stops being available and holding goes on being available exactly
+as it was. The coverage loop draws its contact long before the quarterback has
+decided anything, so the flag is asked about again at the scramble and illegal
+contact is dropped there — dropped, never turned into a hold, because
+reclassifying one act as the other to hold a count up is inventing a foul. The
+scramble is the whole of what the engine knows about the pocket: a down that ended
+as a pass carries nothing about where the passer was, so a passer who broke the
+pocket and then threw is still treated as a pocket down.
+
 Drawing them **only on the target's matchup is our simplification, and 8-5-1 does
 not say it.** That article protects any eligible receiver and gives both sides the
 same right to the ball, so the real game has interference away from the throw: a

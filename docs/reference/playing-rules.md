@@ -402,10 +402,42 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   the ball
 - **8-3-1** — An ineligible player downfield on a pass: five yards from the previous spot. —
   `test:enforcementFamilies`
-- **8-4-4** — Illegal contact: five yards and an automatic first down. —
+- **8-4-2**, **8-4-3** — What illegal contact *is*, inside the five-yard zone and beyond
+  it, and both are written for a down the man who took the snap is still spending in the
+  pocket with the ball. Inside the zone it is a chuck in a receiver's back, a chuck held
+  on once he is past the point level with the defender, or a second chuck after the first
+  was broken off; beyond it, it is a defender starting contact with a receiver trying to get
+  away from him, or holding on to a receiver he has ridden out of the zone. Hands used to
+  fend off contact a receiver is bringing are not it, and neither is incidental contact
+  beyond the zone (8-4-4). —
+  `test:illegalContactEndsWhenThePasserLeavesThePocket`; **modelling**: the engine draws
+  one contact verdict per coverage matchup and does not model the acts separately, so
+  which of these a flag was is not in the record
+- **8-4-4** — Illegal contact: five yards and an automatic first down. The clause is the
+  section's Penalty, printed after this article and covering 8-4-1 to 8-4-4. —
   `test:everyFoulIsCalled`
+- **8-4-5** — An illegal cut block: a block below the waist on an eligible receiver split
+  more than two yards outside his own tackle, wherever on the field it happens; or on one
+  lined up tighter than that, once he is past the line, since up to the line he may be cut
+  legally. Fifteen yards and an automatic first down. — not modelled: `Foul` has no case
+  for it and no draw produces one
 - **8-4-6** — Defensive holding: five yards and an automatic first down. —
   `test:defensiveHoldingAtTheThreeIsHalfTheDistance`
+- **8-4-7** — The defence's coverage restrictions have an end, and the article gives them
+  two. They stop as soon as the man who took the snap gives the pass up — he hands it off,
+  pitches it, throws it in either direction, puts it on the ground, or is tackled — and
+  from there a defender may push a receiver off and ward him away under 12-1-5. They stop
+  a second way when the quarterback carries the ball out of the pocket, and this one is
+  selective: illegal contact ends and the illegal cut block ends, while the restriction on
+  defensive holding does not. The article closes with a third case, the punt formation:
+  against a team showing punt (3-17-7) the acts that would be illegal contact are allowed,
+  short of anything that is holding. —
+  `test:illegalContactEndsWhenThePasserLeavesThePocket`,
+  `test:defensiveHoldingSurvivesThePasserLeavingThePocket`; **modelling**: the scramble is
+  the whole of what the engine knows about the pocket — on a down that ended as a pass
+  nothing in the record says where the passer was — and the giving-up clause and the punt
+  clause have nothing to switch off, because the coverage contact is drawn before the
+  quarterback has decided anything and a punt draws none at all
 - **8-5-1** — Interference of either kind needs a forward pass thrown from behind the
   line to exist at all, legal or not and whether or not it gets past the line: the foul is
   contact past the first yard downfield that spoils an eligible receiver's chance at the
