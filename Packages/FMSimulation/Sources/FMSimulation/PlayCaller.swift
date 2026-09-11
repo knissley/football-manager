@@ -816,12 +816,12 @@ public struct BaselineCaller: PlayCaller {
     /// snap classifies as goal to go and the class alone cannot tell first and goal from
     /// third and goal.
     ///
-    /// *The offence has to be one that is going to be late.* It is late when it means to
-    /// snap on the nub of the clock — a team bleeding the clock leaves itself a second
-    /// whichever of the two it is facing — or when the clock is the short one, which is
-    /// the clock that catches a team still getting a call in and a grouping on. Read off
-    /// `PlayContext.playClock` and the tempo this caller is about to play at, so a caller
-    /// that ignored either would answer the same everywhere.
+    /// *The clock has to be lost.* Not short, not tight — lost. `PlayContext` carries
+    /// the interval's verdict on this offence, and the flag is on the table only when it
+    /// says so: twenty-five seconds a team beats costs it nothing, and forty it does not
+    /// costs it the same five yards as any other clock. A bench that spent one on every
+    /// short clock would be buying downs that were never in danger, which is what this
+    /// one used to do — and the rate it was meant to move did not move at all.
     ///
     /// *The timeout has to be cheap.* With the game clock stopped it costs the timeout
     /// and nothing else, because the clock was already waiting for the snap (4-3-2). With
@@ -830,11 +830,9 @@ public struct BaselineCaller: PlayCaller {
     private func savesThePlayClock(
         _ situation: Situation, _ classified: SituationClass, _ context: PlayContext
     ) -> Bool {
+        guard context.playClockExpired else { return false }
         guard classified.downAndDistance.isShortYardage else { return false }
         guard situation.down == .third || situation.down == .fourth else { return false }
-        let onTheNub = tempo(for: classified) == .bleedClock
-        let shortClock = context.playClock.seconds < context.rules.playClockAfterAPlay.seconds
-        guard onTheNub || shortClock else { return false }
         return !context.clockIsRunning || classified.score.isOneScoreGame
     }
 

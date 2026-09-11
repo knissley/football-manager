@@ -242,6 +242,13 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
 
         // Timeouts first, and both sides get asked. They are not plays, so they happen
         // before one and change the situation the callers then read.
+        //
+        // Every reason to stop the clock but one is answered here, from the situation
+        // alone. The one that is not is the play clock: whether this offence is about to
+        // lose it is a fact about the snap rather than about the situation, so it cannot
+        // be known until the play is called and the interval drawn, and it is put to the
+        // offence further down.
+        var timeoutTaken = false
         if !state.pendingKickoff && !state.pendingTry {
             for isOffense in [false, true] {
                 let before = state.situation()
@@ -250,7 +257,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                         for: before, classified: SituationClass(before), isOffense: isOffense,
                         context: state.context())
                 else { continue }
-                state.takeTimeout(offense: isOffense)
+                timeoutTaken = state.takeTimeout(offense: isOffense) || timeoutTaken
             }
         }
 
@@ -326,7 +333,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             state.defensePackage = DefensiveCall.goalLineStop.package
         }
 
-        let situation = state.situation()
+        var situation = state.situation()
         let classified = SituationClass(situation)
 
         let calls: Calls
@@ -362,16 +369,47 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 defensiveCaller: .coordinator(PersonnelID(2)))
         }
 
+        // The play clock, and the one thing that beats it.
+        //
+        // Whether the offence gets this snap away inside the interval the book gives it
+        // (4-6-1, 4-6-2) is asked once the play is called, because the tempo it means to
+        // play at is half the answer. It is asked **before** the offence is given its
+        // chance to stop the clock, because that chance is what a bench actually has: a
+        // charged timeout stops the play clock (4-3-2) and the down is played, and with
+        // no timeout spent the ball stays dead for five yards (4-6-4). Drawn beside the
+        // down instead — which is where it used to be — the flag was a rate nothing
+        // could answer, and a timeout spent to avoid one bought nothing at all.
+        //
+        // Neither a free kick nor a try puts the question to a bench: a flag on one is
+        // still a flag, but the timeout that answers a play clock is the offence's to
+        // spend on a scrimmage down. And the offence is asked only if it has not already
+        // stopped the clock for some other reason this interval, since a clock cannot be
+        // stopped twice.
+        var expired = resolver.overrunsThePlayClock(
+            situation: situation, calls: calls, context: context, random: &random)
+        if expired, !state.pendingKickoff, !state.pendingTry, !timeoutTaken,
+            caller.callsTimeout(
+                for: situation, classified: classified, isOffense: true,
+                context: state.context(playClockExpired: true)),
+            state.takeTimeout(offense: true)
+        {
+            expired = false
+            // The timeout is charged, so the situation the snap is recorded with and the
+            // clock it is taken against have both moved.
+            situation = state.situation()
+        }
+        let atTheSnap = state.context(playClockExpired: expired)
+
         // Who stands where, drawn from both rotations against their snap shares. It is
         // drawn here and not in the resolver because substitution is the game's to
         // decide and the record's to carry: the resolver is handed the eleven a side.
         // Drawn immediately before the snap is resolved, so the play's stream is spent
         // in the same order it was when the resolver drew the lineup itself.
         let onField = Lineup.onField(
-            context, concept: calls.offense.concept, situation: situation, random: &random)
+            atTheSnap, concept: calls.offense.concept, situation: situation, random: &random)
 
         let resolved = resolver.resolve(
-            situation: situation, calls: calls, onField: onField, context: context,
+            situation: situation, calls: calls, onField: onField, context: atTheSnap,
             random: &random)
 
         // A flag before the snap puts two questions to the callers — a timeout instead

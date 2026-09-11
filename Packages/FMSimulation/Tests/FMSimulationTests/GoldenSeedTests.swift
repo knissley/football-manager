@@ -619,9 +619,43 @@ struct GoldenSeedTests {
             // asked for. Neither parent's constants could survive, because each was
             // computed without the other's mechanism. Checked before they were written
             // down: all three seeds differ from both parents of this merge.
-            (UInt64(1), UInt64(10_054_822_703_384_694_462)),
-            (UInt64(5), UInt64(12_809_190_296_902_448_984)),
-            (UInt64(12), UInt64(14_389_288_752_268_214_632)),
+            //
+            // And then the play clock stopped being a rate and became an interval with a
+            // decision in it. Whether the offence gets a snap away inside the clock in
+            // force is asked once per snap, before either bench is asked for a timeout
+            // and before the eleven men are drawn — where the flag used to be drawn
+            // beside the down, after the false start and inside the resolver. That draw
+            // has moved in every snap's stream, so every game diverges from its first
+            // possession whether or not a play clock is ever lost. Three things then
+            // differ in the football as well: the offence spends a timeout on a play
+            // clock only when it has actually lost one rather than whenever the clock
+            // looked tight, which is about 0.7 fewer timeouts a game; the snap that
+            // follows a charged timeout is a prepared one, so it takes about half as many
+            // delays of game as an ordinary snap instead of rather more; and a down where
+            // nobody stopped the clock is a delay of game whatever else might have been
+            // drawn on it, since no play was run.
+            //
+            // And the play clock then met the run game and the defence's answer to one
+            // grouping, in this merge, which is where the constants below come from. On
+            // one side a play clock that is about to expire is a decision a bench makes
+            // rather than a flag drawn beside the down. On the other a carry is three
+            // outcomes of a point of attack, and a two-tight-end grouping draws the fifth
+            // defensive back three snaps in ten where it drew the four-back front every
+            // time. They reach each other on exactly the downs both are about. The
+            // timeout is spent on third and fourth and short, and how often an offence is
+            // *in* third and short is the run game's to decide — a carry that gains five
+            // where it gained one is a second and five, so the down the bench is asked
+            // about is a different down at a different distance. Run the other way, a
+            // timeout that stops the clock leaves a down played where five yards would
+            // have been walked off, so the distance the next carry is run at is one the
+            // run game would never have seen. And the defence's answer decides who is
+            // standing at that point of attack on the down the timeout bought. Neither
+            // parent's constants could survive, because each was computed without the
+            // other's mechanisms. Checked before they were written down: all three seeds
+            // differ from both parents of this merge.
+            (UInt64(1), UInt64(13_662_653_904_281_590_993)),
+            (UInt64(5), UInt64(4_471_667_699_963_928_594)),
+            (UInt64(12), UInt64(12_598_138_263_296_020_470)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

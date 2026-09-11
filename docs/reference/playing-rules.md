@@ -161,7 +161,8 @@ Which rules must be true of a game, and what checks each, is
 - **4-5-4 Note 9** — There is never a ten-second runoff against the defence. — `test:window`
 - **4-6-1** — 40 seconds from the end of the previous play in which to snap, and letting
   them run out is delay of game. —
-  `test:delayOfGameWhenThePlayClockExpires`, `test:playClockValues`,
+  `test:delayOfGameWhenThePlayClockExpires`,
+  `test:anExpiredPlayClockWithNoTimeoutIsADelayOfGame`, `test:playClockValues`,
   `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
   spend, which is what a knee-down sequence counts —
   `test:aKneltOutLeadStaysKnelt`,
@@ -187,12 +188,18 @@ Which rules must be true of a game, and what checks each, is
 - **4-6-3** — What a stoppage leaves on the play clock: 25 after a charged timeout, the
   two-minute warning, the end of a period or a penalty enforcement (a); 40 after a
   defensive act that conserves time or an excess timeout charged to the defence (b); 30
-  after a ten-second runoff (c). — `test:playClockValues`; the resume-where-it-stopped
+  after a ten-second runoff (c). — `test:playClockValues`,
+  `test:aChargedTimeoutBeatsThePlayClock`; the resume-where-it-stopped
   cases are not modelled, since the engine has no stoppage that leaves a play clock
   half run
 - **4-6-4** — When the play clock expires the ball stays dead: the whistle is the foul,
   five yards from the succeeding spot with the down unchanged (14-4-1). —
-  `test:delayOfGameWhenThePlayClockExpires`
+  `test:delayOfGameWhenThePlayClockExpires`,
+  `test:anExpiredPlayClockWithNoTimeoutIsADelayOfGame`; and the article says *expires*, so
+  a clock stopped before it runs out leaves nothing to enforce — a charged timeout (4-3-2)
+  is the offence's answer to one it is not going to beat, which is
+  `test:aChargedTimeoutBeatsThePlayClock` and
+  `test:anOffenceSpendsATimeoutRatherThanTakeTheFiveYards`
 - **4-7-1** — Once a half is inside its two-minute warning, neither side may buy the clock
   back by any of six acts: a flag between downs, by either side, that kills a running
   clock; intentional grounding; an illegal forward pass; a backward pass thrown out of

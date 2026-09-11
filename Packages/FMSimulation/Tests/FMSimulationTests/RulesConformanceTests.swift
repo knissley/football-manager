@@ -2139,6 +2139,124 @@ struct RulesConformanceTests {
             "five yards, first down still, no time, and the clock still waits for the snap")
     }
 
+    /// The third and one the scenario makes late, and what the game did with it.
+    private func thirdAndOne(in trace: Trace) -> (index: Int, play: PlayRecord)? {
+        guard
+            let found = trace.first(where: {
+                $0.situation.quarter == 1 && $0.situation.down == .third
+                    && $0.situation.distance == 1
+            })
+        else {
+            Issue.record("the script never reached a third and one in the first quarter")
+            return nil
+        }
+        return found
+    }
+
+    /// The forty seconds start when the previous play ends (4-6-1) and this offence does
+    /// not beat them. Nobody stops the clock, so the ball stays dead and the whistle is
+    /// the foul (4-6-4): five yards from the succeeding spot with the down unchanged
+    /// (14-4-1), and the whole play clock off a game clock that was running.
+    ///
+    /// The scenario states the *cause* — this offence does not get the snap away — and
+    /// the flag is what the engine makes of it. A scenario that scripted the flag itself
+    /// would say nothing about where a flag comes from, which is the question.
+    @Test(
+        "football · Rule 4-6-1, 4-6-4, 14-4-1 · a play clock that expires on a bench with no answer to it is five yards and the same down",
+        .tags(.football)
+    )
+    func anExpiredPlayClockWithNoTimeoutIsADelayOfGame() {
+        let trace = RulesScenario.thePlayClockExpiresOnThirdAndOne.run()
+        guard let late = thirdAndOne(in: trace) else { return }
+        let before = late.play.situation
+        #expect(
+            late.play.outcome.kind == .penaltyOnly
+                && late.play.outcome.penalties.first?.foul == .delayOfGame,
+            "a play clock nobody stopped is a delay of game")
+        #expect(
+            before.offenseTimeouts == 3,
+            "the scenario meant this bench to still hold its timeouts and spend none")
+        #expect(
+            trace.clockRunning(into: late.index) == true,
+            "the scenario meant the game clock to be running through the interval")
+        if let reading = playClock(on: late.play) {
+            #expect(reading.seconds == 40, "the play clock after a play is forty seconds")
+            #expect(reading.remaining == 0, "and it expired")
+        }
+        trace.expectPlay(
+            late.index + 1, possession: before.possession, down: before.down,
+            distance: before.distance + 5, ballOn: before.ballOn + 5,
+            "five yards from the succeeding spot, and the same down")
+        if let previous = trace[late.index - 1] {
+            #expect(
+                Int(before.clockRemaining)
+                    == Int(previous.situation.clockRemaining)
+                    - Int(previous.outcome.clockRunoff) - Int(Rules.standard.playClock),
+                "the whole play clock ran off the game clock between the whistle and the flag")
+        }
+    }
+
+    /// The other side of the same interval. A charged timeout stops the clock — the game
+    /// clock then waits for the snap (4-3-2) — so the play clock never expires and there
+    /// is no foul to enforce: the down is played. What the timeout leaves behind is the
+    /// twenty-five seconds of 4-6-3-a, from the Referee's whistle.
+    ///
+    /// The same scripted game and the same snap, with one bench that answers the clock
+    /// and one that does not. What separates the two records is the timeout and nothing
+    /// else.
+    @Test(
+        "football · Rule 4-3-2, 4-6-3-a, 4-6-4 · a charged timeout stops a play clock the offence is not going to beat, so there is no delay of game and the snap that follows is against twenty-five seconds",
+        .tags(.football)
+    )
+    func aChargedTimeoutBeatsThePlayClock() {
+        let trace = RulesScenario.aTimeoutBeatsThePlayClockOnThirdAndOne.run()
+        guard let late = thirdAndOne(in: trace) else { return }
+        #expect(
+            late.play.outcome.penalties.contains { $0.foul == .delayOfGame } == false,
+            "the clock was stopped before it expired, so there is no foul")
+        #expect(
+            late.play.outcome.kind != .penaltyOnly, "and the down the timeout bought was played")
+        #expect(
+            late.play.decisions.contains { $0.timeoutByOffense == true },
+            "the record says the offence stopped the clock before this snap")
+        #expect(
+            late.play.situation.offenseTimeouts == 2,
+            "and it cost a timeout: three in a half (4-5-1 Item 1), two now")
+        #expect(
+            trace.clockRunning(into: late.index) == false,
+            "a charged timeout leaves the game clock waiting for the snap")
+        if let reading = playClock(on: late.play) {
+            #expect(
+                reading.seconds == 25,
+                "a charged timeout leaves twenty-five seconds from the whistle")
+            #expect(reading.remaining > 0, "and the offence beat them")
+        }
+    }
+
+    /// **Pins a model, not a rule.** The book says how long the play clock is after a
+    /// charged timeout (4-6-3-a) and never how ready the offence is when it starts. The
+    /// engine's answer is that an offence which has stood through a timeout has its call
+    /// in and its grouping set, so what is left of the interval is lining up — the
+    /// interval `Tempo.hurryUp` stands for. Pinned because the alternative is the reading
+    /// this engine used to record, where a team came out of a timeout with *less* of the
+    /// clock to spare than one that had huddled on the run, so that stopping the clock to
+    /// avoid a delay of game made the next one likelier.
+    @Test(
+        "pin · the snap out of a charged timeout is a prepared one: it records more of the twenty-five-second play clock left than its called tempo alone would leave",
+        .tags(.pin)
+    )
+    func theSnapOutOfATimeoutIsPrepared() {
+        let trace = RulesScenario.aTimeoutBeatsThePlayClockOnThirdAndOne.run()
+        guard let late = thirdAndOne(in: trace), let reading = playClock(on: late.play) else {
+            return
+        }
+        let fromTheCalledTempo = Rules.standard.playClockAfterAnAdministrativeStoppage
+            .remainingAtIntendedSnap(at: late.play.calls.offense.tempo)
+        #expect(
+            reading.remaining > fromTheCalledTempo,
+            "the huddle happened during the timeout, so the offence is on the ball sooner")
+    }
+
     // MARK: The last forty seconds of a half
 
     /// The defence cannot use a dead-ball foul to run the clock
