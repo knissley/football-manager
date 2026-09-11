@@ -44,6 +44,16 @@ public struct PlayerSlot: Sendable, Hashable, Codable, Comparable {
 /// underlying rolls were — are deliberately absent: if they were recorded here
 /// every observer would see them and per-observer trait discovery would collapse
 /// (see docs/play-record.md).
+///
+/// **Who the two slots are, on every case that names two men.** `primary` is the man
+/// whose act the point records and `secondary` is the man on the other side of it: the
+/// blocker and the rusher he took, the defender and the receiver he covered, the
+/// quarterback and the man he threw to. It is one rule and it holds across the enum, so
+/// a query that wants the actor reads `primary` on any kind without asking which. The
+/// cost of a case that disagrees is not a compile error but a wrong name in a stat line
+/// — a leaderboard built on `primary` crediting a quarterback as a receiver — which is
+/// why the factories below are the intended way to build one and the convention is
+/// written here rather than only in their parameter names.
 public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// The verdict on a dropback's pocket: a rusher reached the quarterback before the
     /// ball was out. `primary` is the blocker he beat, `secondary` is the rusher, and
@@ -55,8 +65,19 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// milliseconds the protection had to sustain, and the pair named is the rush that
     /// came closest.
     case pressureHeld = 1
-    /// The quarterback worked to a read. `detail` is the progression index,
-    /// `value` is the receiver's separation in centimetres.
+    /// The quarterback worked to a read. `primary` is the quarterback, `secondary` the
+    /// receiver he read, `detail` is the progression index — the place in the play's own
+    /// read order, counting from one — and `value` is that receiver's separation in
+    /// centimetres.
+    ///
+    /// **Not emitted while no concept carries a read order.** The index has to come from
+    /// the play's design; a resolver with no progression can supply only the order its
+    /// own loop happened to run in, which is not a thing on the film and so not a thing
+    /// this enum may carry. Who was covering whom and how open he got are on the
+    /// `.coverageAssignment` for the same receiver, which is emitted for every route
+    /// runner whether or not the quarterback ever looked at him — so the silence here
+    /// costs a reader nothing it could have answered, and an analysis that finds no read
+    /// on a play is being told the truth rather than handed a number to misread.
     case readProgression = 2
     /// What the quarterback did with the ball. `detail` is a `ThrowDecision`.
     case throwDecision = 3
@@ -74,7 +95,12 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// A running lane opened or did not. `detail` is the gap, `value` is a
     /// quality score.
     case holeQuality = 8
-    /// A defender's assignment. `detail` is a `CoverageTechnique`.
+    /// A defender's assignment, and what it was worth. `primary` is the defender,
+    /// `secondary` the receiver he was on, `detail` is a `CoverageTechnique` and `value`
+    /// is how far apart the two finished, in centimetres — the same quantity and the same
+    /// unit `ballArrival` carries for the one matchup the ball went to, recorded here for
+    /// every matchup whether it was thrown at or not. That is what lets a reader say a
+    /// receiver was open and never got the ball.
     case coverageAssignment = 9
     /// The play clock the snap was taken against (2025 rulebook, 4-6). `detail` is the
     /// seconds the clock started with — 40 after a play, 25 after an administrative
@@ -259,12 +285,17 @@ extension DecisionPoint {
             value: forMilliseconds)
     }
 
+    /// A read is the quarterback's act, so he is `primary` and the man he read is
+    /// `secondary` — the same pair, in the same order, as `throwDecision`. Nothing in the
+    /// engine builds one yet; see `DecisionKind.readProgression` for why it stays unbuilt
+    /// until a concept carries a read order.
     public static func readProgression(
-        tick: UInt16, receiver: PlayerSlot, index: UInt8, separationCentimetres: Int16
+        tick: UInt16, passer: PlayerSlot, receiver: PlayerSlot, index: UInt8,
+        separationCentimetres: Int16
     ) -> DecisionPoint {
         DecisionPoint(
-            tick: tick, kind: .readProgression, primary: receiver, detail: index,
-            value: separationCentimetres)
+            tick: tick, kind: .readProgression, primary: passer, secondary: receiver,
+            detail: index, value: separationCentimetres)
     }
 
     public static func throwDecision(
@@ -309,11 +340,12 @@ extension DecisionPoint {
     }
 
     public static func coverageAssignment(
-        tick: UInt16, defender: PlayerSlot, receiver: PlayerSlot, technique: CoverageTechnique
+        tick: UInt16, defender: PlayerSlot, receiver: PlayerSlot, technique: CoverageTechnique,
+        separationCentimetres: Int16
     ) -> DecisionPoint {
         DecisionPoint(
             tick: tick, kind: .coverageAssignment, primary: defender, secondary: receiver,
-            detail: technique.rawValue)
+            detail: technique.rawValue, value: separationCentimetres)
     }
 
     /// The play clock this snap was taken against, and what it read at the snap — zero

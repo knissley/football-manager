@@ -54,7 +54,7 @@ instrumentation on. Debuggable without being visible.
 PlayRecord
   game          GameID
   index         UInt16          monotonic within the game; also the seed-split label
-  schemaVersion UInt8           the shape this record was written under; 1 today
+  schemaVersion UInt8           the shape this record was written under; 2 today
 
   situation     Situation       the state at the snap: the clock reads what it read
                                 when the ball was snapped, not at the whistle before
@@ -170,14 +170,23 @@ DecisionPoint
 ```
 .pressureAllowed(blocker, rusher, ms)     .pressureHeld(blocker, rusher, ms)
                                           the pocket, once: got there, or did not
-.readProgression(index, receiver, separationCm)
+.readProgression(passer, receiver, index, separationCm)
+  not emitted: no concept carries a read order, so there is no index to record
 .throwDecision(.primary | .checkdown | .throwaway | .scramble | .sack)
 .ballArrival(receiver, separationCm, placement)
 .catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
 .blockResult(blocker, defender, result)   .holeQuality(gap, quality)
   one per rep, run or pass, with `value` the milliseconds it lasted
-.coverageAssignment(defender, receiver, technique)
+.coverageAssignment(defender, receiver, technique, separationCm)
 ```
+
+**The two slots mean the same thing on every case that names two men.** `primary` is the
+man whose act the point records and `secondary` is the man on the other side of it: the
+blocker and the rusher he took, the defender and the receiver he covered, the quarterback
+and the man he threw to. One rule across the enum, so a query that wants the actor reads
+`primary` without asking which kind it holds. A case that disagrees costs nothing at
+compile time and a wrong name in a stat line at read time — a leaderboard built on
+`primary` crediting a quarterback as a receiver.
 
 **What a pass play records, and how much of it.** A dropback's points are fixed by its
 personnel, not by how the play went, so the count is answerable before the snap:
@@ -187,15 +196,26 @@ personnel, not by how the play went, so the count is answerable before the snap:
 | `.blockResult` | one per pass-rush rep — rushers, capped by the men in protection |
 | `.pressureAllowed` / `.pressureHeld` | exactly one between them, and none at all on a snap with no rep to resolve |
 | `.coverageAssignment` | one per route runner the coverage matched, up to four |
-| `.readProgression` | one per route runner, up to four |
+| `.readProgression` | none, until a concept carries a read order |
 | `.throwDecision` | one — the throw, the throwaway, the scramble or the sack |
 | `.ballArrival` | one, on a snap where the ball was thrown |
 | `.catchAttempt` | one, where it arrived to somebody |
 | `.tackleAttempt` | up to three, after a catch, a scramble or a sack |
 
 So a four-man rush against eleven personnel that ends in a completion records four block
-results, one pocket verdict, four coverage assignments, four reads, a throw, an arrival, a
-catch and up to three tackle attempts.
+results, one pocket verdict, four coverage assignments, a throw, an arrival, a catch and
+up to three tackle attempts.
+
+**Why the reads are missing, and where what they carried went.** A `.readProgression` is
+documented to carry the place in the play's own read order, and no `PlayConcept` carries
+one: the resolver works every route runner in whatever order the personnel hands them
+over, so the only index it could record is its own loop's, which is not a thing a
+film-study analyst could determine and so not a thing this enum may carry. The rest of
+what a read knew is on the `.coverageAssignment` for the same receiver — who was on him,
+and how far apart they finished — and that is emitted for every route runner whether the
+quarterback looked at him or not, which is what lets a reader say a man was open and
+never got the ball. The point returns when a concept carries a read order and the
+quarterback works it.
 
 **The rep and the pressure are two different facts.** A rusher beating his blocker is a
 `.blockResult` with `BlockResult.lost` and the milliseconds he took. Whether the
@@ -470,8 +490,14 @@ exactly the thing the next snap's causal chain begins with.
 - **Versioned from day one** — old events must still fold correctly
   ([ADR-0009](adr/0009-event-sourcing-by-default.md)). `PlayRecord.schemaVersion` says
   which shape a record was written under, and is bumped when the layout or the meaning
-  of a field changes. It is 1: the day one this doc promised arrived late, and every
-  record written before it is a version-0 record that nothing needs to read.
+  of a field changes. The test is whether a reader of an older record would now be
+  *wrong*, not whether the record moved: a decision kind that starts being emitted needs
+  no bump, because a record without it is a record where it did not happen; a field that
+  starts carrying a quantity where it carried a filler does, because the same byte
+  answers a different question either side and nothing but the version can say which.
+  It is 2. Version 1 arrived late — every record written before it is a version-0 record
+  that nothing needs to read — and 2 is where a coverage assignment began carrying the
+  separation the matchup produced, which in version 1 is zero on every one of them.
 - **Derived values are not stored.** Win probability, leverage and grades are computed by
   `FMAnalysis`, not written into the record, so improving those models improves history
   retroactively.
