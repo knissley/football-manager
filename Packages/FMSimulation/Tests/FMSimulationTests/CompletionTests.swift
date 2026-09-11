@@ -1,4 +1,5 @@
 import FMCore
+import FMSimulationScenarios
 import Testing
 
 @testable import FMSimulation
@@ -16,18 +17,34 @@ import Testing
 @Suite("Completions and points in the record")
 struct CompletionTests {
 
-    private static func game(seed: UInt64) -> GameResult {
-        TestWorld.game(seed: seed, game: GameID(seed))
-    }
-
-    /// Forty games, because the sample has to reach the rarest thing it asserts. A safety
-    /// is that thing — one in the first forty games of this world — and which game it
-    /// falls in moves whenever the caller does, so this number is a coverage floor rather
-    /// than a constant with a meaning. The per-play promises below hold at any size.
-    private static let sample: [GameResult] = (UInt64(1)...40).map(game(seed:))
+    /// The standard corpus, whose size is derived where it is defined.
+    ///
+    /// This suite used to size the sample itself, and the number it arrived at was a
+    /// coverage floor for the rarest thing it asserted: the safety, which in the first
+    /// forty games of this world was one. Which game a safety falls in moves whenever the
+    /// caller does, and it moved: the sample had to be widened from twenty to forty when a
+    /// caller change took the first one past game twenty. Forty was never enough either —
+    /// the rate is 0.075 a game, so forty games miss a safety one time in twenty. The
+    /// safety is asserted against a fixture that constructs one now, and nothing left over
+    /// this sample is rarer than a two-point conversion at a fifth of a game.
+    private static let sample: [GameResult] = TestWorld.corpus
     private static var plays: [PlayRecord] { sample.flatMap(\.plays) }
 
+    /// A game in which somebody is tackled in his own end zone, scripted rather than
+    /// waited for.
+    ///
+    /// The scoring plays this suite asserts on are common except this one, and a sample
+    /// is the wrong instrument for a case at 0.075 a game: it either drew one or it did
+    /// not, and no size makes the answer certain. `RulesScenario.safetyFreeKick` builds a
+    /// game around the play, so the assertion below fails the moment a safety stops being
+    /// recorded as one — immediately, and for the reason it says.
+    private static let scriptedSafety: [PlayRecord] = RulesScenario.safetyFreeKick.run().plays
+
     /// The whole point: a ball caught behind the line, or for nothing, is a completion.
+    ///
+    /// The floor is a guard on the instrument. Measured over the corpus: 1,812 completions
+    /// in forty games and 107 of them for nothing, so the sample carries ten times what the
+    /// floor asks and the assertion after it is made of a hundred plays rather than of one.
     @Test("Completions for zero or fewer yards occur, and are marked complete", .tags(.contract))
     func completionsForNothingAreComplete() {
         let caughtForNothing = Self.plays.filter {
@@ -100,10 +117,18 @@ struct CompletionTests {
     }
 
     /// The points are on the play that scored them, with who scored, and nowhere else.
+    ///
+    /// The promise holds over every play in both streams; the *coverage* half — that each
+    /// way of scoring turns up at all — is split by how often the engine produces it.
+    /// Measured over the corpus's first eighty games, per game: the try-kick 5.4, the
+    /// touchdown 5.8, the field goal 3.1, the defensive touchdown 0.31, the two-point
+    /// conversion 0.20. Forty games expect eight of the thinnest of those. The safety, at
+    /// 0.075, is an order thinner than any of them and is asserted against the scripted
+    /// game instead.
     @Test("Points sit on scoring plays only, and say who scored", .tags(.contract))
     func pointsSitOnScoringPlays() {
         var kinds: Set<Scoring> = []
-        for play in Self.plays {
+        for play in Self.plays + Self.scriptedSafety {
             let outcome = play.outcome
             if let scoring = outcome.scoring {
                 kinds.insert(scoring)
@@ -113,10 +138,12 @@ struct CompletionTests {
             }
         }
         for kind in [
-            Scoring.touchdown, .fieldGoal, .extraPoint, .twoPointConversion, .safety,
-            .defensiveTouchdown,
+            Scoring.touchdown, .fieldGoal, .extraPoint, .twoPointConversion, .defensiveTouchdown,
         ] {
             #expect(kinds.contains(kind), "forty games never scored a \(kind)")
         }
+        #expect(
+            Self.scriptedSafety.contains { $0.outcome.scoring == .safety },
+            "the scripted safety did not record one")
     }
 }

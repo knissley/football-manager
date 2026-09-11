@@ -14,13 +14,21 @@ import Testing
 @Suite("Tries")
 struct TryTests {
 
-    private static func game(seed: UInt64) -> GameResult {
-        TestWorld.game(seed: seed, game: GameID(seed))
-    }
+    /// The standard corpus, whose size is derived where it is defined.
+    ///
+    /// Three tests in here walked games, at thirty, eighty and twenty seeds, and each
+    /// re-simulated the games the others had already played: two hundred and ten games
+    /// to read what forty distinct ones say, because a game is a pure function of its
+    /// setup and playing it twice cannot tell anybody anything. They read one corpus now.
+    ///
+    /// Forty carries everything they ask. The thinnest is a two-point try being *called*:
+    /// the engine attempts one about half a game — 41 across the corpus's first eighty —
+    /// so forty expect twenty, and both of the branches the football test below needs are
+    /// half of that again. There is no case in here rarer than that; the one that was, a
+    /// flag on a try, is checked by scenario in the two tests that follow it.
+    private static let sample: [GameResult] = TestWorld.corpus
 
-    private static func plays(_ seeds: ClosedRange<UInt64>) -> [PlayRecord] {
-        seeds.flatMap { game(seed: $0).plays }
-    }
+    private static var plays: [PlayRecord] { sample.flatMap(\.plays) }
 
     /// Rewritten for A7 (#19). This used to assert that *every* try is snapped from
     /// the standard spot, which is wrong football: a flag on the try moves it (2025
@@ -35,7 +43,7 @@ struct TryTests {
         let rules = Rules.standard
         var checked = 0
         var moved = 0
-        for plays in (UInt64(1)...30).map({ Self.game(seed: $0).plays }) {
+        for plays in Self.sample.map(\.plays) {
             for index in plays.indices {
                 let play = plays[index]
                 let standard: UInt8
@@ -91,7 +99,7 @@ struct TryTests {
             }
         }
         #expect(checked > 0, "no tries to check")
-        #expect(moved > 0, "thirty games and no flag on a try; the second half of this is unarmed")
+        #expect(moved > 0, "forty games and no flag on a try; the second half of this is unarmed")
     }
 
     // MARK: - A flag on the try (A7, #19)
@@ -155,12 +163,37 @@ struct TryTests {
     /// run**. Every conversion this engine attempted was a pass, so half the play the rule
     /// describes did not exist — and with it went the heavy grouping a team sends out for
     /// it and the goal-line defence that answers.
+    ///
+    /// **Both halves of the article, and each one asked where it can be answered.** That
+    /// the engine can *snap* a try as a run is a fact about the resolver, and it is forced:
+    /// two hundred two-point runs are snapped and every one of them has to come back a
+    /// two-point conversion with a carrier. That a caller ever *chooses* to run one is a
+    /// fact about a game, and only a game can say it — the corpus's forty hold sixteen
+    /// conversions, nine carried and seven thrown, so the thinner of the two branches is
+    /// missed about one time in a thousand.
+    ///
+    /// The count is a guard on the instrument rather than the claim: it says the sample
+    /// still reached enough conversions for the two assertions after it to mean anything.
+    /// Six is two and a half standard deviations under sixteen, which fires when the
+    /// caller has stopped going for two and not when it went for two a little less often.
     @Test(
         "football · Rule 11-3-1 · a two-point try may be a run, and some of them are",
         .tags(.football))
     func twoPointTriesCanBeRuns() {
-        let tries = Self.plays(1...80).filter { $0.outcome.kind == .twoPointConversion }
-        #expect(tries.count > 10, "only \(tries.count) conversions were attempted")
+        let snapped = TestWorld.resolved(.twoPointRun, count: 200)
+        for run in snapped where run.outcome.kind != .penaltyOnly {
+            // A flag before the snap wipes the down out and there is no play to be a run,
+            // which is why the exit is excluded rather than asserted against.
+            #expect(
+                run.outcome.kind == .twoPointConversion,
+                "a two-point run was recorded as \(run.outcome.kind)")
+        }
+        #expect(
+            snapped.contains { $0.outcome.participants.contains { $0.role == .rusher } },
+            "nobody carried the ball on two hundred two-point runs")
+
+        let tries = Self.plays.filter { $0.outcome.kind == .twoPointConversion }
+        #expect(tries.count > 6, "only \(tries.count) conversions were attempted")
         let carried = tries.filter { play in
             play.outcome.participants.contains { $0.role == .rusher }
         }
@@ -214,7 +247,7 @@ struct TryTests {
     /// not. A conversion rate of zero and one of a hundred are equally wrong.
     @Test("Conversions are sometimes made and sometimes missed", .tags(.unit))
     func conversionsGoBothWays() {
-        let tries = Self.plays(1...80).filter { $0.outcome.kind == .twoPointConversion }
+        let tries = Self.plays.filter { $0.outcome.kind == .twoPointConversion }
         #expect(tries.isEmpty == false, "nobody ever went for two")
         #expect(tries.contains { $0.outcome.endedIn == .touchdown }, "no conversion ever succeeded")
         #expect(tries.contains { $0.outcome.endedIn != .touchdown }, "no conversion ever failed")
@@ -231,8 +264,7 @@ struct TryTests {
     /// record at zero while it passed.
     @Test("The score on the board is the sum of the scoring plays", .tags(.contract))
     func scoreboardMatchesTheStream() {
-        for seed in UInt64(1)...20 {
-            let result = Self.game(seed: seed)
+        for result in Self.sample {
             var home: Int16 = 0
             var away: Int16 = 0
             var scoringPlays = 0
@@ -252,7 +284,7 @@ struct TryTests {
                 if scoredByHome { home += points } else { away += points }
             }
 
-            #expect(scoringPlays > 0, "seed \(seed): nobody scored")
+            #expect(scoringPlays > 0, "game \(result.game): nobody scored")
             #expect(
                 home == result.homeScore && away == result.awayScore,
                 "stream says \(home)-\(away), scoreboard says \(result.homeScore)-\(result.awayScore)"

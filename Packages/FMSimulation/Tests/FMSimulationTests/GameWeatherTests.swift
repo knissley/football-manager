@@ -10,6 +10,11 @@ import Testing
 /// rules — ever looked at it: the resolver did, and `PlayContext` already carried the same
 /// value with a comment saying facts about the afternoon belong to the game. So the
 /// situation is the down and the game's result carries the afternoon once.
+///
+/// Both tests below play one seed twice, once in each set of conditions, and that pair is
+/// the whole sample by construction rather than by choice: what is asserted is a
+/// *difference* between two games that differ in one thing, so a second seed would be a
+/// second instance of the same comparison and not more evidence for it.
 @Suite("The weather belongs to the game")
 struct GameWeatherTests {
 
