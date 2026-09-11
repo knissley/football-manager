@@ -1,8 +1,8 @@
 # Tools
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
-`playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/harness-reach.sh`
-and `scripts/test-census.sh`. Nothing here is a plan.
+`playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/lint-reference.sh`,
+`scripts/harness-reach.sh` and `scripts/test-census.sh`. Nothing here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
@@ -501,7 +501,7 @@ seeded game does.
 swift test --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
 swift test --package-path Packages/FMGeneration
-swift test --package-path Packages/FMSimulation      # ~45s; the engine's own suite
+swift test --package-path Packages/FMSimulation      # minutes, not seconds — see below
 swift test --package-path Tools/simharness          # the calibration table cannot drift from its doc
 swift test --package-path Tools/gamelog             # what a drive summary says about the clock
 
@@ -513,6 +513,16 @@ Every one of these is a hard-failing step of the `test` job in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), on both architectures —
 `Tools/simharness` since #9 and `Tools/gamelog` since #87, because nothing else compiles
 either tool's tests, or in gamelog's case the tool itself.
+
+**FMSimulation is the long one, and how long has been wrong in the docs for a while.**
+This line and CLAUDE.md's both said `~45s`. Measured on this tree: **144 s of test time**
+for the 283 tests, about **three minutes of wall clock** with the build, and the
+vocabulary-coverage suite alone is **54 s** when it is the only thing running. The
+suites run in parallel, so the total is nearer the longest pole than the sum.
+[H6 · #106](https://github.com/knissley/football-manager/issues/106) measured 201 s on a
+different machine, found that widened game samples are most of the growth, and owns
+getting it back under a stated budget — with fixtures that construct a rare case rather
+than samples big enough to stumble into one. Until it lands, budget minutes.
 
 Every `@Test` in all six targets carries a kind tag, and
 [`test-census`](#test-census--what-the-suite-asserts) below fails on one that does not.
@@ -610,6 +620,124 @@ Every hit the tree must produce is listed in `scripts/lint-sim-fixtures/expected
 stops firing is caught as loudly as a new false positive. So a new rule needs a fixture
 and an expectation line. It runs in under a second, and CI runs it as its own
 hard-failing step.
+
+## lint-reference — reproduced rulebook text, and citations that resolve
+
+```bash
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh
+```
+
+Two checks over the documents and sources where football prose lives.
+
+1. **Reproduced text.** Runs of ten words the tree and the rulebook have in common.
+   CLAUDE.md rule 8 allows a citation and forbids a copy, and until this script existed
+   nothing checked it: three reproduced runs in `docs/reference/playing-rules.md` were
+   found by a reviewer who happened to have the book open.
+2. **Citations resolve.** Every `rule-section-article` number in the four reference
+   documents names an article the book actually has.
+
+It **cannot** tell whether a cited article *supports* the claim beside it, and it says so
+on every run, clean or not. `8-5-4` is a real article, so a citation to it passes check 2;
+it was nonetheless the wrong article in six entries across three documents for weeks. A
+green run means "no uncarried run, and no dangling number" and not "the citations are
+right". That half stays a reading problem.
+
+**The corpus is not in the repository and will not be** — it is the copyrighted document
+rule 8 is about. Point `FM_RULEBOOK_TEXT` at a plain-text extraction of the book, or leave
+one at `.rulebook.txt` in the repository root, which `.gitignore` keeps out of the tree.
+[`docs/reference/README.md`](reference/README.md#policing-this-directory) says how to get
+one. With no corpus the script prints why and **exits 0**: CI has no rulebook, and a
+skipped check must not be a red build.
+
+### The three ways a shingle lies
+
+Each of these produced a false clean during the audit backlog, and the script is built
+against them rather than against a guess.
+
+- **A per-line scan.** A reproduction broken by a hard wrap holds no ten consecutive words
+  on any one line. Measured on `playing-rules.md`: five runs per line, ten with the lines
+  joined. The script scans the joined word stream and labels each hit `line` or `joined`.
+- **A sub-range.** An agent shingled one commit's diff and reported the count as its
+  branch's. The script scans whole files, never a diff or a line range, prints how many it
+  scanned, and exits 2 rather than 0 if a policed directory has gone missing.
+- **A control that could not fire.** An agent's control phrase was not in the book, so its
+  control returned 0 and its clean run meant nothing. This script's controls are cut from
+  the corpus **at runtime**, so they cannot be a phrase the corpus does not have: one on a
+  single line, one split across a wrap, and a negative control that is the same words
+  reversed. **If they do not come out 1, 1, 0 the script prints no count at all and exits
+  2.** A count without a firing control is not a measurement.
+
+### The baseline
+
+```bash
+./scripts/lint-reference.sh --list        # the baseline line for every run found
+```
+
+[`scripts/lint-reference-baseline.txt`](../scripts/lint-reference-baseline.txt) carries any
+run judged irreducible, one line each: path, a content key, a verdict and a note. The
+**key**, not the run — writing the run into the repository is the thing being linted. A run
+that is not in the baseline fails.
+
+**It is empty, and it did not start that way.** The tree shared twenty-three ten-word runs
+with the book when the script was written, and the first judgement was that all of them
+were the sport's vocabulary rather than the book's prose — `docs/reference/README.md` says
+terms of art cannot be reworded, and eight of them in the sport's own order is a ten-word
+run whether or not anybody had the book open. That is a defensible claim about two hundred
+files and a wrong one about the six entries it mattered for. Read one at a time against its
+own article, every run had a paraphrase that cost nothing: the sides swap ends after the
+first and third quarters; a flag before the snap walks off from the succeeding spot. The
+count is zero at n=10 across the tree.
+
+The irreducible case is real — a rule whose nouns are all defined terms can run out of ways
+to be ten words long — so the mechanism stays. A line in it is a claim that somebody opened
+the article and judged the run; `--list` prints the line to add. The baseline mechanism
+itself is exercised by `baselined.md` in the self-test rather than by anything carried in
+the tree.
+
+**Below ten words the shingle stops separating copying from vocabulary**, and that is why
+ten is the floor. Measured on `playing-rules.md` with everything at n=10 reworded away: 26
+runs at n=8 and 73 at n=7, and they are things like the three-and-one method's own list of
+a run, a backward pass and a fumble, or the toss choice between receiving and kicking off.
+Those are the rule, not a copy of it.
+
+It does not scan commit messages, and nothing can: a message merged to `main` cannot be
+un-written. Two sets on `main` carry book prose and are deliberately left there — see
+[the audit doc](audit-is-this-football.md). Shingle a message before you commit it.
+
+### Its self-test
+
+```bash
+./scripts/lint-reference.sh --self-test
+```
+
+Runs against [`scripts/lint-reference-fixtures/`](../scripts/lint-reference-fixtures) and
+needs no corpus: the fixture tree ships its own, **invented for the fixture and not a
+rulebook**, imitating the shape of one — numbered rules, sections and articles, with one
+heading deliberately broken across a line the way a PDF extractor breaks them, so the
+script's repair of that is exercised.
+
+Four fixture documents, one per direction:
+
+| fixture | what it pins |
+| --- | --- |
+| `one-line.md` | a run wholly inside one line is found |
+| `wrapped.md` | a run **only** a joined scan can see is found, and labelled `joined` |
+| `baselined.md` | a run whose key is in the fixture baseline is **not** reported |
+| `paraphrase.md` | the same rules in our own words yield nothing |
+| `citations.md` | a number the corpus does not have is reported, and three that it does are not |
+
+Plus `baseline-empty.txt`, a baseline holding only its own explanation, which must read as
+no keys **without ending the run**. That one is a scar: `grep -v` exits 1 when it selects
+nothing, and under `pipefail` that killed the lint the first time the real baseline was
+emptied — the one path that matters on a clean tree was the one path nothing covered. The
+check has to assign the result rather than test it inline, because a command substitution
+used as an argument throws its status away.
+
+Every hit the fixtures must produce is in `scripts/lint-reference-fixtures/expected.txt`
+as `path:line: rule-id`, and a difference either way fails. `wrapped.md` is the one worth
+protecting: rewrite the scanner to look at lines one at a time and both it and the
+runtime control go red, rather than the script printing a comfortable zero. CI runs the
+self-test as a hard-failing step, and the lint proper as a step that skips.
 
 ## harness-reach — can this change reach the harness?
 

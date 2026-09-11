@@ -1,0 +1,44 @@
+# Runs the tree and the rulebook have in common, and why each is carried.
+#
+# Read by scripts/lint-reference.sh. Four tab-separated fields:
+#
+#     path <TAB> content key <TAB> verdict <TAB> note
+#
+# The key, not the run. Writing the run into this file would put the text in the
+# repository, which is the thing being linted; the key is two polynomial hashes over it,
+# and `scripts/lint-reference.sh --list` prints the line to add. To see what a key stands
+# for, open the file at the line the lint names.
+#
+# ## There is nothing in it, and that was not the first answer
+#
+# The tree shared twenty-three ten-word runs with the book when this file was written. The
+# first judgement was that all twenty-three were the sport's vocabulary rather than the
+# book's prose — terms of art in the order the sport puts them in, which
+# `docs/reference/README.md` says are the one thing that cannot be reworded — and that a
+# lint demanding zero would be answered by writing worse football.
+#
+# That was a defensible claim about two hundred files and a wrong one about the six
+# entries it mattered for. Read one at a time against its own article, every run turned
+# out to have a paraphrase that cost nothing: the sides swap ends after the first and
+# third quarters; a flag before the snap walks off from the succeeding spot; the clock on
+# a free kick starts on a legal touching inside the field of play. Each is now written
+# that way, in the reference, in the invariants, in the skill and in the three code
+# comments that carried the same sentences, and the count is zero at n=10 everywhere.
+#
+# Two things came out of reading them that the shingle could not have found: 14-4-1's
+# entry had dropped the proviso that enforcement itself can produce a first down, and
+# 14-3-6's named one of the article's four offensive exceptions without saying so.
+#
+# ## When to add a line here
+#
+# When a run is genuinely irreducible — when the only way to lose it is to stop using the
+# sport's words for things. That case is real; it simply was not any of these twenty-three.
+# A line here is a claim that somebody opened the article and judged the run, and the note
+# is where that judgement is written down. If the honest note would be "I wanted a green
+# build", the fix is the entry and not this file.
+#
+# The mechanism is exercised by the self-test rather than by anything carried here:
+# scripts/lint-reference-fixtures/baseline.txt carries one fixture run, and the self-test
+# fails if the lint ever stops honouring it.
+#
+# path	key	verdict	note

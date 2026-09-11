@@ -1,0 +1,13 @@
+# What scripts/lint-reference.sh --self-test must find in the fixture tree, and
+# nothing else. One line per hit, `path:line: rule-id`.
+#
+#   reproduced-line    a run wholly inside one line
+#   reproduced-joined  a run that exists only once the file's lines are joined
+#   citation-...       a cited article number the corpus does not have
+#
+# docs/baselined.md holds a fourth run and is deliberately absent from this list: its
+# content key is in baseline.txt, so the lint must swallow it.
+# docs/paraphrase.md says what the corpus says in its own words and must yield nothing.
+scripts/lint-reference-fixtures/docs/citations.md:11: citation-no such article
+scripts/lint-reference-fixtures/docs/one-line.md:10: reproduced-line
+scripts/lint-reference-fixtures/docs/wrapped.md:14: reproduced-joined

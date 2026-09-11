@@ -507,7 +507,7 @@ extension GameSimulator {
                 elapsed = GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
                 playClock = rules.playClockAfterAnAdministrativeStoppage
             } else if pendingKickoff {
-                // The clock on a free kick starts when the ball is legally touched in
+                // The clock on a free kick starts on a legal touching of the ball inside
                 // the field of play (4-3-1), so a return costs its seconds, and nothing
                 // is charged before the kick, because the clock is dead after a score.
                 // It does not start on a touchback (4-3-1-a), on a kick the kicking team
@@ -604,8 +604,8 @@ extension GameSimulator {
                 isPostseason: setup.isPostseason)
             if warningTaken { beforeTheSnap.append(.twoMinuteWarning) }
             // The clock at the flag is running only if it was running into the interval
-            // and nothing stopped it on the way — the two-minute warning, or the end of
-            // the period.
+            // and nothing stopped it on the way: neither the two-minute warning nor the
+            // period running out.
             let runningAtTheFlag = clockWasRunning && !warningTaken && !clock.isExpired
             // A penalty enforcement is an administrative stoppage, so unless a rule below
             // resets the play clock otherwise, the next snap is against the short one

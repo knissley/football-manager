@@ -26,3 +26,9 @@ Package.resolved.backup
 # Secrets / local config
 *.xcconfig.local
 .env
+
+# A local rulebook corpus for scripts/lint-reference.sh. The book is the copyrighted
+# document CLAUDE.md rule 8 is about: the lint reads one from outside the tree, and this
+# is here so a convenient local copy cannot be committed by accident.
+/.rulebook.txt
+/rulebook.pdf

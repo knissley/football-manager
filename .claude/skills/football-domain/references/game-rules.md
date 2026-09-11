@@ -244,8 +244,8 @@ Common ones, with what the book says they cost.
 | Illegal block in the back | 10 | | `12-1-3-b` · `test:blockInTheBackDuringARun` |
 | Holding (defense) | 5 | Automatic first down | `8-4-6`, `12-1-6` · `test:defensiveHoldingAtTheThreeIsHalfTheDistance`, `row:penalty.defensiveHolding` |
 | Illegal contact | 5 | Automatic first down | `8-4-4` · `test:everyFoulIsCalled` |
-| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-4` · `test:interferenceInTheEndZoneSpotsAtTheOne`, `test:interferenceInTheEndZoneFromInsideTheTwo`, `row:penalty.defensivePassInterference` |
-| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-4` · `test:offensiveInterference` |
+| Pass interference (defense) | Spot foul | First down at the spot of the foul. In the end zone it is first down at the 1, or half the distance to the goal when the previous spot was inside the 2 | `8-5-Penalty`, `8-6-1-b` · `test:interferenceInTheEndZoneSpotsAtTheOne`, `test:interferenceInTheEndZoneFromInsideTheTwo`, `row:penalty.defensivePassInterference` |
+| Pass interference (offense) | 10 from the previous spot | Replay the down | `8-5-Penalty` · `test:offensiveInterference` |
 | Roughing the passer | 15 | Automatic first down | `12-2-11` · `test:roughingOnACompletion`, `row:penalty.roughingThePasser` |
 | Unnecessary roughness | 15 | Automatic first down if by the defense | `12-2-8` · `row:penalty.unnecessaryRoughness` |
 | Facemask | 15 | Automatic first down if by the defense | `12-2-15` · `test:facemaskAtTheEndOfARun` |
@@ -268,17 +268,21 @@ its season and source belong to issue #2.
   spot of a change of possession. `[2025 · 14-3-4]`
 - **Half the distance to the goal is measured from the spot of enforcement**, whichever
   spot that is. `[2025 · 14-2-1]`
-- A foul before the snap is enforced from the succeeding spot and the down stays; a foul
-  at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]`
+- A flag that comes down before the ball is snapped walks off from the succeeding spot and
+  the same down is played again; one that comes down as it is snapped walks off from the
+  previous spot instead, and the down is played over. Either way, if enforcing the penalty
+  produces a first down, it is a first down instead. `[2025 · 14-4-1]`
 - **The basic spot.** A run with no change of possession in it takes the dead-ball spot;
   a run that ends in one takes the spot where possession went; a backward pass or a fumble
   takes the spot of the pass or the fumble. `[2025 · 14-3-5]`
 - **The three-and-one method.** A foul during a run, a backward pass or a fumble is
   enforced from the basic spot when the defence fouls anywhere, or the offence fouls in
   advance of it; when the offence fouls behind the basic spot, from the spot of the foul.
-  Exceptions: the offence's fouls behind the line of scrimmage are enforced from the
-  previous spot, and so are the defence's when the basic spot is behind the line.
-  `[2025 · 14-3-6]`
+  Exceptions: an offensive foul behind the line of scrimmage comes off the previous spot
+  instead, and so does a defensive one whenever the basic spot is behind the line. The
+  article carries three further offensive exceptions not stated here — the own end zone,
+  the offence fouling beyond the line when the basic spot is behind it, and a foul in the
+  defence's end zone before a touchdown. `[2025 · 14-3-6]`
 - When a run with a foul in it is followed by a change of possession: a defensive foul
   gives the ball back to the offence before enforcement; an offensive foul must be
   declined by the defence to keep the ball, unless it was a personal or unsportsmanlike

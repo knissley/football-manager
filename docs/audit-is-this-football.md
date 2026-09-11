@@ -670,7 +670,8 @@ stops the clock, and the enforcement is not free). Wave 2's record track then cl
 [B7 · #58](https://github.com/knissley/football-manager/issues/58) (the spot where
 possession was lost, and a kicking-team kickoff touchdown, neither in the record).
 [C9 · #48](https://github.com/knissley/football-manager/issues/48) (fouls after a score
-and on a kick) is open; wave 3's D track carries the enforcement half of it.
+and on a kick) is still open, and `status:blocked`, although wave 3's D track has landed
+the enforcement half of it — see the C9 bullet under *What to trust* for the split.
 
 | finding | status | closed by |
 | --- | --- | --- |
@@ -736,6 +737,22 @@ chase individual rows.
   sack credit, the scheme fit, the run-play holding, the home-field counter, and the
   fourth-down decision that never reached the situation. It is the most common bug shape
   in this codebase by some distance.
+- **Some merged commit messages carry rulebook prose, and they are staying that way.**
+  CLAUDE.md rule 8 covers a commit message as much as a source file — a message is in the
+  repository permanently and cannot be corrected after a merge. Two sets on `main` were
+  found to reproduce book text: the record-track commits `840ffc3`, `e2e5e38` and
+  `207cbc8` (#58), whose messages quote Rule 14's enforcement-spot prose, and `2e07185`,
+  `797bfbd`, `b78b914` and `e107d1c` from wave 3's small track. Measured here with a
+  ten-word shingle over the message bodies with their lines joined: **24 distinct runs
+  across the first three and 11 across the other four**; the issue below carries higher
+  figures counted a different way, and the count is not the point. **Nothing moved into the
+  tree** — the source and the docs those branches wrote are clean. Rewriting `main`'s
+  history to take a quotation out of a message is not worth what it costs, so the
+  deliberate decision is to leave them and record it here. The next whole-tree scan will
+  find them; this bullet is so that it reads them as known rather than as a discovery.
+  `scripts/lint-reference.sh` does not scan messages — nothing can un-write one — so
+  the prevention is the standing instruction to shingle a message before committing it.
+  ([I9 · #98](https://github.com/knissley/football-manager/issues/98))
 - **Golden tests are checked-in constants, and they must stay that way.** Regenerating one
   to make a red test pass is forbidden; regenerating it in the same commit as a deliberate
   behaviour change, with the change described, is the intended workflow. `Hasher` must
@@ -833,9 +850,14 @@ argument for watching a game.
   ([#28](https://github.com/knissley/football-manager/issues/28))
 - **C9** — a dead-ball foul after a score is dropped because there is nowhere to enforce
   it, `afterThePlay` is called from the run path only, and roughing the kicker on a made
-  field goal erases the three points. **Fixed**: a foul on a scoring play is carried to
-  the try or the free kick, a place kick is resolved before the rush at the kicker is
-  drawn, and conduct fouls are drawn after completions and sacks as well as runs.
+  field goal erases the three points. **The enforcement half is in, and the issue is not
+  closed.** What landed with wave 3's D track: a foul on a scoring play is carried to the
+  try or the free kick, a place kick is resolved before the rush at the kicker is drawn,
+  running into the kicker no longer travels to the free kick, and conduct fouls are drawn
+  after completions and sacks as well as runs. **#48 is nonetheless open and
+  `status:blocked`** — this bullet said "fixed" while the paragraph above this table said
+  the issue was open, and the issue is the one to believe. Read it for what is left; do
+  not read the list above as the whole of C9.
   ([#48](https://github.com/knissley/football-manager/issues/48))
 - **C10** — the baseline caller reads `DownAndDistanceClass` as law rather than
   description: `isPassingDown` includes second and 8 and third and 4, and the caller never

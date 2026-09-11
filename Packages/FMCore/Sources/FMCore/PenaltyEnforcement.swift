@@ -285,7 +285,7 @@ extension Rules {
                 // Interference, or a defensive block on a play the offence kept: the
                 // offence's ball at the spot. In the end zone it is the 1, or half the
                 // distance from the previous spot when that was inside the 2
-                // (8-5-4, 8-6-1-b).
+                // (8-5-Penalty, 8-6-1-b).
                 if foul == .defensivePassInterference {
                     if spot <= 0 {
                         ballOn =

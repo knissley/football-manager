@@ -393,8 +393,10 @@ season is what checks one. A band is evidence about a rate and never about a rul
 65. Every foul is enforced from one of the spots the book lists — the previous spot, the
     spot of the foul, the succeeding spot, the dead-ball spot and the rest — and never from
     somewhere convenient. `[2025 · 14-3-4]` — `test:enforcementFamilies`
-66. A foul before the snap is enforced from the succeeding spot and the down stays; a foul
-    at the snap from the previous spot, and the down is repeated. `[2025 · 14-4-1]` —
+66. A flag that comes down before the ball is snapped walks off from the succeeding spot
+    and the same down is played again; one that comes down as it is snapped walks off from
+    the previous spot instead, and the down is played over. Either way, if enforcing the
+    penalty produces a first down, it is a first down instead. `[2025 · 14-4-1]` —
     `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `test:preSnapKillsThePlay`
 67. The basic spot for a foul during a run not followed by a change of possession is the
     dead-ball spot, so a facemask at the end of a 20-yard run is fifteen more from where the
@@ -415,13 +417,14 @@ season is what checks one. A band is evidence about a rate and never about a rul
     or the previous spot, whichever favours the offence. `[2025 · 8-6-1-d]` —
     `test:roughingOnACompletion`
 72. Defensive pass interference is a first down at the spot of the foul.
-    `[2025 · 8-5-4, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
+    `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
 73. Defensive pass interference in the end zone is first and goal at the 1, or half the
-    distance to the goal when the previous spot was inside the 2. `[2025 · 8-5-4, 8-6-1-b]` —
-    `test:interferenceInTheEndZone`, `test:interferenceInTheEndZoneSpotsAtTheOne`,
+    distance to the goal when the previous spot was inside the 2.
+    `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:interferenceInTheEndZone`,
+    `test:interferenceInTheEndZoneSpotsAtTheOne`,
     `test:interferenceInTheEndZoneFromInsideTheTwo`
 74. Offensive pass interference is ten yards from the previous spot, and the down is
-    replayed. `[2025 · 8-5-4]` — `test:offensiveInterference`
+    replayed. `[2025 · 8-5-Penalty]` — `test:offensiveInterference`
 75. Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
     automatic first down when it is the defence's. `[2025 · 12-3-1]` —
     `test:conductFoulAfterThePlay`

@@ -175,7 +175,7 @@ struct PenaltyEnforcementTests {
     /// walk-off distance; it is the record's `enforcementSpot` now, in the snapping
     /// team's frame, and `yards` is the distance walked off.
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
+        "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
         .tags(.football)
     )
     func spotFouls() {
@@ -244,9 +244,9 @@ struct PenaltyEnforcementTests {
     }
 
     /// A pass play ends at the catch; a personal foul by the defence before the
-    /// completion is enforced from the previous spot or the dead-ball spot, whichever
-    /// is better for the offence (8-6-1, 8-6-1-d), with the automatic first down
-    /// (12-2-11).
+    /// completion comes off the better of the two spots the offence may have, the
+    /// previous one and the dead-ball one (8-6-1, 8-6-1-d), with the automatic first
+    /// down (12-2-11).
     @Test(
         "football · Rule 12-2-11, 8-6-1-d · roughing the passer on a 6-yard completion on third and ten is first and ten 21 yards on",
         .tags(.football)
@@ -311,7 +311,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot",
+        "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference 30 yards downfield is a first down at the spot",
         .tags(.football)
     )
     func interferenceDownfield() {
@@ -326,7 +326,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4 · offensive pass interference is ten from the previous spot, and the down is replayed",
+        "football · Rule 8-5-Penalty · offensive pass interference is ten from the previous spot, and the down is replayed",
         .tags(.football)
     )
     func offensiveInterference() {
@@ -357,8 +357,8 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.distance == 12)
     }
 
-    /// Fouls by the offence behind the line of scrimmage are enforced from the previous
-    /// spot (14-3-6, exception 1).
+    /// An offensive foul behind the line of scrimmage comes off the previous spot
+    /// instead (14-3-6, exception 1).
     @Test(
         "football · Rule 14-3-6 · an offensive block in the back behind the line is enforced from the previous spot",
         .tags(.football)
@@ -469,7 +469,7 @@ struct PenaltyEnforcementTests {
     }
 
     @Test(
-        "football · Rule 8-5-4, 8-6-1-b · interference in the end zone is first and goal at the 1",
+        "football · Rule 8-5-Penalty, 8-6-1-b · interference in the end zone is first and goal at the 1",
         .tags(.football))
     func interferenceInTheEndZone() {
         let decision = rules.enforce(

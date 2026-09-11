@@ -49,3 +49,43 @@ Where two of them disagree, that is a bug in the docs and not a decision.
 test named in `invariants.md`, in `playing-rules.md` and in `game-rules.md` has to exist,
 every calibration row named has to exist, every rules-conformance scenario has to be
 covered by an invariant, and every sourced row has to appear in `calibration-sources.md`.
+
+## Policing this directory
+
+That suite checks **names**. It has never seen the rulebook, so it cannot tell that an
+entry has copied the book's words, or that the number beside a correct paraphrase is the
+wrong article. Both happened, and both were found by a person reading with the book open.
+
+[`scripts/lint-reference.sh`](../../scripts/lint-reference.sh) is the mechanical half:
+
+```bash
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt scripts/lint-reference.sh
+scripts/lint-reference.sh --self-test     # needs no corpus; CI runs this one
+```
+
+It reports ten-word runs the tree and the book have in common, and any
+`rule-section-article` number in the four documents above that names no article. What it
+cannot do is tell whether a cited article *supports* the claim beside it — `8-5-4` exists,
+so a citation to it passes, and it was still the wrong article in six entries for weeks.
+It prints that limitation on every run so a clean one cannot be read as more than it is.
+[tools.md](../tools.md#lint-reference--reproduced-rulebook-text-and-citations-that-resolve)
+is the full description, including why twenty-three runs are carried in a baseline rather
+than reworded.
+
+### Getting a corpus
+
+**There is none in the repository and there will not be.** The rulebook is the copyrighted
+document this whole directory exists to avoid copying, so the lint takes it from outside:
+
+- `FM_RULEBOOK_TEXT=<path>`, or
+- a file at `.rulebook.txt` in the repository root, which `.gitignore` keeps untracked.
+
+Any plain-text extraction of the book works — the lint only tokenises words and reads
+`RULE`/`SECTION`/`ARTICLE` headings, and it repairs a heading a PDF extractor has broken
+across a line. Get the official PDF from the league's own rules page and extract it
+locally; do not commit either the PDF or the text.
+
+**Mind the edition.** This project targets the **2025** book. A 2026 extraction is
+identical outside four articles — 6-1-3, 6-1-5, 6-1-6 and 19-2 — so it is fine for the
+lint and fine for citations elsewhere, but taking a 2026 rule into the engine is a defect
+and not an improvement. With no corpus the lint prints why and exits 0.
