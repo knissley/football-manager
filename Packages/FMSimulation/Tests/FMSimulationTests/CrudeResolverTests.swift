@@ -464,3 +464,117 @@ struct OutOfBoundsTests {
             "outside \(outside) against inside \(inside): the call makes no difference")
     }
 }
+
+/// What a carry looks like, rather than what it averages.
+///
+/// A mean is not a distribution. An engine can put four and a half yards a carry on the
+/// board by handing every back four and a half yards, or by stuffing half of them and
+/// springing the rest, and neither is the sport. These assert the shape: that the
+/// ordinary carry — through the line, into the second level, three to nine yards — is
+/// the largest part of the run game, and that the long run is something the carrier did
+/// rather than something the blocking bought.
+@Suite("The shape of a carry")
+struct CarryShapeTests {
+
+    /// Every designed carry of the shared corpus. Scrambles are a different play and the
+    /// record gives them their own kind, exactly as the sourced shares below exclude
+    /// them.
+    private static let carries: [PlayRecord] =
+        TestWorld.corpus.flatMap { $0.plays }.filter { $0.outcome.kind == .rush }
+
+    private static func share(_ test: (Int) -> Bool) -> Double {
+        let yards = carries.map { Int($0.outcome.yards) }
+        return Double(yards.filter(test).count) / Double(max(1, yards.count)) * 100
+    }
+
+    /// The middle of the run distribution, and the claim that it is the largest part of
+    /// it.
+    ///
+    /// Nothing sources the share of carries gaining three to nine directly, so it is
+    /// derived from the two sourced shares either side of it (2023-24, nflverse
+    /// play-by-play; `row:carries2orFewer` and `row:carries10plus` in
+    /// `docs/reference/calibration-sources.md`). Every carry falls in exactly one of the
+    /// three, so
+    ///
+    ///     three to nine = 100 − (two or fewer) − (ten or more)
+    ///
+    /// and with two or fewer sourced at 40.6–46.5 and ten or more at 9.6–11.2, the middle
+    /// share lies between **42.3 and 49.8** however the two sourced shares fall inside
+    /// their own bands. The floor is what this asserts, because it is the corner that
+    /// holds whatever the truth is inside them.
+    ///
+    /// It also asserts the middle is larger than the ten-or-more share, which holds at
+    /// every corner — 42.3 against 11.2.
+    ///
+    /// It deliberately does **not** assert that the middle is larger than the two-or-fewer
+    /// share. That holds at the midpoints of the two bands, 46.0 against 43.6, but not at
+    /// every corner, so it is a reading of where the bands centre rather than something
+    /// they imply, and it is written down here instead of being asserted.
+    @Test(
+        "football · nflverse play-by-play 2023-24 · at least 42.3% of carries gain three to nine yards",
+        .tags(.football))
+    func theMiddleIsTheLargestPartOfTheRunGame() {
+        let middle = Self.share { $0 >= 3 && $0 <= 9 }
+        let long = Self.share { $0 >= 10 }
+        #expect(
+            middle >= 42.3,
+            "carries of three to nine are \(middle)% of \(Self.carries.count), floor 42.3%")
+        #expect(
+            middle > long,
+            "carries of three to nine are \(middle)% against \(long)% of ten or more")
+    }
+
+    /// A long run is a man beaten, not a hole measured.
+    ///
+    /// The engine's own promise about its run game: a carry that goes twenty yards or
+    /// more has a broken tackle in front of it in the same record. Nothing about the
+    /// blocking alone may produce one, because a distribution whose tail is drawn rather
+    /// than earned puts the yards on the offensive line and leaves the back's contact
+    /// balance worth nothing.
+    @Test("Every carry of twenty or more has a broken tackle in front of it", .tags(.contract))
+    func aBreakawayIsAlwaysABrokenTackle() {
+        let long = Self.carries.filter { $0.outcome.yards >= 20 }
+        #expect(long.count > 0, "no carry reached twenty: the case was never exercised")
+        let unearned = long.filter { play in
+            !play.decisions.contains {
+                $0.kind == .tackleAttempt && $0.detail == TackleResult.broken.rawValue
+            }
+        }.count
+        #expect(
+            unearned == 0,
+            "\(unearned) of \(long.count) carries of twenty or more broke no tackle")
+    }
+
+    /// Yards rise with the hole the carry came through.
+    ///
+    /// The record publishes the hole as a `.holeQuality` point, so this reads the engine's
+    /// own number rather than inferring one. The scale pays twelve a block — twelve for a
+    /// block won or lost at the point of attack, twelve for a defender the offence had no
+    /// blocker for — so the bins below are a block wide, and the claim is that a carry
+    /// through a better hole is not worth fewer yards on average than one through a worse.
+    @Test("A carry's yards rise with the hole it came through", .tags(.contract))
+    func yardsRiseWithTheHole() {
+        var byBin: [Int: [Int]] = [:]
+        for play in Self.carries {
+            guard
+                let hole = play.decisions.first(where: {
+                    $0.kind == .holeQuality && $0.primary == SlotLayout.back
+                })
+            else { continue }
+            byBin[Int(hole.value) / 12, default: []].append(Int(play.outcome.yards))
+        }
+        // Bins thin enough to be a draw rather than a shape say nothing; a hundred carries
+        // is where the mean of a distribution this wide settles to within a yard.
+        let bins = byBin.filter { $0.value.count >= 100 }.keys.sorted()
+        #expect(bins.count >= 5, "only \(bins.count) bins had enough carries to read")
+        var previous = -Double.infinity
+        for bin in bins {
+            let yards = byBin[bin]!
+            let mean = Double(yards.reduce(0, +)) / Double(yards.count)
+            #expect(
+                mean >= previous - 0.25,
+                "bin \(bin * 12) averaged \(mean) against \(previous) for the bin below it")
+            previous = mean
+        }
+    }
+}
