@@ -870,7 +870,7 @@ that is the rush win multiplier's to answer for, not the window's.
 This mattered concretely. The arrival used to be drawn on `[1500, 2899]` while the holds
 ran from 1,400 ms to 3,400 ms, so three of the five pass concepts sat outside the window
 entirely: a screen was un-pressurable by construction at exactly 0.0000, and play action
-and a deep drop came back pressured on the *same* 1,362 of 2,450 paired dropbacks,
+and a deep drop came back pressured on the *same* 1,360 of 2,450 paired dropbacks,
 identical to the snap. A window that spans the holds fixes the instrument; it does not
 answer the question above, and a retune should not read it as if it had.
 
