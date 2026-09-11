@@ -1022,7 +1022,9 @@ next, since thirty seeds is not many: `row:onsideRecovery.2024` (0.11 floors),
 `row:onsideKicks.2024` (0.85). All six are `stale` or `unsourced` rows, which is why no
 `ok`/`OFF` mark moved: the margin is real, the verdict column simply does not report it.
 
-`scripts/harness-noise.py --summary` prints both sets with the numbers behind them.
+`scripts/harness-noise.py --summary` prints the 55 with each row's range and band, and the
+six with their margins. The 29 are not a list of their own there — read them off the *edge
+margin* column of the table below, which is where the number comes from.
 
 **The binomial/Poisson model is a good description of the same-league floor and a poor one
 of the seed-to-seed floor.** Against the same-league floor the ratio is a median 1.01, and
