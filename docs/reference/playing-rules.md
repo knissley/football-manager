@@ -94,10 +94,14 @@ Which rules must be true of a game, and what checks each, is
   `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
 - **4-3-2-e** — Where either side's flag has stopped the clock, between downs or at the end
   of one, the clock starts again once the penalty is settled exactly where it would have
-  started had no flag been thrown. The article covers a declined penalty as well as an
-  enforced one; the engine reads the accepted branch only, and a foul the non-offending
-  side turns down leaves the clock as the play's ending left it. —
-  `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+  started had no flag been thrown. **The article names declination beside enforcement**, so
+  a foul the non-offending side turns down restarts the clock on the same terms an accepted
+  one does; nothing in it asks which branch was taken. **Inference, not text:** what a
+  declination does not bring is 4-6-2-e's twenty-five-second play clock, which that article
+  gives to an enforcement and a declination is not one — so the forty of 4-6-1 runs from
+  the end of the play. 4-6-2's list is open, so the book does not settle that half. —
+  `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
+  `test:declinedFoulDuringADownStopsTheClockAtTheEndOfTheDown`
 - **4-3-2-e-1**, **4-3-2-e-2**, **4-3-2-e-3** — Its three exceptions, in which the clock
   waits for the snap: a flag past the first half's warning (e-1); a flag in the closing
   five minutes of the second half (e-2); and, during the fourth period or regular-season
@@ -116,7 +120,8 @@ Which rules must be true of a game, and what checks each, is
   `test:offensiveFoulBeforeTheSnapInPostseasonOvertime`,
   `test:offensiveFoulInAFirstPostseasonOvertimePeriodRestartsTheClockOnTheReady`,
   `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
-  `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`
+  `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`,
+  `test:declinedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`
 - **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
   `test:falseStartInsideTwoMinutesCostsTenSeconds`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
@@ -124,7 +129,9 @@ Which rules must be true of a game, and what checks each, is
 - **4-4-c** — A runner going out of bounds stops it. — `test:outOfBoundsLate`
 - **4-4-d** — A ball dead on or behind a goal line stops it. — `test:touchbackConsumesNoTime`
 - **4-4-e** — A flag thrown at any point in a down stops it, and it stops as that down
-  ends. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`
+  ends. The condition is that somebody fouled: what is afterwards done with the penalty is
+  not part of it. — `test:acceptedFoulDuringADownStopsTheClockForEnforcement`,
+  `test:declinedFoulDuringADownStopsTheClockAtTheEndOfTheDown`
 - **4-4-f** — An incomplete pass stops it. — `test:spikeStopsTheClock`, `test:incompletion`,
   `test:spikeCostsItsOwnSecondAndStopsTheClock`
 - **4-4-g** — A foul on a ball that is dead already, or that kills the ball on the spot,

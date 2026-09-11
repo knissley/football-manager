@@ -695,16 +695,25 @@ extension GameSimulator {
                 quarter: clock.quarter, isPostseason: setup.isPostseason,
                 clockRemaining: clock.secondsRemaining)
 
-            // A flag on the down stops the clock at the end of it (4-4-e), and the
-            // enforcement is not free: the clock is dead through it and starts again as
-            // though the foul had not occurred (4-3-2-e) — on the ready-for-play signal,
-            // since it was running — or on the snap inside the windows e-1 and e-2 name.
+            // A flag on the down stops the clock at the end of it (4-4-e), and settling
+            // it is not free: the clock is dead through that and starts again as though
+            // the foul had not occurred (4-3-2-e) — on the ready-for-play signal, since
+            // it was running — or on the snap inside the windows e-1 and e-2 name.
             // One predicate decides that restart for a foul during a down and for one
             // before the snap, and it is told which this is, because e-3 reaches only a
             // foul that stopped the clock *before* a snap. Whichever restart is later
             // wins: a tackle in bounds with a flag on it is a stopped clock, and an
             // incompletion with a flag on it still waits for the snap.
-            if let penalty = outcome.penalties.first, penalty.wasAccepted {
+            //
+            // **Whether the penalty was taken does not enter into it.** 4-4-e's condition
+            // is that somebody fouled during the down, and 4-3-2-e is written over a
+            // penalty enforced *or declined*, naming declination inside the rule. Read as
+            // though it were about enforcement alone — which is how this stood, gated on
+            // `wasAccepted` — about one down a game left the clock running where the book
+            // stops it. What the declined branch does not bring is the
+            // short play clock below: 4-6-2-e names an enforcement, and turning a penalty
+            // down is not one, so the forty of 4-6-1 runs from the end of the play.
+            if let penalty = outcome.penalties.first {
                 let restart: ClockBehavior =
                     rules.clockStartsOnTheSnapAfterFoul(
                         byOffense: penalty.offendingTeam == possession,

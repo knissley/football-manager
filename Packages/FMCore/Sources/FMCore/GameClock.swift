@@ -48,8 +48,9 @@ extension Rules {
     /// from a first-down tackle: both end `.tackled`. A change of possession stops the
     /// clock whatever the ending (4-4-i), and the overload that takes it is what the
     /// game state consults. Nor can the ending tell whether a flag flew on the down,
-    /// which stops the clock too (4-4-e): the game state reads the play's accepted fouls
-    /// beside this, and takes whichever restart is `ClockBehavior.later`.
+    /// which stops the clock too (4-4-e) whether or not the penalty is afterwards taken:
+    /// the game state reads the play's fouls beside this, and takes whichever restart is
+    /// `ClockBehavior.later`.
     public func clockBehavior(
         after ending: PlayEnding, quarter: UInt8, isPostseason: Bool, clockRemaining: UInt16
     ) -> ClockBehavior {
@@ -117,6 +118,10 @@ extension Rules {
 
     /// After a foul that stopped a running clock, whether the clock waits for the snap
     /// rather than restarting on the ready-for-play signal (2025 rulebook, 4-3-2-e).
+    ///
+    /// The article reaches a clock stopped for a flag whether the penalty was enforced or
+    /// turned down — declination is named inside it — so nothing here asks which, and a
+    /// declined foul costs the clock exactly what an accepted one costs.
     ///
     /// The clock restarts as though the foul had not occurred — on the ready, since it
     /// was running — except that it starts on the snap after the two-minute warning of
