@@ -1083,6 +1083,85 @@ struct RulesConformanceTests {
             "the huddle was cut at 2:00: the snap came at the warning, and only the play ran")
     }
 
+    /// A period is extended past its expiry only while the ball is in play (4-8-1). Time
+    /// that runs out between downs ends the period where it stands, and the down the
+    /// offence was walking up to is never snapped: the clock it would have been snapped
+    /// on had already gone. With nothing having stopped the clock, that interval is the
+    /// offence's own seconds coming off it (4-3-2).
+    ///
+    /// The scenario ends a first-quarter play at 0:20 with the clock running, which is
+    /// less than the offence's tempo. The next thing on the record is the second
+    /// quarter's first snap, from the same spot with the same side in possession, the
+    /// teams having only changed goals (4-2-3).
+    @Test(
+        "football · Rule 4-8-1, 4-3-2 · a period the interval between downs exhausts ends there, and no down is snapped or recorded",
+        .tags(.football)
+    )
+    func periodExpiringBetweenDownsRecordsNoDown() {
+        let trace = RulesScenario.periodExpiringBetweenDowns.run()
+        guard let stretched = stretchedPlay(in: trace, quarter: 1) else { return }
+        trace.expectPlay(
+            stretched.index + 1, possession: stretched.play.situation.possession, quarter: 2,
+            clock: 900,
+            "the interval alone ran the first quarter out, so the next snap on the record is the second quarter's first"
+        )
+        #expect(
+            trace.count(where: { $0.situation.quarter == 1 }) == stretched.index + 1,
+            "a first-quarter down was recorded after the clock that would have snapped it had gone"
+        )
+    }
+
+    /// **The clock a play is recorded with is the clock the ball was snapped on**, all
+    /// through a drill, whether the interval before the snap cost the offence anything or
+    /// not.
+    ///
+    /// The timeline is computed from the rules and the script before the game is run. The
+    /// scenario stretches a fourth-quarter play to end at 2:01 with the clock running and
+    /// the warning still to come, and gains ten on it so the drill opens first and ten;
+    /// from there the offence throws it away on one down and is tackled in bounds for a
+    /// yard on the next. Hurry-up is eight seconds from one whistle to the next snap,
+    /// which is the engine's tempo table rather than a rule; where those eight seconds
+    /// land on the record is the football.
+    ///
+    ///     down  what the clock was doing into it      snapped   the down   ends
+    ///       1   running from 2:01; the eight seconds
+    ///           reach 2:00 and the warning ends them
+    ///           there (3-41)                             2:00   inc, 5 s   1:55
+    ///       2   dead: the incompletion (4-4-f, 4-3-2)    1:55   run, 6 s   1:49
+    ///       3   running: eight seconds off (4-3-2)       1:41   inc, 5 s   1:36
+    ///       4   dead: the incompletion                   1:36   run, 6 s   1:30
+    ///       5   dead: the turnover on downs (4-4-i)      1:30   inc, 5 s   1:25
+    ///       6   dead: the incompletion                   1:25   run, 6 s   1:19
+    ///       7   running: eight seconds off               1:11   inc, 5 s   1:06
+    ///
+    /// Recorded from the end of the play before instead, the same seven downs read 2:01,
+    /// 1:55, 1:49, 1:36, 1:30, 1:25 and 1:19 — every one on a running clock wrong by the
+    /// interval — and the warning goes on the second of them rather than the first.
+    @Test(
+        "football · Rule 4-3-2, 3-41 · the clock a play is recorded with is the clock it was snapped on, through a two-minute drill",
+        .tags(.football)
+    )
+    func everyPlayIsRecordedWithTheClockItWasSnappedOn() {
+        let trace = RulesScenario.twoMinuteDrill.run()
+        guard
+            let opening = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.endedIn == .incomplete
+            })
+        else {
+            Issue.record("the drill never threw the ball away in the fourth quarter")
+            return
+        }
+        let timeline: [UInt16] = [120, 115, 101, 96, 90, 85, 71]
+        for (offset, second) in timeline.enumerated() {
+            trace.expectPlay(
+                opening.index + offset, quarter: 4, clock: second,
+                "the ball was snapped at \(second) seconds")
+        }
+        #expect(
+            trace[opening.index]?.hasTwoMinuteWarningBeforeTheSnap == true,
+            "the warning came in the interval before this snap, so it is on this snap's record")
+    }
+
     /// The first runner out of bounds in `quarter`, with the offence's measured tempo.
     private func outOfBounds(
         in trace: Trace, quarter: UInt8

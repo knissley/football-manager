@@ -412,6 +412,42 @@ public enum RulesScenarios {
         }
     }
 
+    /// The last two minutes of the fourth quarter, at hurry-up, with every second of it
+    /// dictated rather than drawn.
+    ///
+    /// The walk down the period stretches one play to end at 2:01 — the clock running,
+    /// the warning not yet taken — and that play gains ten, so the drill opens first and
+    /// ten however the walk left the chains. From there the offence throws it away on one
+    /// down and is tackled in bounds for a yard on the next, so the clock alternates
+    /// between running into a snap and being dead into it. That alternation is the whole
+    /// point: a drill lives on 4-3-2, where the interval before a snap costs the offence
+    /// seconds only when nothing has stopped the clock.
+    ///
+    /// The eight seconds a hurry-up offence spends reaching the line is the engine's
+    /// tempo table (`Tempo.hurryUp`, pinned by `test:tempoOrdering`) and not a rule. What
+    /// is football is where those eight seconds land on the record.
+    static var twoMinuteDrill: ScriptedGame {
+        ScriptedGame(
+            caller: ScriptedCaller(
+                offensiveTempo: { $0.quarter == 4 && $0.clockRemaining <= 121 ? .hurryUp : .normal }
+            )
+        ) { snap in
+            guard snap.isScrimmage, snap.quarter == 4 else { return snap.neutral }
+            // The drill proper. Read off the play before rather than off the down, so
+            // that the alternation is the same whoever has the ball.
+            if snap.clock <= 121 {
+                return snap.previous?.outcome.endedIn == .incomplete
+                    ? .rush(1, seconds: 6) : .incompletion(seconds: 5)
+            }
+            // The walk down to it. A stretched play cannot skip the window, because a
+            // snap on a running clock comes at most a huddle and a play after the last.
+            guard snap.down != .fourth, let huddle = snap.huddle else { return snap.neutral }
+            let snapped = Int(snap.clock) - (snap.clockIsRunning ? Int(huddle) : 0)
+            guard snapped > 121, snapped - 121 <= 130 else { return snap.neutral }
+            return .rush(10, seconds: UInt16(snapped - 121))
+        }
+    }
+
     /// A walk down `quarter` in which a runner goes out of bounds: on each snap taken
     /// with the clock running and `window` on it, except one straight after another such
     /// play, so that what follows the first is a plod and the restart can be read off
