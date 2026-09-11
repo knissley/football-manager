@@ -758,15 +758,6 @@ struct PocketTests {
         .screen, .quickPass, .mediumPass, .playAction, .deepPass,
     ]
 
-    /// The share of dropbacks on which the record says the quarterback was pressured.
-    private func pressureShare(
-        _ plays: [(outcome: Outcome, decisions: [DecisionPoint])]
-    ) -> Double {
-        guard !plays.isEmpty else { return 0 }
-        let pressured = plays.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
-        return Double(pressured.count) / Double(plays.count)
-    }
-
     /// Pressure is a rusher getting there *before the ball is out*, not a rusher winning.
     ///
     /// The statistic this engine is calibrated against is Next Gen Stats' pressure flag
@@ -821,28 +812,163 @@ struct PocketTests {
         )
     }
 
+    /// The rosters the pooled pocket measurement draws from, and how many dropbacks each
+    /// contributes to every concept.
+    ///
+    /// Seven generated leagues rather than one — every roster either probe in this suite
+    /// has ever drawn on. A chain of inequalities measured on a single roster is a single
+    /// draw: each share is a property of that roster's line and front as much as of the
+    /// pocket, so a chain that happens to come out ordered on the one roster a probe drew
+    /// says nothing about whether the engine orders it.
+    private static let pocketRosterSeeds: [UInt64] = [1, 5, 7, 11, 12, 23, 41]
+    private static let dropbacksPerRoster = 350
+    /// The stream every dropback in the pooled sample is split out of.
+    private static let pocketFixtureSeed: UInt64 = 41
+
+    /// One dropback, drawn from a stream that depends on the roster and the play index
+    /// and on nothing else.
+    ///
+    /// This is what makes the comparison below a *paired* one, and it is what lets a
+    /// chain across concepts be read at all. Everything the pocket is decided from — who
+    /// is on the field, which rusher beat which blocker, and when he arrived — is drawn
+    /// before the concept's route depth is first consulted, so two concepts handed the
+    /// same stream see the same eleven men and the same rush on the same snap. Their
+    /// verdicts then differ only where the hold differs, which is the thing under test.
+    /// Resampling each concept independently instead leaves every comparison carrying the
+    /// noise of two fresh draws, and that is what let one roster's luck decide the answer.
+    ///
+    /// `split` depends on the root seed and its labels and never on how far a stream has
+    /// been advanced, so the pairing holds at every index rather than only the first.
+    private func coupledDropback(
+        _ concept: PlayConcept, context: PlayContext, rosterSeed: UInt64, index: Int
+    ) -> [DecisionPoint] {
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept), defense: .nickelTwoMan,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: Self.pocketFixtureSeed)
+            .split(rosterSeed, UInt64(index))
+        let onField = Lineup.onField(
+            context, concept: concept, situation: Self.neutral, random: &random)
+        return CrudeResolver().resolve(
+            situation: Self.neutral, calls: calls, onField: onField, context: context,
+            random: &random
+        ).decisions
+    }
+
+    /// What the pooled sample says about each pass concept, in the order they hold the
+    /// ball: the hold its record reports, whether each snap came back pressured, and when
+    /// the first rusher got home on that snap — the last so the pairing can be checked
+    /// rather than assumed.
+    private func pooledPocket() -> [(
+        concept: PlayConcept, hold: Int, pressured: [Bool], firstArrival: [Int]
+    )] {
+        let rosters = Self.pocketRosterSeeds.map { (seed: $0, context: context(seed: $0)) }
+        return Self.passConcepts.map { concept in
+            var hold = 0
+            var pressured: [Bool] = []
+            var firstArrival: [Int] = []
+            for roster in rosters {
+                for index in 0..<Self.dropbacksPerRoster {
+                    let decisions = coupledDropback(
+                        concept, context: roster.context, rosterSeed: roster.seed, index: index)
+                    pressured.append(decisions.contains { $0.kind == .pressureAllowed })
+                    // The hold is the same on every snap of a concept, and only a snap the
+                    // protection survived reports it: a pressured snap was over before the
+                    // hold was up, so its record carries the arrival instead.
+                    if let held = decisions.first(where: { $0.kind == .pressureHeld }) {
+                        hold = Int(held.value)
+                    }
+                    let arrivals = decisions.filter {
+                        $0.kind == .blockResult && $0.blockResultValue == .lost
+                    }.map { Int($0.value) }
+                    firstArrival.append(arrivals.min() ?? -1)
+                }
+            }
+            return (concept, hold, pressured, firstArrival)
+        }
+    }
+
     /// The other half of the same claim: how long the ball is held is what decides how
     /// much of the rush gets home.
     ///
-    /// Same source and same definition (S2, 2023-24). A screen is gone before a rusher
-    /// can cover the ground; a deep drop asks the pocket to hold for more than twice as
-    /// long against the same four men. So pressure has to rise with the time the
-    /// quarterback needs, and a model where it does not is one that is not reading the
-    /// clock at all — which is what an engine that flagged pressure on the rep alone was
-    /// doing: a screen and a deep drop came back pressured at the same rate.
+    /// **This is a promise the engine makes about itself, and it is deliberately not a
+    /// football test.** The claim it used to make was: pressure rises *strictly* from
+    /// each concept to the next, screen through deep pass. Four of those links, one
+    /// sentence, and nothing sourced any of them. What the references band is pressure
+    /// per dropback pooled over all of them — `row:pressureRate`, 27.8-32.3%, 2023-24,
+    /// source S2 in docs/reference/calibration-sources.md, which the harness grades — and
+    /// neither that file nor the playing rules splits it by concept, by pass depth, or by
+    /// the time the quarterback held the ball. A split is a rate, so the rulebook has
+    /// nothing to say about it; it is a sourcing gap, and it is recorded as one under
+    /// *what a generated world claims and nothing sources*. Asserting a chain of
+    /// inequalities nothing sources, as football, is the thing this project most wants
+    /// not to do, so the chain is made against the resolver's own definition of pressure
+    /// instead — which is exactly what a `.contract` is for.
+    ///
+    /// What the resolver promises, then. Pressure is the first rusher home arriving
+    /// *before the ball is out*. The arrival is a fact about two men and is drawn before
+    /// the concept's route is ever consulted, so for one rush the verdict is a threshold
+    /// on the hold and nothing else: lengthen the hold and a snap can only turn from
+    /// clean to pressured, never back. That is asserted here snap by snap, on the paired
+    /// draw above, so it holds exactly rather than on average — no tolerance, no sampling
+    /// error, and no roster able to decide the answer.
+    ///
+    /// **The last link is flat, and that is the engine and not the sample.** A beaten
+    /// blocker is beaten between 1,500 ms and 2,899 ms; play action asks for 3,000 and a
+    /// deep drop for 3,400. Both sit past the latest a rusher can arrive, so the verdict
+    /// cannot tell them apart and returns the same 0.5559 on the same snaps — measured
+    /// over 2,450 paired dropbacks each, identical to the last snap, not merely close.
+    /// A strict inequality there was green on one roster's luck. Whether the sport
+    /// separates those two is the unsourced question above; if it is ever sourced and it
+    /// does, the fix is the hold in `routeDepth`, and this assertion is already the shape
+    /// that would catch it going the wrong way.
+    ///
+    /// The span is the other half, because a superset claim is satisfied by a pocket with
+    /// no clock at all: if pressure were the lost rep again, all five concepts would be
+    /// pressured on exactly the same snaps and every link would pass. So the ends of the
+    /// chain are also held apart. A tenth is far under the 0.5559 the engine spreads them
+    /// by, so it pins nothing about the clock's shape, and far over the nothing a
+    /// clockless pocket would produce — under the pairing that null has no sampling
+    /// spread at all, since the two ends would be the same snaps.
     @Test(
-        "football · pressure per S2 2023-24 · pressure rises with the time the quarterback needs",
-        .tags(.football))
-    func pressureRisesWithTimeToThrow() {
-        let shares = Self.passConcepts.map { concept in
-            (concept, pressureShare(resolved(concept, Self.neutral, count: 2_000)))
+        "A longer hold is never pressured less often than a shorter one, off the same rush",
+        .tags(.contract))
+    func pressureNeverFallsAsTheHoldGrows() {
+        let measured = pooledPocket()
+        let share = { (entry: [Bool]) in
+            Double(entry.filter { $0 }.count) / Double(entry.count)
         }
-        for (earlier, later) in zip(shares, shares.dropFirst()) {
+        for (earlier, later) in zip(measured, measured.dropFirst()) {
+            // The pairing, before anything is read off it: the same roster and the same
+            // index must have produced the same rush under both concepts, or what follows
+            // compares two samples rather than two holds.
             #expect(
-                earlier.1 < later.1,
-                "\(earlier.0) pressured \(earlier.1) against \(later.0) at \(later.1): the pocket is not on a clock"
+                earlier.firstArrival == later.firstArrival,
+                "\(earlier.concept) and \(later.concept) did not see the same rush on the same snaps"
+            )
+            // And the chain really is in hold order, read off the records rather than
+            // assumed from the order the concepts happen to be listed in.
+            #expect(
+                earlier.hold < later.hold,
+                "\(earlier.concept) holds \(earlier.hold)ms against \(later.concept) at \(later.hold)ms: the chain is not ordered by the hold"
+            )
+            let clearedByWaitingLonger = zip(earlier.pressured, later.pressured).filter {
+                $0 && !$1
+            }.count
+            #expect(
+                clearedByWaitingLonger == 0,
+                "\(clearedByWaitingLonger) of \(earlier.pressured.count) snaps were pressured holding \(earlier.hold)ms and clean holding \(later.hold)ms, off the same rush"
             )
         }
+        guard let shortest = measured.first, let longest = measured.last else {
+            Issue.record("no pass concepts to chain")
+            return
+        }
+        let span = share(longest.pressured) - share(shortest.pressured)
+        #expect(
+            span > 0.1,
+            "\(shortest.concept) at \(shortest.hold)ms is pressured \(share(shortest.pressured)) of the time and \(longest.concept) at \(longest.hold)ms \(share(longest.pressured)): the pocket is not on a clock"
+        )
     }
 
     /// What a dropback records about its pocket, once, whatever happened in it.
