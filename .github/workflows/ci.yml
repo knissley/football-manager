@@ -86,6 +86,17 @@ jobs:
       - name: Toolchain
         run: swift --version
 
+      - name: Python
+        # `swift:6.2` ships no `python3` at all — the first run of the calibration
+        # self-test below died with "python3: command not found" — and the band
+        # derivation is Python because the data set it reads is a CSV release. One
+        # package, no recommends, so the step below runs rather than skipping: a check
+        # that quietly does not execute is the failure the self-tests exist to prevent.
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends python3
+          python3 --version
+
       - name: Restore build cache
         uses: actions/cache@v4
         with:
