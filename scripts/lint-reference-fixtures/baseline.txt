@@ -1,0 +1,9 @@
+# The fixture baseline, read only by scripts/lint-reference.sh --self-test.
+#
+# Same format as scripts/lint-reference-baseline.txt: path, content key, verdict, note,
+# tab separated. It carries exactly one of the fixture runs — the one in
+# docs/baselined.md — so the self-test fails if the lint ever stops honouring a baseline
+# entry, and fails the other way if it ever starts swallowing a run that has none.
+#
+# path	key	verdict	note
+scripts/lint-reference-fixtures/docs/baselined.md	1164567608-499371264	fixture	the run docs/baselined.md exists to have carried

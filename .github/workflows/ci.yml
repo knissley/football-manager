@@ -122,6 +122,21 @@ jobs:
         # fails on any difference from the expected hit list (issue #53).
         run: ./scripts/lint-sim.sh --self-test
 
+      - name: Reference lint self-test
+        # Rule 8 (never copy rulebook text) and rule 10 (a football claim carries an
+        # article number) had nothing enforcing them until #98. The lint needs the
+        # rulebook, which is not in the repository and will not be, so the step below
+        # skips here — this one does not: the fixture tree ships an invented corpus, so
+        # the scanner, its joining of wrapped lines, its baseline and the citation index
+        # are all exercised on every run. See docs/tools.md.
+        run: ./scripts/lint-reference.sh --self-test
+
+      - name: Reference lint
+        # Expected to print SKIPPED and pass: no corpus is available to the runner. It is
+        # here so the skip path is exercised rather than assumed, and so the day a corpus
+        # can be made available this step starts checking instead of having to be added.
+        run: ./scripts/lint-reference.sh
+
       - name: Test census
         # Rule 11: every test says what kind it is. This fails on a @Test with no kind
         # tag, and writes the shares into the job summary so they are in front of

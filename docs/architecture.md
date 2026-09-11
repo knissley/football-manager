@@ -240,6 +240,10 @@ rules never fire.
   play-record footprint, and the proof the `FM*` modules link without a framework.
 - [`scripts/lint-sim.sh`](../scripts/lint-sim.sh) — the banned primitives from ADR-0003
   and the framework ban from ADR-0004, enforced as a script.
+- [`scripts/lint-reference.sh`](../scripts/lint-reference.sh) — rule 8 and half of rule 10,
+  enforced as a script: ten-word runs the tree shares with the rulebook, and article
+  numbers in the reference documents that name no article. It needs a corpus from outside
+  the tree and skips without one; its self-test ships an invented one and runs in CI.
 - `swift-format` with the repo config, enforced in CI as `swift format lint --strict`
   (without `--strict` the linter reports findings and exits 0).
 - CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the packages on

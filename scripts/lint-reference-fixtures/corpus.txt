@@ -1,0 +1,34 @@
+THE LAWS OF THE GARDEN RELAY
+
+*** THIS IS NOT A RULEBOOK. ***
+
+Every sentence below was invented for this fixture. Nothing here is quoted from,
+paraphrased from, or derived from any real rulebook, and the sport it describes does
+not exist. It is here so scripts/lint-reference.sh --self-test has a corpus to find
+reproductions in without the repository holding a line of anybody's copyrighted text.
+
+It imitates the shape of a rulebook and nothing else: numbered rules, numbered
+sections, numbered articles, and one heading deliberately broken across a line the way
+a PDF text extractor breaks them, so the script's repair of that is exercised too.
+
+RULE 7 THE BATON
+SECTION 3 EXCHANGES
+ARTICLE 1. LEGAL EXCHANGE. A runner may hand the baton to a team mate only while both
+of them stand inside the painted exchange box, and the exchange is finished at the
+moment the receiving runner holds the baton alone.
+
+ARTICLE 2. END OF THE RELAY. The relay is over when the anchor runner crosses the
+painted finish stripe while holding the baton in either hand. A crossing made without
+the baton ends nothing and the anchor must return for it.
+
+SEC
+TION 4 PENALTIES
+ARTICLE 1. DROPPED BATON. A dropped baton must be recovered by the runner who dropped
+it and by nobody else on that team, and the recovery may be made from any lane.
+
+Penalty: For an exchange outside the painted box: the team is moved back one place in
+the finishing order, and where two teams are both moved back they keep their order
+relative to each other.
+
+The judges keep a written record of every exchange and of every dropped baton, and
+that record is read aloud to the captains before the results are posted.

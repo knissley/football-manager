@@ -1,0 +1,60 @@
+# Runs the tree and the rulebook have in common, and why each is carried.
+#
+# Read by scripts/lint-reference.sh. Four tab-separated fields:
+#
+#     path <TAB> content key <TAB> verdict <TAB> note
+#
+# The key, not the run. Writing the run into this file would put the text in the
+# repository, which is the thing being linted; the key is two polynomial hashes over it,
+# and `scripts/lint-reference.sh --list` prints the line to add. To see what a key stands
+# for, open the file at the line the lint names.
+#
+# ## What a carried run is
+#
+# `docs/reference/README.md` says terms of art are the one thing that cannot be reworded:
+# a *free kick*, the *line to gain*, *half the distance to the goal* have no synonyms
+# worth having. String six or eight of them together in the order the sport puts them in
+# and a ten-word run appears, because both sentences are describing the same rule with
+# the same nouns. That is not copying, and rewriting it would mean writing worse football
+# to please a script.
+#
+# Every entry below was read against its article and judged that way. `vocabulary` means
+# the run is the sport's words in the sport's order and the entry is our own sentence.
+# None of the twenty-three is a lifted clause: several stop exactly where our wording
+# parts from the book's, which is what a paraphrase looks like from the inside. The
+# clearest is the 8-6-1-d pair in PenaltyEnforcementTests, where the run ends at the word
+# before "better", because the book chooses a different adjective there and we did not
+# follow it.
+#
+# ## What this file is not
+#
+# Not a place to put a run to make the lint quiet. A new line here is a claim that
+# somebody opened the article and judged the run, and the note is where that judgement
+# is written down. If the honest note would be "I wanted a green build", the fix is the
+# entry, not this file.
+#
+# path	key	verdict	note
+
+.claude/skills/football-domain/references/game-rules.md	1179181602-119723781	vocabulary	the enforcement-spot row: line of scrimmage, enforced from, previous spot — four terms of art end to end
+.claude/skills/football-domain/references/game-rules.md	1200741445-491920042	vocabulary	the dead-ball-foul row: succeeding spot and the down, in the only order they go in
+.claude/skills/football-domain/references/game-rules.md	1533231175-754735855	vocabulary	the same enforcement-spot row, one word further left
+.claude/skills/football-domain/references/game-rules.md	155901012-859329902	vocabulary	the same dead-ball-foul row, one word further left
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	1179181602-119723781	vocabulary	the doc comment on the contact-foul family, naming where a foul behind the line comes off
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	1231501470-954241558	vocabulary	the doc comment on 8-6-1-d, listing the two spots the offence may have; the run stops where our adjective for the choice differs from the book's
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	1533231175-754735855	vocabulary	the same contact-foul comment, one word further left
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	2019470237-1008676062	vocabulary	the same 8-6-1-d comment, one word further left
+Packages/FMSimulation/Sources/FMSimulation/GameState.swift	114932543-966820014	vocabulary	the comment on when a free kick starts the clock: legally touched, and the field of play, are both defined terms
+Packages/FMSimulation/Sources/FMSimulation/GameState.swift	792363916-995199093	vocabulary	the same free-kick comment, one word further left
+Packages/FMSimulation/Sources/FMSimulation/GameState.swift	812810925-298936417	vocabulary	the comment on what ends a period: the two-minute warning and the end of the period are both named events
+docs/invariants.md	1200741445-491920042	vocabulary	invariant 66, the dead-ball foul before the snap: succeeding spot and the down
+docs/invariants.md	155901012-859329902	vocabulary	the same invariant, one word further left
+docs/reference/playing-rules.md	114932543-966820014	vocabulary	the 4-3-1 entry on when a free kick starts the clock: legally touched, field of play
+docs/reference/playing-rules.md	1179181602-119723781	vocabulary	the 14-3-6 entry on the basic spot: line of scrimmage, enforced from, previous spot
+docs/reference/playing-rules.md	1200741445-491920042	vocabulary	the 14-4-1 entry on a foul before the snap: succeeding spot and the down
+docs/reference/playing-rules.md	1533231175-754735855	vocabulary	the same 14-3-6 entry, one word further left
+docs/reference/playing-rules.md	155901012-859329902	vocabulary	the same 14-4-1 entry, one word further left
+docs/reference/playing-rules.md	1823737822-509243930	vocabulary	the 4-2-3 entry on changing ends: the periods are numbered and the goals are the thing swapped, so the nouns are fixed
+docs/reference/playing-rules.md	183656545-533680699	vocabulary	the 4-7-1 entry: conserving time, the two-minute warning, either half — three defined terms in a row
+docs/reference/playing-rules.md	1889613899-725696404	vocabulary	the same 4-7-1 entry, one word further left
+docs/reference/playing-rules.md	1969759144-64118099	vocabulary	the 4-6-3 entry on the play clock: a defensive act that conserves time, and an excess timeout, are both named in the article
+docs/reference/playing-rules.md	792363916-995199093	vocabulary	the same 4-3-1 entry, one word further left

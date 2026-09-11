@@ -78,6 +78,7 @@ The `test` job gates a merge. It runs everything the *before you push* list in
 ```
 swift format lint --strict --recursive --parallel Packages/ Tools/
 ./scripts/lint-sim.sh                        # beyond the push list
+./scripts/lint-reference.sh --self-test      # beyond the push list
 swift test --package-path Packages/FMRandom
 swift test -c release --package-path Packages/FMRandom
 swift test --package-path Packages/FMCore
