@@ -2283,9 +2283,11 @@ struct RulesConformanceTests {
     /// 4-6-3-a says it again from the other side. So the snap the warning precedes is
     /// taken against the short clock, and its record says which clock that was.
     ///
-    /// The warning also stops the game clock, which then waits for the snap (4-3-2), so
-    /// the rest of the interval costs the offence nothing — which is why the length of
-    /// this play clock changes no reading of the game clock anywhere in the drill.
+    /// The warning also stops the game clock at 2:00 and it waits for the snap (3-41,
+    /// 4-3-2), so the rest of the interval costs the offence nothing: which of the two
+    /// play clocks is in force changes no reading of the game clock anywhere in the
+    /// drill, and `test:everyPlayIsRecordedWithTheClockItWasSnappedOn` walks the same
+    /// seven downs to say so.
     @Test(
         "football · Rule 4-6-2, 4-6-3-a · a two-minute warning between downs leaves twenty-five seconds from the Referee's whistle, and the snap it precedes is taken against them though the forty was already counting down",
         .tags(.football)
@@ -2294,8 +2296,8 @@ struct RulesConformanceTests {
         let trace = RulesScenario.twoMinuteDrill.run()
         guard let opening = snapTheWarningPrecedes(in: trace) else { return }
         #expect(
-            trace.clockRunning(into: opening.index) == false,
-            "the warning stopped the game clock, and it waits for the snap")
+            opening.play.situation.clockRemaining == Rules.standard.twoMinuteWarning,
+            "the interval ended at 2:00, which is where the warning stopped the clock")
         guard let reading = playClock(on: opening.play) else { return }
         #expect(
             reading.seconds == Rules.standard.playClockAfterStoppage,

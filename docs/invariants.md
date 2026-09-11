@@ -346,6 +346,22 @@ season is what checks one. A band is evidence about a rate and never about a rul
     clock's length and says nothing about how ready the offence is. Pinned by
     `test:theSnapOutOfATimeoutIsPrepared`
 
+    The two-minute warning is on that list of stoppages, so the snap it precedes is taken
+    against twenty-five seconds from the Referee's whistle — the article covers the case
+    where the forty was already counting down — and the snap after that one is back on
+    the forty its own down left. `[2025 · 4-6-1, 4-6-2, 4-6-3-a]` —
+    `test:theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds`,
+    `test:theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock`; the game clock
+    is untouched by which of the two is in force, because the warning stops it at 2:00 and
+    it waits for the snap (`test:everyPlayIsRecordedWithTheClockItWasSnappedOn`), and
+    `row:penalty.delayOfGame` is where the shorter clock shows up.
+
+    Whatever moves the play clock between downs moves it **before the context is built**,
+    so that the reading a play-by-play shows and the interval the offence was drawn
+    against are one clock: a record that says otherwise describes a down that was not
+    played. — `test:theRecordedPlayClockIsTheOneTheResolverWasHanded`,
+    `test:everySnapRecordsItsPlayClock`
+
 ## The ten-second runoff
 
 53. The runoff is ten seconds. `[2025 · 4-7-1 Item 1]` — `test:tenSeconds`

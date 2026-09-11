@@ -103,6 +103,15 @@ extension GameSimulator {
         /// leaves the same twenty-five. Set where a timeout is charged and cleared by
         /// the snap that spends it, or by a period that ends before one comes.
         var offenseIsSetFromATimeout = false
+        /// Whether the two-minute warning has already ended the interval before this
+        /// snap, at 2:00 with the rest of it free (3-41, 4-3-2).
+        ///
+        /// The warning is taken before the snap is prepared, because what it leaves on
+        /// the play clock is the clock the snap is played against (4-6-2). So the game
+        /// clock it costs has been charged by then too, and the interval the rules layer
+        /// charges once the down is resolved must not charge it twice. Set where the
+        /// warning is taken and spent by the interval that would otherwise re-run it.
+        var intervalEndedAtTheWarning = false
         /// Who is on the field for this snap. The offence declares by substituting and
         /// the defence answers, so these are set in that order before the snap and are
         /// part of the situation both callers and the resolver read.
@@ -388,9 +397,11 @@ extension GameSimulator {
         /// into the interval (4-3-2): the offence's tempo against the play clock in
         /// force. For a delay of game it is the whole play clock instead, because the
         /// flag *is* the play clock expiring and there is no snap (4-6-1, 4-6-4).
-        /// Nothing before a free kick or a try, where the clock is dead.
+        /// Nothing before a free kick or a try, where the clock is dead — and nothing
+        /// when the two-minute warning has already ended this interval at 2:00, since
+        /// what is left of it runs on a stopped clock (3-41, 4-3-2).
         private func intervalBeforeTheSnap(tempo: Tempo, foul: Foul?) -> GameClock.Elapsed {
-            guard !pendingKickoff && !pendingTry else {
+            guard !pendingKickoff && !pendingTry, !intervalEndedAtTheWarning else {
                 return GameClock.Elapsed(duringPlay: 0, beforeSnap: 0)
             }
             let snapAfter =
@@ -419,7 +430,52 @@ extension GameSimulator {
                 intervalBeforeTheSnap(tempo: tempo, foul: foul), rules: setup.rules,
                 isPostseason: setup.isPostseason)
             if taken { beforeTheSnap.append(.twoMinuteWarning) }
-            return taken
+            // The warning may have ended this interval before the snap was prepared, in
+            // which case it is already on the record and the clock is already at 2:00:
+            // the interval is charged once, and what the caller asked is whether the
+            // warning fell in it.
+            let endedAtTheWarning = intervalEndedAtTheWarning
+            intervalEndedAtTheWarning = false
+            return taken || endedAtTheWarning
+        }
+
+        /// The two-minute warning, when the interval before this snap reaches it — taken
+        /// here, before the snap is prepared, rather than with the rest of the interval.
+        ///
+        /// **It is what the offence about to snap is playing against.** The warning is one
+        /// of the administrative stoppages 4-6-2 names in its own list, and what it leaves
+        /// is twenty-five seconds from the Referee's whistle; the article covers the case
+        /// where the forty of 4-6-1 was already counting down, and 4-6-3-a says the same
+        /// from the other side. The clock the down is played against has to be settled
+        /// before the down is prepared, or the reading written onto the record describes a
+        /// different game from the one the resolver was asked about.
+        ///
+        /// Charging it here costs the game clock nothing extra. The warning stops the
+        /// clock at 2:00 and it waits for the snap (3-41, 4-3-2), so the rest of the
+        /// interval is free and the interval charged after the down comes to zero. And
+        /// the interval is measured to the snap the offence *means* to take, not to the
+        /// play clock's expiry: an offence that was going to be beaten by the forty is
+        /// reached by the warning first and gets the fresh twenty-five to beat instead,
+        /// which is the order the two happen in.
+        ///
+        /// A period cannot end here — an interval that reaches 2:00 stops there — so the
+        /// case `apply` handles, where the interval alone exhausts a period (4-8-1), is
+        /// untouched by this.
+        ///
+        /// `previousBehavior` is left alone on purpose: it is the verdict on the play
+        /// *before*, and the clock did run into this interval — it ran from wherever the
+        /// down left it down to 2:00, which is how the warning was reached at all.
+        mutating func takeTwoMinuteWarningBeforeTheSnap(tempo: Tempo) {
+            var reached = clock
+            guard
+                reached.run(
+                    intervalBeforeTheSnap(tempo: tempo, foul: nil), rules: setup.rules,
+                    isPostseason: setup.isPostseason)
+            else { return }
+            clock = reached
+            beforeTheSnap.append(.twoMinuteWarning)
+            intervalEndedAtTheWarning = true
+            playClock = setup.rules.playClockAfterAnAdministrativeStoppage
         }
 
         // MARK: - Applying a play

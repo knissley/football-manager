@@ -163,7 +163,9 @@ Which rules must be true of a game, and what checks each, is
   them run out is delay of game. —
   `test:delayOfGameWhenThePlayClockExpires`,
   `test:anExpiredPlayClockWithNoTimeoutIsADelayOfGame`, `test:playClockValues`,
-  `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
+  `test:everySnapRecordsItsPlayClock`,
+  `test:theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock`; those forty
+  seconds are also the offence's to
   spend, which is what a knee-down sequence counts —
   `test:aKneltOutLeadStaysKnelt`,
   `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`
@@ -182,16 +184,22 @@ Which rules must be true of a game, and what checks each, is
   `test:theKneltOutGameEndsOnAThirdDownKnee` pin it meanwhile
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
-  enforcement, a free kick. —
+  enforcement, a free kick. The article adds that these stoppages take the 25-second
+  interval unless some other rule prescribes otherwise, and that they take it even where
+  a 40-second count is part-way through — so a warning taken between downs replaces the
+  forty the interval had been running on rather than leaving it to finish. —
   `test:delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock`,
+  `test:theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds`,
+  `test:theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock`,
   `test:playClockValues`
 - **4-6-3** — What a stoppage leaves on the play clock: 25 after a charged timeout, the
   two-minute warning, the end of a period or a penalty enforcement (a); 40 after a
   defensive act that conserves time or an excess timeout charged to the defence (b); 30
   after a ten-second runoff (c). — `test:playClockValues`,
-  `test:aChargedTimeoutBeatsThePlayClock`; the resume-where-it-stopped
-  cases are not modelled, since the engine has no stoppage that leaves a play clock
-  half run
+  `test:aChargedTimeoutBeatsThePlayClock`,
+  `test:theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds`; the
+  resume-where-it-stopped cases are not modelled, since the engine has no stoppage that
+  leaves a play clock half run
 - **4-6-4** — When the play clock expires the ball stays dead: the whistle is the foul,
   five yards from the succeeding spot with the down unchanged (14-4-1). —
   `test:delayOfGameWhenThePlayClockExpires`,
