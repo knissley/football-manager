@@ -1,0 +1,22 @@
+simharness — 400 games, seed 7
+  32 teams, strength offset -2.8 to 2.5
+  world checksum 0f1e2d3c4b5a6978  (no target: it names the league, it does not grade it)
+
+  Sources
+    S1   a sourced data set, regular-season games
+    a stale row was sourced under a different rulebook than the run; an unsourced row
+    keeps a band nobody has cited and is never ok; (ok) and (OFF) are rows with no gate
+
+  metric (per team per game)            value    target        verdict    season   src  sensitive to
+  points                                21.4     20.6-24.1     ok         2023-24  S1
+  kneels per game                       1.8      1.3-1.8       OFF        2023-24  S1
+  yards per carry                       4.6      3.9-4.6       ok         2023-24  S1
+  third down conversion                 38.2     36.7-41.7     ok         2023-24  S1
+  punts returned                        41.1     40.5-45.3     ok         2023-24  S1
+  kickoff touchbacks                    21.0     18.9-22.4     ok         2025     S1   kickoff
+  kickoff touchbacks                    64.0     61.1-67.6     stale      2024     S1   kickoff
+  spread of team win totals (σ)         3.1      2.5-3.8       ok         2023-24  S1
+  scrambles per game                    3.6      3.5-4.2       ok         2023-24  S1
+
+  Budget
+    ms per game                 220

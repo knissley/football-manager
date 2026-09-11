@@ -1,0 +1,28 @@
+harness-compare: scripts/harness-compare-fixtures/before.txt -> scripts/harness-compare-fixtures/after.txt
+  before: 400 games, seed 7, world 0f1e2d3c4b5a6978
+  after:  400 games, seed 7, world 0f1e2d3c4b5a6978
+  9 graded rows before, 9 after
+
+  verdict changed while the printed value did not (1)
+    kneels per game [2023-24]   1.8   OFF -> ok   band 1.3-1.8
+
+  the band itself moved (1)
+    third down conversion [2023-24]   38.2   ok   band 36.7-41.7 -> 36.9-41.9
+
+  a row lost or gained its sample (1)
+    spread of team win totals (σ) [2023-24]   3.1 -> —   ok -> n/a   band 2.5-3.8
+
+  verdict changed (2)
+    yards per carry [2023-24]   4.6 -> 4.72   ok -> OFF   band 3.9-4.6 -> 3.90-4.60
+    kickoff touchbacks [2025]   21.0 -> 22.6   ok -> OFF   band 18.9-22.4
+
+  value changed, verdict did not (1)
+    points [2023-24]   21.4 -> 21.9   ok   band 20.6-24.1
+
+  only in the before run (1)
+    punts returned [2023-24]   41.1   ok   band 40.5-45.3
+
+  only in the after run (1)
+    fourth down attempts per team-game [2023-24]   1.29   OFF   band 1.30-1.60
+
+  unchanged (2)

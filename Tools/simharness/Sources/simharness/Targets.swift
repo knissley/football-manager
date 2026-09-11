@@ -128,24 +128,80 @@ struct CalibrationTarget: Sendable {
         self.note = note
     }
 
-    func format(_ value: Double) -> String {
-        let scale = pow10(decimals)
+    func format(_ value: Double) -> String { format(value, decimals: decimals) }
+
+    /// The row's value at a precision that is not necessarily its own. Everything that
+    /// prints a table asks `printed(_:inBand:)` which precision to use; this is how it
+    /// prints one once it has decided.
+    func format(_ value: Double, decimals places: Int) -> String {
+        digits(value, decimals: places) + unit
+    }
+
+    private func digits(_ value: Double, decimals places: Int) -> String {
+        let scale = pow10(places)
         let scaled = Int((value * scale).rounded())
         // Format the magnitude and prefix the sign: a value in (-1, 0) has a whole part of
         // zero, which carries no sign of its own.
         let sign = scaled < 0 ? "-" : ""
         let magnitude = abs(scaled)
         let whole = magnitude / Int(scale)
-        if decimals == 0 { return "\(sign)\(whole)\(unit)" }
-        var digits = "\(magnitude % Int(scale))"
-        while digits.count < decimals { digits = "0" + digits }
-        return "\(sign)\(whole).\(digits)\(unit)"
+        if places == 0 { return "\(sign)\(whole)" }
+        var fraction = "\(magnitude % Int(scale))"
+        while fraction.count < places { fraction = "0" + fraction }
+        return "\(sign)\(whole).\(fraction)"
     }
 
-    var band: String {
+    var band: String { band(decimals: decimals) }
+
+    func band(decimals places: Int) -> String {
         guard let low, let high else { return "none" }
-        return "\(format(low).dropLast(unit.count))-\(format(high).dropLast(unit.count))"
+        return "\(digits(low, decimals: places))-\(digits(high, decimals: places))"
     }
+
+    /// The value and the band as one row of the table prints them, given what the grade
+    /// beside them says: `true` in band, `false` out of it, `nil` for a row the grade did
+    /// not read against its band at all (one sourced under another rulebook, or unsourced).
+    ///
+    /// Both print at the row's own precision wherever that precision carries the verdict,
+    /// and at more where it does not — so the printed line alone is enough to decide the
+    /// row, which is what a reviewer comparing two runs actually reads.
+    ///
+    /// The grade is taken on the unrounded value with the endpoints in the band (`>=`,
+    /// `<=`), and rounding to nearest is monotone, so there is exactly one reading a
+    /// rounded value can get wrong: a tie. A value that prints as an endpoint is within
+    /// half a display unit of it and can be on either side of it. A tie *inside* the band
+    /// reads correctly on its own — the endpoint is in the band, so "at the endpoint" and
+    /// the verdict agree — and a tie outside it does not, which is the whole of what
+    /// widens here. Value and band widen together, because an endpoint finer than its row
+    /// (a band top of 1.55 on a one-decimal row) is as unreadable as a rounded value:
+    /// 1.58 against a band printed `1.3-1.6` reads as in band whatever the value's own
+    /// digits say.
+    ///
+    /// What this guarantees a reader, and a parser: the value is a decimal number with the
+    /// row's unit on it and nothing else — no marker, no separator — and the count of
+    /// digits after the point varies by row and by run. Both endpoints of the band carry
+    /// the same count as the value beside them.
+    func printed(_ value: Double, inBand: Bool?) -> (value: String, band: String) {
+        var places = decimals
+        if inBand == false, let low, let high {
+            while places < Self.mostPrintedDecimals,
+                digits(value, decimals: places) == digits(low, decimals: places)
+                    || digits(value, decimals: places) == digits(high, decimals: places)
+            {
+                places += 1
+            }
+        }
+        return (format(value, decimals: places), band(decimals: places))
+    }
+
+    /// The most decimals a row will print, because a column has to end somewhere.
+    ///
+    /// Every rate here is a ratio of integer counts, so a value that is not an endpoint
+    /// differs from it by at least one part in the denominator times the endpoint's own
+    /// hundredth — about two parts in ten million for the fifty-odd thousand plays a
+    /// 400-game run takes, which eight decimals separates comfortably. Two numbers that
+    /// still tie here are a billionth apart, and no table can show that.
+    static let mostPrintedDecimals = 8
 
     private func pow10(_ power: Int) -> Double {
         var result = 1.0

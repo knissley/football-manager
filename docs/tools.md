@@ -189,6 +189,36 @@ CI checks that on every push, as a hard-failing step of the `test` job: two
 `--games 50 --no-timing --seed 7` runs and a `cmp`, with the difference printed if there
 is one (#72). It was a local duty before that, done twice per seed by whoever remembered.
 
+### What a row prints, and how to read it
+
+A row is graded on the **unrounded** value, with both endpoints **in** the band
+(`value >= low && value <= high`), and printed rounded. Those two used to be unrelated,
+and a value that rounds onto a printed endpoint sits within half a display unit of it and
+can be on either side — so `1.8` against a band of `1.3-1.8` was printed beside `ok` in
+one run and `OFF` in another, and the reader had no way to tell which digits the display
+had dropped (#108).
+
+So a row prints its own precision only where that precision carries the verdict. When the
+grade puts a value **outside** its band and the row's own precision would print it as one
+of the endpoints, the value and both endpoints of the band gain decimals together until
+the value is off the endpoint, up to eight. Everything else prints exactly as it did.
+
+The rule a reader can hold, and the harness prints it under **Sources**:
+
+> A value printed as one of its band's endpoints is in band — an endpoint is in — and a
+> row graded outside its band prints the decimals that put it outside.
+
+Bands widen with the value they sit beside, so one band can print as `3.9-4.6` on one row
+and `3.90-4.60` on another. The band has not moved; only the row's precision has. Compare
+bands as numbers, never as text — `scripts/harness-compare.sh` below does.
+
+**What this guarantees anything parsing the table.** Fields are separated by runs of two
+or more spaces, as they were. The value field is a decimal number carrying the row's own
+unit (`%` or `x`) and nothing else: no marker, no glyph, no thousands separator. The
+count of digits after the point varies by row and by run, and both endpoints of the band
+beside it carry the same count as the value. A value wider than its column keeps two
+spaces after it and makes its own row ragged, rather than running into the band field.
+
 ### The world checksum
 
 The header names the league the run was played in, as one number:
@@ -977,6 +1007,68 @@ called the two leagues identical.
 It builds a harness per scenario that reaches one — a few minutes on a warm Linux
 container, longer from cold — so run it when you change the script. CI does not run it, deliberately: the determinism step in the `test` job is the cheap guard
 that runs on every push.
+
+## harness-compare — what moved between two captures
+
+```bash
+scripts/harness-compare.sh before/harness-7.txt after/harness-7.txt
+```
+
+Reads two `simharness` captures as tables rather than as text, joins them row by row, and
+sorts what it finds into the categories a reviewer acts on. It reports; it does not grade.
+The exit status is 0 whenever both captures could be read, whatever it found, and 2 when
+one could not be parsed — because an empty report from an unread capture reads as "nothing
+moved".
+
+```text
+  verdict changed while the printed value did not (1)
+    kneels per game [2023-24]   1.8   OFF -> ok   band 1.3-1.8
+
+  the band itself moved (0)
+
+  a row lost or gained its sample (0)
+
+  verdict changed (2)
+    ...
+```
+
+Categories, in the order it prints them: a **verdict that changed while the printed value
+did not**; the **band itself moving**, which is a target changing rather than a
+measurement; a row **losing or gaining its sample**, which prints as an em dash and `n/a`
+and otherwise looks like nothing happened; a **verdict that changed** on a value that
+moved; a **value that moved** without changing standing; rows **on one side only**; and a
+count of the unchanged.
+
+The first category is why this exists. `diff` reports lines, and a line carries a value, a
+band, a verdict and a season at once, so a row that flips verdict while its printed column
+stands still is reported at exactly the same volume as a row that moved a tenth — and a
+reviewer scanning the value column, which is what a calibration argument is about, reads
+it as unchanged. Three such rows sat inside one branch's headline flip count before
+anybody noticed (#108).
+
+Two things it is careful about, both of which a naive `diff` gets wrong:
+
+- **A band is compared as numbers, never as text.** One band prints as `3.9-4.6` beside a
+  row at its own precision and `3.90-4.60` beside a row that widened, and that is a
+  display change, not a retune.
+- **Two rows can share a label.** A rule-sensitive row has a variant per rulebook, so rows
+  are joined on the label *and* the season, and the nth row of a name on one side is
+  matched with the nth on the other.
+
+It also prints what each capture says about itself — the games, the seed and the world
+checksum — so a comparison of two different runs is visible at the top rather than
+inferred from a report full of moves.
+
+### Its self-test
+
+```bash
+./scripts/harness-compare.sh --self-test
+```
+
+Runs the comparison over `scripts/harness-compare-fixtures/`: two hand-written captures
+carrying one row of every category, and the report they must produce. The fixtures'
+`README.md` says what each row is there for. It needs no toolchain and no harness run, so
+CI runs it on every push.
 
 ## test-census — what the suite asserts
 

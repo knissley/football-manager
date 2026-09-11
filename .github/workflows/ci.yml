@@ -221,6 +221,15 @@ jobs:
         # fails on any difference from the expected list.
         run: ./scripts/test-census.sh --self-test
 
+      - name: Harness comparison self-test
+        # The before-and-after comparison every fix in the backlog rests on is read by a
+        # reviewer, and the row it most needs to see — a verdict that flipped while the
+        # printed value stood still — is the row a plain `diff` reports at the same volume
+        # as everything else (#108). This runs the comparison against two hand-written
+        # captures carrying one row of every category and the report they must produce. No
+        # toolchain, no harness run, so it costs nothing here. See docs/tools.md.
+        run: ./scripts/harness-compare.sh --self-test
+
       - name: Calibration sources self-test
         # Every sourced band in `Targets.swift` is a ratio of the component sums
         # `scripts/calibration-sources.py` folds, and that fold got a signed component
