@@ -510,6 +510,10 @@ struct ScenarioResolver: PlayResolver {
 
         struct Entry: Sendable {
             let clockIsRunning: Bool
+            /// The play clock in force on the snap the resolver was handed, which the
+            /// record also carries: two readings of one fact, so a scenario can hold
+            /// them against each other.
+            let playClock: PlayClock
             let situation: Situation
             let outcome: Outcome
             let injured: Side?
@@ -521,6 +525,16 @@ struct ScenarioResolver: PlayResolver {
         }
 
         /// Whether the clock was running into each **recorded** snap.
+        func clockRunning(alignedTo plays: [PlayRecord]) -> [Bool] {
+            aligned(to: plays).map(\.clockIsRunning)
+        }
+
+        /// The play clock the resolver was handed for each **recorded** snap.
+        func playClockInForce(alignedTo plays: [PlayRecord]) -> [PlayClock] {
+            aligned(to: plays).map(\.playClock)
+        }
+
+        /// The entry the resolver logged for each recorded snap.
         ///
         /// The resolver is asked about a down before the rules layer knows whether the
         /// down happened: a period the interval before the snap exhausts ends there and
@@ -528,9 +542,9 @@ struct ScenarioResolver: PlayResolver {
         /// per question and one play per answer that counted, and the two are paired
         /// here by the period they belong to — the only entry that can go unanswered is
         /// one at the end of a period, and the play that follows it is in the next.
-        func clockRunning(alignedTo plays: [PlayRecord]) -> [Bool] {
+        private func aligned(to plays: [PlayRecord]) -> [Entry] {
             state.withLock { state in
-                var aligned: [Bool] = []
+                var aligned: [Entry] = []
                 var index = state.entries.startIndex
                 for play in plays {
                     while index < state.entries.endIndex,
@@ -539,7 +553,7 @@ struct ScenarioResolver: PlayResolver {
                         index += 1
                     }
                     guard index < state.entries.endIndex else { break }
-                    aligned.append(state.entries[index].clockIsRunning)
+                    aligned.append(state.entries[index])
                     index += 1
                 }
                 return aligned
@@ -614,8 +628,8 @@ struct ScenarioResolver: PlayResolver {
         let outcome = context.playClockExpired ? snap.preSnapFoul(.delayOfGame) : script(snap)
         log.append(
             .init(
-                clockIsRunning: context.clockIsRunning, situation: situation, outcome: outcome,
-                injured: injury(snap, outcome)))
+                clockIsRunning: context.clockIsRunning, playClock: context.playClock,
+                situation: situation, outcome: outcome, injured: injury(snap, outcome)))
         return (outcome, [])
     }
 
@@ -691,6 +705,7 @@ public struct ScriptedGame {
         .simulate(setup)
         return Trace(
             result: result, clockRunning: log.clockRunning(alignedTo: result.plays),
+            playClockInForce: log.playClockInForce(alignedTo: result.plays),
             huddle: log.huddle,
             home: setup.home.id, away: setup.away.id)
     }
@@ -708,6 +723,10 @@ public struct Trace {
     public let result: GameResult
     /// Whether the clock was running into each snap, by play index.
     public let clockRunning: [Bool]
+    /// The play clock the resolver was handed for each snap, by play index. The record
+    /// carries its own reading of the same fact, and the two are held against each
+    /// other rather than one being trusted.
+    public let playClockInForce: [PlayClock]
     /// The offence's tempo between plays on a running clock, measured; see `Snap.huddle`.
     public let huddle: UInt16?
     public let home: TeamID
@@ -721,6 +740,10 @@ public struct Trace {
 
     public func clockRunning(into index: Int) -> Bool? {
         clockRunning.indices.contains(index) ? clockRunning[index] : nil
+    }
+
+    public func playClockInForce(into index: Int) -> PlayClock? {
+        playClockInForce.indices.contains(index) ? playClockInForce[index] : nil
     }
 
     public func opponent(of team: TeamID) -> TeamID {
