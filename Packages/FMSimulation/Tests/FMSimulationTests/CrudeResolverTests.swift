@@ -435,6 +435,21 @@ struct OutOfBoundsTests {
     /// breakaway could not finish any other way. It is a rare carry, about one in a
     /// thousand, which is why the probe counts them explicitly rather than trusting a
     /// share to show it.
+    ///
+    /// **Both floors here rest on a handful of carries, and widening is not cheap.**
+    /// Eight thousand outside runs produce 3 of them on this stream, all 3 in bounds;
+    /// resampled the counts average about 2 and about 1.5, so each floor of one sits
+    /// inside two standard errors of firing on a run that is not this one — at two
+    /// breakaways the chance of finding none at all is about one in seven. Forty thousand
+    /// runs produce 16 and 12, which would clear both floors comfortably, and cost about
+    /// nineteen seconds of a suite whose total is the budget's to spend. So the margin is
+    /// written down rather than bought: **the next reader should treat a red here as a
+    /// question about the sample before treating it as a question about the engine.**
+    ///
+    /// The cheap fix is not a bigger sample but a forced one — a carrier whose contact
+    /// balance against this pursuit makes breaking all three ordinary rather than rare, so
+    /// the path is exercised tens of times for nothing. That is a fixture rather than a
+    /// comment and it is not built here.
     @Test(
         "A carrier who breaks every tackle is not out of bounds by construction",
         .tags(.contract))
@@ -500,25 +515,47 @@ struct CarryShapeTests {
     ///
     /// and with two or fewer sourced at 40.6–46.5 and ten or more at 9.6–11.2, the middle
     /// share lies between **42.3 and 49.8** however the two sourced shares fall inside
-    /// their own bands. The floor is what this asserts, because it is the corner that
-    /// holds whatever the truth is inside them.
+    /// their own bands.
     ///
-    /// It also asserts the middle is larger than the ten-or-more share, which holds at
-    /// every corner — 42.3 against 11.2.
+    /// **The 42.3 floor is not asserted here, because forty games cannot resolve it and
+    /// the harness already grades it.** The corpus reads 45.04% of 2,440 carries, and the
+    /// leave-one-game-out jackknife standard error of that share is 1.46 — a margin of 1.9
+    /// errors, so the test was deciding on which forty games it drew rather than on where
+    /// the engine was. The precise claim is the conjunction of the two sourced ceilings,
+    /// and both of those are graded rows: `row:carries2orFewer` at or under 46.5 and
+    /// `row:carries10plus` at or under 11.2 *is* three-to-nine at or over 42.3, by the
+    /// arithmetic above and nothing else. Those two rows are graded over four hundred
+    /// games at two seeds, which is ten times this corpus, and the harness prints the
+    /// derived middle beside them. A second, weaker copy of a sourced rate in the suite
+    /// buys nothing and costs the suite-time budget.
+    ///
+    /// **What forty games can resolve, both read off the sourced bands rather than off
+    /// the engine:**
+    ///
+    /// - **The middle is at least an even share of the three parts.** There are exactly
+    ///   three, so an even share is 33.3%, and the bands put the middle at 42.3% at their
+    ///   worst corner — nine points of room. The corpus reads 45.04% against a jackknife
+    ///   error of 1.46: **8.0 errors clear**. Its worst single game reads 26.7%, which is
+    ///   why the claim is made of the corpus and not of a game.
+    /// - **The middle is larger than the ten-or-more share.** The bands put that gap at
+    ///   31.1 points at their worst corner (42.3 against 11.2), so a gap of any size at all
+    ///   has thirty-one points of room. The corpus reads 33.20 against a jackknife error of
+    ///   1.51: **22 errors clear**, worst single game 15.6.
     ///
     /// It deliberately does **not** assert that the middle is larger than the two-or-fewer
     /// share. That holds at the midpoints of the two bands, 46.0 against 43.6, but not at
     /// every corner, so it is a reading of where the bands centre rather than something
-    /// they imply, and it is written down here instead of being asserted.
+    /// they imply, and it is written down here instead of being asserted. The corpus reads
+    /// 45.04 against 43.11 — under two points, and less than the gap's own sampling error.
     @Test(
-        "football · nflverse play-by-play 2023-24 · at least 42.3% of carries gain three to nine yards",
+        "football · nflverse play-by-play 2023-24 · the middle of the run game is at least an even third of it and beats the long carry",
         .tags(.football))
     func theMiddleIsTheLargestPartOfTheRunGame() {
         let middle = Self.share { $0 >= 3 && $0 <= 9 }
         let long = Self.share { $0 >= 10 }
         #expect(
-            middle >= 42.3,
-            "carries of three to nine are \(middle)% of \(Self.carries.count), floor 42.3%")
+            middle >= 100.0 / 3.0,
+            "carries of three to nine are \(middle)% of \(Self.carries.count), floor 33.3%")
         #expect(
             middle > long,
             "carries of three to nine are \(middle)% against \(long)% of ten or more")

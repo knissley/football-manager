@@ -282,11 +282,24 @@ the largest part of the run game. Every carry falls in exactly one of three, so
 and with the two rows above at 40.6–46.5 and 9.6–11.2 the middle share is between **42.3
 and 49.8** wherever the truth sits inside them. Nothing was computed for this: it is
 arithmetic on two bands that are already here, and the floor is the corner that holds
-however they fall. `test:theMiddleIsTheLargestPartOfTheRunGame` asserts the floor and that
-the middle beats the ten-or-more share, both of which hold at every corner. That the middle
-also beats the two-or-fewer share holds at the bands' midpoints — 46.0 against 43.6 — and
-**not** at every corner, so it is a reading of where the bands centre and is written here
-rather than asserted. It is not a `row:` and must not be written as one.
+however they fall. That the middle also beats the two-or-fewer share holds at the bands'
+midpoints — 46.0 against 43.6 — and **not** at every corner, so it is a reading of where
+the bands centre and is written here rather than asserted. It is not a `row:` and must not
+be written as one.
+
+**Where the 42.3 floor is graded, which is not in the suite.** The arithmetic above runs
+both ways: `row:carries2orFewer` at or under 46.5 *and* `row:carries10plus` at or under
+11.2 **is** three-to-nine at or over 42.3. So the two rows grade the derived floor between
+them, over four hundred games at two seeds, and nothing else needs to. The suite's
+`test:theMiddleIsTheLargestPartOfTheRunGame` used to assert 42.3 as well, over forty games
+— a sample whose jackknifed standard error on that share is 1.46 points against a margin of
+2.7, so it could not tell the engine's 45.0% from the floor and was passing on which forty
+games it drew. It now asserts what forty games can resolve, both read off these bands
+rather than off the engine: that the middle is at least an even share of the three parts
+(33.3%, nine points inside the derived floor, eight standard errors clear) and that it
+beats the ten-or-more share (which the bands put at a gap of 31.1 at their worst corner,
+twenty-two errors clear). The harness line beside the histogram still names that test as
+where the derivation is written down; it is not where the floor is asserted.
 
 **What the mode of a carry is, nothing sources.** The most common single carry length is
 the other thing a reader of the histogram wants, and no band for it exists: the four rows
