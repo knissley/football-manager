@@ -140,25 +140,39 @@ are legitimately tight, and re-powering costs suite time that
 inside one standard error is a coin flip with a citation attached, and it will read as a
 regression the first time anything re-draws the sample.
 
-**The seven, at `c69566a`**, each with its reading, the threshold it is measured against,
-and its own standard error. They are recorded rather than changed: re-powering, rewriting
-to what the sample can resolve, and handing the precise claim to a harness row are three
-different answers and the choice belongs with the issue that files them.
+**The seven, as they were at `c69566a`**, each with its reading, the threshold it is
+measured against, and its own standard error — and what each is now. Re-powering,
+rewriting to what the sample can resolve, forcing the draw, and handing the precise claim
+to a harness row are four different answers, and all four are here. The one answer that is
+never available is lowering a threshold until the reading clears it.
 
-| test | asserts | reads | standard error | margin, in errors |
-| --- | --- | --: | --: | --: |
-| `Penalties.holdsAreExplicable` | a hold on a dropback exists to check | 1 in 8 games | 1.0 | 1.0 |
-| `UntrainedRatingsTests.receiversAndKickersAtQuarterback` | kickers average under 35 there | 34.41 | 0.46 | 1.3 |
-| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | one ended in bounds | 1.5 in 8,000 runs | 0.93 | 1.6 |
-| `PenaltyTests.crowdNoiseIsTheMechanism` | noise raises the road team's fouls | +14 paired | 8.60 | 1.6 |
-| `UntrainedRatingsTests.ownPositionMomentsAreUnmoved` | the spread is within 0.5 of 10.66 | 10.39 | 0.14 | 1.7 |
-| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | a breakaway happened at all | 2 in 8,000 runs | 1.07 | 1.9 |
-| `CarryShapeTests.theMiddleIsTheLargestPartOfTheRunGame` | three to nine is at least 42.3% | 45.04% | 1.46 | 1.9 |
+| test | asserted | read | standard error | margin | what it is now |
+| --- | --- | --: | --: | --: | --- |
+| `Penalties.holdsAreExplicable` | a hold on a dropback exists to check | 1 in 8 games | 1.0 | 1.0 | **widened** to all 30 games of the same corpus — 6 holds, jackknife error 2.15, margin 2.8, and the margin is in the test |
+| `UntrainedRatingsTests.receiversAndKickersAtQuarterback` | kickers average under 35 there | 34.41 | 0.46 | 1.3 | **widened** to five leagues — 160 kickers at 34.10, jackknife error 0.145, margin 6.2 |
+| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | one ended in bounds | 1.5 in 8,000 runs | 0.93 | 1.6 | **margin documented**: widening costs about nineteen seconds of suite time and a forced fixture is the cheaper answer |
+| `PenaltyTests.crowdNoiseIsTheMechanism` | noise raises the road team's fouls | +14 paired | 8.60 | 1.6 | **forced**: the draw is put to `Penalties.preSnap` on a shared stream, where the quiet ground's false starts are a subset of the loud one's with no tolerance at all |
+| `UntrainedRatingsTests.ownPositionMomentsAreUnmoved` | the spread is within 0.5 of 10.66 | 10.39 | 0.14 | 1.7 | **margin documented**: a fixed draw cannot be widened, and re-centring the constants would delete the drift they exist to show |
+| `OutOfBoundsTests.breakawaysAreNotSidelineByConstruction` | a breakaway happened at all | 2 in 8,000 runs | 1.07 | 1.9 | **margin documented**, with the one above |
+| `CarryShapeTests.theMiddleIsTheLargestPartOfTheRunGame` | three to nine is at least 42.3% | 45.04% | 1.46 | 1.9 | **handed to the rows**: `row:carries2orFewer` and `row:carries10plus` grade the 42.3 floor between them; the suite asserts an even third and the gap to the long carry |
 
-The last is the one to read twice. It is a `.football` test against a band derived from
-two sourced shares, and it is the assertion in the tree whose citation is strongest and
-whose sample is least able to settle it — the corpus cannot tell 45.0% from 42.3% with
-confidence, so it passes on which forty games it drew.
+The last was the one to read twice. It was a `.football` test against a band derived from
+two sourced shares, and it was the assertion in the tree whose citation was strongest and
+whose sample was least able to settle it — forty games cannot tell 45.0% from 42.3% with
+confidence, so it was passing on which forty it drew. **The derivation runs both ways**,
+which is what settled it: the two ceilings the floor is derived from are themselves graded
+rows, over four hundred games at two seeds, so the precise claim was already being made
+properly ten times over and the suite's copy was a weaker duplicate of it.
+
+**A forced draw is not automatically cheaper, and the cost of one should be measured
+before it is claimed.** `crowdNoiseIsTheMechanism` and `noiseSparesTheHomeTeam` read the
+same hundred and twenty games out of one shared value, so the runner charges the whole
+wait to *both* of them: in a full suite run each reports the elapsed time of the run.
+Measured on their own, the pair costs 32 seconds together and either costs 32 seconds
+alone. Forcing one of the two therefore returns **no** suite time at all — the games stay
+for the other — and the forced draw's own twenty thousand snaps are about a second on top.
+It was worth doing here for the resolution and not for the budget, and reading the reported
+per-test time as a cost would have got that backwards.
 
 **What the table does not support is a rule that every statistical assertion state its
 margin in standard errors.** Four assertions in the tree already do — ball security's
