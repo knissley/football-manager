@@ -1,0 +1,7 @@
+Number the lanes from the inside out
+
+Nothing in our note said which lane is lane one. It is the one
+nearest the infield, and the count runs outward from there.
+
+Invented text for scripts/lint-reference.sh --self-test. Not a
+rulebook and not from one.

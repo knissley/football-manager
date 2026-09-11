@@ -1,0 +1,8 @@
+Say who may pick a fallen baton up
+
+Our note implied anybody on the team could retrieve it. Only the
+competitor who let it go may, and the lane it rolled into does
+not matter.
+
+Invented text for scripts/lint-reference.sh --self-test. Not a
+rulebook and not from one.

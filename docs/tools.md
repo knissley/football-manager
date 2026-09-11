@@ -648,17 +648,20 @@ hard-failing step.
 FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh
 ```
 
-Two checks over the documents and sources where football prose lives.
+Three checks over the documents, sources and commit messages where football prose lives.
 
-1. **Reproduced text.** Runs of ten words the tree and the rulebook have in common.
-   CLAUDE.md rule 8 allows a citation and forbids a copy, and until this script existed
-   nothing checked it: three reproduced runs in `docs/reference/playing-rules.md` were
-   found by a reviewer who happened to have the book open.
-2. **Citations resolve.** Every `rule-section-article` number in the four reference
+1. **Reproduced text in the tree.** Runs of ten words the tree and the rulebook have in
+   common. CLAUDE.md rule 8 allows a citation and forbids a copy, and until this script
+   existed nothing checked it: three reproduced runs in `docs/reference/playing-rules.md`
+   were found by a reviewer who happened to have the book open.
+2. **Reproduced text in the commit messages the branch adds**, against its merge base.
+   Same scanner, same two passes, same controls. [Commit messages](#commit-messages) says
+   what a hit does and why the two arms differ.
+3. **Citations resolve.** Every `rule-section-article` number in the four reference
    documents names an article the book actually has.
 
 It **cannot** tell whether a cited article *supports* the claim beside it, and it says so
-on every run, clean or not. `8-5-4` is a real article, so a citation to it passes check 2;
+on every run, clean or not. `8-5-4` is a real article, so a citation to it passes check 3;
 it was nonetheless the wrong article in six entries across three documents for weeks. A
 green run means "no uncarried run, and no dangling number" and not "the citations are
 right". That half stays a reading problem.
@@ -683,8 +686,10 @@ against them rather than against a guess.
   on any one line. Measured on `playing-rules.md`: five runs per line, ten with the lines
   joined. The script scans the joined word stream and labels each hit `line` or `joined`.
 - **A sub-range.** An agent shingled one commit's diff and reported the count as its
-  branch's. The script scans whole files, never a diff or a line range, prints how many it
-  scanned, and exits 2 rather than 0 if a policed directory has gone missing.
+  branch's. The script scans whole files and whole commit messages, never a diff or a line
+  range, prints how many of each it scanned, and exits 2 rather than 0 if a policed
+  directory has gone missing. A commit range is the one range it takes, and it is the
+  whole of what the branch adds.
 - **A control that could not fire.** An agent's control phrase was not in the book, so its
   control returned 0 and its clean run meant nothing. This script's controls are cut from
   the corpus **at runtime**, so they cannot be a phrase the corpus does not have: one on a
@@ -692,10 +697,62 @@ against them rather than against a guess.
   reversed. **If they do not come out 1, 1, 0 the script prints no count at all and exits
   2.** A count without a firing control is not a measurement.
 
+### Commit messages
+
+```bash
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh --messages
+```
+
+**Run this immediately before `git push`.** It is the last moment the thing it finds can
+be fixed.
+
+A commit message is in the repository as permanently as a file is, and rule 8 does not
+stop at the tree. It is the harder of the two to put right: a file is edited, a published
+message is only rewritten by rewriting history, which the conventions forbid on a shared
+branch. The one run that made this check exist was caught while its branch was still local
+and the commits could be replayed; one push later the choice would have been between
+leaving it and rewriting published history.
+
+**What is scanned.** The commits the branch adds against its merge base —
+`git merge-base <base> HEAD`..HEAD, oldest first, each message whole. Not the whole
+history: every commit already on the integration branch was scanned when it was somebody's
+branch, and re-reporting them for ever is how a gate becomes wallpaper. `<base>` is
+`origin/main`, or `main` if there is no remote. `--base <ref>` and `--range <a>..<b>`
+override it; `--range` is what to reach for to audit history rather than to lint a branch.
+
+**What a hit does**, and the two arms are different on purpose:
+
+| where the commit is | what happens |
+| --- | --- |
+| not yet on the base branch | **violation, exit 1.** It can still be reworded, and this is the only moment it can. |
+| already on the base branch | **reported, exit unchanged.** Nothing removes it but rewriting published history. |
+
+The second arm is the one worth arguing about, and the argument is this: a gate that stays
+red for ever over something nobody can fix is a gate people learn to route around, and
+then it is not guarding the first arm either. The count is still printed on every run —
+a run nobody can act on is still a run somebody should know about.
+
+Only a range reaching back past the merge base can contain a published commit, so in
+ordinary use the second arm is silent and `--range` is what wakes it.
+
+**There is no baseline for messages, deliberately.** A run in the tree can be
+irreducible — an article whose nouns are all defined terms leaves nothing to reword — and
+that is what the baseline is for. A message has no such constraint: it is prose its author
+wrote freely and can write again, and the remedy for a hit is to say it in our own words
+and cite the article.
+
+**Measured on `main`, September 2026:** 411 commit messages, **61 ten-word runs in 11 of
+them**, 47 distinct — counted twice, once by this script and once by an independent
+implementation that agreed on every figure. They are the second arm's whole justification:
+every one is published and unfixable, and a gate that failed over them would have been
+turned off in a week. They are concentrated in eleven messages that quoted article clauses
+while describing a fix; the tree itself is clean at ten.
+
 ### The baseline
 
 ```bash
-./scripts/lint-reference.sh --list        # the baseline line for every run found
+./scripts/lint-reference.sh --list        # the baseline line for every run found in the
+                                          # tree — messages have no baseline, see above
 ```
 
 [`scripts/lint-reference-baseline.txt`](../scripts/lint-reference-baseline.txt) carries any
@@ -754,11 +811,12 @@ that added football prose. Expect the table, not zero, and read what moved.
 
 Two things follow that no threshold fixes:
 
-- **It does not scan commit messages, at any `--n`**, and nothing can un-write one merged
-  to `main`. The run that prompted this measurement was in a message. Two sets on `main`
-  carry book prose and are deliberately left there — see
-  [the audit doc](audit-is-this-football.md). **Shingle a message before you commit it**,
-  per line and joined, at eight as well as ten.
+- **The threshold was never what hid commit messages.** Until check 2 existed the script
+  read files and nothing else, so the run that prompted this measurement — which was in a
+  message — would have escaped at any `--n`. [Check 2](#commit-messages) closes that, at
+  the same ten words and with the same two passes; what it does not close is this same
+  nine-word blind spot, now in one more place. **Shingle a message before you commit it**,
+  per line and joined, at eight as well as ten, and run `--messages` before you push.
 - **A short run is a reading problem.** At eight the script cannot tell a quotation from
   the same defined terms in the same order: the quoted clock window above sat among nine
   innocent uses of the identical words. Only opening the article separates them.
@@ -786,6 +844,20 @@ Six fixture documents, one per direction:
 | `blind-spot.md` | a **nine**-word run is invisible at ten and found at nine |
 | `citations.md` | a number the corpus does not have is reported, and three that it does are not |
 
+Plus `messages/`, four fixture **commit messages** for check 2. The self-test commits them
+into a throwaway git repository — two on `main`, two on a branch cut from it — and points
+the check at that instead of at this repository, because the alternative is committing
+fixtures into the real history, which is permanent and is the thing the check exists to
+stop. `main`'s first message carries a planted ten-word run and the branch's second
+carries another, split across a wrap the way a wrapped message body splits one. Both
+halves are asserted: the branch's run must be **found**, labelled `joined` and counted as a
+violation; `main`'s must **not be read at all**, because it is behind the merge base. The
+same run judged against a base that already contains it must come back advisory rather than
+failing, so the second arm of the design has a case and not only a paragraph. The
+throwaway repository is built with the ambient git configuration cut out — a global
+hooksPath or signing key would otherwise decide whether the self-test passes on this
+machine.
+
 Plus `baseline-empty.txt`, a baseline holding only its own explanation, which must read as
 no keys **without ending the run**. That one is a scar: `grep -v` exits 1 when it selects
 nothing, and under `pipefail` that killed the lint the first time the real baseline was
@@ -804,6 +876,12 @@ must yield nothing at ten, and at least one hit at nine. Asserting the miss alon
 satisfied by a scanner that had stopped working altogether, which is the same failure as a
 control that cannot fire. Widen the gate and it goes red on purpose — the blind spot is a
 decision, and a decision nothing exercises is a comment.
+
+The message fixtures are pinned the same way, and verified by mutation in three
+directions: widen the planted run to eleven corpus words and the self-test goes red at two
+hits; shorten it to nine and it goes red at none; widen the range from the branch's own
+commits to the whole history and it goes red at four messages read instead of two, with
+`main`'s planted run surfacing as the advisory it should have been.
 
 ## harness-reach — can this change reach the harness?
 
