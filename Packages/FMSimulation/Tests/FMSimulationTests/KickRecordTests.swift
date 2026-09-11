@@ -14,9 +14,14 @@ import Testing
 @Suite("Kicks and takeaways on the record")
 struct KickRecordTests {
 
-    private static let sample: [GameResult] = (UInt64(1)...40).map {
-        TestWorld.game(seed: $0, game: GameID($0))
-    }
+    /// The standard corpus, whose size is derived where it is defined. Every promise in
+    /// here is made of every kick in the sample rather than of one the sample has to
+    /// contain, so there is no rare case for a draw to miss: measured over the corpus's
+    /// first eighty games, a game holds 8.4 punts and 11.2 kickoffs, so forty hold some
+    /// three hundred and forty and four hundred and forty of them. The floors at the end
+    /// of the first test are guards at half of that, which fire when a kind of kick has
+    /// stopped being played rather than when a few fewer were.
+    private static let sample: [GameResult] = TestWorld.corpus
 
     /// The Done-when: gross, return and net for every punt in forty games, off the
     /// record alone. The identities are what make the derivations checkable without
