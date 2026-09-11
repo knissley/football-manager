@@ -191,11 +191,26 @@ The magnitudes that shipped inside them (a trailing offence reaching the sidelin
 often as a leading one, above a fifth of its tackles; fewer than 15% of plus-territory
 punts reaching the end zone) came from the issues that built those levers rather than from
 an article or a sourced season, so they are pinned beside the football tests instead of
-inside them, and are the two `.pin` in that row. Two more came with the pocket and are the
-same shape: a rusher who arrived after the ball was gone pressured nobody, and pressure
-rises with how long the quarterback needs. Both assert the *direction* the definition of
-the statistic implies (`row:pressureRate`, 2023-24, source S2) and leave the rate itself to
-the band. Its parametric rates — completion percentage, sack rate, pressure rate,
+inside them, and are the two `.pin` in that row. One more came with the pocket and is the
+same shape: a rusher who arrived after the ball was gone pressured nobody, which asserts
+the *direction* the definition of the statistic implies (`row:pressureRate`, 2023-24,
+source S2) and leaves the rate itself to the band.
+
+A second shipped beside it — that pressure rises with how long the quarterback needs — and
+has since been retagged `.contract`, which is why the resolver's row above reads one lower
+on the current tree than in the snapshot it was taken in. It asserted a strict chain of four
+inequalities across the pass concepts, and nothing sources one of them: the references band
+pressure per dropback pooled and split it by nothing at all, so the chain was football by
+assertion rather than by citation. It was also a single draw on a single roster, and green
+on that roster's luck at the one link the engine cannot separate. What stands in its place
+asserts the resolver's own promise instead — off the same rush, a longer hold is never
+pressured less often than a shorter one — and the sourcing gap is recorded under *what a
+test claims about a game and nothing sources* in
+[`reference/calibration-sources.md`](reference/calibration-sources.md). A `.football` that
+turns out to cite nothing is worth one less than a `.contract` that holds, and the share
+falling is the honest reading of that.
+
+Its parametric rates — completion percentage, sack rate, pressure rate,
 interception rate — are asserted by the harness's sourced bands
 and by nothing in the suite. CLAUDE.md says a harness band with a sourced season counts
 as a football test for a rate, and it does; but the census cannot see it, because

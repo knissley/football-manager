@@ -369,6 +369,22 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
                 defensiveCaller: .coordinator(PersonnelID(2)))
         }
 
+        // The two-minute warning, when the interval before this snap is what reaches it.
+        //
+        // It is taken here, with the call in and before anything about the snap is
+        // settled, because it changes the clock the snap is played against: the warning
+        // is one of the administrative stoppages of 4-6-2, and what it leaves is
+        // twenty-five seconds from the Referee's whistle rather than the forty of 4-6-1
+        // that was counting down through the interval. Everything below — the draw that
+        // decides whether the offence beats that clock, the context the resolver is
+        // handed, the reading the rules layer writes onto the record — then reads one
+        // clock. Left to the interval the rules layer charges after the down, the snap
+        // was prepared against a clock the book had already replaced.
+        //
+        // The game clock is untouched by which of the two it is: the warning stops it at
+        // 2:00 and it waits for the snap either way (3-41, 4-3-2).
+        state.takeTwoMinuteWarningBeforeTheSnap(tempo: calls.offense.tempo)
+
         // The play clock, and the one thing that beats it.
         //
         // Whether the offence gets this snap away inside the interval the book gives it
@@ -386,7 +402,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         // stopped the clock for some other reason this interval, since a clock cannot be
         // stopped twice.
         var expired = resolver.overrunsThePlayClock(
-            situation: situation, calls: calls, context: context, random: &random)
+            situation: situation, calls: calls, context: state.context(), random: &random)
         if expired, !state.pendingKickoff, !state.pendingTry, !timeoutTaken,
             caller.callsTimeout(
                 for: situation, classified: classified, isOffense: true,

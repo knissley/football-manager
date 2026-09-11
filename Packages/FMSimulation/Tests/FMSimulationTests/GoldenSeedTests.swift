@@ -654,23 +654,43 @@ struct GoldenSeedTests {
             // other's mechanisms. Checked before they were written down: all three seeds
             // differ from both parents of this merge.
             //
-            // And moved by the world rather than by the engine, which is the other half
-            // of where the constants below come from. `WorldGenerator` draws a league's
-            // talent on a width that is sourced now rather than assumed, so every club's
-            // offset is a different number, every roster is built to a different ceiling,
-            // and every man drawn after the first is a different man. Nothing in
-            // `FMSimulation` changed for that reason: the same code plays a different pair
-            // of teams.
+            // And then the two-minute warning started leaving what the book says it
+            // leaves. A warning taken between downs is an administrative stoppage, so the
+            // snap it precedes is against twenty-five seconds from the Referee's whistle
+            // rather than the forty that had been counting down (4-6-2, 4-6-3-a), and the
+            // clock is settled before the snap is prepared so that the record, the
+            // context and the draw against the interval all read it. Measured over the
+            // shared corpus: forty games carry sixty warnings between downs and
+            // twenty-one during a down, so this is about a snap and a half a game.
+            //
+            // Two of the three seeds move and one does not, which was checked rather than
+            // assumed. Seed 1's only warning between downs falls after a down that was
+            // itself a stoppage, so that snap was already on the short clock and the
+            // reading it records is the one it recorded before — its checksum below is
+            // unchanged, and the same number it carried through the merge above. Seeds 5
+            // and 12 each have a snap that moves from forty to twenty-five, which moves
+            // both the reading on the record and the odds the offence is beaten by the
+            // interval, and from there the game diverges.
+            //
+            // And moved by the world rather than by the engine, which is the other half of
+            // where the constants below come from. `WorldGenerator` draws a league's talent
+            // on a width that is sourced now rather than assumed, so every club's offset is
+            // a different number, every roster is built to a different ceiling, and every
+            // man drawn after the first is a different man. Nothing in `FMSimulation`
+            // changed for that reason: the same code plays a different pair of teams.
             //
             // The width did **not** move in this merge, and `GoldenWorldTests` is the
-            // evidence — it did not move either. Re-measuring the floor and the slope on
-            // this tree solved to 2.61 against the 2.63 carried in, a drift smaller than
-            // the measurement's own error, so the constant was held. What moved here is the
-            // engine alone, and neither parent's constants survive it: checked against both
-            // before these were written down.
-            (UInt64(1), UInt64(15_821_790_818_830_671_322)),
-            (UInt64(5), UInt64(5_267_760_856_449_019_185)),
-            (UInt64(12), UInt64(6_928_693_147_283_489_712)),
+            // evidence — it did not move either, because nothing here reaches `FMGeneration`.
+            // Engine source did move, in the play clock above, and the width was deliberately
+            // not re-derived for it: the width is derived from engine measurements and is
+            // provisional by construction, so it is re-derived when the branch that owns it
+            // lands and not again because a later branch moved the engine. The drift is
+            // recorded instead, and `row:betweenTeamSigma` is what keeps it visible. Both
+            // parents' constants fall to the pair of mechanisms together, and all three
+            // below were checked against both before they were written down.
+            (UInt64(1), UInt64(12_939_006_183_879_276_582)),
+            (UInt64(5), UInt64(10_961_565_527_291_462_682)),
+            (UInt64(12), UInt64(5_587_817_126_695_655_428)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

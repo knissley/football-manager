@@ -794,3 +794,37 @@ the rules do not draw — is cheaper and, against the defect in question, strong
 revisiting only if the fumble rows are still out of band once
 [#49](https://github.com/knissley/football-manager/issues/49) has retuned the total, since
 that is the case where the split matters and the total cannot speak to it.
+
+## What a test claims about a game and nothing sources
+
+The section above is the shelf for a generated *world*. This is the same shelf for a
+*game*: a rate a test in the engine's own suite would like to assert about the sport, which
+nothing in this file bands. Read it the same way — a derivation and whether it is worth
+doing, never a number, because none of these has been computed either.
+
+**Pressure, split by how long the ball is held.** `row:pressureRate` bands pressure per
+dropback pooled over every dropback there is, 2023-24, source S2. Nothing here splits it:
+not by pass depth, not by play action, not by the time the passer held the ball. That is a
+rate rather than a rule, so [`playing-rules.md`](playing-rules.md) has nothing to say about
+it either, and the question the gap leaves open is a live one. The resolver asks the pocket
+to hold 3,000 ms on play action and 3,400 ms on a deep drop, and a beaten blocker is beaten
+somewhere between 1,500 ms and 2,899 ms — so both holds sit past the latest a rusher can
+arrive, and the pressure verdict cannot separate the two concepts at all. Measured over
+2,450 paired dropbacks each, it returns them identical to the snap.
+
+The derivation, if it is ever wanted: S2 is the participation release this file already
+reads for `row:pressureRate` — one row per play, already joined to the play-by-play by
+`scripts/calibration-sources.py` — and the split would bucket the same pressure flag by
+whatever that release carries for how long the passer held the ball. **Whether it carries
+such a column at all is not checked here**; if it does not, the split wants another release
+from the same project, and finding it is part of the sourcing job rather than settled by
+this line. A play-action flag is a second question and a harder one, since a pass off a fake
+is not something every feed publishes.
+
+Worth doing only when something turns on it, and today nothing does. What the suite asserts
+about the hold is `test:pressureNeverFallsAsTheHoldGrows`, and that is a `.contract` — a
+longer hold is never pressured less often than a shorter one off the same rush, which
+follows from the resolver's own definition of pressure and needs no band. A band becomes
+wanted the day somebody means to separate those two holds on purpose: that is a modelling
+change, it would move `row:pressureRate` with it, and it should not be made on the strength
+of a figure nobody computed.

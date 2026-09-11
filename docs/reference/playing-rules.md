@@ -163,7 +163,9 @@ Which rules must be true of a game, and what checks each, is
   them run out is delay of game. —
   `test:delayOfGameWhenThePlayClockExpires`,
   `test:anExpiredPlayClockWithNoTimeoutIsADelayOfGame`, `test:playClockValues`,
-  `test:everySnapRecordsItsPlayClock`; those forty seconds are also the offence's to
+  `test:everySnapRecordsItsPlayClock`,
+  `test:theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock`; those forty
+  seconds are also the offence's to
   spend, which is what a knee-down sequence counts —
   `test:aKneltOutLeadStaysKnelt`,
   `test:fourthDownIsATurnoverOnDownsWhileTheDownCanBeSnapped`
@@ -182,16 +184,22 @@ Which rules must be true of a game, and what checks each, is
   `test:theKneltOutGameEndsOnAThirdDownKnee` pin it meanwhile
 - **4-6-2** — 25 seconds from the whistle after an administrative stoppage: a change of
   possession, a charged timeout, the two-minute warning, the end of a period, penalty
-  enforcement, a free kick. —
+  enforcement, a free kick. The article adds that these stoppages take the 25-second
+  interval unless some other rule prescribes otherwise, and that they take it even where
+  a 40-second count is part-way through — so a warning taken between downs replaces the
+  forty the interval had been running on rather than leaving it to finish. —
   `test:delayOfGameAfterAChangeOfPossessionIsAgainstATwentyFiveSecondClock`,
+  `test:theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds`,
+  `test:theSecondSnapAfterATwoMinuteWarningIsBackOnTheFortySecondClock`,
   `test:playClockValues`
 - **4-6-3** — What a stoppage leaves on the play clock: 25 after a charged timeout, the
   two-minute warning, the end of a period or a penalty enforcement (a); 40 after a
   defensive act that conserves time or an excess timeout charged to the defence (b); 30
   after a ten-second runoff (c). — `test:playClockValues`,
-  `test:aChargedTimeoutBeatsThePlayClock`; the resume-where-it-stopped
-  cases are not modelled, since the engine has no stoppage that leaves a play clock
-  half run
+  `test:aChargedTimeoutBeatsThePlayClock`,
+  `test:theSnapAfterATwoMinuteWarningBetweenDownsIsAgainstTwentyFiveSeconds`; the
+  resume-where-it-stopped cases are not modelled, since the engine has no stoppage that
+  leaves a play clock half run
 - **4-6-4** — When the play clock expires the ball stays dead: the whistle is the foul,
   five yards from the succeeding spot with the down unchanged (14-4-1). —
   `test:delayOfGameWhenThePlayClockExpires`,
@@ -476,7 +484,8 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`, `test:holdingOnASuccessfulTryRepeatsIt`,
   `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; the loss-of-down exception in
   Item 3-b is not modelled, because no foul the engine draws on a try carries a loss of
-  down
+  down. Nothing in the article exempts a try from the half-distance ceiling of 14-2-1;
+  its interference exception applies that ceiling itself, in two places
 - **11-3-4** — After a try, the team on defence for it receives the succeeding free kick. —
   `test:afterTheTryTheDefendingTeamReceives`, `test:kickoffReturnTouchdownGetsItsTry`
 - **11-4-1** — A field goal has to be place-kicked or drop-kicked, struck at or behind the
@@ -531,8 +540,22 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 
 ## Rule 14 — Penalty enforcement
 
-- **14-2-1** — Half the distance to the goal is measured from the spot of enforcement,
-  whichever spot that is. — `test:halfTheDistanceFromTheEnforcementSpot`
+- **14-2-1** — The half-distance ceiling. A distance penalty never carries the ball past
+  the midpoint between the spot it is enforced from and the goal line the offending team
+  defends; where the full walk-off would go beyond that midpoint, the ball is placed on the
+  midpoint instead. The article states itself as a general rule that overrides every other
+  enforcement of a distance penalty, general or specific, and names two exceptions only:
+  intentional grounding (8-2-1) and a palpably unfair act (12-3-4). The measurement starts
+  at whichever spot the foul is enforced from, the other try spot included (14-3-4-f), and
+  nothing in 11-3-3 lifts the ceiling for a try — that article leans on the same
+  half-distance twice inside its own interference exception. —
+  `test:halfTheDistanceFromTheEnforcementSpot`; the ceiling *short of* a goal line is
+  **not yet enforced**, [#143](https://github.com/knissley/football-manager/issues/143).
+  Measured at branch head: the engine applies the ceiling only where the walk-off would
+  reach the goal line itself, so five yards against the defence from the 7 walk all five to
+  the 2, fifteen from the 20 walk all fifteen to the 5, and a false start six yards out from
+  the offence's own goal line walks back to its own 1 — each of them a spot the article puts
+  on the midpoint instead
 - **14-2-3** — A personal or unsportsmanlike foul during a down in which the opponent kicks
   a field goal or scores a safety is enforced on the free kick; on a touchdown it is
   enforced on the try, whether it came during the down, after the whistle or between downs;
