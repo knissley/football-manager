@@ -105,7 +105,7 @@ struct GoldenWorldTests {
             // trained stream is shared with everything a player is built from after his
             // ratings, so did his build, his combine, his name, his college and every man
             // drawn after him. The checksum reads all of it, so all three worlds moved.
-            (UInt64(1), UInt64(7_442_122_549_048_341_096)),
+            (UInt64(1), UInt64(10_261_439_880_186_297_053)),
             // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
             // bitter rivalry, and that pair loses the smallest single event that brings it
             // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
@@ -133,11 +133,15 @@ struct GoldenWorldTests {
             // different number, so every roster is built to a different ceiling and every
             // man drawn after the first is a different man; the checksum reads all of it.
             // This is generation changing, not coverage widening: the leagues really are
-            // different leagues. The width is 2.55 and not the 3.17 first computed, because
-            // the floor and the slope it is solved from are properties of the engine and
-            // the engine's run game changed underneath it — see the constant's own comment.
-            (UInt64(5), UInt64(692_888_930_132_378_538)),
-            (UInt64(7), UInt64(2_821_482_571_461_767_012)),
+            // different leagues. The width is neither of the two numbers first computed:
+            // the floor and the slope it is solved from are properties of the engine, and
+            // the engine moved twice underneath it — the run game grew a middle, and the
+            // defence learned to answer two tight ends with a fifth defensive back some of
+            // the time. Each time the same three steps were re-run against the same sourced
+            // target. See the constant's own comment, and the rule in
+            // `calibration-sources.md` for when a re-measurement is worth acting on.
+            (UInt64(5), UInt64(13_874_155_947_617_604_630)),
+            (UInt64(7), UInt64(12_647_015_549_021_856_984)),
         ])
     func goldenWorlds(seed: UInt64, expected: UInt64) {
         #expect(worldChecksum(seed: seed) == expected)

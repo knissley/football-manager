@@ -184,6 +184,27 @@ Computing one is the derivation the rows above already perform — the source's
 participation feed names the grouping on every play — and it is cheap; it is simply not
 done, and this line says so rather than leaving the gap to be filled by remembering.
 
+**No share is sourced for the defensive answer to a two-tight-end grouping either.** The
+package rows band how often each front is on the field over *all* snaps; nothing here bands
+how a defence answers one grouping. What the two bands above do say, on their own, is that
+the four-back front cannot answer every heavier grouping: `row:personnel11`'s 62.3-71.9%
+leaves 28.1-37.7% of snaps in a grouping that is not eleven personnel, and the smallest
+that share can be is larger than `row:packageBase`'s largest. At the midpoints, 32.9 snaps
+in a hundred are a heavier grouping against 22.6 in a four-back front, so 31.3% of the
+heavier snaps are answered with a fifth defensive back. The caller's three-in-ten share
+against a two-tight-end grouping is that figure and nothing else; applied to one grouping
+rather than to all the heavier ones it realises less than 31.3%, which is the conservative
+side of a derivation with no figure behind it. Computing the real share is the same cheap
+derivation as above and is likewise not done.
+
+**`row:ypcOutnumberedByOne` is currently ungradable, and it is a property of the rows
+rather than of the source.** The harness grades it on first and ten only, counting blockers
+as the five linemen plus every tight end plus every back after the first against a box of
+eleven less the defensive backs. Minus one needs eleven personnel against a four-back front
+or four-or-more receivers against a nickel back; the caller answers the first from nickel
+and the second from a dime, so neither pairing occurs on first and ten and the row prints
+`n/a` rather than a value and a verdict. The band is sound and the sample is empty.
+
 ### Who took the snap
 
 Player-snaps per team-game on plays from scrimmage, by the roster position group of each
@@ -406,26 +427,60 @@ reads the between-club spread about 2% high, which is harmless in a row and is n
 in a slope.
 
 1. **The floor.** At *S* = 0 every club is drawn from the same distribution, and the
-   between-club spread is still **4.28** — eight worlds of 1,600 games, 3.51 to 4.82. Two
-   rosters drawn the same way are not the same roster, and that difference alone is most of
-   a real league's spread.
+   between-club spread is still **4.16** — eight worlds of 1,600 games. Two rosters drawn
+   the same way are not the same roster, and that difference alone is most of a real
+   league's spread.
 2. **The transfer.** Between-club variance above the floor is proportional to *S*²: the
-   slope is **1.212** points of differential per point of *S*, from 1.2296 at *S* = 4 and
-   1.1949 at *S* = 8.
-3. **The solve.** The draw must contribute √(5.28² − 4.28²) = 3.09 points, so
-   *S* = 3.09 / 1.212 = **2.55** — where 5.28 is the mean of the two sourced seasons.
+   slope is **1.237** points of differential per point of *S*, from 1.2639 at *S* = 4 and
+   1.2102 at *S* = 8.
+3. **The solve.** The draw must contribute √(5.28² − 4.16²) = 3.26 points, so
+   *S* = 3.26 / 1.237 = **2.63** — where 5.28 is the mean of the two sourced seasons.
 
-Checked at the answer rather than assumed: eight worlds of 1,600 games at *S* = 2.55 report
-a pooled **5.38** against the 5.28 it was solved for.
+Checked at the answer rather than assumed: eight worlds of 1,600 games at *S* = 2.63 report
+a pooled **5.36** against the 5.28 it was solved for.
 
 **The floor and the slope belong to the engine, so re-measure them rather than inheriting
 them.** They were 4.06 and 1.065 when this was first derived, which solved to 3.17; the run
 game then grew a middle ([#118](https://github.com/knissley/football-manager/issues/118))
 and both moved — a carry that gains its ordinary yards rather than its extreme ones makes
 the better club's advantage travel further, so the slope rose and the width needed fell. The
-same three steps against the same sourced target, re-run, give 2.55. Anything that changes
-what a snap does can move this constant without anybody touching it, which is the argument
-for `row:betweenTeamSigma` existing at all: it is what notices.
+same three steps against the same sourced target gave 2.55. Then the defence learned to
+answer two tight ends with a fifth defensive back some of the time
+([#130](https://github.com/knissley/football-manager/issues/130)), the floor fell from 4.28
+to 4.16 and the slope rose again, and the same three steps gave 2.63. Twice in one day, from
+two engine changes neither of which was about the world. Anything that changes what a snap
+does can move this constant without anybody touching it, which is the argument for
+`row:betweenTeamSigma` existing at all: it is what notices.
+
+#### When to move the constant, and when to leave it
+
+Re-measuring on every engine change and *shipping* on every engine change are different
+things, and without the second rule written down the constant never converges: each landing
+reopens it, and the value chases the last thing that moved rather than settling on what the
+sport says. The rule is the deliverable; this is it.
+
+**The noise floor is about 2%, and it is measured rather than asserted.** Two independent
+handles give the same figure. The check at the answer lands a pooled 5.38 against the 5.28
+it was solved for, which is 2%. And the same quantity read at 400 games rather than 1,600
+comes back about 2% high, which is why a derivation must not mix run widths. Take 2% of the
+constant as the smallest difference worth acting on.
+
+So, after re-measuring the floor and the slope on the tree in front of you and solving:
+
+- **Within 2% of the constant already in the tree — keep it, and record the drift.** Both
+  numbers, and the floor and slope that produced each, go in the pull request. This is not
+  laziness or chasing avoided by fiat: it is declining to move a constant by less than the
+  instrument can resolve, which would be fitting noise.
+  *Worked example of the other branch:* 2.55 against a re-solve of 2.63 is 3.2%, past the
+  floor, so the constant moved and the engine change that moved it was named.
+- **Beyond it — move it**, and say which engine change moved the slope or the floor, in the
+  same terms the rest of this section uses.
+
+Two things this rule is not. It is **not** a licence to skip the measurement: the drift is
+only reportable because somebody measured it, and an unmeasured "probably still fine" is
+the failure this whole file exists to prevent. And it is **not** a tolerance on the *band* —
+`row:betweenTeamSigma` grades what a generated league actually does, at whatever width is
+shipped, and a row out of band is a finding whether or not the constant was left alone.
 
 **Read the floor as a finding, not a detail.** Four fifths of the sourced spread — two
 thirds of its variance — is already spent on roster-draw noise before a single club is

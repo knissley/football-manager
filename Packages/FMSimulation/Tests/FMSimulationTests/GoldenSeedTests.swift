@@ -589,21 +589,49 @@ struct GoldenSeedTests {
             // the mechanisms above reproduces these numbers. Checked before they were
             // written down: all three seeds differ from both parents of this merge.
             //
-            // And moved once more by the world rather than by the engine, which is where
-            // the constants below come from. `WorldGenerator` draws a league's talent on
-            // ±2.55 overall points where it drew it on ±8, a width that is sourced now
-            // rather than assumed — and 2.55 rather than the 3.17 first computed, because
-            // the floor and the slope that width is solved from are properties of the
-            // engine, and the run game above moved both. This suite simulates a game between two clubs of a
-            // generated world, so every club's offset is a different number, every roster
-            // is built to a different ceiling, and every man drawn after the first is a
-            // different man. Nothing in `FMSimulation` changed here: the same code plays a
-            // different pair of teams, and it is the run game described above playing
-            // them. Both mechanisms are live at once and neither parent's constants
-            // survive — checked against each of them before these were written down.
-            (UInt64(1), UInt64(9_346_355_095_765_849_827)),
-            (UInt64(5), UInt64(16_732_332_358_732_236_223)),
-            (UInt64(12), UInt64(15_680_949_153_401_443_005)),
+            // And moved again by the defence, on one grouping. A two-tight-end grouping
+            // is no longer answered from the four-back front every time: three snaps in
+            // ten of it draw the fifth defensive back instead, because a second tight
+            // end is one fewer back to account for and one more man the defence would
+            // rather cover with a defensive back. Two backs still draw the front every
+            // time. This moves the stream two ways at once. It spends a draw on every
+            // two-tight-end snap outside a down the offence has to throw on, where the
+            // rule before it asked nothing, so every draw after that one on those snaps
+            // is a different draw; and on the snaps it answers with the fifth back it
+            // puts a different eleven men on the field, which changes what the play
+            // produced and not only what it was called. All three golden games diverge,
+            // which is what a rule that reaches about a fifth of snaps looks like from
+            // inside three games.
+            //
+            // And the run game then met the defence's answer to one grouping, in this
+            // merge, which is where the constants below come from. On one side a carry
+            // is three outcomes and a long run is a man beaten. On the other a
+            // two-tight-end grouping draws the fifth defensive back three snaps in ten
+            // where it drew the four-back front every time. They reach each other on
+            // exactly the snaps that matter to both: a carry from a two-tight-end
+            // grouping now meets a six-man box on some of the downs it used to meet a
+            // seven-man box on, and the point of attack the carry is three outcomes of
+            // is decided against whoever is standing there — so the same handoff is a
+            // different carry, and the down and distance it leaves is a different down.
+            // Run the other way, a carry that gains five where it gained one is a second
+            // and five rather than a second and nine, which is a grouping the offence
+            // would not have sent out and therefore an answer the defence was never
+            // asked for. Neither parent's constants could survive, because each was
+            // computed without the other's mechanism. Checked before they were written
+            // down: all three seeds differ from both parents of this merge.
+            //
+            // And moved once more by the world rather than by the engine, which is the
+            // other half of where the constants below come from. `WorldGenerator` draws a
+            // league's talent on a width that is sourced now rather than assumed, so every
+            // club's offset is a different number, every roster is built to a different
+            // ceiling, and every man drawn after the first is a different man. Nothing in
+            // `FMSimulation` changed for that reason: the same code plays a different pair
+            // of teams. The two mechanisms are live at once and neither parent's constants
+            // survive — checked against each of them, and against the merged tree at the
+            // width this branch carried before it, before these were written down.
+            (UInt64(1), UInt64(6_234_649_446_947_465_369)),
+            (UInt64(5), UInt64(12_802_256_702_774_597_152)),
+            (UInt64(12), UInt64(11_052_382_159_813_794_244)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -667,10 +667,19 @@ what every one of them was derived from is in
      `row:penalty.unnecessaryRoughness`, `row:penalty.delayOfGame`, `row:penalty.offside`,
      `row:penalty.illegalFormation`, `row:penalty.roughingThePasser`,
      `row:penalty.neutralZoneInfraction`, `row:preSnapRoadVsHome`
-113. Personnel looks like the sport's: 11 personnel against nickel most of the time, base
-     against heavier looks, and a run gains more into a box it does not outnumber by much. —
+113. Personnel looks like the sport's: 11 personnel against nickel most of the time, the
+     four-back front against a second back and on most but not all of the snaps with a
+     second tight end, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
-     `row:ypcOutnumberedByOne`
+     `row:ypcOutnumberedByOne`, `test:nickelIsTheDefenceATeamPlays`,
+     `test:baseIsTheSubstitutionAndNotTheAnswerToEveryHeavierGrouping`.
+     **`row:ypcOutnumberedByOne` cannot be graded as the harness builds it today and prints
+     `n/a` rather than a value**: it counts first-and-ten carries where the box holds one
+     more man than the offence has blockers, and the only two groupings that qualify are
+     eleven personnel against a four-back front and four or more receivers against a nickel
+     back, which the caller answers from nickel and from a dime. The band is sound and the
+     sample is empty; repopulating or regrading the row is
+     [#42](https://github.com/knissley/football-manager/issues/42)'s.
 114. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
