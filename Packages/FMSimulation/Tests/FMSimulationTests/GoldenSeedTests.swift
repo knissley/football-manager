@@ -394,20 +394,60 @@ struct GoldenSeedTests {
             // downs. `Tools/gamelog --seed 7 --home 3 --away 11` prints a hundred and
             // seventy-eight plays where it printed a hundred and sixty-six, with the
             // clock column reading at the snap throughout.
-            // And moved again by the run game, which is what the constants below are
-            // regenerated from. A carry no longer reads its yards off one line through
-            // the hole quality with a flat lottery on the end of it: the hole decides
-            // which of three things happened — the point of attack lost, the ordinary
-            // carry through it, or the play side washed — and the ordinary one gains
-            // three to nine decided by the carrier's vision and contact balance against
-            // the second level's tackling. The long run is now a tackle missed in space
-            // rather than a draw on a hole that opened. Every carry therefore spends a
-            // different number of draws in a different order, so every game diverges
-            // from its first handoff, and a game that runs for different yards has
-            // different downs, a different clock and different calls after it.
-            (UInt64(1), UInt64(6_050_949_833_214_711_211)),
-            (UInt64(5), UInt64(12_853_860_352_444_125_652)),
-            (UInt64(12), UInt64(5_607_637_589_877_436_753)),
+            //
+            // And moved again because the pocket has a clock in it. A rusher who beats
+            // his blocker is recorded as having beaten him and nothing more; the pocket
+            // gets one verdict a snap, and it is pressure only if the man got there
+            // before the ball was out. That alone moves every dropback's stream — a
+            // `.blockResult` a rep where a `.pressureAllowed` or a `.pressureHeld` used
+            // to be, and one verdict after the read instead of one point per rep — and
+            // the checksum mixes every decision point. With it, the rep win rate is the
+            // pressure rate's lever now that it is no longer the pressure rate itself,
+            // and it is set from that row, so fewer rushers win, fewer get home, fewer
+            // sacks and scrambles are taken and every drive after one of them is a
+            // different drive.
+            //
+            // And the two clocks then met in this merge, which is where the constants below
+            // come from. On one side the interval between downs is charged before the
+            // situation is built, so a period that interval alone exhausts records no down
+            // at all. On the other the pocket has a clock in it: one verdict a snap taken
+            // against the moment the ball came out, with the rep win rate as that row's
+            // lever now that it is no longer the row itself, so fewer rushers get home and
+            // fewer sacks and scrambles are taken. The two reach each other on the same
+            // snaps. A sack that is no longer taken is a different outcome with a different
+            // runoff and a different next spot, so the period reaches its end at a
+            // different whistle and a different set of intervals is the one that exhausts
+            // it; and a down the clock no longer records is a dropback whose reps are never
+            // drawn, so the pocket verdict that snap would have carried never enters the
+            // stream. Neither parent's constants could survive, because each was computed
+            // without the other's mechanism, and no subset of the mechanisms above
+            // reproduces these numbers.
+            //
+            // And moved again by the run game. A carry no longer reads its yards off one
+            // line through the hole quality with a flat lottery on the end of it: the
+            // hole decides which of three things happened — the point of attack lost,
+            // the ordinary carry through it, or the play side washed — and the ordinary
+            // one gains three to nine, decided by the carrier's vision and contact
+            // balance against the second level's tackling. The long run is a tackle
+            // missed in space rather than a draw on a hole that opened. Every carry
+            // spends a different number of draws in a different order, so every game
+            // diverges from its first handoff.
+            //
+            // And the run game then met the pocket, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes and a
+            // long run is a man beaten. On the other the pocket gets one verdict a snap
+            // and it is pressure only if the rusher got there before the ball was out,
+            // so fewer rushers get home and fewer sacks and scrambles are taken. The two
+            // reach each other on the same drives: a carry that gains five where it
+            // gained one is a second and five rather than a second and nine, which is a
+            // different call, and the dropback that call produces is the one the pocket
+            // is now deciding differently; a sack no longer taken leaves a down the run
+            // game then plays. Neither parent's constants could survive, because each
+            // was computed without the other's mechanism, and no subset of the
+            // mechanisms above reproduces these numbers.
+            (UInt64(1), UInt64(7_008_379_748_817_506_726)),
+            (UInt64(5), UInt64(6_857_809_929_866_133_285)),
+            (UInt64(12), UInt64(2_510_155_506_829_270_512)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

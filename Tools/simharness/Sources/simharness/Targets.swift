@@ -458,7 +458,7 @@ struct CalibrationTarget: Sendable {
             season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true,
             unit: "%",
             note:
-                "Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback on which a blocker lost."
+                "Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback whose record says a rusher reached the quarterback before the ball was out; a rep lost after the throw is a lost rep and not a pressure."
         ),
         CalibrationTarget(
             id: "completionsZeroOrFewer", label: "completions for 0 or fewer yards", low: 4.0,

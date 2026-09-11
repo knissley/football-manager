@@ -759,10 +759,14 @@ chase individual rows.
   never appear in one — see [ADR-0003](adr/0003-deterministic-seeded-simulation.md).
 - **Weather rows need `--games 1000`.** At 400 there are twenty-odd heavy-rain games and the
   row is noise. This nearly caused a mis-tune.
-- **`pressureAllowed` does not mean pressure.** It is emitted whenever a rusher wins his
-  rep, whether or not he arrives before the ball is out, so it fires on 74% of dropbacks
-  against a real rate near a third. Anything that reads it as pressure will explain three
-  of every four stalled drives the same way.
+- **`pressureAllowed` does not mean pressure** — **fixed.** It was emitted whenever a
+  rusher won his rep, whether or not he arrived before the ball was out, so it fired on
+  75.5% of dropbacks against a real rate near a third, and anything reading it as pressure
+  would have explained three of every four stalled drives the same way. The rep is now a
+  `.blockResult` and the pocket gets one verdict a snap — `.pressureAllowed` only when the
+  first man home beat the throw, `.pressureHeld` when he did not — and the rep win rate,
+  which used to be setting the pressure rate as a side effect, is set from
+  `row:pressureRate` instead.
   ([C1 · #36](https://github.com/knissley/football-manager/issues/36))
 - **Interference is drawn before the throw** — **fixed.** Both kinds were drawn per read
   in the coverage loop, so in 40 games 4 of 58 defensive interference flags were on sacks

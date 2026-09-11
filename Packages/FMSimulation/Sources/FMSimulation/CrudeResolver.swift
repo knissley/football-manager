@@ -231,8 +231,18 @@ public struct CrudeResolver: PlayResolver {
         // Protection is the line, plus a back or tight end kept in when there is one to
         // spare. An empty set has nobody helping, which is the trade the grouping makes.
         let protection = personnel.blockers(includingEligibles: false)
+        // The first man home, if anybody got home at all: when he arrived, who he was,
+        // and whose rep he won. Whether that counts as pressure is not known yet — it
+        // depends on when the ball comes out, which the read below decides.
         var pressureAt: Int? = nil
         var pressureBy = PlayerSlot.none
+        var pressureOn = PlayerSlot.none
+        // The nearest rush of any kind, won or lost, for the pocket that holds: a verdict
+        // saying the protection held should name the matchup that came closest to it.
+        var nearestAt: Int? = nil
+        var nearestBy = PlayerSlot.none
+        var nearestOn = PlayerSlot.none
+        var nearestResult = BlockResult.won
 
         for (index, rusher) in rushers.enumerated() {
             guard !protection.isEmpty else { break }
@@ -257,18 +267,31 @@ public struct CrudeResolver: PlayResolver {
             // football — but clipping the top at a fixed ceiling made a 99 rusher no
             // better than an 81 against a weak tackle, which is worse. Multiplying keeps
             // the whole talent curve intact and still bounds the best case.
-            let winChance = contest(rush, block, edge: edge) * 0.64
+            //
+            // **The multiplier is set from `row:pressureRate`** — pressure rate per
+            // dropback, band 27.8-32.3, 2023-24, source S2, in
+            // docs/reference/calibration-sources.md — and that is the one row it answers
+            // to, so a retune moves it there and nowhere else. It is the value that puts
+            // the row on its band's midpoint at both harness seeds, which is not the
+            // value that makes the most rows green: the sack and scramble rows fall with
+            // it and both are already short. Their numbers are the resolver's own
+            // conditionals further down, not this one.
+            //
+            // It reads a rep win rate now and only that. Until the pocket had a clock in
+            // it every won rep was reported as a pressure, so this number was setting the
+            // pressure rate as well and set it at 75%.
+            let winChance = contest(rush, block, edge: edge) * 0.39
 
             credit(rusher, .passRusher)
             credit(blocker, .blocker)
 
+            // The rep, which is a fact about two men and nothing else. Whether the
+            // quarterback ever felt it is a separate question with a separate answer.
+            let result: BlockResult
+            let millis: Int
             if random.nextBool(probability: winChance) {
-                let millis = 1_500 + Int(random.next(upperBound: 1_400))
-                decisions.append(
-                    .init(
-                        tick: UInt16(millis / 100), kind: .pressureAllowed, primary: blocker,
-                        secondary: rusher, detail: BlockResult.lost.rawValue,
-                        value: Int16(millis)))
+                result = .lost
+                millis = 1_500 + Int(random.next(upperBound: 1_400))
                 // Drawn here, conditional on having lost, so the flag and the reason for
                 // it are the same event: he held because he was beaten.
                 if penalty == nil {
@@ -278,14 +301,21 @@ public struct CrudeResolver: PlayResolver {
                 if millis < (pressureAt ?? Int.max) {
                     pressureAt = millis
                     pressureBy = rusher
+                    pressureOn = blocker
                 }
             } else {
-                let millis = 2_600 + Int(random.next(upperBound: 1_200))
-                decisions.append(
-                    .init(
-                        tick: UInt16(millis / 100), kind: .pressureHeld, primary: blocker,
-                        secondary: rusher, detail: BlockResult.won.rawValue,
-                        value: Int16(millis)))
+                result = .won
+                millis = 2_600 + Int(random.next(upperBound: 1_200))
+            }
+            decisions.append(
+                .init(
+                    tick: UInt16(millis / 100), kind: .blockResult, primary: blocker,
+                    secondary: rusher, detail: result.rawValue, value: Int16(millis)))
+            if millis < (nearestAt ?? Int.max) {
+                nearestAt = millis
+                nearestBy = rusher
+                nearestOn = blocker
+                nearestResult = result
             }
         }
 
@@ -366,11 +396,36 @@ public struct CrudeResolver: PlayResolver {
         // A try never gets past this line: its throw is out in 1,500 ms and the first
         // rusher home is never there sooner, so `pressured` is false on every two-point
         // snap whatever the reps did, and the scramble and sack exits below are
-        // unreachable for one. They report the try anyway. A resolver whose labelling is
-        // right only because of a timing constant is one edit away from being wrong, and
-        // the constant is a tuning number rather than a rule.
+        // unreachable for one — as is `.pressureAllowed`, which now hangs off the same
+        // comparison. They report the try anyway. A resolver whose labelling is right
+        // only because of a timing constant is one edit away from being wrong, and the
+        // constant is a tuning number rather than a rule. Two things would make that pair
+        // of exits live on a try: an earliest arrival below 1,500 ms, or a try route that
+        // needs longer than that. Either is a change to what a record can contain, so
+        // `passResultsAreWherePassesAre` and the register in docs/play-record.md move
+        // with it.
         let timeNeeded = depth.timeMillis
         let pressured = pressureAt.map { $0 < timeNeeded } ?? false
+        // The verdict on the pocket, once, so that *was he pressured?* has one answer per
+        // snap rather than one per rep. Pressure is the rusher getting there before the
+        // ball is out, which is what the statistic the pressure rate is banded against
+        // counts (`row:pressureRate`, 2023-24, source S2 in
+        // docs/reference/calibration-sources.md). A rep lost a beat after the throw is a
+        // lost rep and a clean pocket, and the `.blockResult` above already said so.
+        if pressured, let at = pressureAt {
+            decisions.append(
+                .init(
+                    tick: UInt16(at / 100), kind: .pressureAllowed, primary: pressureOn,
+                    secondary: pressureBy, detail: BlockResult.lost.rawValue, value: Int16(at)))
+        } else if nearestAt != nil {
+            // It held until the ball came out, which is how long it had to. The pair named
+            // is the rush that came closest — the one a reader asking why it held wants.
+            decisions.append(
+                .init(
+                    tick: UInt16(timeNeeded / 100), kind: .pressureHeld, primary: nearestOn,
+                    secondary: nearestBy, detail: nearestResult.rawValue,
+                    value: Int16(timeNeeded)))
+        }
         let best = reads.max { $0.separation < $1.separation }
 
         // A quarterback who feels it and takes off. Escaping was missing entirely — the
