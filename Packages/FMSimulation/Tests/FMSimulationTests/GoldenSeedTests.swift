@@ -588,9 +588,40 @@ struct GoldenSeedTests {
             // because each was computed without the other's mechanisms, and no subset of
             // the mechanisms above reproduces these numbers. Checked before they were
             // written down: all three seeds differ from both parents of this merge.
-            (UInt64(1), UInt64(16_234_316_287_163_332_877)),
-            (UInt64(5), UInt64(7_894_583_737_340_030_344)),
-            (UInt64(12), UInt64(13_874_420_997_551_782_554)),
+            //
+            // And moved again by the defence, on one grouping. A two-tight-end grouping
+            // is no longer answered from the four-back front every time: three snaps in
+            // ten of it draw the fifth defensive back instead, because a second tight
+            // end is one fewer back to account for and one more man the defence would
+            // rather cover with a defensive back. Two backs still draw the front every
+            // time. This moves the stream two ways at once. It spends a draw on every
+            // two-tight-end snap outside a down the offence has to throw on, where the
+            // rule before it asked nothing, so every draw after that one on those snaps
+            // is a different draw; and on the snaps it answers with the fifth back it
+            // puts a different eleven men on the field, which changes what the play
+            // produced and not only what it was called. All three golden games diverge,
+            // which is what a rule that reaches about a fifth of snaps looks like from
+            // inside three games.
+            //
+            // And the run game then met the defence's answer to one grouping, in this
+            // merge, which is where the constants below come from. On one side a carry
+            // is three outcomes and a long run is a man beaten. On the other a
+            // two-tight-end grouping draws the fifth defensive back three snaps in ten
+            // where it drew the four-back front every time. They reach each other on
+            // exactly the snaps that matter to both: a carry from a two-tight-end
+            // grouping now meets a six-man box on some of the downs it used to meet a
+            // seven-man box on, and the point of attack the carry is three outcomes of
+            // is decided against whoever is standing there — so the same handoff is a
+            // different carry, and the down and distance it leaves is a different down.
+            // Run the other way, a carry that gains five where it gained one is a second
+            // and five rather than a second and nine, which is a grouping the offence
+            // would not have sent out and therefore an answer the defence was never
+            // asked for. Neither parent's constants could survive, because each was
+            // computed without the other's mechanism. Checked before they were written
+            // down: all three seeds differ from both parents of this merge.
+            (UInt64(1), UInt64(10_054_822_703_384_694_462)),
+            (UInt64(5), UInt64(12_809_190_296_902_448_984)),
+            (UInt64(12), UInt64(14_389_288_752_268_214_632)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
