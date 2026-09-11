@@ -558,6 +558,11 @@ struct CatchVocabularyTests {
     /// promise is the same either way: the two labels that name a player at the catch
     /// point are not the ones a poor ball gets. Which case the engine actually uses is
     /// pinned by `VocabularyCoverageTests`' register and printed by `gamelog`.
+    ///
+    /// The exception is the defender's foul, and it is the same one the break-up test
+    /// carries. A poor ball is still a catchable one — 8-5-3-c exempts only the throw
+    /// nobody could reach — so a defender who spoiled the receiver's chance at it caused
+    /// the incompletion whatever the placement was, and the record names him.
     @Test(
         "contract: an uncaught poor ball is recorded against the throw, not against either player at the catch point",
         .tags(.contract))
@@ -569,7 +574,7 @@ struct CatchVocabularyTests {
         }
         #expect(uncaught.count > 50, "only \(uncaught.count) uncaught poor balls")
         let blamedAtTheCatchPoint = uncaught.filter {
-            $0.result == .dropped || $0.result == .brokenUp
+            ($0.result == .dropped || $0.result == .brokenUp) && !$0.wasInterfered
         }.count
         #expect(
             blamedAtTheCatchPoint == 0,

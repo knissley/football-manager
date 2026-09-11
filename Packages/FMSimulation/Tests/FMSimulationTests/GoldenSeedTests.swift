@@ -394,9 +394,29 @@ struct GoldenSeedTests {
             // downs. `Tools/gamelog --seed 7 --home 3 --away 11` prints a hundred and
             // seventy-eight plays where it printed a hundred and sixty-six, with the
             // clock column reading at the snap throughout.
-            (UInt64(1), UInt64(10_623_083_055_246_833_324)),
-            (UInt64(5), UInt64(4_170_365_452_443_562_427)),
-            (UInt64(12), UInt64(10_212_446_830_659_895_973)),
+            //
+            // And moved by the catch, in three ways the checksum mixes through the catch
+            // decision and through the draws each one spends. A defensive interference
+            // foul now settles the catch instead of sitting beside it (2025 rulebook,
+            // 8-5-1): the flag is drawn at the throw and the catch is resolved with it in
+            // hand, so the pass is incomplete and the result is the defender's, where two
+            // thirds of those flags used to fly on passes that were then completed. No
+            // interference of either kind is drawn on a throw the record calls
+            // uncatchable, which 8-5-3-c makes legal contact. And placement now decides
+            // whose incompletion an uncaught ball was: a poor one is the throw's, and
+            // `CatchResult` has a case for it, where every failed catch with the receiver
+            // open used to be charged to him as a drop. Each interference draw that ends
+            // a catch early leaves the catch and interception draws unspent, and each
+            // uncatchable throw leaves the interference draw unspent, so every stream
+            // after the first of them in a game diverges. `Tools/gamelog --seed 7
+            // --home 3 --away 11` prints a hundred and sixty-five plays where it printed
+            // a hundred and seventy-eight, with nine drops where it printed eighteen and
+            // five interference calls that are now five incompletions accepted at the
+            // spot, where all four of the defence's were completions and every one was
+            // declined.
+            (UInt64(1), UInt64(11_567_896_904_328_882_484)),
+            (UInt64(5), UInt64(2_288_566_037_711_384_687)),
+            (UInt64(12), UInt64(403_327_183_926_696_884)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -143,13 +143,33 @@ public enum BallPlacement: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case uncatchable = 3
 }
 
+/// How a throw ended at the catch point, and — for the three ways it can fail — which of
+/// the three men it was down to.
+///
+/// The record carries no other field that says why a pass fell incomplete, so every
+/// reader downstream repeats whatever this says: a drop rate, a pass-defensed
+/// leaderboard, and the sentence the narrative layer writes about the play. A label that
+/// names the wrong man is therefore not a cosmetic fault. The placement the ball arrived
+/// at is on the record one decision earlier, in `ballArrival`, and the two together are
+/// what let a reader tell a receiver's failure from a passer's.
 public enum CatchResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case caught = 0
     case contestedCatch = 1
+    /// The receiver's: a ball he could have caught, and did not.
     case dropped = 2
+    /// The defender's: he was in reach and knocked it away, or he interfered and the foul
+    /// is the reason it was not caught (2025 rulebook, 8-5-1).
     case brokenUp = 3
     case intercepted = 4
+    /// The passer's, at its worst: thrown where nobody could reach it, which is the throw
+    /// 8-5-3-c makes contact on legal. `BallPlacement.uncatchable` is the same throw.
     case uncatchable = 5
+    /// The passer's: a ball that reached the receiver and was not one he could be expected
+    /// to catch. Distinct from `.uncatchable`, which nobody could have reached, and from
+    /// `.dropped`, which was catchable — the three are the throw at its worst, the throw
+    /// at fault, and the receiver at fault, and collapsing any two of them puts an
+    /// incompletion on the wrong man.
+    case offTarget = 6
 }
 
 public enum TackleResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
