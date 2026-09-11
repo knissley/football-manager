@@ -212,20 +212,41 @@ struct UntrainedRatingsTests {
 
 /// Where a whole league's men rate away from their own positions.
 ///
-/// One world, seed 7, every roster. Both suites below read the same world so the two
-/// claims — that a mover is honestly worse than a native, and that filling the keys he
-/// lacked moved nobody at his own position — are made of the same men.
-@Suite("Out of position, at seed 7")
+/// One world, seed 7, every roster. The claims about seed 7 read the same world so that a
+/// mover being honestly worse than a native and filling his untrained keys having moved
+/// nobody at his own position are made of the same men.
+///
+/// **Five worlds where the claim is about the generator rather than about seed 7.** A
+/// league holds thirty-two kickers, so a claim about how kickers rate at quarterback rests
+/// on thirty-two men when it reads one world, and that is not enough to tell 34.4 from 35.
+/// A world costs about a third of a second to build, so four more are the cheapest
+/// instrument in this file; see `receiversAndKickersAtQuarterback` for the arithmetic.
+@Suite("Out of position")
 struct CrossPositionTests {
 
-    private static let world = try? WorldGenerator.generate(
-        seed: 7, shape: .standard, season: 2030
-    ).get()
+    /// Seed 7 first, so `worlds[0]` is the world the fixed-draw claims below read and no
+    /// league is built twice.
+    private static let worlds: [WorldGenerator.GeneratedWorld] = (UInt64(7)...UInt64(11))
+        .compactMap { seed in
+            try? WorldGenerator.generate(seed: seed, shape: .standard, season: 2030).get()
+        }
+
+    private static let world = worlds.first
 
     private func rosters() throws -> [Player] {
         let world = try #require(Self.world, "seed 7 did not produce a world")
         var players: [Player] = []
         for team in world.teams { players += world.roster(of: team.id) }
+        return players
+    }
+
+    /// Every roster man of all five leagues.
+    private func allRosters() throws -> [Player] {
+        #expect(Self.worlds.count == 5, "\(Self.worlds.count) of the five leagues generated")
+        var players: [Player] = []
+        for world in Self.worlds {
+            for team in world.teams { players += world.roster(of: team.id) }
+        }
         return players
     }
 
@@ -271,11 +292,26 @@ struct CrossPositionTests {
     /// and every kicker on every roster, scored at quarterback. A receiver is a poor
     /// quarterback because he cannot throw, and a kicker is a worse one still — and both
     /// have to come out that way rather than as a mover scored on his awareness and speed.
+    ///
+    /// **Five leagues, not one, and the kicker half is why.** A league holds thirty-two
+    /// kickers. Read at seed 7 alone they average 34.41 against a ceiling of 35 — a margin
+    /// of 0.59 against a spread across leagues of about 0.46, so which league it drew
+    /// decided the verdict about as often as the generator did. Five leagues hold 160 and
+    /// average 34.10, with a leave-one-league-out jackknife standard error of 0.145: a
+    /// margin of **6.2 errors**. The five league means run 34.41, 33.75, 33.75, 34.34 and
+    /// 34.25, so no league on its own would fail it and none on its own could settle it
+    /// either. Ten leagues would give 9.5 errors and cost another second; five is where the
+    /// margin crosses into comfortable, and suite time past that is somebody else's to
+    /// spend.
+    ///
+    /// The receiver half needed none of this — receivers rate 25.6 under their own overall
+    /// at quarterback against a bound of 10, which a single league settles many times over
+    /// — but it reads the same five, because the two claims are about the same generator.
     @Test(
         "contract: receivers rate well below their own overall at quarterback, and kickers under 35",
         .tags(.contract))
     func receiversAndKickersAtQuarterback() throws {
-        let players = try rosters()
+        let players = try allRosters()
         let receivers = players.filter { $0.position == .wideReceiver }
         let atReceiver = mean(receivers.map { Double($0.overall) })
         let atQuarterback = mean(receivers.map { Double($0.overall(at: .quarterback)) })
@@ -295,6 +331,18 @@ struct CrossPositionTests {
     /// deviation taken over the population. They are written in rather than recomputed so
     /// that a change to how the trained keys are drawn, or to what `overall` does with a
     /// weight, fails here instead of quietly re-centring the league.
+    ///
+    /// **Most of the spread's tolerance is already spent, and that is the test working
+    /// rather than the test failing.** Seed 7 now reads a mean of 66.078 and a spread of
+    /// 10.391 against the 66.09 and 10.66 written above: the mean has moved 0.012 of its
+    /// 0.5 and the spread 0.269, so **0.23 of the spread's half-point is left**. A league
+    /// re-drawn innocently somewhere upstream moves this about 0.14, which is the spread
+    /// of the same statistic across neighbouring seeds — so the margin here is under two of
+    /// those. This cannot be widened: there is one draw and the whole point of the test is
+    /// that it is that draw. **Re-centring the constants on today's tree would delete the
+    /// evidence that the league has drifted a quarter of a point**, so the numbers stay and
+    /// the drift is written down instead. Whoever spends the rest of that tolerance owes an
+    /// explanation of what moved and why, not a new constant.
     @Test(
         "contract: own-position overall at seed 7 is unmoved — mean 66.09, sd 10.66, within 0.5",
         .tags(.contract))
