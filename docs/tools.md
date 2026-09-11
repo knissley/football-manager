@@ -172,6 +172,14 @@ with M3; it prints under **Not measured here** so the row cannot be quietly forg
 The weather and rare-event rows need `--games 1000`; at 400 there are only twenty-odd
 heavy-rain games and the row is noise.
 
+Under **the shape of a carry** it prints the whole carry-length histogram as well as the
+four graded shares. The shares are cumulative and overlapping, so a run game with nothing
+between two yards and ten can satisfy every one of them; the histogram is what shows that,
+and it carries the middle share — carries of three to nine — against a band derived from the
+two graded rows either side of it rather than sourced on its own. The most common carry
+length is printed with no target beside it, because nothing sources the mode; see
+[calibration-sources.md](reference/calibration-sources.md).
+
 The output is byte-identical across processes for a given seed and game count, so the
 before-and-after comparison every engine fix depends on is a plain `diff`. A line that
 moves between two runs of the same binary at the same seed is a bug in the harness's

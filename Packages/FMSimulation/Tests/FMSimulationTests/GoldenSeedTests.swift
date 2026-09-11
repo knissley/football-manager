@@ -548,6 +548,46 @@ struct GoldenSeedTests {
             // above reproduces these numbers. Checked before they were written down: all
             // three seeds differ from both parents of this merge, from each of the three
             // caller branches, and from both intermediate merges on this branch.
+            // And moved again by the run game. A carry no longer reads its yards off one
+            // line through the hole quality with a flat lottery on the end of it: the
+            // hole decides which of three things happened — the point of attack lost,
+            // the ordinary carry through it, or the play side washed — and the ordinary
+            // one gains three to nine, decided by the carrier's vision and contact
+            // balance against the second level's tackling. The long run is a tackle
+            // missed in space rather than a draw on a hole that opened. Every carry
+            // spends a different number of draws in a different order, so every game
+            // diverges from its first handoff.
+            //
+            // And the run game then met the pocket, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes and a
+            // long run is a man beaten. On the other the pocket gets one verdict a snap
+            // and it is pressure only if the rusher got there before the ball was out,
+            // so fewer rushers get home and fewer sacks and scrambles are taken. The two
+            // reach each other on the same drives: a carry that gains five where it
+            // gained one is a second and five rather than a second and nine, which is a
+            // different call, and the dropback that call produces is the one the pocket
+            // is now deciding differently; a sack no longer taken leaves a down the run
+            // game then plays. Neither parent's constants could survive, because each
+            // was computed without the other's mechanism, and no subset of the
+            // mechanisms above reproduces these numbers.
+            //
+            // And the run game then met all of that, in this merge, which is where the
+            // constants below come from. On one side a carry is three outcomes — the
+            // point of attack lost, the ordinary carry through it, the play side washed
+            // — and a long run is a tackle missed in space rather than a draw on a hole
+            // that opened. On the other a bench spends its timeouts, range is the
+            // kicker's, the grouping and the front are the sport's, an interference foul
+            // settles the catch, and a poor throw is the throw's incompletion. They
+            // reach each other on the same drives and in both directions. A carry that
+            // gains five where it gained one is a second and five rather than a second
+            // and nine, which is a different call, so the throw the catch rules are now
+            // deciding is a throw that would not have been made; and a defence that
+            // answers three receivers from its nickel back meets the run with six in the
+            // box where seven used to stand, which moves the point of attack the carry
+            // is now three outcomes of. Neither parent's constants could survive,
+            // because each was computed without the other's mechanisms, and no subset of
+            // the mechanisms above reproduces these numbers. Checked before they were
+            // written down: all three seeds differ from both parents of this merge.
             //
             // And moved again by the defence, on one grouping. A two-tight-end grouping
             // is no longer answered from the four-back front every time: three snaps in
@@ -562,9 +602,26 @@ struct GoldenSeedTests {
             // produced and not only what it was called. All three golden games diverge,
             // which is what a rule that reaches about a fifth of snaps looks like from
             // inside three games.
-            (UInt64(1), UInt64(13_817_977_595_755_906_669)),
-            (UInt64(5), UInt64(2_555_470_834_088_223_154)),
-            (UInt64(12), UInt64(3_107_376_191_460_556_839)),
+            //
+            // And the run game then met the defence's answer to one grouping, in this
+            // merge, which is where the constants below come from. On one side a carry
+            // is three outcomes and a long run is a man beaten. On the other a
+            // two-tight-end grouping draws the fifth defensive back three snaps in ten
+            // where it drew the four-back front every time. They reach each other on
+            // exactly the snaps that matter to both: a carry from a two-tight-end
+            // grouping now meets a six-man box on some of the downs it used to meet a
+            // seven-man box on, and the point of attack the carry is three outcomes of
+            // is decided against whoever is standing there — so the same handoff is a
+            // different carry, and the down and distance it leaves is a different down.
+            // Run the other way, a carry that gains five where it gained one is a second
+            // and five rather than a second and nine, which is a grouping the offence
+            // would not have sent out and therefore an answer the defence was never
+            // asked for. Neither parent's constants could survive, because each was
+            // computed without the other's mechanism. Checked before they were written
+            // down: all three seeds differ from both parents of this merge.
+            (UInt64(1), UInt64(10_054_822_703_384_694_462)),
+            (UInt64(5), UInt64(12_809_190_296_902_448_984)),
+            (UInt64(12), UInt64(14_389_288_752_268_214_632)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
