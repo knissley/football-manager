@@ -155,7 +155,9 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:falseStartOnATryMovesTheTry`
 20. Defensive offside on a two-point try is half the distance to the goal, so the replay
     comes from the 1. `[2025 · 11-3-3 Item 2, 7-4-5, 14-2-1]` —
-    `test:offsideOnTheConversionMovesItIn`
+    `test:offsideOnTheConversionMovesItIn`. This is one case of the general ceiling in 65,
+    which a try is not exempt from; 65 also records where the engine falls short of it, so
+    a try walked in from further out is not the same question answered twice.
 21. A touchdown on the last play of a period still gets its try, and the period is extended
     by that untimed down: the try belongs to the period the touchdown ended, at 0:00.
     `[2025 · 4-8-1, 4-8-2, 4-8-2-c]` — `test:touchdownAsTheFirstQuarterExpires`,
@@ -409,9 +411,19 @@ season is what checks one. A band is evidence about a rate and never about a rul
 ## Where a foul is enforced from
 
 65. Half the distance to the goal is measured from the spot of enforcement, whichever spot
-    that is. `[2025 · 14-2-1]` — `test:halfTheDistanceFromTheEnforcementSpot`,
+    that is, and it is a ceiling on every distance penalty rather than only on one that
+    would reach the goal line: a walk-off never carries the ball past the midpoint between
+    the enforcement spot and the goal line the offending team defends. A try is no
+    exception — the article overrides every other enforcement of a distance penalty bar
+    intentional grounding and a palpably unfair act, and 11-3-3 lifts nothing.
+    `[2025 · 14-2-1, 11-3-3, 14-3-4-f]` — `test:halfTheDistanceFromTheEnforcementSpot`,
     `test:defensiveHoldingAtTheThreeIsHalfTheDistance`,
-    `test:falseStartAtTheOwnThreeIsHalfTheDistance`
+    `test:falseStartAtTheOwnThreeIsHalfTheDistance` cover the walk-offs that would reach a
+    goal line; the ceiling short of one is **not yet enforced**,
+    [#143](https://github.com/knissley/football-manager/issues/143). Measured at branch
+    head: five yards against the defence from the 7 walk all five to the 2, fifteen from
+    the 20 walk all fifteen to the 5, and a false start six yards out from the offence's
+    own goal line walks back to its own 1.
 66. Every foul is enforced from one of the spots the book lists — the previous spot, the
     spot of the foul, the succeeding spot, the dead-ball spot and the rest — and never from
     somewhere convenient. `[2025 · 14-3-4]` — `test:enforcementFamilies`

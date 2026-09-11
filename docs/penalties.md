@@ -215,7 +215,9 @@ against it; a foul by a defence that took the ball away gives it back (14-4-3-a)
 personal foul by an offence that lost the ball leaves the new possessor in possession,
 walked off from the dead-ball spot in its frame (14-4-3-b). Half the distance to the
 goal is measured from whichever spot the foul is enforced from (14-2-1), so a facemask at
-the 6 after a run gives the 3. Measuring every foul from the previous spot, as the engine
+the 6 after a run gives the 3. That is a ceiling on every walk-off and not only on one that
+would reach the goal line; `Rules.walk` applies it to the latter alone, which invariant 65
+records against #143. Measuring every foul from the previous spot, as the engine
 did until wave 1, offered the offence fifteen yards from the old line against its own
 twenty-yard run, so the whole contact family was declined.
 
