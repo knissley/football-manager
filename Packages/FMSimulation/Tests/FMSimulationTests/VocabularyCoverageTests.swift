@@ -385,12 +385,17 @@ struct VocabularyCoverageTests {
     /// **This one reads the standard corpus rather than the sweep or the walk**, and the
     /// reason is the run half. The draw is only offered a play worth reacting to — a sack,
     /// or a gain of fourteen — and a run goes fourteen about one time in eighty, so a
-    /// conduct foul after a run is 0.175 a game: seven across the corpus's forty,
-    /// measured, against forty-eight after a dropback. Twenty games of the walk above
-    /// would expect three and a half of them, which is the kind of margin that goes red
-    /// on a nudge; forty thousand swept runs would cost several seconds to say the same
-    /// thing. The corpus is forty games that six other suites have already paid for, so
-    /// reading it here costs nothing and is the widest sample available.
+    /// conduct foul after a run is 0.2 a game: eight across the corpus's forty, measured,
+    /// against thirty-three after a dropback. Twenty games of the walk above would expect
+    /// four of them, which is the kind of margin that goes red on a nudge; forty thousand
+    /// swept runs would cost several seconds to say the same thing. The corpus is forty
+    /// games that six other suites have already paid for, so reading it here costs nothing
+    /// and is the widest sample available.
+    ///
+    /// **Both floors are thin and the run half is the thinner.** Leave-one-game-out
+    /// jackknife over the forty: eight after a run with a standard error of 2.86, and
+    /// thirty-three after a dropback with 5.20 — margins of 2.8 and 6.3 errors. A change
+    /// that halved the run half would leave `afterARun > 0` green about one time in fifty.
     @Test("Conduct fouls are drawn after passes and sacks, not only after runs", .tags(.contract))
     func conductFoulsFollowThePassingGame() {
         let conduct: Set<Foul> = [.unsportsmanlikeConduct, .taunting]
