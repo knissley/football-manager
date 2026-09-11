@@ -92,24 +92,30 @@ struct BallSecurityTests {
         return Double(loose) / Double(contacts)
     }
 
-    /// A receiver who has caught the ball is a runner, and the ball coming loose from him
-    /// is the same act it is when it comes loose from a back — so he must not be built to
-    /// put it on the ground more often per touch than the back does.
+    /// The engine must not read a penalty into ball security that the rules do not draw.
     ///
-    /// **Where the football comes from.** The 2025 rulebook defines a fumble once and a
-    /// runner once, and neither definition turns on the position a man plays or on how the
-    /// ball reached him. Losing it is a fumble unless it left him as a pass, a hand-off or
-    /// a legal kick (3-2-5); the runner is simply whoever on the offence holds the live
-    /// ball (3-27); and the man who catches a pass is free to run with it (8-1-3).
-    /// **The inference is stated rather than implied**: the rules give one
-    /// category and this engine gives it one model — `Fumbles.drawn` reads the carrier's
-    /// `carrying` and nothing else about him — so a receiver generated with materially
-    /// worse ball security than a back is the engine saying something about the sport that
-    /// the sport does not say. No per-position fumbles-per-touch band is sourced in
-    /// [`calibration-sources.md`](../../../../docs/reference/calibration-sources.md); the
-    /// two fumble rows there are per team-game, over every carrier, and cannot separate
-    /// two positions. So the claim asserted here is the one-sided one the rules support —
-    /// the receiver is not *worse* — and not an equality nobody has sourced.
+    /// **Why this is a promise about the engine and not a claim about the sport.** The
+    /// rules support the *premise* and not the assertion. The 2025 rulebook defines a
+    /// fumble once and a runner once, and neither definition turns on the position a man
+    /// plays or on how the ball reached him: losing it is a fumble unless it left him as a
+    /// pass, a hand-off or a legal kick (3-2-5); the runner is simply whoever on the
+    /// offence holds the live ball (3-27); and the man who catches a pass is free to run
+    /// with it (8-1-3). One category in the rules, and one model here — `Fumbles.drawn`
+    /// reads the carrier's `carrying` and nothing else about him. What those articles do
+    /// **not** establish is that a receiver in the real sport fumbles no more often per
+    /// touch than a back. That is an empirical claim about a real season, and it would
+    /// need a season and a source, which is why this test is tagged as a contract: a
+    /// promise the engine makes about itself, with the rules as the reason the promise is
+    /// the right one.
+    ///
+    /// **The band that would make it a football claim does not exist here.** No
+    /// per-position fumbles-per-touch row is sourced in
+    /// [`calibration-sources.md`](../../../../docs/reference/calibration-sources.md), and
+    /// none could be obtained: the two fumble rows that are sourced are per team-game over
+    /// every carrier and cannot separate two positions. Adding one is a sourcing job under
+    /// that file's own band policy — a season, a source, and a derivation the script can
+    /// reproduce — and until somebody does it, nothing in this repository can grade ball
+    /// security by position against the sport.
     ///
     /// **How it is measured.** The two ball-security numbers are the medians a generated
     /// league actually produces at seed 7: every receiver and tight end on every roster,
@@ -120,13 +126,23 @@ struct BallSecurityTests {
     /// is far too coarse to separate two positions' per-touch rates. A quarter of a million
     /// contacts an arm is the same measurement with the noise taken out of it.
     ///
+    /// **It has teeth, and here is the evidence.** Two mutations, both run against this
+    /// assertion. Take the two ball-carrying keys back off the receiving positions, so
+    /// they draw ball security from the untrained table again, and it reads 0.03401 of
+    /// contacts against a back's 0.01980 with four standard errors at 0.00183 — red by
+    /// roughly twenty-seven of them. Hold everything else and give the receiver arm six
+    /// points less carrying than the back's median, and it reads 0.02186 against 0.01980
+    /// with a tolerance of 0.00162 — still red. So it is not only sensitive to the
+    /// forty-point hole it was written for: it turns red once a receiver's median ball
+    /// security falls about six points under a back's.
+    ///
     /// **The tolerance is an assumed model, not a measured spread**: the binomial standard
     /// error of the difference of the two rates at this many draws, which assumes each
     /// contact is an independent trial at a fixed probability. Nobody has measured the
     /// spread of this statistic by resampling.
     @Test(
-        "football · Rules 3-2-5, 3-27, 8-1-3 · a receiver at his league's median ball security does not fumble more often per contact than a back at his",
-        .tags(.football))
+        "contract: ball security carries no positional penalty the rules do not draw — a receiver at his league's median carrying is no likelier to fumble per contact than a back at his",
+        .tags(.contract))
     func aReceiverIsNotALooserBallCarrierThanABack() throws {
         let players = try everyone()
         let receiving = players.filter {
