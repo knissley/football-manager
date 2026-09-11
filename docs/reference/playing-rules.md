@@ -405,8 +405,8 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 - **8-4-2**, **8-4-3** — What illegal contact *is*, inside the five-yard zone and beyond
   it, and both are written for a down the man who took the snap is still spending in the
   pocket with the ball. Inside the zone it is a chuck in a receiver's back, a chuck held
-  on after he has drawn even with the defender, or a second chuck after the first was
-  broken off; beyond it, it is a defender starting contact with a receiver trying to get
+  on once he is past the point level with the defender, or a second chuck after the first
+  was broken off; beyond it, it is a defender starting contact with a receiver trying to get
   away from him, or holding on to a receiver he has ridden out of the zone. Hands used to
   fend off contact a receiver is bringing are not it, and neither is incidental contact
   beyond the zone (8-4-4). —
