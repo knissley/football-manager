@@ -216,11 +216,17 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case ineligibleReceiverDownfield = 26
     case illegalManDownfield = 27
 
-    // Coverage and receiving
+    // The passing game
     case defensiveHolding = 40
     case defensivePassInterference = 41
     case offensivePassInterference = 42
     case illegalContact = 43
+    /// A passer about to lose ground to the rush who throws a forward pass nowhere near
+    /// any receiver who was eligible at the snap (2025 rulebook, 8-2-1). The one foul in
+    /// the book that costs the down: ten yards from the previous spot and the down with
+    /// them (8-2-Penalty), and inside two minutes it is one of the acts that conserve
+    /// time, so it carries the runoff on top (4-7-1-b).
+    case intentionalGrounding = 44
 
     // Contact
     case roughingThePasser = 60
@@ -253,6 +259,23 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// simply replayed from a new spot.
     public var isPreSnap: Bool {
         rawValue < 20
+    }
+
+    /// Fouls that cost the offence the down as well as the yards.
+    ///
+    /// Intentional grounding is the one the engine draws: loss of down and ten from the
+    /// previous spot (2025 rulebook, 8-2-Penalty). On fourth down the lost down is the
+    /// series, and the defence takes over where the walk-off leaves the ball.
+    public var carriesLossOfDown: Bool {
+        self == .intentionalGrounding
+    }
+
+    /// A foul committed with the ball live that the book lists among the acts that
+    /// conserve time (2025 rulebook, 4-7-1): grounding is the one the engine draws. Time
+    /// is in for the whole of a down, so unlike a dead-ball foul it needs no question
+    /// about whether the clock was running when it was committed.
+    public var isLiveBallActThatConservesTime: Bool {
+        self == .intentionalGrounding
     }
 
     /// Fouls that give the offence a first down automatically when accepted.
@@ -332,7 +355,7 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
             .runningIntoTheKicker, .illegalManDownfield:
             return 5
         case .offensiveHolding, .illegalUseOfHands, .illegalBlockInTheBack, .tripping,
-            .ineligibleReceiverDownfield, .offensivePassInterference:
+            .ineligibleReceiverDownfield, .offensivePassInterference, .intentionalGrounding:
             return 10
         case .illegalBlindsideBlock, .chopBlock, .roughingThePasser, .facemask,
             .unnecessaryRoughness, .horseCollarTackle, .illegalUseOfHelmet, .lowBlock,
@@ -348,7 +371,8 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
         switch self {
         case .falseStart, .delayOfGame, .illegalFormation, .illegalMotion, .illegalShift,
             .offensiveHolding, .illegalBlockInTheBack, .illegalBlindsideBlock, .chopBlock,
-            .ineligibleReceiverDownfield, .illegalManDownfield, .offensivePassInterference:
+            .ineligibleReceiverDownfield, .illegalManDownfield, .offensivePassInterference,
+            .intentionalGrounding:
             return .offense
         case .offside, .encroachment, .neutralZoneInfraction, .defensiveHolding,
             .defensivePassInterference, .illegalContact, .roughingThePasser,

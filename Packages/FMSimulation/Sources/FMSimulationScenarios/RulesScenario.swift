@@ -105,6 +105,7 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case trailingByAPickSix = "trailing-by-a-pick-six"
 
     // Fouls during a down
+    case intentionalGroundingInsideTwoMinutes = "intentional-grounding-inside-two-minutes"
     case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
     case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
         "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
@@ -300,6 +301,8 @@ extension RulesScenario {
             return RulesScenarios.neutralZoneInfractionOnATrailingOffense
         case .trailingByAPickSix: return RulesScenarios.trailingByAPickSix
 
+        case .intentionalGroundingInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingInsideTwoMinutes
         case .defensiveHoldingOnAPlayEndingInBounds:
             return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
         case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
@@ -648,6 +651,10 @@ extension RulesScenario {
         case .neutralZoneInfractionOnATrailingOffense:
             return [
                 "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap"
+            ]
+        case .intentionalGroundingInsideTwoMinutes:
+            return [
+                "football · Rule 8-2-1, 8-2-Penalty, 4-7-1-b, 4-7-1 Item 1 · a pass grounded under pressure inside two minutes costs the down and ten yards from the previous spot, and ten seconds off a running clock, which then restarts on the ready"
             ]
         case .defensiveHoldingOnAPlayEndingInBounds:
             return [

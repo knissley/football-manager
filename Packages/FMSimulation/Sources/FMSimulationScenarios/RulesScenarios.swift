@@ -666,6 +666,21 @@ public enum RulesScenarios {
         }
     }
 
+    /// A pass grounded under pressure inside the last two minutes of the fourth quarter,
+    /// on a down the clock was running into and that is not a fourth down, by an offence
+    /// that had the ball on the play before: the act 4-7-1 lists at (b), committed with
+    /// time in, so that what is left to watch is the ten seconds and the down.
+    static var intentionalGroundingInsideTwoMinutes: ScriptedGame {
+        ScriptedGame { snap in
+            guard snap.isScrimmage, snap.quarter == 4, (40...119).contains(snap.clock),
+                snap.clockIsRunning, snap.down != .fourth,
+                let previous = snap.previous, previous.outcome.penalties.isEmpty,
+                previous.situation.possession == snap.possession
+            else { return snap.neutral }
+            return snap.grounding()
+        }
+    }
+
     /// The second snap of the game — the first with the clock running into it, since the
     /// opening kickoff leaves it dead until the snap — draws a defensive holding on a run
     /// stopped for no gain. The first period has neither a two-minute warning nor a late

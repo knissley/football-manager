@@ -118,6 +118,49 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.distance == 13)
     }
 
+    /// Grounding is the one foul the engine draws that costs the down. Second and eight
+    /// from the 60 becomes third and eighteen from the 70: the down advances instead of
+    /// being replayed, and the distance grows by what was walked off (2025 rulebook,
+    /// 8-2-Penalty clause (a)). The defence always takes it, because the alternative is
+    /// the same lost down with the ten yards not walked off.
+    @Test(
+        "football · Rule 8-2-Penalty · intentional grounding costs the down and ten yards from the previous spot",
+        .tags(.football))
+    func groundingCostsTheDownAndTenYardsFromThePreviousSpot() {
+        let decision = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+
+        #expect(decision.accepted)
+        #expect(decision.penalty.wasAccepted)
+        #expect(decision.penalty.yards == 10)
+        #expect(decision.advancement.ballOn == 70, "ten yards from the previous spot")
+        #expect(decision.advancement.down == .third, "the down is lost, not replayed")
+        #expect(decision.advancement.distance == 18)
+        #expect(!decision.advancement.possessionChanged)
+
+        // On fourth down the lost down is the series: the defence takes over where the
+        // walk-off left the ball.
+        let fourth = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .fourth, distance: 3, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+        #expect(fourth.accepted)
+        #expect(fourth.advancement.possessionChanged, "a lost fourth down is a turnover on downs")
+        #expect(
+            fourth.advancement.ballOn == 30,
+            "the defence's ball at the enforcement spot, in its own frame")
+        #expect(fourth.advancement.down == .first)
+        #expect(fourth.advancement.distance == 10)
+
+        // Half the distance caps the ten yards (14-2-1) and the down is still lost.
+        let backedUp = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .first, distance: 10, ballOn: 95),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+        #expect(backedUp.advancement.ballOn == 97, "half the distance from the 5")
+        #expect(backedUp.advancement.down == .second)
+        #expect(backedUp.advancement.distance == 12)
+    }
+
     @Test("Automatic first downs are awarded only against the defence", .tags(.unit))
     func automaticFirstDowns() {
         for foul in Foul.allCases where foul.carriesAutomaticFirstDown {

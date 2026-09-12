@@ -387,6 +387,33 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   either way. So an interception is a catch but it is not a completion, which is what
   decides whether a foul before it is inside 8-6-1-d. —
   `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
+- **8-2-1** — A passer about to lose ground to the rush who throws a forward pass nowhere
+  near any receiver who was eligible at the snap has grounded it, and the ball falling
+  incomplete is not part of the definition. *Read in the 2026 edition, the only one the
+  session that entered it could reach; that edition's own list of what it changed names
+  6-1-3, 6-1-5, 6-1-6 and 19-2 and nothing in Rule 8 or in 4-7, so this is the 2025
+  article. A reading in the 2025 book is still owed, and this note comes off when it is
+  done.* — `test:groundingCostsTheDownAndTenYardsFromThePreviousSpot`,
+  `test:groundingInsideTwoMinutesRunsTenSecondsOff`; drawn by the crude resolver as the
+  illegal share of its throwaways (C3 #44)
+- **8-2-1 Item 1** — Not grounding when the passer is, or has been, outside the pocket area
+  and the ball comes down at or past the line of scrimmage extended, whoever could have
+  caught it; he is outside it the moment any part of him or of the ball is. —
+  **modelling**: the crude resolver places nobody, so it cannot know where the passer or the
+  ball was. A throwaway is drawn as one this item allows against the passer's `awareness`
+  and `underPressure`, and as grounding otherwise; the spatial engine measures it (M5)
+- **8-2-1 Item 2** — Not grounding when a defender's contact took the pass off its line
+  after the throwing motion had started toward a receiver, or knocked a pass thrown from
+  outside the pocket down short of the line. — not modelled: the resolver has no contact
+  on the throw
+- **8-2-Penalty** — Loss of down and ten yards from the previous spot; loss of down at the
+  spot of the throw instead when that spot is more than ten yards behind the previous spot
+  or past half the distance to the goal; a safety when the passer, all of him and the ball,
+  is in his own end zone as he throws. The clause sends the reader to 4-7 for what the act
+  costs inside two minutes. — `test:groundingCostsTheDownAndTenYardsFromThePreviousSpot`;
+  **modelling**: the resolver has no spot of the throw, so every grounding is walked off as
+  the first clause, capped by 14-2-1's half the distance; the spot-of-the-throw clause and
+  the safety are not reached
 - **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
   intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
   motion and puts the ball straight into the ground. 3-42 makes that any player aligned a

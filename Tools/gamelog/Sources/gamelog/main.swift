@@ -297,6 +297,7 @@ func foulName(_ foul: Foul) -> String {
     case .defensivePassInterference: return "defensive pass interference"
     case .offensivePassInterference: return "offensive pass interference"
     case .illegalContact: return "illegal contact"
+    case .intentionalGrounding: return "intentional grounding"
     case .roughingThePasser: return "roughing the passer"
     case .facemask: return "facemask"
     case .unnecessaryRoughness: return "unnecessary roughness"
