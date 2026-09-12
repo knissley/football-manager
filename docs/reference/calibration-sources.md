@@ -1217,8 +1217,9 @@ games are not independent within a league: `row:snaps.defensiveBack` 1.69,
 `row:snaps.frontSeven` 1.51, `row:snaps.offensiveLine` 1.47, `row:kneelsPerGame` and
 `row:penaltiesPerGame` 1.44 and `row:snaps.receiver` 1.42 all sit about half again above the
 model. Eight rows sit *below* it — `row:snaps.backfield` 0.58, `row:drivesPerTeamGame` 0.61,
-`row:playsFromScrimmage` and `row:snaps.quarterback` 0.63, `row:snaps.tightEnd` and the two
-`row:kickoffsReturned` rows 0.65, `row:fieldGoalsUnder30` 0.69 — most of them because they
+`row:playsFromScrimmage` and `row:snaps.quarterback` 0.63, `row:snaps.tightEnd`,
+`row:kickoffsReturned.2025` and `row:kickoffsReturned.2024` 0.65, `row:fieldGoalsUnder30` 0.69
+— most of them because they
 count something a play produces once by construction, and a Poisson count of a
 near-deterministic quantity over-states.
 
@@ -1235,13 +1236,14 @@ buys it is more seeds.
 **`--games` has a number per row now, not folklore.** `scripts/harness-noise.py --summary`
 prints, for each row whose band is narrower than the four floors a seed needs to land inside
 it reliably, the games that would close the gap — 402 for `row:onsideRecovery.2025`, 556
-and 560 for the two `row:nonOffensiveTouchdowns` rows, 614 for `row:onsideRecovery.2024`,
+for `row:nonOffensiveTouchdowns.2025` and 560 for `row:nonOffensiveTouchdowns.2024`, 614 for
+`row:onsideRecovery.2024`,
 807 for `row:fieldGoals50plus`, 816 for `row:tiesPerGame`, 1,253 for `row:overtimeLength` —
 or **more seeds** for the nineteen where no number of games will: `row:rushingYards`,
 `row:yardsPerCarry`, `row:interceptionRate`, `row:pointsFromFieldGoals`, `row:ypcEvenCount`,
 `row:ypcOutnumberingByOne`, `row:carriesStuffed`, `row:carries2orFewer`,
 `row:carries10plus`, `row:carries20plus`, `row:dropbackNoGain`, `row:driveEndTouchdown`,
-the two `row:onsideKicks` rows, `row:marginSigma`, `row:betweenTeamSigma`,
+`row:onsideKicks.2025`, `row:onsideKicks.2024`, `row:marginSigma`, `row:betweenTeamSigma`,
 `row:penalty.defensiveHolding`, `row:penalty.offside` and
 `row:penalty.neutralZoneInfraction`. The weather rows
 are the one place the folklore could not be checked: `row:heavyRainPoints` has too few rain
