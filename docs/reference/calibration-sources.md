@@ -214,6 +214,24 @@ failure this file exists to prevent.
 | --- | --- | --- |
 | `row:dropsPerTarget` — drops per target | unsourced | — |
 | `row:passesDefensedPerGame` — passes defensed per game (both teams) | unsourced | — |
+| `row:throwawaysPerDropback` — throwaways per dropback | unsourced | — |
+| `row:checkdownsPerDropback` — checkdowns per dropback | unsourced | — |
+| `row:firstReadShare` — throws to the first read, over throws to a read | no band by design | — |
+| `row:targetShare.wideReceiver` — targets to wide receivers, over targets | unsourced until E8 #179 | — |
+| `row:targetShare.tightEnd` — targets to tight ends | unsourced until E8 #179 | — |
+| `row:targetShare.runningBack` — targets to backs | unsourced until E8 #179 | — |
+
+**What the quarterback did with the ball** (C3 #44) prints beside the catch rows and, like
+them, with no band. A throwaway is a charting judgement in the sense a drop is, and no feed
+marks a checkdown; the figures C3's plan once carried for both — 2 to 3% and 10 to 15% of
+dropbacks — were from memory and were withdrawn under rule 10. The share of throws that
+went to the first read has no band *by design*: a read order is coaching design and nothing
+charts it, and the row is printed because `row:pressureRate`'s move under C3 is bounded by
+it. Target share by position group is the one of these a source can band — the play-by-play
+names the targeted receiver and the participation release his position — and it is the
+footprint the read order and the checkdown leave; E8
+([#179](https://github.com/knissley/football-manager/issues/179)) derives it, and until it
+does the three rows print unsourced.
 
 **What a band would have to be computed from.** For drops: a charting release that marks
 one, per target, over the same two seasons the per-play rows use, with the denominator
@@ -1017,12 +1035,29 @@ from the same project, and finding it is part of the sourcing job rather than se
 this line. A play-action flag is a second question and a harder one, since a pass off a fake
 is not something every feed publishes.
 
+**The read order, and everything the passer does with it.** C3 (#44) has the quarterback
+work a read order per pass family — who first, who second, at what break, how deep — on a
+perceived separation that carries his own error, against a threshold set by the depth of
+the throw (`ReadProgression` and `CrudeResolver.Reads`, decided on
+[#169](https://github.com/knissley/football-manager/issues/169)). None of it is sourced and
+none of it can be from what this file reads: a read order is coaching design, not a rule and
+not a rate, and no feed carries a passer's error or the window he judged. It is authored,
+stated as such in the file that holds it and under *Pass play* in
+[`../match-engine.md`](../match-engine.md), and graded by what it produces — the passing
+rows above, the unbanded rows in the catch section, and target share by position group once
+E8 (#179) bands it. Every number in it is a starting value in the sense of the arrival
+window's, retuned in E3 (#49) and not before; the thresholds moved once before they landed,
+for a reason measured and recorded in the same section of the match-engine doc.
+
 Worth doing only when something turns on it, and today nothing does. What the suite asserts
-about the hold is `test:pressureNeverFallsAsTheHoldGrows` and
-`test:theArrivalWindowSpansTheRouteHolds`, and both are `.contract` — a longer hold is never
-pressured less often than a shorter one off the same rush, and every hold has arrivals on
-both sides of it. Both follow from the resolver's own definition of pressure and need no
-band. A band becomes wanted the day somebody means to separate two holds on purpose, or to
+about the hold is `test:pressureIsTheArrivalBeatingTheBallOut` and
+`test:theArrivalWindowSpansTheRouteHolds`, and both are `.contract` — a dropback is
+pressured exactly when the first man home arrived before the record's own ball-out moment,
+snap by snap off the same rush, and every read's break has arrivals on both sides of it.
+Both follow from the resolver's own definition of pressure and need no band. The ball-out
+moment is the break of the read the quarterback threw to (`ReadProgression`, C3 #44), which
+is why the first of those is no longer the chain of concept holds it used to be: a family
+has no single hold any more. A band becomes wanted the day somebody means to separate two holds on purpose, or to
 shape the arrival from a season rather than from the model: either is a modelling change, it
 would move `row:pressureRate` with it, and it should not be made on the strength of a figure
 nobody computed.

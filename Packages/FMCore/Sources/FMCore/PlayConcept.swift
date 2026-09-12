@@ -11,7 +11,9 @@
 ///
 /// Seventeen cases, because the crude engine resolves seventeen kinds of snap. A play format
 /// with routes in it does not retire these: a concept is what a tendency table, a box
-/// score and a gameplan rule key off, and none of them wants a route tree.
+/// score and a gameplan rule key off, and none of them wants a route tree. The crude read
+/// order over the five pass families lives beside the resolver in `FMSimulation`
+/// (`ReadProgression`) for the same reason, and not here.
 public enum PlayConcept: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case insideRun = 0
     case outsideRun = 1

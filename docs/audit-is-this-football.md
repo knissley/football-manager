@@ -848,7 +848,15 @@ argument for watching a game.
   ([#58](https://github.com/knissley/football-manager/issues/58))
 - **C3** — the quarterback always throws to the best-separated receiver on the field. He
   never locks onto his first read, never checks down, never throws it away, and never
-  attempts a throw he cannot make.
+  attempts a throw he cannot make — **fixed.** Each pass family carries a read order over
+  the roles on the field, with a break time and a depth per read and a checkdown
+  (`ReadProgression`, decided on C27
+  [#169](https://github.com/knissley/football-manager/issues/169)); the passer works it
+  at the breaks on a perceived separation that carries his own error, the ball is out at
+  the break of the read he throws to, and with nothing open he checks down, throws it
+  away, or grounds it — a foul that exists now, with its loss of down and its runoff
+  (8-2-1, 4-7-1-b). The record writes one read point per read worked, and the checkdown
+  and the throwaway came off the register.
   ([#44](https://github.com/knissley/football-manager/issues/44))
 - **C4** — `tackleAttempt` emits only `madeTackle` and `broken`, `blockResult` only `won`
   and `lost`, `coverageAssignment` only `offMan` and `zoneDeep`. `forcedFumble` is never

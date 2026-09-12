@@ -760,9 +760,22 @@ struct GoldenSeedTests {
             // the missing read: a reader of a version-1 record finds zero on every
             // coverage point and would report that nobody ever got open, which is the one
             // kind of change the version byte exists to mark.
-            (UInt64(1), UInt64(3_661_745_701_896_168_722)),
-            (UInt64(5), UInt64(5_845_656_920_195_514_401)),
-            (UInt64(12), UInt64(8_685_030_339_744_826_913)),
+            //
+            // And moved by the engine, by the quarterback working his reads (C3 #44, on
+            // the order #169 decided). Every dropback now writes a `.readProgression` per
+            // read worked and a fifth coverage point for the back, the ball comes out at
+            // the break of the read it went to rather than at one hold per family, the
+            // pocket verdict is read against that moment, and a passer with nothing open
+            // checks down, throws it away, or grounds it — a foul that exists now, with
+            // its loss of down and its runoff. Who gets the ball changed on most dropbacks
+            // — the read that cleared rather than the most open man on the field — and
+            // with it the yards, the catch and everything after; the random stream is
+            // spent in a different order from the coverage loop on. All three constants
+            // move, and `Tools/gamelog --seed 7 --home 3 --away 11` prints a different
+            // game, read before and after in the pull request that carried this.
+            (UInt64(1), UInt64(6_475_570_385_247_747_730)),
+            (UInt64(5), UInt64(16_978_527_922_699_050_829)),
+            (UInt64(12), UInt64(16_535_423_687_758_792_283)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

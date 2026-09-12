@@ -401,7 +401,8 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   caught it; he is outside it the moment any part of him or of the ball is. —
   **modelling**: the crude resolver places nobody, so it cannot know where the passer or the
   ball was. A throwaway is drawn as one this item allows against the passer's `awareness`
-  and `underPressure`, and as grounding otherwise; the spatial engine measures it (M5)
+  and `underPressure`, and as grounding otherwise — `test:everyFoulIsCalled` drives that
+  draw; the spatial engine measures it (M5)
 - **8-2-1 Item 2** — Not grounding when a defender's contact took the pass off its line
   after the throwing motion had started toward a receiver, or knocked a pass thrown from
   outside the pocket down short of the line. — not modelled: the resolver has no contact

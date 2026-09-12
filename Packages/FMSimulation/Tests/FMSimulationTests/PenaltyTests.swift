@@ -155,9 +155,11 @@ struct PenaltyTests {
             }
         }
         // The count itself falls when the fix lands, because the interference flags on
-        // these downs stop being drawn rather than becoming some other foul. It is here
-        // to prove the case was exercised at all, not as a rate.
-        #expect(withoutAThrow > 10, "only \(withoutAThrow) flags on downs with no throw")
+        // these downs stop being drawn rather than becoming some other foul, and it fell
+        // again when the quarterback learned to get the ball out before the rush arrived
+        // (C3, #44), which is fewer sacks to flag. It is here to prove the case was
+        // exercised at all, not as a rate.
+        #expect(withoutAThrow > 5, "only \(withoutAThrow) flags on downs with no throw")
         #expect(flagged == 0, "\(flagged) interference calls on downs where nobody threw it")
     }
 
