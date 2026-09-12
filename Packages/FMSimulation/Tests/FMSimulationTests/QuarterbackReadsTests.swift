@@ -23,12 +23,12 @@ struct QuarterbackReadsTests {
         defensePackage: .nickel)
 
     /// The world's context with its starting quarterback given `awareness`, and every
-    /// window he reads made a coin flip: each route runner's `routeRunning` and each
-    /// defender's coverage set to sixty, so a read is open about as often as not and what
-    /// separates two passers is how they judge it. On the generated roster the receivers
-    /// beat their men on nearly every snap — the first read cleared the medium threshold
-    /// nine times in ten — and a passer who never has to come off his first read cannot
-    /// show what awareness is worth.
+    /// window he reads made a coin flip against the medium threshold: each route runner's
+    /// `routeRunning` set to 57 and each defender's coverage to 62, which centres the
+    /// separation the coverage loop draws on 109 cm against a threshold of 110, so a read
+    /// is open about as often as not and what separates two passers is how they judge it.
+    /// On the generated roster the receivers beat their men on most snaps, and a passer
+    /// who rarely has to come off his first read cannot show what awareness is worth.
     private func context(awareness: UInt8, seed: UInt64 = 12) -> PlayContext? {
         let base = TestWorld.context(seed: seed)
         guard
@@ -38,9 +38,9 @@ struct QuarterbackReadsTests {
         else { return nil }
         var players = base.players
         for (id, var man) in players {
-            man.ratings[.routeRunning] = 60
-            man.ratings[.manCoverage] = 60
-            man.ratings[.zoneCoverage] = 60
+            man.ratings[.routeRunning] = 57
+            man.ratings[.manCoverage] = 62
+            man.ratings[.zoneCoverage] = 62
             players[id] = man
         }
         passer.ratings[.awareness] = awareness

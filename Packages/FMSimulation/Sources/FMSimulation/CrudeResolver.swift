@@ -1714,24 +1714,38 @@ public struct CrudeResolver: PlayResolver {
         /// The perceived window a throw needs, in centimetres, by the depth of the read.
         ///
         /// C3's plan put these at 70, 90 and 110, and at those the first read cleared on
-        /// 98% of dropbacks and the second was worked on under 3% — measured on the read
-        /// probe's roster, where the separation the coverage loop draws for a first read
-        /// runs 130 cm at the tenth percentile to 192 at the ninetieth, median 163, and at
-        /// parity between a receiver and his man it centres on 125. A threshold under the
-        /// whole distribution is not a window, it is a label, so these sit inside it: at
-        /// the catch model's own line for a tight ball (`catchOutcome` calls a catch
-        /// contested under 90 cm and a miss a break-up under 110) and up from it with the
-        /// depth, because a deeper ball needs more room to be worth the throw.
+        /// 98% of dropbacks and the second was worked on under 3%: a threshold under the
+        /// whole of what the coverage loop draws is not a window, it is a label. Measured
+        /// across seven generated leagues, four matchups in each, three coverages, a wide
+        /// receiver's separation runs 75 cm at the tenth percentile to 177 at the
+        /// ninetieth, median 128, and a tight end's the same to a few centimetres; a
+        /// back's runs 42 to 92, median 68. These sit inside that: a short read clears on
+        /// about seven dropbacks in ten, a medium on six and a deep on five, and a deeper
+        /// ball needs more room to be worth the throw. Set against the distribution and
+        /// not against a harness row — the rows that moved with them are in the pull
+        /// request that landed this, and where the rates belong is E3's (#49).
+        ///
+        /// A read at or behind the line of scrimmage is the screen's back, and a screen is
+        /// not a window the passer waits for: the ball is thrown behind the line to a man
+        /// with blockers releasing in front of him, and what stops it is the back being
+        /// covered, not the room a downfield throw wants. He needs the checkdown's window
+        /// and no more. Judged against a short read's, seven screens in eight were thrown
+        /// away, on a back whose separation runs 42 cm to 92.
         static func threshold(forDepth depth: Int) -> Double {
+            if depth <= 0 { return checkdownThreshold }
             switch ReadProgression.depthClass(ofYards: depth) {
-            case .short: return 110
-            case .medium: return 130
-            case .deep: return 150
+            case .short: return 100
+            case .medium: return 110
+            case .deep: return 125
             }
         }
-        /// The lower bar the checkdown clears, the throw being short and late: a ball the
-        /// catch model would still call contested, but not blanketed.
-        static let checkdownThreshold = 70.0
+        /// The lower bar the checkdown clears, the throw being short and late. A back's
+        /// separation runs 42 cm at the tenth percentile to 92 at the ninetieth, so this
+        /// clears on about four dropbacks in five once the passer's own error is on it:
+        /// the checkdown is the safe throw, and what it is worth is the catch model's to
+        /// decide from the room he actually had. At 70 it cleared on half, and a throwaway
+        /// followed on a quarter of all dropbacks.
+        static let checkdownThreshold = 45.0
         /// What every threshold is multiplied by on a try: the same three fifths the
         /// coverage loop scales a try's separation by, so that the phone booth shrinks the
         /// window the passer accepts as much as it shrinks the room he is looking at.

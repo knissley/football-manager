@@ -254,13 +254,13 @@ by the share of snaps thrown to the first read, which the harness prints as
 *How the passer works it.* Each read is judged at its break on a perceived separation that
 carries his own error — normal, with a standard deviation of 60 cm less half his
 `awareness` — against a threshold set by the depth of the throw and by nothing about him:
-110 cm short, 130 medium, 150 deep. A read that clears is thrown to at its break. One that
+100 cm short, 110 medium, 125 deep. A read that clears is thrown to at its break. One that
 does not is left behind with a chance of 0.55 plus 0.005 a point of awareness above sixty
 in a clean pocket, multiplied by 0.4 plus 0.006 a point of `underPressure` above sixty once
 the rush has arrived; otherwise he stays locked on it. When the rush arrives before the ball
 is out, the scramble and the sack are drawn as they always were, and a passer still
 standing works what is left under pressure, a beat after the arrival. With nothing open
-the checkdown is the next look, a perceived 70 cm being enough for a ball that short and
+the checkdown is the next look, a perceived 45 cm being enough for a ball that short and
 that late, and after it the ball is thrown away — legally, or as intentional grounding
 (8-2-1), which is drawn against his awareness and his composure because the resolver places
 nobody and cannot know where he or the ball was (8-2-1 Item 1). A deep attempt with
@@ -268,14 +268,27 @@ nobody and cannot know where he or the ball was (8-2-1 Item 1). A deep attempt w
 this paragraph is a starting value, retuned in E3
 ([#49](https://github.com/knissley/football-manager/issues/49)) and not before.
 
-*The thresholds moved before they landed.* C3's plan put them at 70, 90 and 110. At those
-the first read cleared on 98% of dropbacks and a second read was worked on under 3%,
+The screen is the one read judged against the checkdown's window rather than its depth
+class's: the ball goes behind the line to a back with blockers releasing in front of him,
+and what stops it is the back being covered, not the room a downfield throw wants. Judged
+as a short read it was thrown away seven times in eight.
+
+*The thresholds moved twice before they landed.* C3's plan put them at 70, 90 and 110. At
+those the first read cleared on 98% of dropbacks and a second read was worked on under 3%,
 measured on the read probe's roster, where the separation the coverage loop draws for a
 first read runs from 130 cm at the tenth percentile to 192 at the ninetieth, median 163,
 and centres on 125 at parity between a receiver and his man. A threshold under the whole
-distribution is not a window, it is a label, so they sit inside it — at the catch model's
-own line for a tight ball (a catch is contested under 90 cm and a miss a break-up under
-110) and up from it with the depth. The mechanism's two promises are held on a roster with
+distribution is not a window, it is a label, so they went to 110, 130 and 150, with the
+checkdown at 70 — and at those the harness threw the ball away on 23.5% of dropbacks and
+completed 49.8%, because the probe's roster is not the league's. Measured league-wide
+instead — seven generated worlds, four matchups in each, three coverages — a wide
+receiver's separation runs 75 cm at the tenth percentile to 177 at the ninetieth, median
+128, a tight end's the same to a few centimetres, and a back's 42 to 92, median 68. The
+thresholds above sit inside those: a short read clears on about seven dropbacks in ten, a
+medium on six, a deep on five, and the checkdown on about four in five once the passer's
+own error is on it. Set against the distribution and not against a harness row; the rows
+that moved with them are in the pull request that landed this, and where the rates belong
+is E3's. The mechanism's two promises are held on a roster with
 every window a coin flip: a 45-awareness passer reaches his second read on a smaller share
 of dropbacks than a 90 (`test:awarenessReachesTheSecondRead`), and throws into a window
 under 110 cm on a larger share of his throws (`test:perceptionErrorThrowsIntoCoverage`).
@@ -610,6 +623,12 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per completion | 10.3-11.5 | 2023-24 | — | S1 | yes | Over every completion the record says was one, however far it went. A completion for a loss counts as the loss. |
 | drops per target | none | unsourced | — | — | no | Catch attempts the record calls a drop, over catch attempts. Every throw the engine resolves to a receiver has exactly one target, so this is the charting convention's denominator. Unsourced: the play-by-play does not chart a drop. |
 | passes defensed per game | none | unsourced | — | — | no | Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up. |
+| throwaways per dropback | none | unsourced | — | — | no | Dropbacks the passer threw away with nothing open, legally or as grounding, over dropbacks. Unsourced: a throwaway is a charting judgement the play-by-play does not carry, as a drop is. |
+| checkdowns per dropback | none | unsourced | — | — | no | Dropbacks thrown to the checkdown rather than to a numbered read, over dropbacks. Unsourced: no feed marks a checkdown; the footprint it leaves is row:targetShare.runningBack. |
+| throws to the first read | none | unsourced | — | — | no | Throws to a numbered read that went to the first one, over throws to a numbered read. No band: a read order is coaching design and nothing charts it. Printed because row:pressureRate's move under C3 is bounded by it — the ball comes out at the break of the read thrown to, and the first read's is the earliest. |
+| targets to wide receivers | none | unsourced | — | — | no | Targets whose man plays wide receiver, over targets — a throwaway has no target and is not in it. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release. |
+| targets to tight ends | none | unsourced | — | — | no | As row:targetShare.wideReceiver, for the tight end. Unsourced until E8 #179. |
+| targets to backs | none | unsourced | — | — | no | As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown. Unsourced until E8 #179. |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
 | ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy. |
 | games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |

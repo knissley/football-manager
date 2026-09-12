@@ -773,9 +773,18 @@ struct GoldenSeedTests {
             // spent in a different order from the coverage loop on. All three constants
             // move, and `Tools/gamelog --seed 7 --home 3 --away 11` prints a different
             // game, read before and after in the pull request that carried this.
-            (UInt64(1), UInt64(6_475_570_385_247_747_730)),
-            (UInt64(5), UInt64(16_978_527_922_699_050_829)),
-            (UInt64(12), UInt64(16_535_423_687_758_792_283)),
+            //
+            // And moved once more on the same branch, before it landed, by where the
+            // windows sit: the thresholds a read has to clear were set against the
+            // separation the coverage loop draws league-wide rather than on one probe
+            // roster, and the screen's back is judged against the checkdown's window
+            // rather than a short read's, which had seven screens in eight thrown away.
+            // Which read clears changes on a share of dropbacks, and with it everything
+            // after; all three constants move again, and the reasons are on `Reads` in
+            // the resolver and under *The reads* in docs/match-engine.md.
+            (UInt64(1), UInt64(16_029_937_692_552_073_002)),
+            (UInt64(5), UInt64(13_472_043_918_668_408_521)),
+            (UInt64(12), UInt64(7_072_812_449_216_883_004)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
