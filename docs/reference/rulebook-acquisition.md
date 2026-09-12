@@ -13,8 +13,10 @@ costs an hour again.
     scripts/fetch-rulebook.sh /some/path/outside/the/repo
 
 Sixteen seconds, from nothing to a text file and the `export FM_RULEBOOK_TEXT=…` line that
-`scripts/lint-reference.sh` wants. The script refuses to write anywhere inside the working
-tree.
+`scripts/lint-reference.sh` wants. The script refuses to write inside any checkout of this
+repository — **linked worktrees included**, since agents dispatched here each get one — and
+if it cannot work out where those checkouts are, it refuses to run at all rather than run
+unguarded.
 
 ## The three things that cost the time
 
@@ -38,6 +40,11 @@ an error.
 |---|---|---|
 | 2025 — **the season this project targets** | `883457f1f405bb4a4c78234941a23af2` | 243 |
 | 2026 — what the link serves today | `02dc74eecd96472eae1957b9917ad267` | 91 |
+
+The page counts differ far more than the text does, for editions this doc measures as
+word-identical outside four articles: the 2025 copy is simply a differently produced PDF.
+**Identify on the checksum, never on the size or the page count** — and rule out a truncated
+download before concluding you have found a new edition, because that looks identical to one.
 
 The script identifies the edition by checksum. **On an unrecognised checksum it stops rather
 than guessing** — most likely the asset has rolled again. Identify it (page 1 names the
@@ -64,7 +71,7 @@ own words; the book's own change list is *not* sufficient, for the reason under 
 | The formation requirements start when | the kicker begins moving toward the ball | the Referee signals the ball ready |
 | Receiving players required to have a foot on the restraining line | **six**, or **seven** when more than nine are in the setup zone | five, or six |
 | Receiving players allowed in the setup zone but *off* the restraining line | **at most three**, and **at most one** in each of the three lateral areas | at most four, at most two per area |
-| Extra proviso when four are off the line | **does not arise — 2025 permits at most three** | one of them must be outside the yard-line number on each side |
+| Extra proviso when four are off the line | **does not arise — 2025 permits at most three** | one on each side of the field has to be between the sideline and the inbounds line |
 
 **The book's own change list understates this one.** It describes the change as affecting
 receiving-team alignment in the setup zone, and says nothing about the trigger moving from
@@ -84,11 +91,16 @@ branch it came through. **2025 has no such case.**
 
 Either way the spot turns on **whether the ball ever came down in the landing zone**:
 
-- **it did** — turf or a player there — and the ball afterwards died in the end zone, either
-  downed by the receivers or carried across the end line: spot it at the **20**;
-- **it did not** — the kick flew past the landing zone untouched, so it either sailed out the
-  back, struck an upright or the crossbar, or reached the goal line and was downed beyond it:
-  spot it at the **35**.
+- **it did** — turf or a player there — and the ball afterwards died in the end zone, the
+  receivers having downed it there, or it having gone out of bounds behind their own goal
+  line: spot it at the **20**;
+- **it did not** — the kick reached the goal line without ever coming down in the landing
+  zone, and then went out of bounds behind that line, hit the receivers' goal post, an
+  upright or the crossbar, or came down at or past the goal line and was downed in the end
+  zone by the receivers: spot it at the **35**.
+
+Note which way the ball leaves: **out of bounds behind the goal line** is the condition on
+both branches, and it covers the sides of the end zone, not only the end line.
 
 A kick into the end zone that stays inbounds is live either way.
 
