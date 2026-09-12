@@ -222,8 +222,13 @@ and still exits 0**, so a script trusting the exit code passes while CI fails);
 `docs/reference/playing-rules.md` is the project's own paraphrase and the next implementer
 reads it as authoritative.
 
-The rulebook text itself is **not in the repository and will not be**. Where a session has
-cached a copy for verification, the orchestrator will tell you where. Two things about it:
+The rulebook text itself is **not in the repository and will not be**. Get your own copy:
+
+    scripts/fetch-rulebook.sh /some/path/outside/the/repo
+
+Sixteen seconds, and it prints the `export FM_RULEBOOK_TEXT=…` line the reference lint wants.
+Read **`docs/reference/rulebook-acquisition.md`** before citing anything from it. Two things
+that page covers and you must not skip:
 
 - The readily available edition is **2026**. This project targets **2025**, and they differ in
   **exactly four articles — 6-1-3, 6-1-5, 6-1-6 and 19-2**. Everywhere else they are

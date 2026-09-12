@@ -292,6 +292,13 @@ scripts/lint-sim.sh                                       # banned primitives, n
                                                           # see docs/tools.md
 scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
                                                           # when you change it or add a rule
+scripts/fetch-rulebook.sh <dir-outside-the-repo>           # get a copy of the book to verify
+                                                          # against: scrapes the link, checks
+                                                          # WHICH EDITION it got, extracts the
+                                                          # text, prints the FM_RULEBOOK_TEXT
+                                                          # line. The link serves a different
+                                                          # season than we target — see
+                                                          # docs/reference/rulebook-acquisition.md
 scripts/lint-reference.sh --self-test                     # reproduced rulebook text, and
                                                           # citations that name a real article.
 FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh         # Needs a corpus, which is not in the

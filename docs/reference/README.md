@@ -10,6 +10,10 @@ number came from. This is where both live.
 
 - [`playing-rules.md`](playing-rules.md) — the rules the engine implements, one entry per
   article of the **2025** rulebook, paraphrased in our own words. Look a number up here.
+- [`rulebook-acquisition.md`](rulebook-acquisition.md) — how to get a copy of the book to
+  verify against, and **which edition you are holding**. The link serves a different season
+  than the one we target, and the delta is four articles, one of which reads as a widening
+  rather than an error. Run `scripts/fetch-rulebook.sh` rather than doing it by hand.
 - [`calibration-sources.md`](calibration-sources.md) — where every calibration band came
   from: the real-league season, the data set, and the figures the tree states in words. Its
   last section is the other half of the same question: how far each row moves **when nothing
