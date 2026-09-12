@@ -43,8 +43,10 @@ than one with a hole in it.
 
 The practice has drifted both ways and an orchestrator did some of the drifting. Some issues
 carry `needs-owner` with **no** `status:` at all, which makes them invisible to a query for
-either ready or blocked work. If you find one, add the status; do not leave the flag standing
-alone.
+either ready or blocked work. **Check for it and fix what you find** — list the open issues
+labelled `needs-owner` and confirm each also carries a `status:`; add the status to any that
+does not. Two were in that state when this was written and could not be corrected at the time,
+because the GitHub token was rate-limited; they are still findable by that query.
 
 **When you meet a `blocked` issue, establish which of the two reasons it is** — the label will
 not tell you. One sat `blocked` for a day after every dependency had closed, because nobody
