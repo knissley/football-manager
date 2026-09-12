@@ -222,11 +222,15 @@ Issues carry `track:` and `wave:` labels and exactly one `status:`, which is the
 machine. `status:blocked` means not dispatchable and does not say why: the reason is either
 an open dependency or a pending decision, and **`needs-owner`** is the separate flag that
 marks the second — so an issue waiting on a decision carries both. **The labels are the live
-backlog** — #1's wave tables are a filing-time record and a third of the backlog is not in
-them.
+backlog** — #1's wave tables are a filing-time record, and **39 of the 115 backlog issues
+are not in them** (measured 2026-09-12; re-derive by diffing the issue numbers in those tables
+against the `audit-backlog` label query).
 
 Wave 0 runs in parallel; every wave after it changes engine behaviour and therefore the
-golden constants, so those issues run one at a time in wave order and rebase.
+golden constants, so those issues run one at a time in wave order, each cut from the `main`
+the one before it produced. Not `git rebase`: pushed history is never rewritten here, and a
+branch that `main` has moved under merges `origin/main` in. Every commit on `main` is a merge
+commit.
 
 How the backlog is dispatched, verified and merged — and the standing brief every implementer
 is handed — is the `/orchestrator` skill.
@@ -292,7 +296,7 @@ scripts/lint-sim.sh                                       # banned primitives, n
                                                           # see docs/tools.md
 scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
                                                           # when you change it or add a rule
-scripts/fetch-rulebook.sh <dir-outside-the-repo>           # get a copy of the book to verify
+scripts/fetch-rulebook.sh <dir-outside-the-repo>          # get a copy of the book to verify
                                                           # against: scrapes the link, checks
                                                           # WHICH EDITION it got, extracts the
                                                           # text, prints the FM_RULEBOOK_TEXT

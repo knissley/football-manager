@@ -25,8 +25,9 @@ wrong. You may edit issues, split them, or file new ones — and you say so on t
 
 Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
 
-**`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress` →
-`done`, plus **`blocked`** — **not dispatchable**. (A `status:review` label exists and is
+**`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress`,
+plus **`blocked`** — **not dispatchable**. (`done` is the fourth, and it lands on an issue
+GitHub has already closed, so no *open* issue should be carrying it.) (A `status:review` label exists and is
 carried by **nothing** — measured across all 115 backlog issues, open and closed. It is not
 part of the flow; do not start using it without deciding what it would mean.)
 
@@ -78,8 +79,11 @@ yourself; GitHub does not.** A PR that satisfies only part of an issue says **`R
   read the sha. A count quoted from the previous version of the section is exactly the mistake
   the failure-mode section below describes.
 
-The wave tables further down #1 are a filing-time record, not an index: a third of the backlog
-does not appear in them. **The live backlog is the labels.**
+The wave tables further down #1 are a filing-time record, not an index: **39 of the 115
+backlog issues do not appear in them at all** — measured 2026-09-12, and re-derivable by
+diffing the issue numbers in those tables against the `audit-backlog` label query. (#1's own
+body said 38 until that count was taken; an off-by-one in the sentence warning you the tables
+are unreliable.) **The live backlog is the labels.**
 
 ## Dispatching
 
@@ -176,7 +180,11 @@ out of date with its own thread.
 
 ## Environment and timings
 
-Swift 6.2. Pass `--disable-build-manifest-caching` to every `swift build` / `test` / `run`.
+Swift 6.2. **CLAUDE.md's Commands block is the canonical invocation for every `swift`
+command** — use it verbatim rather than a variant, because predicting CI is the entire point
+of running these before you push, and CI runs exactly what that block says. This section used
+to add a flag that appears nowhere else in the repo and that CI does not pass; anyone who
+finds a build that genuinely needs one should add it *there*, with the reason.
 
 **Run every check in the foreground**, using the Bash tool's own `timeout` parameter (up to
 600000 ms). An agent that backgrounds a check ends its turn and stalls the pipeline.

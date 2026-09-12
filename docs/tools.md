@@ -2,7 +2,8 @@
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
 `playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/lint-reference.sh`,
-`scripts/harness-reach.sh` and `scripts/test-census.sh`. Nothing here is a plan.
+`scripts/fetch-rulebook.sh`, `scripts/harness-reach.sh` and `scripts/test-census.sh`. Nothing
+here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
@@ -686,6 +687,31 @@ Every hit the tree must produce is listed in `scripts/lint-sim-fixtures/expected
 stops firing is caught as loudly as a new false positive. So a new rule needs a fixture
 and an expectation line. It runs in under a second, and CI runs it as its own
 hard-failing step.
+
+## fetch-rulebook — get the book, and know which edition you got
+
+```bash
+scripts/fetch-rulebook.sh /some/path/outside/the/repo
+```
+
+`lint-reference` below needs a corpus, and the corpus is the playing rules — which are
+**not in this repository and never will be** (CLAUDE.md rule 8 allows a citation and forbids
+a copy). This script gets one, outside the tree, in about sixteen seconds: it scrapes the
+download link off the league's rules page, builds a virtual environment for `pypdf` (the
+system Python's import fails here in a way that does not suggest the fix), extracts the text,
+and prints the `export FM_RULEBOOK_TEXT=…` line.
+
+**It identifies the edition by checksum, and on one it does not recognise it stops rather than
+guessing.** That is the point of it. The asset behind the download link was replaced in
+place — the same URL that served the season this project targets now serves the next one — so
+a session that downloads without checking verifies every citation against the wrong book, and
+nothing about that looks like an error. Which articles actually differ, and which of them is a
+trap that reads as a widening rather than a mistake, is
+[`docs/reference/rulebook-acquisition.md`](reference/rulebook-acquisition.md).
+
+It refuses to write inside any checkout of this repository, linked worktrees included, and if
+it cannot work out where those checkouts are it refuses to run at all rather than run
+unguarded.
 
 ## lint-reference — reproduced rulebook text, and citations that resolve
 
