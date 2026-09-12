@@ -36,9 +36,9 @@ was lost, and a kicking-team kickoff touchdown (#58). Wave 3's D track then made
 the 2025 book, gave the kickoff its landing zone and its aiming points, and put a foul on
 a scoring play on the try or the free kick where the rules put it.
 
-The fixes are an issue backlog, tracked in **#1**. Read that issue and
-[`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
-engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
+The fixes are an issue backlog, tracked in **#1**. Read that issue — its Current state
+section first — and [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md)
+before touching the engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
 status table and links every open one to its issue.
 
 The target rulebook is the **2025 season**, and `Rules.rulebookSeason` records it. A
@@ -212,10 +212,28 @@ outcome they cannot cite. Details under Conventions → Tests.
 
 ## Current work: the audit backlog
 
-The tracker is **#1**. Issues carry `track:` and `wave:` labels and a `status:`
-label that is the state machine. Wave 0 runs in parallel; every wave after it changes
-engine behaviour and therefore the golden constants, so those issues run one at a time in
-wave order and rebase.
+The tracker is **#1**, and **its body is the state** — the Current state section at the top
+is rewritten in place and says what `main` is, what is in flight, what is waiting on the
+owner, and what is queued. **#1's comments are history, not state**: they are append-only,
+each is superseded silently by a later one, and you should not read them to find out where
+things stand.
+
+Issues carry `track:` and `wave:` labels and exactly one `status:`, which is the state
+machine. `status:blocked` means not dispatchable and does not say why: the reason is either
+an open dependency or a pending decision, and **`needs-owner`** is the separate flag that
+marks the second — so an issue waiting on a decision carries both. **The labels are the live
+backlog** — #1's wave tables are a filing-time record, and **39 of the 115 backlog issues
+are not in them** (measured 2026-09-12; re-derive by diffing the issue numbers in those tables
+against the `audit-backlog` label query).
+
+Wave 0 runs in parallel; every wave after it changes engine behaviour and therefore the
+golden constants, so those issues run one at a time in wave order, each cut from the `main`
+the one before it produced. Not `git rebase`: pushed history is never rewritten here, and a
+branch that `main` has moved under merges `origin/main` in. Measured 2026-09-12: the last forty
+commits on `main` are forty merge commits.
+
+How the backlog is dispatched, verified and merged — and the standing brief every implementer
+is handed — is the `/orchestrator` skill.
 
 - Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
 - Before you push: all four suites green, `swift test -c release` for FMRandom,
@@ -278,6 +296,13 @@ scripts/lint-sim.sh                                       # banned primitives, n
                                                           # see docs/tools.md
 scripts/lint-sim.sh --self-test                           # the lint's own fixture test; run it
                                                           # when you change it or add a rule
+scripts/fetch-rulebook.sh <dir-outside-the-repo>          # get a copy of the book to verify
+                                                          # against: scrapes the link, checks
+                                                          # WHICH EDITION it got, extracts the
+                                                          # text, prints the FM_RULEBOOK_TEXT
+                                                          # line. The link serves a different
+                                                          # season than we target — see
+                                                          # docs/reference/rulebook-acquisition.md
 scripts/lint-reference.sh --self-test                     # reproduced rulebook text, and
                                                           # citations that name a real article.
 FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh         # Needs a corpus, which is not in the
@@ -341,3 +366,7 @@ regardless. Never describe untested code as working — say plainly that it is u
 - `/feature-module` — scaffold a new feature module to the repo's layering
 - `/football-domain` — reference for football rules, terminology, roster and cap
   structure. Load it before writing sim logic or naming domain types.
+- `/orchestrator` — how the audit backlog is run: dispatching implementers to issues,
+  verifying what they report, and merging. Its second half is the standing brief every
+  implementer and reviewer is handed. Load it when driving issues from #1 to merged rather
+  than implementing one yourself.

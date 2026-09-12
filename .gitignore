@@ -32,3 +32,9 @@ Package.resolved.backup
 # is here so a convenient local copy cannot be committed by accident.
 /.rulebook.txt
 /rulebook.pdf
+
+# The two filenames scripts/fetch-rulebook.sh writes, unanchored. That script refuses to
+# write inside a checkout, so this should never fire; it is here because "should never"
+# and "cannot" are different, and the failure mode is committing a copyrighted document.
+rulebook.pdf
+rulebook.txt
