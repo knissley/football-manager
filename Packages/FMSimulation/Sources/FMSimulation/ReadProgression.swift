@@ -51,8 +51,9 @@ struct ReadProgression: Sendable, Hashable {
         let depthYards: Int
     }
 
-    /// The escape valve: a role and a depth, and no break, because it is available from
-    /// the moment pressure arrives rather than at a place in the sequence.
+    /// The escape valve: a role and a depth, and no break, because it has no place in the
+    /// sequence — it is the look after the numbered reads are done with, wherever the rush
+    /// or the deadline finds the passer.
     struct Checkdown: Sendable, Hashable {
         let role: Role
         let depthYards: Int
@@ -180,17 +181,24 @@ struct ReadProgression: Sendable, Hashable {
     /// passer works them. A role nobody fills is skipped and the order closes up, which is
     /// why a read point's index is its place in the order *as worked* rather than in the
     /// table.
-    func resolvedReads(in lineup: Lineup) -> [(read: Read, receiver: PlayerSlot)] {
-        let runners = lineup.routeRunners()
+    ///
+    /// `runners` is `lineup.routeRunners()`, passed in by a caller that has already read
+    /// it — the resolver's coverage loop has — so the order is built once a snap.
+    func resolvedReads(
+        in lineup: Lineup, runners: [PlayerSlot]? = nil
+    ) -> [(read: Read, receiver: PlayerSlot)] {
+        let runners = runners ?? lineup.routeRunners()
         return reads.compactMap { read in
             read.role.slot(among: runners, in: lineup).map { (read, $0) }
         }
     }
 
     /// The checkdown's man, when the family has one and the grouping fielded him.
-    func resolvedCheckdown(in lineup: Lineup) -> (checkdown: Checkdown, receiver: PlayerSlot)? {
+    func resolvedCheckdown(
+        in lineup: Lineup, runners: [PlayerSlot]? = nil
+    ) -> (checkdown: Checkdown, receiver: PlayerSlot)? {
         guard let checkdown,
-            let slot = checkdown.role.slot(among: lineup.routeRunners(), in: lineup)
+            let slot = checkdown.role.slot(among: runners ?? lineup.routeRunners(), in: lineup)
         else { return nil }
         return (checkdown, slot)
     }

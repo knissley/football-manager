@@ -234,7 +234,8 @@ in the role vocabulary M3.5 defines, and they arrive on the same record contract
 a **role** the crude personnel can name — first, second and third receiver, tight end, back
 — resolved against the grouping on the field; a role nobody fills is skipped and the order
 closes up. There is no left and no right. The checkdown is a distinguished member with a
-depth and no break, available from the moment pressure arrives. One table per family:
+depth and no break: the look after the numbered reads are done with, wherever the rush or
+the deadline finds the passer. One table per family:
 
 | family | reads, in order — role: break ms, depth yd | checkdown |
 |---|---|---|
@@ -259,7 +260,10 @@ the three fifths the coverage loop scales a try's separation by when the snap is
 read that clears is thrown to at its break. One that
 does not is left behind with a chance of 0.55 plus 0.005 a point of awareness above sixty
 in a clean pocket, multiplied by 0.4 plus 0.006 a point of `underPressure` above sixty once
-the rush has arrived; otherwise he stays locked on it. When the rush arrives before the ball
+the rush has arrived; otherwise he stays locked on it — holds on it, that is, neither
+moving on nor forcing the ball, so the only throw into coverage the process makes is a
+window he misjudged, and whether a locked-on passer should force it is a question left
+open. When the rush arrives before the ball
 is out, the scramble and the sack are drawn as they always were, and a passer still
 standing works what is left under pressure, a beat after the arrival. An arrival at the
 instant of a break is not before the ball is out: that read is judged clean, which is the
@@ -632,7 +636,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | throwaways per dropback | none | unsourced | — | — | no | Dropbacks the passer threw away with nothing open, legally or as grounding, over dropbacks. Unsourced: a throwaway is a charting judgement the play-by-play does not carry, as a drop is. |
 | checkdowns per dropback | none | unsourced | — | — | no | Dropbacks thrown to the checkdown rather than to a numbered read, over dropbacks. Unsourced: no feed marks a checkdown; the footprint it leaves is row:targetShare.runningBack. |
 | throws to the first read | none | unsourced | — | — | no | Throws to a numbered read that went to the first one, over throws to a numbered read. No band: a read order is coaching design and nothing charts it. Printed because row:pressureRate's move under C3 is bounded by it — the ball comes out at the break of the read thrown to, and the first read's is the earliest. |
-| targets to wide receivers | none | unsourced | — | — | no | Targets whose man plays wide receiver, over targets — a throwaway has no target and is not in it. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release. |
+| targets to wide receivers | none | unsourced | — | — | no | Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release. |
 | targets to tight ends | none | unsourced | — | — | no | As row:targetShare.wideReceiver, for the tight end. Unsourced until E8 #179. |
 | targets to backs | none | unsourced | — | — | no | As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown. Unsourced until E8 #179. |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |

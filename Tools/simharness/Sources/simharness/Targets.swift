@@ -393,7 +393,7 @@ struct CalibrationTarget: Sendable {
             high: nil, season: .unsourced, source: "", rulesSensitiveTo: [], gate: false,
             unit: "%",
             note:
-                "Targets whose man plays wide receiver, over targets — a throwaway has no target and is not in it. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release."
+                "Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release."
         ),
         CalibrationTarget(
             id: "targetShare.tightEnd", label: "targets to tight ends", low: nil, high: nil,

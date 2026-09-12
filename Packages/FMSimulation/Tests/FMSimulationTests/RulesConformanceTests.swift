@@ -1443,7 +1443,7 @@ struct RulesConformanceTests {
         )
     }
 
-    /// A try is one untimed scrimmage down (3-40), so time is not in during it (3-3), and
+    /// A try is one untimed scrimmage down (3-40), so time is not in during it (3-36-3), and
     /// 4-7-1 Item 1 runs its ten seconds only for an act committed "while time is in".
     /// The grounding is still a foul, enforced where the rules put a foul on a try; what
     /// the clock does is nothing. Before this test the live-ball branch put 4-7-1's
@@ -1452,7 +1452,7 @@ struct RulesConformanceTests {
     /// not lose — hidden on a leading team's try, whose trailing defence declines the
     /// runoff anyway.
     @Test(
-        "football · Rule 3-40, 3-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left",
+        "football · Rule 3-40, 3-36-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left",
         .tags(.football)
     )
     func groundedTryInsideTwoMinutesRunsNothingOff() {
@@ -1477,8 +1477,9 @@ struct RulesConformanceTests {
             !flagged.play.decisions.contains { $0.clockElectionValue == .runoff },
             "a ten-second runoff was elected on an untimed down")
         trace.expectPlay(
-            flagged.index + 1, clock: before.clockRemaining, clockRunning: false,
-            "the kickoff is put in play at the clock the touchdown left: the try took none and the flag took none"
+            flagged.index + 1, kind: .kickoff, possession: before.possession,
+            clock: before.clockRemaining, ballOn: 65, clockRunning: false,
+            "the try is over and not replayed (11-3-3 Item 3-b), and the kickoff is put in play from its ordinary spot at the clock the touchdown left: the try took none and the flag took none"
         )
     }
 

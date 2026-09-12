@@ -683,7 +683,7 @@ public enum RulesScenarios {
 
     /// A team a long way behind scores inside the last two minutes of the fourth quarter,
     /// goes for two, and grounds the try. A try is one untimed scrimmage down (3-40), so
-    /// time is not in (3-3), and 4-7-1 Item 1 — the runoff for an offensive act "while
+    /// time is not in (3-36-3), and 4-7-1 Item 1 — the runoff for an offensive act "while
     /// time is in" — has no ten seconds to run: the foul is enforced and the kickoff is
     /// put in play at the clock the touchdown left. The deficit is built in the first
     /// quarter, four touchdowns by whoever has the ball first, so that the side defending

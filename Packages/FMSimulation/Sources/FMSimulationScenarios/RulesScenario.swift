@@ -673,7 +673,7 @@ extension RulesScenario {
             ]
         case .intentionalGroundingOnATwoPointTryInsideTwoMinutes:
             return [
-                "football · Rule 3-40, 3-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left"
+                "football · Rule 3-40, 3-36-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left"
             ]
         case .intentionalGroundingOnTheDownThatBringsTheWarning:
             return [

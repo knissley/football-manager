@@ -151,13 +151,25 @@ struct PenaltyEnforcementTests {
             "the defence's ball at the enforcement spot, in its own frame")
         #expect(fourth.advancement.down == .first)
         #expect(fourth.advancement.distance == 10)
+    }
 
-        // Half the distance caps the ten yards (14-2-1) and the down is still lost.
+    /// Backed up against its own goal line, the offence grounds one and the engine walks
+    /// off half the distance. That is not the book: 14-2-1 names intentional grounding as
+    /// the one distance penalty its half-distance ceiling does not govern, and 8-2-Penalty
+    /// clause (b) sends the ball to the spot of the pass instead when the ten yards would
+    /// reach past half the distance — deeper than the ceiling, not capped by it. The
+    /// resolver has no spot of the pass, so the ceiling stands in for the clause; the down
+    /// is lost either way. Pinned so that the stand-in is a decision and not an accident,
+    /// and so that the day the resolver places the throw this is the test that goes red.
+    @Test(
+        "pin · with no spot of the pass, a grounding backed up against the goal line walks off half the distance, the engine's stand-in for 8-2-Penalty b's spot-of-the-pass clause, which 14-2-1 excepts grounding from",
+        .tags(.pin))
+    func groundingBackedUpIsCappedAtHalfTheDistanceAsAStandIn() {
         let backedUp = rules.enforce(
             penalty(.intentionalGrounding), on: situation(down: .first, distance: 10, ballOn: 95),
             outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
         #expect(backedUp.advancement.ballOn == 97, "half the distance from the 5")
-        #expect(backedUp.advancement.down == .second)
+        #expect(backedUp.advancement.down == .second, "the down is lost all the same")
         #expect(backedUp.advancement.distance == 12)
     }
 

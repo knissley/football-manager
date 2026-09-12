@@ -472,8 +472,12 @@ public struct CrudeResolver: PlayResolver {
         //    thrown to at its break, and that is when the ball is out; one that does not
         //    is left behind with a chance that rises with his awareness and falls once
         //    the rush has arrived, or he stays locked on it. The escape valve is the
-        //    checkdown, available from the moment pressure arrives, and after that the
-        //    ball is thrown away. The parameters are `Reads`, and they are C3's (#44):
+        //    checkdown, the look after the numbered reads are done with — exhausted, or
+        //    left behind by a passer who locked on — from wherever the rush found him or
+        //    at the deadline with the pocket clean, and after it the ball is thrown away.
+        //    Locked on means he holds on that read: he neither moves on nor forces it, so
+        //    a throw into coverage is only ever a window he misjudged. The parameters are
+        //    `Reads`, and they are C3's (#44):
         //    starting values, retuned in E3 and not before.
         //
         // A try is read here like any other dropback, and it used to be exempt by
@@ -508,7 +512,7 @@ public struct CrudeResolver: PlayResolver {
         /// with the matchup the coverage loop gave him.
         let reads: [(read: ReadProgression.Read, matchup: Matchup)] =
             progression
-            .resolvedReads(in: personnel)
+            .resolvedReads(in: personnel, runners: running)
             .compactMap { entry in
                 matchups.first { $0.receiver == entry.receiver }.map { (entry.read, $0) }
             }
@@ -708,7 +712,8 @@ public struct CrudeResolver: PlayResolver {
             // clean he holds to the deadline; under pressure he is where the rush found
             // him. Either way the checkdown is the next look, and then the ball is gone.
             if pressureAt.map({ $0 < deadline }) != true { now = deadline }
-            if let (checkdown, receiver) = progression.resolvedCheckdown(in: personnel),
+            if let (checkdown, receiver) = progression.resolvedCheckdown(
+                in: personnel, runners: running),
                 let matchup = matchups.first(where: { $0.receiver == receiver }),
                 perceived(matchup.separation) >= Reads.checkdownThreshold * window
             {

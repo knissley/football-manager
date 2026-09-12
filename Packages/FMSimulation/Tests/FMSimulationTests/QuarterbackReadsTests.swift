@@ -117,9 +117,12 @@ struct QuarterbackReadsTests {
     /// so a ball thrown forty centimetres tighter is caught three points less and picked
     /// two points more; and the poor passer, seeing windows that are not there, also
     /// fails to see ones that are, so he checks down and throws away more, and those are
-    /// the safest balls on the play. Whether a throw into coverage should cost more is
-    /// the catch model's question (C14 #113, C4 #39) and the retune's (E3 #49), not the
-    /// read process's.
+    /// the safest balls on the play. And a passer who locks on holds on that read rather
+    /// than forcing it — he neither moves on nor throws it — so the only throw into
+    /// coverage the process produces is a window he misjudged; whether a locked-on passer
+    /// should force the ball is a design question left open with the rest. Whether a throw
+    /// into coverage should cost more is the catch model's question (C14 #113, C4 #39) and
+    /// the retune's (E3 #49), not the read process's.
     @Test(
         "A poor passer throws into coverage a good one comes off, on identical reads",
         .tags(.contract))

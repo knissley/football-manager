@@ -200,8 +200,9 @@ first down, which side can commit it, and **where it is enforced from**, which i
   or behind the line — holding, illegal use of hands, ineligible downfield (14-3-6,
   exception 1); and the passing game until the catch — defensive holding, illegal
   contact, interference by the offence (8-6-1). Walked off from the line of scrimmage,
-  the down replayed unless the foul carries a first down — or lost, which only
-  intentional grounding does (8-2-Penalty): ten from the previous spot and the next down
+  the down replayed unless the foul carries a first down — or lost, which among
+  the fouls the engine draws only intentional grounding does (8-2-Penalty): ten from the
+  previous spot and the next down
   from there, the series on fourth down. Grounding is drawn as the illegal share of the
   passer's throwaways under pressure, against his awareness and composure, since the
   resolver places nobody and cannot see the pocket area 8-2-1 Item 1 is about; and it is

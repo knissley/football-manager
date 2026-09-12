@@ -456,10 +456,11 @@ extension Rules {
         return clockRemaining < twoMinuteWarning
     }
 
-    /// Whether a foul before the snap is one of the acts that conserve time (2025
-    /// rulebook, 4-7-1-a): a dead-ball foul, by either side, that stops a running
-    /// clock. What the act costs depends on who committed it — `carriesRunoff` for the
-    /// offence, `isInTheLastFortySeconds` for the defence.
+    /// Whether a foul is one of the acts that conserve time (2025 rulebook, 4-7-1): a
+    /// dead-ball foul, by either side, that stops a running clock (4-7-1-a), or a foul
+    /// with the ball live that the article lists — grounding (4-7-1-b) — whatever the
+    /// clock was doing. What the act costs depends on who committed it —
+    /// `carriesRunoff` for the offence, `isInTheLastFortySeconds` for the defence.
     ///
     /// Two kinds of act are here. A dead-ball foul before the snap conserves time only
     /// if the clock was running when it flew. A foul with the ball live that the article
@@ -472,10 +473,11 @@ extension Rules {
         return foul.isPreSnap && clockWasRunning
     }
 
-    /// Whether a foul before the snap carries the ten-second runoff.
+    /// Whether a foul carries the ten-second runoff.
     ///
     /// By the offence, after the two-minute warning of either half, with the clock
-    /// running into the flag (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
+    /// running into the flag — or, for an act with the ball live, with time in for the
+    /// down (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
     /// defence (4-7-1 Item 2). Regular-season overtime is timed as the fourth quarter
     /// (16-1-3-e), so its closing two minutes carry the runoff too, and so do a second
     /// and a fourth postseason overtime period's, which end as the halves do (16-1-4-h).

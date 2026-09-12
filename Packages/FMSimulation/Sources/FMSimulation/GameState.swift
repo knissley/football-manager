@@ -746,14 +746,17 @@ extension GameSimulator {
             // and the clock restarts on the ready, with the same two alternatives (Item 1).
             // Time is in for the whole of a timed down, so the question a dead-ball foul
             // asks about the clock at the flag has one answer here — and none on a try,
-            // which is an untimed down (3-40) during which time is not in (3-3), so Item
-            // 1's "while time is in" is never met on one. Nor is "after the two-minute
-            // warning" met on the down that brings it: the warning is an automatic timeout
-            // at the conclusion of the last down snapped before two minutes remain (3-41),
-            // so an act during that down came before it, whatever the clock the down
-            // left reads. The runoff comes off the clock the down left, which is where
-            // the flag is enforced.
-            if !pendingTry, !warningTaken,
+            // which is an untimed down (3-40) during which time is not in (3-36-3), so
+            // Item 1's "while time is in" is never met on one; none either on a down that
+            // ran the period out, because the period continues only until the down ends
+            // (4-8-1), an offensive foul extends nothing (4-8-2-b), and a half that is
+            // over has no time in to take ten seconds from and no timeout to offer in
+            // their place. Nor is "after the two-minute warning" met on the down that
+            // brings it: the warning is an automatic timeout at the conclusion of the last
+            // down snapped before two minutes remain (3-41), so an act during that down
+            // came before it, whatever the clock the down left reads. The runoff comes off
+            // the clock the down left, which is where the flag is enforced.
+            if !pendingTry, !warningTaken, !clock.isExpired,
                 let penalty = outcome.penalties.first, penalty.wasAccepted,
                 penalty.offendingTeam == possession, penalty.foul.isLiveBallActThatConservesTime,
                 rules.carriesRunoff(
@@ -776,7 +779,13 @@ extension GameSimulator {
                 _ = clock.run(
                     GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
                     rules: rules, isPostseason: setup.isPostseason)
-                previousBehavior = .stopsUntilReadyForPlay
+                // The clock restarts on the ready (Item 1) unless another rule prescribes
+                // otherwise, and one does when the down changed hands — a grounding on
+                // fourth down is the series (8-2-Penalty, 3-8-2): the change of possession
+                // leaves the clock stopped (4-4-i) and 4-3-2 starts it on the snap from
+                // there, so the new offence's first snap comes with nothing charged.
+                previousBehavior =
+                    advancement.possessionChanged ? .stopsUntilSnap : .stopsUntilReadyForPlay
                 playClock = rules.playClockAfterARunoff
                 elect(.runoff)
             }
