@@ -26,9 +26,9 @@ wrong. You may edit issues, split them, or file new ones — and you say so on t
 Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
 
 **`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress` →
-`done`, plus **`blocked`** — **not dispatchable**. (`status:review` exists as a label; it was
-not observed on any open issue when this was written, so treat it as unused until something
-says otherwise.)
+`done`, plus **`blocked`** — **not dispatchable**. (A `status:review` label exists and is
+carried by **nothing** — measured across all 115 backlog issues, open and closed. It is not
+part of the flow; do not start using it without deciding what it would mean.)
 
 **`blocked` says the issue cannot be picked up. It does not say why.** There are two reasons
 and they are not the same:
@@ -41,12 +41,13 @@ is **`status:blocked` + `needs-owner`** — both. That keeps the invariant that 
 carries exactly one `status:`, which is what makes "what can I dispatch" a total query rather
 than one with a hole in it.
 
-The practice has drifted both ways and an orchestrator did some of the drifting. Some issues
-carry `needs-owner` with **no** `status:` at all, which makes them invisible to a query for
-either ready or blocked work. **Check for it and fix what you find** — list the open issues
-labelled `needs-owner` and confirm each also carries a `status:`; add the status to any that
-does not. Two were in that state when this was written and could not be corrected at the time,
-because the GitHub token was rate-limited; they are still findable by that query.
+The practice drifted once and an orchestrator did the drifting: two issues carried
+`needs-owner` with **no** `status:` at all, which made them invisible to a query for either
+ready or blocked work. Both are fixed, and all four `needs-owner` issues now carry a status.
+
+**It is one query, so run it rather than trusting this paragraph** — list the open issues
+labelled `needs-owner` and confirm each also carries a `status:`. Add the status to any that
+does not.
 
 **When you meet a `blocked` issue, establish which of the two reasons it is** — the label will
 not tell you. One sat `blocked` for a day after every dependency had closed, because nobody
