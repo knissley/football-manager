@@ -484,13 +484,24 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
         return nil
     }
 
-    /// The callers' answers to a flag before the snap, or `nil` when the play was not one.
+    /// The callers' answers to a flag before the snap, or to a foul with the ball live
+    /// that conserves time and so puts the same questions (4-7-1-b); `nil` when the play
+    /// was neither.
+    ///
+    /// For the live-ball act the flag is enforced where the down left the clock, so the
+    /// situation the callers answer from is the one at the snap less the play's own
+    /// seconds — the score and the timeouts, which are what the answers turn on, are the
+    /// same either way.
     private func deadBallChoices(
         for outcome: Outcome, in state: State, tempo: Tempo
     ) -> DeadBallChoices? {
-        guard outcome.kind == .penaltyOnly else { return nil }
-        let atTheFlag = state.situationAtTheFlag(
-            tempo: tempo, foul: outcome.penalties.first?.foul)
+        let foul = outcome.penalties.first?.foul
+        guard outcome.kind == .penaltyOnly || foul?.isLiveBallActThatConservesTime == true
+        else { return nil }
+        var atTheFlag = state.situationAtTheFlag(tempo: tempo, foul: foul)
+        if outcome.kind != .penaltyOnly {
+            atTheFlag.clockRemaining -= min(atTheFlag.clockRemaining, outcome.clockRunoff)
+        }
         let classified = SituationClass(atTheFlag, rules: state.setup.rules)
         return DeadBallChoices(
             offenseTakesTimeout: caller.takesTimeoutInsteadOfRunoff(

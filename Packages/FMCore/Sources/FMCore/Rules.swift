@@ -461,11 +461,15 @@ extension Rules {
     /// clock. What the act costs depends on who committed it — `carriesRunoff` for the
     /// offence, `isInTheLastFortySeconds` for the defence.
     ///
-    /// Only the dead-ball fouls before the snap are here. Intentional grounding, an
-    /// illegal forward pass and the other live-ball acts in the article are not drawn
-    /// by the engine yet; when they are (C3), they belong in this predicate.
+    /// Two kinds of act are here. A dead-ball foul before the snap conserves time only
+    /// if the clock was running when it flew. A foul with the ball live that the article
+    /// lists — intentional grounding is the one the engine draws (4-7-1-b) — is committed
+    /// with time in by definition, since the clock runs for the whole of a down, so it
+    /// conserves time whatever the clock was doing before the snap. An illegal forward
+    /// pass and the other live-ball acts in the article are not drawn by the engine.
     public func conservesTime(foul: Foul, clockWasRunning: Bool) -> Bool {
-        foul.isPreSnap && clockWasRunning
+        if foul.isLiveBallActThatConservesTime { return true }
+        return foul.isPreSnap && clockWasRunning
     }
 
     /// Whether a foul before the snap carries the ten-second runoff.

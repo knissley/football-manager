@@ -345,6 +345,33 @@ enum Penalties {
             wasAccepted: false, enforcementSpot: UInt8(max(0, min(99, catchPoint))))
     }
 
+    /// A pass thrown away under pressure, and whether it was thrown away legally.
+    ///
+    /// The book's exception is a place (2025 rulebook, 8-2-1 Item 1): no grounding when
+    /// the passer is, or has been, outside the pocket area and the ball comes down at or
+    /// past the line of scrimmage extended. The crude resolver places nobody, so it can
+    /// know neither where the passer was nor where the ball came down; what it draws is
+    /// whether he got himself out of the pocket or the ball past the line, against his
+    /// `awareness` and his `underPressure`, and the flag is the share that did neither.
+    /// The spatial engine measures the same question (M5).
+    ///
+    /// Only asked of a throwaway made under pressure. A ball thrown away from a clean
+    /// pocket with nothing open is an incomplete pass and not this foul, whose definition
+    /// starts with the rush (8-2-1). The base is a modelling convention: nothing in
+    /// `docs/reference/calibration-sources.md` bands grounding, so the harness prints the
+    /// rate with no target beside it.
+    static func whenThrowingItAway(
+        passer: PlayerSlot, personnel: Lineup, context: PlayContext,
+        random: inout SplittableRandom
+    ) -> PenaltyRecord? {
+        let awareness = context.effective(.awareness, for: personnel[passer], onOffense: true)
+        let composure = context.effective(.underPressure, for: personnel[passer], onOffense: true)
+        let grounded = 0.10 - (awareness - 60) * 0.001 - (composure - 60) * 0.001
+        guard random.nextBool(probability: max(0.01, min(0.4, grounded))) else { return nil }
+        return record(
+            .intentionalGrounding, by: [passer], personnel, context, &random, offense: true)
+    }
+
     /// Contact fouls, drawn where the contact actually happened.
     static func onContact(
         tackler: PlayerSlot, isQuarterback: Bool, personnel: Lineup, context: PlayContext,

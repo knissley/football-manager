@@ -163,7 +163,7 @@ struct VocabularyCoverageTests {
 
     /// Every foul in the book, asserted against the draw that produces it.
     ///
-    /// `Foul` has thirty-three cases, every one with its yardage, its side and its
+    /// `Foul` has thirty-four cases, every one with its yardage, its side and its
     /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
     /// of them: there was no offensive pass interference in the league, nobody was ever
     /// called for lining up wrong, and a kicker could be run over with impunity. That is
@@ -179,7 +179,7 @@ struct VocabularyCoverageTests {
     ///
     /// Each entry drives one of the resolver's penalty draws directly, many times, and
     /// names the branches of `Foul` that draw can return. Between them they account for
-    /// all thirty-three: a foul in `Foul.allCases` that no entry claims fails below, so a
+    /// all thirty-four: a foul in `Foul.allCases` that no entry claims fails below, so a
     /// new case cannot be added without saying which draw throws it.
     ///
     /// The counts are not arbitrary. `Penalties.preSnap` gets forty thousand because its
@@ -309,6 +309,15 @@ struct VocabularyCoverageTests {
                         defender: PlayerSlot(18), receiver: PlayerSlot(2),
                         separationCentimetres: 300, routeDepth: 14, catchPoint: 30,
                         personnel: dropback, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.whenThrowingItAway",
+                [.intentionalGrounding],
+                sweep(20_000) { random in
+                    Penalties.whenThrowingItAway(
+                        passer: PlayerSlot(0), personnel: dropback, context: context,
+                        random: &random)
                 }
             ),
             (
