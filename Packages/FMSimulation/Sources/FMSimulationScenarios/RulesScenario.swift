@@ -110,6 +110,9 @@ public enum RulesScenario: String, CaseIterable, Sendable {
         "intentional-grounding-on-a-two-point-try-inside-two-minutes"
     case intentionalGroundingOnTheDownThatBringsTheWarning =
         "intentional-grounding-on-the-down-that-brings-the-warning"
+    case intentionalGroundingAsTheHalfExpires = "intentional-grounding-as-the-half-expires"
+    case intentionalGroundingOnFourthDownInsideTwoMinutes =
+        "intentional-grounding-on-fourth-down-inside-two-minutes"
     case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
     case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
         "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
@@ -311,6 +314,10 @@ extension RulesScenario {
             return RulesScenarios.intentionalGroundingOnATwoPointTryInsideTwoMinutes
         case .intentionalGroundingOnTheDownThatBringsTheWarning:
             return RulesScenarios.intentionalGroundingOnTheDownThatBringsTheWarning
+        case .intentionalGroundingAsTheHalfExpires:
+            return RulesScenarios.intentionalGroundingAsTheHalfExpires
+        case .intentionalGroundingOnFourthDownInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingOnFourthDownInsideTwoMinutes
         case .defensiveHoldingOnAPlayEndingInBounds:
             return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
         case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
@@ -671,6 +678,14 @@ extension RulesScenario {
         case .intentionalGroundingOnTheDownThatBringsTheWarning:
             return [
                 "football · Rule 3-41, 4-7-1, 8-2-Penalty · a pass grounded on the down that brings the two-minute warning loses the down and ten yards but no ten seconds, because the warning occurs at the conclusion of that down and the act came before it, and the clock then waits for the snap"
+            ]
+        case .intentionalGroundingAsTheHalfExpires:
+            return [
+                "football · Rule 4-8-1, 4-8-2-b, 4-7-1 Item 1 · a pass grounded on the down that runs the half out ends the half with no clock election, because an offensive foul extends nothing and there is no time in to take ten seconds from"
+            ]
+        case .intentionalGroundingOnFourthDownInsideTwoMinutes:
+            return [
+                "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-4-i, 4-3-2 · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and then leaves the clock waiting for the new offence's snap"
             ]
         case .defensiveHoldingOnAPlayEndingInBounds:
             return [
