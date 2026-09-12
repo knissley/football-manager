@@ -1572,17 +1572,19 @@ struct RulesConformanceTests {
     /// the series, so the defence takes over where the ten yards leave the ball
     /// (8-2-Penalty, 3-8-2). The act is the offence's, after the warning and with time in,
     /// so the ten seconds come off (4-7-1 Item 1); the side taking the ball leads in this
-    /// scenario, so it has no reason of its own to decline them. Then the clock waits for
-    /// the snap: a down that changes possession leaves it stopped (4-4-i) and 4-3-2 starts
-    /// it on the snap from there, which is the other rule Item 1 defers to when it says the
-    /// ready-for-play start applies unless another rule prescribes otherwise. Before this
-    /// test the branch started the clock on the ready after every runoff, so the new
-    /// offence's first snap came with the interval to the ready already charged.
+    /// scenario, so it has no reason of its own to decline them. Then the clock starts on
+    /// the ready, as it does after every runoff: 4-3-2-g names the runoff among the
+    /// situations in which the clock does not wait for the snap, and it names no exception
+    /// for a change of possession — 4-3-2-a-1's snap after one is scoped to a runner out
+    /// of bounds, which an incomplete pass is not, and 4-4-i governs the stop and not the
+    /// restart. This test first asserted the snap, on a reading that Item 1's "unless
+    /// another rule prescribes otherwise" reached the change of possession; the article
+    /// that prescribes for a runoff is 4-3-2-g, and it prescribes the ready.
     @Test(
-        "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-4-i, 4-3-2 · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and then leaves the clock waiting for the new offence's snap",
+        "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-3-2-g · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and starts the clock on the ready for the new offence as after any runoff",
         .tags(.football)
     )
-    func groundingOnFourthDownInsideTwoMinutesTurnsItOverAndTheClockWaitsForTheSnap() {
+    func groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady() {
         let trace = RulesScenario.intentionalGroundingOnFourthDownInsideTwoMinutes.run()
         guard let flagged = grounding(in: trace, quarter: 4) else { return }
         let before = flagged.play.situation
@@ -1608,9 +1610,10 @@ struct RulesConformanceTests {
         )
         trace.expectPlay(
             flagged.index + 1,
-            clock: before.clockRemaining - flagged.play.outcome.clockRunoff - 10,
-            clockRunning: false,
-            "the play's own seconds and the ten, and then the clock waits for the snap after a change of possession"
+            clock: before.clockRemaining - flagged.play.outcome.clockRunoff - 10
+                - intervalFromTheReady(Rules.standard.playClockAfterARunoff),
+            clockRunning: true,
+            "the play's own seconds, the ten, and the interval to the new offence's snap on a clock started on the ready against a thirty-second play clock, as after any runoff (4-3-2-g)"
         )
     }
 

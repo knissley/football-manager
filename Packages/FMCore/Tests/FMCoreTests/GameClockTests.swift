@@ -428,6 +428,30 @@ struct TenSecondRunoffTests {
         #expect(carriesRunoff(.encroachment, byOffense: false) == false)
     }
 
+    /// A half that has ended has no time in to take ten seconds from: the period continues
+    /// only until the down ends (4-8-1), an offensive foul extends nothing (4-8-2-b), and
+    /// Item 1 runs its seconds off a clock that is in. The rules layer answers that
+    /// itself, the way `isInTheLastFortySeconds` does for the defence's act, rather than
+    /// leaving each caller to guard the clock — the live-ball caller did, and the dead-ball
+    /// caller was safe only by an argument nobody had written down.
+    @Test(
+        "football · Rule 4-8-1, 4-8-2-b, 4-7-1 Item 1 · an act that conserves time on the down that runs the half out carries no runoff, because there is no time in to take it from",
+        .tags(.football))
+    func noRunoffOnAnEndedHalf() {
+        #expect(
+            carriesRunoff(.intentionalGrounding, quarter: 2, clock: 0) == false,
+            "a grounding on the down that ran the first half out")
+        #expect(
+            carriesRunoff(.intentionalGrounding, quarter: 4, clock: 0) == false,
+            "and the second")
+        #expect(
+            carriesRunoff(.falseStart, quarter: 4, clock: 0) == false,
+            "a dead-ball act with nothing left on the clock")
+        #expect(
+            carriesRunoff(.intentionalGrounding, quarter: 4, clock: 1),
+            "with a second still on it, the ten come off")
+    }
+
     /// Rewritten for A11 (#74) from a pin that said postseason overtime timing was not
     /// modelled. It is: 16-1-4-h pairs postseason overtime periods into halves, a second
     /// period ending as the first half does and a fourth as the fourth period does, so

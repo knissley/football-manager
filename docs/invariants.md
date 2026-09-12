@@ -458,15 +458,16 @@ season is what checks one. A band is evidence about a rate and never about a rul
 68. A grounding on the down that runs the half out is enforced on a half that is over: the
     period continues only until the down ends and an offensive foul extends nothing, so
     there is no time in to take ten seconds from and no timeout to offer in their place —
-    no clock election is written, and the next snap is the next half's.
-    `[2025 · 4-8-1, 4-8-2-b, 4-7-1 Item 1]` — `test:groundingAsTheHalfExpiresElectsNothing`
+    no clock election is written, and the period ends with the down; the rules layer says
+    so of any act that conserves time with nothing left on the clock.
+    `[2025 · 4-8-1, 4-8-2-b, 4-7-1 Item 1]` — `test:groundingAsTheHalfExpiresElectsNothing`,
+    `test:noRunoffOnAnEndedHalf`
 69. A grounding on fourth down loses the down and with it the series: the defence takes
     over where the ten yards leave the ball. Inside two minutes the offence's act still runs
-    ten seconds off, and the clock then waits for the new offence's snap, because a change
-    of possession leaves it stopped and starts it on the snap — the other rule 4-7-1 Item
-    1's restart on the ready defers to. `[2025 · 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-4-i,
-    4-3-2]` —
-    `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndTheClockWaitsForTheSnap`
+    ten seconds off, and the clock then starts on the ready for the new offence, as it does
+    after every runoff: the change of possession is no exception to that restart.
+    `[2025 · 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-3-2-g]` —
+    `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 
 ## Where a foul is enforced from
 

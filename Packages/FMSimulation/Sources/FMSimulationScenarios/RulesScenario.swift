@@ -685,7 +685,7 @@ extension RulesScenario {
             ]
         case .intentionalGroundingOnFourthDownInsideTwoMinutes:
             return [
-                "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-4-i, 4-3-2 · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and then leaves the clock waiting for the new offence's snap"
+                "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-3-2-g · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and starts the clock on the ready for the new offence as after any runoff"
             ]
         case .defensiveHoldingOnAPlayEndingInBounds:
             return [

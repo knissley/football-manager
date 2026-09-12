@@ -756,9 +756,8 @@ public enum RulesScenarios {
     /// defence takes over where the ten yards leave the ball (8-2-Penalty, 3-8-2); the act
     /// is the offence's, after the warning and with time in, so the ten seconds come off
     /// (4-7-1 Item 1) — the side taking the ball leads and has no reason to turn them
-    /// down — and then the clock waits for the snap, because a down that changes
-    /// possession leaves it stopped (4-4-i) and 4-3-2 starts it on the snap from there,
-    /// which is the other rule Item 1 defers to for its restart. The deficit is built in
+    /// down — and then the clock starts on the ready for the new offence, as after any
+    /// runoff (4-3-2-g), the change of possession notwithstanding. The deficit is built in
     /// the first quarter, four touchdowns by whoever has the ball first.
     static var intentionalGroundingOnFourthDownInsideTwoMinutes: ScriptedGame {
         ScriptedGame { snap in
