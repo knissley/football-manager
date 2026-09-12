@@ -162,8 +162,9 @@ if [ "$edition" != "$TARGET_SEASON" ]; then
     cat <<EOF
 fetch-rulebook: ⚠ THIS IS THE $edition EDITION AND THE PROJECT TARGETS $TARGET_SEASON.
 
-  Everywhere outside Rule 6, Section 1, Articles 3, 5 and 6 the two editions are
-  the same, so cite this text freely. Inside those three, it is wrong for our
+  The editions differ in exactly four articles, measured: Rule 6, Section 1,
+  Articles 3, 5 and 6, and Rule 19, Section 2. Everywhere else they are
+  word-identical, so cite this text freely. Inside those four it is wrong for our
   purposes, and one of them is a trap that reads as a widening rather than an
   error: read docs/reference/rulebook-acquisition.md before citing any of them.
 
