@@ -649,8 +649,10 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `test:groundingInsideTwoMinutesRunsTenSecondsOff`; **modelling**: the resolver has no spot
     of the throw, so every grounding is walked off as the penalty's first clause, and where
     the ten yards would reach past half the distance the engine walks off half the distance
-    as a stand-in for the spot-of-the-pass clause — which 14-2-1 excepts grounding from, so
-    the cap is the engine's and not the book's,
+    as a stand-in for the spot-of-the-pass clause, which places the ball deeper when the
+    spot of the pass is more than ten yards back or more than half the distance — and
+    grounding is one of the two exceptions 14-2-1 names to its ceiling, so the cap is the
+    engine's and not the book's,
     `test:groundingBackedUpIsCappedAtHalfTheDistanceAsAStandIn` — and the safety in the end
     zone is not reached
 

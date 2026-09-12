@@ -183,7 +183,8 @@ struct ReadProgression: Sendable, Hashable {
     /// table.
     ///
     /// `runners` is `lineup.routeRunners()`, passed in by a caller that has already read
-    /// it — the resolver's coverage loop has — so the order is built once a snap.
+    /// it — the resolver's coverage loop has — so the read path builds the order once;
+    /// the penalty draws build their own on a snap with a flag.
     func resolvedReads(
         in lineup: Lineup, runners: [PlayerSlot]? = nil
     ) -> [(read: Read, receiver: PlayerSlot)] {

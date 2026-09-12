@@ -154,10 +154,12 @@ struct PenaltyEnforcementTests {
     }
 
     /// Backed up against its own goal line, the offence grounds one and the engine walks
-    /// off half the distance. That is not the book: 14-2-1 names intentional grounding as
-    /// the one distance penalty its half-distance ceiling does not govern, and 8-2-Penalty
-    /// clause (b) sends the ball to the spot of the pass instead when the ten yards would
-    /// reach past half the distance — deeper than the ceiling, not capped by it. The
+    /// off half the distance. That is not the book: intentional grounding is one of the two
+    /// exceptions 14-2-1 names to its half-distance ceiling (a palpably unfair act is the
+    /// other), and 8-2-Penalty clause (b) sends the ball back to where the pass was
+    /// released instead when that is the deeper spot — over ten yards back, or past the
+    /// midpoint to the offence's goal line — so the walk-off exceeds the ceiling rather
+    /// than stopping at it. The
     /// resolver has no spot of the pass, so the ceiling stands in for the clause; the down
     /// is lost either way. Pinned so that the stand-in is a decision and not an accident,
     /// and so that the day the resolver places the throw this is the test that goes red.

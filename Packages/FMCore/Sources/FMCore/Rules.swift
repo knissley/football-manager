@@ -477,7 +477,11 @@ extension Rules {
     ///
     /// By the offence, after the two-minute warning of either half, with the clock
     /// running into the flag — or, for an act with the ball live, with time in for the
-    /// down (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
+    /// down (2025 rulebook, 4-7-1 Item 1, 4-7-2) — and with time still on the clock: a
+    /// half that has ended has no time in to take ten seconds from, the period continuing
+    /// only until the down ends (4-8-1) and an offensive foul extending nothing (4-8-2-b),
+    /// which is answered here as `isInTheLastFortySeconds` answers it for the defence's
+    /// act, and not left to each caller. Never by the
     /// defence (4-7-1 Item 2). Regular-season overtime is timed as the fourth quarter
     /// (16-1-3-e), so its closing two minutes carry the runoff too, and so do a second
     /// and a fourth postseason overtime period's, which end as the halves do (16-1-4-h).
@@ -485,7 +489,9 @@ extension Rules {
         foul: Foul, byOffense: Bool, quarter: UInt8, isPostseason: Bool,
         clockRemaining: UInt16, clockWasRunning: Bool
     ) -> Bool {
-        guard byOffense, conservesTime(foul: foul, clockWasRunning: clockWasRunning) else {
+        guard byOffense, clockRemaining > 0,
+            conservesTime(foul: foul, clockWasRunning: clockWasRunning)
+        else {
             return false
         }
         return isAfterTheTwoMinuteWarning(

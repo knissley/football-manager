@@ -779,13 +779,14 @@ extension GameSimulator {
                 _ = clock.run(
                     GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
                     rules: rules, isPostseason: setup.isPostseason)
-                // The clock restarts on the ready (Item 1) unless another rule prescribes
-                // otherwise, and one does when the down changed hands — a grounding on
-                // fourth down is the series (8-2-Penalty, 3-8-2): the change of possession
-                // leaves the clock stopped (4-4-i) and 4-3-2 starts it on the snap from
-                // there, so the new offence's first snap comes with nothing charged.
-                previousBehavior =
-                    advancement.possessionChanged ? .stopsUntilSnap : .stopsUntilReadyForPlay
+                // The clock restarts on the ready (Item 1, 4-3-2-g), and that holds when
+                // the down changed hands too: a grounding on fourth down is the series
+                // (8-2-Penalty, 3-8-2), and 4-3-2-g names no exception for a change of
+                // possession — 4-3-2-a-1's snap after one is scoped to a runner out of
+                // bounds, and 4-4-i governs the stop, not the restart. This once read
+                // Item 1's "unless another rule prescribes otherwise" as reaching the
+                // change of possession; the rule that prescribes for a runoff is 4-3-2-g.
+                previousBehavior = .stopsUntilReadyForPlay
                 playClock = rules.playClockAfterARunoff
                 elect(.runoff)
             }

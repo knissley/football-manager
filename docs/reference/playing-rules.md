@@ -448,8 +448,10 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   costs inside two minutes. — `test:groundingCostsTheDownAndTenYardsFromThePreviousSpot`;
   **modelling**: the resolver has no spot of the throw, so every grounding is walked off as
   the first clause, and where the ten yards would reach past half the distance the engine
-  walks off half the distance — a stand-in for clause (b)'s spot of the pass, not 14-2-1,
-  which names grounding as the one distance penalty its ceiling does not govern —
+  walks off half the distance — a stand-in for clause (b), which sends the ball to the spot
+  of the pass when that spot is more than ten yards behind the previous spot or more than
+  half the distance, and not 14-2-1, whose ceiling names grounding as one of its two
+  exceptions —
   `test:groundingBackedUpIsCappedAtHalfTheDistanceAsAStandIn` (a pin); the
   spot-of-the-throw clause and the safety are not reached
 - **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
