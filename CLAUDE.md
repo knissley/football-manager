@@ -36,9 +36,9 @@ was lost, and a kicking-team kickoff touchdown (#58). Wave 3's D track then made
 the 2025 book, gave the kickoff its landing zone and its aiming points, and put a foul on
 a scoring play on the try or the free kick where the rules put it.
 
-The fixes are an issue backlog, tracked in **#1**. Read that issue and
-[`docs/audit-is-this-football.md`](docs/audit-is-this-football.md) before touching the
-engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
+The fixes are an issue backlog, tracked in **#1**. Read that issue — its Current state
+section first — and [`docs/audit-is-this-football.md`](docs/audit-is-this-football.md)
+before touching the engine. The audit doc is current as of wave 1: it carries all fifteen findings with a
 status table and links every open one to its issue.
 
 The target rulebook is the **2025 season**, and `Rules.rulebookSeason` records it. A
@@ -212,10 +212,22 @@ outcome they cannot cite. Details under Conventions → Tests.
 
 ## Current work: the audit backlog
 
-The tracker is **#1**. Issues carry `track:` and `wave:` labels and a `status:`
-label that is the state machine. Wave 0 runs in parallel; every wave after it changes
-engine behaviour and therefore the golden constants, so those issues run one at a time in
-wave order and rebase.
+The tracker is **#1**, and **its body is the state** — the Current state section at the top
+is rewritten in place and says what `main` is, what is in flight, what is waiting on the
+owner, and what is queued. **#1's comments are history, not state**: they are append-only,
+each is superseded silently by a later one, and you should not read them to find out where
+things stand.
+
+Issues carry `track:` and `wave:` labels and a `status:` label that is the state machine;
+`needs-owner` is a separate label meaning the issue waits on a **decision** rather than a
+dependency, and an issue can carry both. **The labels are the live backlog** — #1's wave
+tables are a filing-time record and a third of the backlog is not in them.
+
+Wave 0 runs in parallel; every wave after it changes engine behaviour and therefore the
+golden constants, so those issues run one at a time in wave order and rebase.
+
+How the backlog is dispatched, verified and merged — and the standing brief every implementer
+is handed — is the `/orchestrator` skill.
 
 - Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
 - Before you push: all four suites green, `swift test -c release` for FMRandom,

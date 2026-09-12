@@ -23,22 +23,51 @@ wrong. You may edit issues, split them, or file new ones — and you say so on t
 
 ## The state machine
 
-Every backlog issue carries `audit-backlog`, a `track:<A–I>`, usually a `wave:<0–4>`, and
-exactly one `status:`.
+Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
 
-`ready` → `in-progress` → `done`, plus:
+**`status:` is the state:** `ready` → `in-progress` → `done`, plus **`blocked`** — waiting on
+a **dependency**. (`status:review` exists as a label; it was not observed on any open issue
+when this was written, so treat it as unused until something says otherwise.)
 
-- **`blocked`** — waiting on a **dependency**.
-- **`needs-owner`** — waiting on a **decision**.
+**`needs-owner` is a separate label, not a `status:` value.** It means the issue is waiting on
+a **decision**, which is a different thing from waiting on a dependency, and an issue can be
+both — blocked *and* needing a call. It is orthogonal, so **an issue carrying `needs-owner`
+should still carry a `status:`**.
 
-**Keep those two apart.** An issue once sat `blocked` for a day while every dependency had
-closed; what it actually needed was a scope call from the owner. Before believing a `blocked`
+That is the intent; the practice has drifted, and an orchestrator did the drifting. Some issues
+carry `needs-owner` with **no** `status:` at all, which makes them invisible to a query for
+ready or blocked work. If you find one, give it the `status:` it actually has rather than
+leaving the flag standing alone.
+
+**Keep `blocked` and `needs-owner` apart.** An issue once sat `blocked` for a day while every
+dependency had closed; what it actually needed was a scope call. Before believing a `blocked`
 label, check whether its dependencies are closed — and if they are, work out what it is really
 waiting for.
 
 Issues auto-close on merge via `Closes #N` in the PR. **Flip the label to `status:done`
 yourself; GitHub does not.** A PR that satisfies only part of an issue says **`Refs #N`, not
 `Closes`**, and the issue stays open with a comment naming which *Done when* items are met.
+
+## Maintaining the tracker
+
+**#1's body is the state. Its comments are history.**
+
+- **The Current state section at the top of #1's body is rewritten in place** — `main` sha,
+  counts, what is in flight, what is waiting on the owner, the queue. Update it when `main`
+  moves, when an issue lands, when something becomes owner-gated, or when the queue changes.
+  **Never append current state as a comment.**
+- **Comments are for what is cross-cutting and permanent**: a residual reported to the retune,
+  a standing-rule change, a wave summary, a correction to something already on the record.
+- **Do not post a status comment describing where things stand.** Three such comments were
+  posted in twenty-four hours, each superseding the last, and a fresh session reading the
+  thread top-to-bottom met the stale one first. That is the failure this convention exists to
+  prevent, and posting one more is how it comes back.
+- Counts and shas in that section are **measured, not carried forward** — query the labels and
+  read the sha. A count quoted from the previous version of the section is exactly the mistake
+  the failure-mode section below describes.
+
+The wave tables further down #1 are a filing-time record, not an index: a third of the backlog
+does not appear in them. **The live backlog is the labels.**
 
 ## Dispatching
 
