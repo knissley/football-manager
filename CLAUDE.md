@@ -218,10 +218,12 @@ owner, and what is queued. **#1's comments are history, not state**: they are ap
 each is superseded silently by a later one, and you should not read them to find out where
 things stand.
 
-Issues carry `track:` and `wave:` labels and a `status:` label that is the state machine;
-`needs-owner` is a separate label meaning the issue waits on a **decision** rather than a
-dependency, and an issue can carry both. **The labels are the live backlog** — #1's wave
-tables are a filing-time record and a third of the backlog is not in them.
+Issues carry `track:` and `wave:` labels and exactly one `status:`, which is the state
+machine. `status:blocked` means not dispatchable and does not say why: the reason is either
+an open dependency or a pending decision, and **`needs-owner`** is the separate flag that
+marks the second — so an issue waiting on a decision carries both. **The labels are the live
+backlog** — #1's wave tables are a filing-time record and a third of the backlog is not in
+them.
 
 Wave 0 runs in parallel; every wave after it changes engine behaviour and therefore the
 golden constants, so those issues run one at a time in wave order and rebase.

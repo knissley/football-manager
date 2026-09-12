@@ -25,24 +25,33 @@ wrong. You may edit issues, split them, or file new ones — and you say so on t
 
 Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
 
-**`status:` is the state:** `ready` → `in-progress` → `done`, plus **`blocked`** — waiting on
-a **dependency**. (`status:review` exists as a label; it was not observed on any open issue
-when this was written, so treat it as unused until something says otherwise.)
+**`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress` →
+`done`, plus **`blocked`** — **not dispatchable**. (`status:review` exists as a label; it was
+not observed on any open issue when this was written, so treat it as unused until something
+says otherwise.)
 
-**`needs-owner` is a separate label, not a `status:` value.** It means the issue is waiting on
-a **decision**, which is a different thing from waiting on a dependency, and an issue can be
-both — blocked *and* needing a call. It is orthogonal, so **an issue carrying `needs-owner`
-should still carry a `status:`**.
+**`blocked` says the issue cannot be picked up. It does not say why.** There are two reasons
+and they are not the same:
 
-That is the intent; the practice has drifted, and an orchestrator did the drifting. Some issues
+- **An open dependency.** Named in the issue's *Depends on* line.
+- **A pending decision**, which is what the separate **`needs-owner`** label marks.
+
+**`needs-owner` is a flag, not a status.** It is orthogonal, so an issue waiting on a decision
+is **`status:blocked` + `needs-owner`** — both. That keeps the invariant that every open issue
+carries exactly one `status:`, which is what makes "what can I dispatch" a total query rather
+than one with a hole in it.
+
+The practice has drifted both ways and an orchestrator did some of the drifting. Some issues
 carry `needs-owner` with **no** `status:` at all, which makes them invisible to a query for
-ready or blocked work. If you find one, give it the `status:` it actually has rather than
-leaving the flag standing alone.
+either ready or blocked work. If you find one, add the status; do not leave the flag standing
+alone.
 
-**Keep `blocked` and `needs-owner` apart.** An issue once sat `blocked` for a day while every
-dependency had closed; what it actually needed was a scope call. Before believing a `blocked`
-label, check whether its dependencies are closed — and if they are, work out what it is really
-waiting for.
+**When you meet a `blocked` issue, establish which of the two reasons it is** — the label will
+not tell you. One sat `blocked` for a day after every dependency had closed, because nobody
+re-checked: it was genuinely not dispatchable, but the reason had become a scope question and
+no `needs-owner` said so, so it read as waiting for work that had already landed. Check the
+dependencies. If they have cleared, the reason is a decision: add `needs-owner` and **write
+down what the question is**, because a flag without a question is as stuck as a stale label.
 
 Issues auto-close on merge via `Closes #N` in the PR. **Flip the label to `status:done`
 yourself; GitHub does not.** A PR that satisfies only part of an issue says **`Refs #N`, not
