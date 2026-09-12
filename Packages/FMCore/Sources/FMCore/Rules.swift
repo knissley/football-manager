@@ -456,22 +456,32 @@ extension Rules {
         return clockRemaining < twoMinuteWarning
     }
 
-    /// Whether a foul before the snap is one of the acts that conserve time (2025
-    /// rulebook, 4-7-1-a): a dead-ball foul, by either side, that stops a running
-    /// clock. What the act costs depends on who committed it — `carriesRunoff` for the
-    /// offence, `isInTheLastFortySeconds` for the defence.
+    /// Whether a foul is one of the acts that conserve time (2025 rulebook, 4-7-1): a
+    /// dead-ball foul, by either side, that stops a running clock (4-7-1-a), or a foul
+    /// with the ball live that the article lists — grounding (4-7-1-b) — whatever the
+    /// clock was doing. What the act costs depends on who committed it —
+    /// `carriesRunoff` for the offence, `isInTheLastFortySeconds` for the defence.
     ///
-    /// Only the dead-ball fouls before the snap are here. Intentional grounding, an
-    /// illegal forward pass and the other live-ball acts in the article are not drawn
-    /// by the engine yet; when they are (C3), they belong in this predicate.
+    /// Two kinds of act are here. A dead-ball foul before the snap conserves time only
+    /// if the clock was running when it flew. A foul with the ball live that the article
+    /// lists — intentional grounding is the one the engine draws (4-7-1-b) — is committed
+    /// with time in by definition, since the clock runs for the whole of a down, so it
+    /// conserves time whatever the clock was doing before the snap. An illegal forward
+    /// pass and the other live-ball acts in the article are not drawn by the engine.
     public func conservesTime(foul: Foul, clockWasRunning: Bool) -> Bool {
-        foul.isPreSnap && clockWasRunning
+        if foul.isLiveBallActThatConservesTime { return true }
+        return foul.isPreSnap && clockWasRunning
     }
 
-    /// Whether a foul before the snap carries the ten-second runoff.
+    /// Whether a foul carries the ten-second runoff.
     ///
     /// By the offence, after the two-minute warning of either half, with the clock
-    /// running into the flag (2025 rulebook, 4-7-1 Item 1, 4-7-2). Never by the
+    /// running into the flag — or, for an act with the ball live, with time in for the
+    /// down (2025 rulebook, 4-7-1 Item 1, 4-7-2) — and with time still on the clock: a
+    /// half that has ended has no time in to take ten seconds from, the period continuing
+    /// only until the down ends (4-8-1) and an offensive foul extending nothing (4-8-2-b),
+    /// which is answered here as `isInTheLastFortySeconds` answers it for the defence's
+    /// act, and not left to each caller. Never by the
     /// defence (4-7-1 Item 2). Regular-season overtime is timed as the fourth quarter
     /// (16-1-3-e), so its closing two minutes carry the runoff too, and so do a second
     /// and a fourth postseason overtime period's, which end as the halves do (16-1-4-h).
@@ -479,7 +489,9 @@ extension Rules {
         foul: Foul, byOffense: Bool, quarter: UInt8, isPostseason: Bool,
         clockRemaining: UInt16, clockWasRunning: Bool
     ) -> Bool {
-        guard byOffense, conservesTime(foul: foul, clockWasRunning: clockWasRunning) else {
+        guard byOffense, clockRemaining > 0,
+            conservesTime(foul: foul, clockWasRunning: clockWasRunning)
+        else {
             return false
         }
         return isAfterTheTwoMinuteWarning(

@@ -297,6 +297,7 @@ func foulName(_ foul: Foul) -> String {
     case .defensivePassInterference: return "defensive pass interference"
     case .offensivePassInterference: return "offensive pass interference"
     case .illegalContact: return "illegal contact"
+    case .intentionalGrounding: return "intentional grounding"
     case .roughingThePasser: return "roughing the passer"
     case .facemask: return "facemask"
     case .unnecessaryRoughness: return "unnecessary roughness"
@@ -1033,6 +1034,18 @@ struct Broadcast {
         let target = attempt.map { name(at: $0.primary, in: outcome) } ?? credited(outcome, .target)
         let defender = attempt.map { name(at: $0.secondary, in: outcome) }
 
+        // Which read the ball went to, or that it was the checkdown. A throw to a numbered
+        // read follows the read points the passer wrote on his way to it, so the read is
+        // the last of them; the first read is the ordinary case and says nothing.
+        let throwDecision = play.decisions(ofKind: .throwDecision).first?.throwDecisionValue
+        let readsWorked = play.decisions(ofKind: .readProgression).count
+        let read: String
+        switch throwDecision {
+        case .checkdown: read = " — the checkdown"
+        case .primary where readsWorked >= 2: read = " — his \(ordinal(readsWorked)) read"
+        default: read = ""
+        }
+
         switch outcome.endedIn {
         case .incomplete:
             guard let attempt, let result = attempt.catchResult else {
@@ -1045,13 +1058,15 @@ struct Broadcast {
             // passer's and are not the same throw — one arrived and was not catchable,
             // the other never arrived at all.
             switch result {
-            case .dropped: return "\(passer) — dropped by \(target ?? "the receiver")"
+            case .dropped: return "\(passer) — dropped by \(target ?? "the receiver")" + read
             case .brokenUp:
                 return "\(passer) — broken up by \(defender ?? "the defender") "
-                    + "on \(target ?? "the receiver")"
-            case .offTarget: return "\(passer) — off target for \(target ?? "the receiver")"
-            case .uncatchable: return "\(passer) — out of reach of \(target ?? "the receiver")"
-            default: return "\(passer) incomplete to \(target ?? "the receiver")"
+                    + "on \(target ?? "the receiver")" + read
+            case .offTarget:
+                return "\(passer) — off target for \(target ?? "the receiver")" + read
+            case .uncatchable:
+                return "\(passer) — out of reach of \(target ?? "the receiver")" + read
+            default: return "\(passer) incomplete to \(target ?? "the receiver")" + read
             }
 
         case .intercepted:
@@ -1071,7 +1086,17 @@ struct Broadcast {
             text += gainText(outcome.yards)
             text += tackleCredit(outcome)
             text += endingSuffix(play)
+            text += read
             return text
+        }
+    }
+
+    private func ordinal(_ number: Int) -> String {
+        switch number {
+        case 1: return "1st"
+        case 2: return "2nd"
+        case 3: return "3rd"
+        default: return "\(number)th"
         }
     }
 

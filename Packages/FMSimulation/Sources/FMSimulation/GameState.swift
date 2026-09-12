@@ -540,7 +540,7 @@ extension GameSimulator {
                 runClockForDeadBallFoul(
                     effective, choices: deadBall, warningInTheInterval: warningInTheInterval)
             } else {
-                runClock(effective, advancement: advancement)
+                runClock(effective, advancement: advancement, choices: deadBall)
             }
             let wasKickoff = pendingKickoff
             let replayed = effective.kind == .penaltyOnly
@@ -637,7 +637,9 @@ extension GameSimulator {
         /// The clock through the down that has just been recorded, and what it does after
         /// it. The interval that reached the snap has already come off — see
         /// `runTheIntervalBeforeTheSnap` — so what is charged here is the down itself.
-        private mutating func runClock(_ outcome: Outcome, advancement: Advancement) {
+        private mutating func runClock(
+            _ outcome: Outcome, advancement: Advancement, choices: DeadBallChoices?
+        ) {
             let rules = setup.rules
 
             let elapsed: GameClock.Elapsed
@@ -736,6 +738,58 @@ extension GameSimulator {
                 || clock.isExpired || outcome.penalties.first?.wasAccepted == true
             playClock =
                 stoppage ? rules.playClockAfterAnAdministrativeStoppage : rules.playClockAfterAPlay
+
+            // A foul with the ball live that the book lists among the acts that conserve
+            // time — grounding is the one the engine draws (4-7-1-b) — is 4-7-1's business
+            // exactly as a dead-ball foul is: by the offence after the two-minute warning it
+            // costs ten seconds on top of the enforcement, the play clock is set to thirty
+            // and the clock restarts on the ready, with the same two alternatives (Item 1).
+            // Time is in for the whole of a timed down, so the question a dead-ball foul
+            // asks about the clock at the flag has one answer here — and none on a try,
+            // which is an untimed down (3-40) during which time is not in (3-36-3), so
+            // Item 1's "while time is in" is never met on one; none either on a down that
+            // ran the period out, because the period continues only until the down ends
+            // (4-8-1), an offensive foul extends nothing (4-8-2-b), and a half that is
+            // over has no time in to take ten seconds from and no timeout to offer in
+            // their place. Nor is "after the two-minute warning" met on the down that
+            // brings it: the warning is an automatic timeout at the conclusion of the last
+            // down snapped before two minutes remain (3-41), so an act during that down
+            // came before it, whatever the clock the down left reads. The runoff comes off
+            // the clock the down left, which is where the flag is enforced.
+            if !pendingTry, !warningTaken, !clock.isExpired,
+                let penalty = outcome.penalties.first, penalty.wasAccepted,
+                penalty.offendingTeam == possession, penalty.foul.isLiveBallActThatConservesTime,
+                rules.carriesRunoff(
+                    foul: penalty.foul, byOffense: true, quarter: clock.quarter,
+                    isPostseason: setup.isPostseason, clockRemaining: clock.secondsRemaining,
+                    clockWasRunning: true)
+            {
+                if choices?.offenseTakesTimeout == true, timeouts(of: possession) > 0 {
+                    spendTimeout(offense: true)
+                    previousBehavior = .stopsUntilSnap
+                    elect(.timeoutInsteadOfRunoff)
+                    return
+                }
+                // Declining the runoff keeps the yardage, and the clock then restarts as a
+                // foul during a down has it restart (4-3-2-e), which is already `behavior`.
+                if choices?.defenseDeclinesRunoff == true {
+                    elect(.runoffDeclined)
+                    return
+                }
+                _ = clock.run(
+                    GameClock.Elapsed(duringPlay: 0, beforeSnap: rules.tenSecondRunoff),
+                    rules: rules, isPostseason: setup.isPostseason)
+                // The clock restarts on the ready (Item 1, 4-3-2-g), and that holds when
+                // the down changed hands too: a grounding on fourth down is the series
+                // (8-2-Penalty, 3-8-2), and 4-3-2-g names no exception for a change of
+                // possession — 4-3-2-a-1's snap after one is scoped to a runner out of
+                // bounds, and 4-4-i governs the stop, not the restart. This once read
+                // Item 1's "unless another rule prescribes otherwise" as reaching the
+                // change of possession; the rule that prescribes for a runoff is 4-3-2-g.
+                previousBehavior = .stopsUntilReadyForPlay
+                playClock = rules.playClockAfterARunoff
+                elect(.runoff)
+            }
         }
 
         /// The clock after a flag before the snap. No play happened, so no play time is

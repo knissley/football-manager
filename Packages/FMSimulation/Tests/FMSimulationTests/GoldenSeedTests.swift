@@ -760,9 +760,31 @@ struct GoldenSeedTests {
             // the missing read: a reader of a version-1 record finds zero on every
             // coverage point and would report that nobody ever got open, which is the one
             // kind of change the version byte exists to mark.
-            (UInt64(1), UInt64(3_661_745_701_896_168_722)),
-            (UInt64(5), UInt64(5_845_656_920_195_514_401)),
-            (UInt64(12), UInt64(8_685_030_339_744_826_913)),
+            //
+            // And moved by the engine, by the quarterback working his reads (C3 #44, on
+            // the order #169 decided). Every dropback now writes a `.readProgression` per
+            // read worked and a fifth coverage point for the back, the ball comes out at
+            // the break of the read it went to rather than at one hold per family, the
+            // pocket verdict is read against that moment, and a passer with nothing open
+            // checks down, throws it away, or grounds it — a foul that exists now, with
+            // its loss of down and its runoff. Who gets the ball changed on most dropbacks
+            // — the read that cleared rather than the most open man on the field — and
+            // with it the yards, the catch and everything after; the random stream is
+            // spent in a different order from the coverage loop on. All three constants
+            // move, and `Tools/gamelog --seed 7 --home 3 --away 11` prints a different
+            // game, read before and after in the pull request that carried this.
+            //
+            // And moved once more on the same branch, before it landed, by where the
+            // windows sit: the thresholds a read has to clear were set against the
+            // separation the coverage loop draws league-wide rather than on one probe
+            // roster, and the screen's back is judged against the checkdown's window
+            // rather than a short read's, which had seven screens in eight thrown away.
+            // Which read clears changes on a share of dropbacks, and with it everything
+            // after; all three constants move again, and the reasons are on `Reads` in
+            // the resolver and under *The reads* in docs/match-engine.md.
+            (UInt64(1), UInt64(16_029_937_692_552_073_002)),
+            (UInt64(5), UInt64(13_472_043_918_668_408_521)),
+            (UInt64(12), UInt64(7_072_812_449_216_883_004)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

@@ -67,17 +67,21 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case pressureHeld = 1
     /// The quarterback worked to a read. `primary` is the quarterback, `secondary` the
     /// receiver he read, `detail` is the progression index — the place in the play's own
-    /// read order, counting from one — and `value` is that receiver's separation in
-    /// centimetres.
+    /// read order as worked on this snap, counting from one — and `value` is that
+    /// receiver's separation in centimetres. `tick` is the moment he judged it: the break
+    /// of the route the read is on, or later where the rush had already arrived by it.
     ///
-    /// **Not emitted while no concept carries a read order.** The index has to come from
-    /// the play's design; a resolver with no progression can supply only the order its
-    /// own loop happened to run in, which is not a thing on the film and so not a thing
-    /// this enum may carry. Who was covering whom and how open he got are on the
+    /// **Written for every read the quarterback worked, and for nothing else.** The
+    /// order comes from the play — the pass family's read order until designs exist
+    /// (`ReadProgression` in the crude resolver, decided on #169), a design's own from M6
+    /// — and never from the order a loop happened to run in, which is not a thing on the
+    /// film and so not a thing this enum may carry. A throw to a read follows its own
+    /// read point, so the man thrown to is the last man read; the checkdown is a
+    /// `throwDecision` of its own kind and writes no read point, because it is not a
+    /// numbered read. Who was covering whom and how open he got are on the
     /// `.coverageAssignment` for the same receiver, which is emitted for every route
-    /// runner whether or not the quarterback ever looked at him — so the silence here
-    /// costs a reader nothing it could have answered, and an analysis that finds no read
-    /// on a play is being told the truth rather than handed a number to misread.
+    /// runner whether or not the quarterback ever looked at him — which is what lets a
+    /// reader say a man was open and never read, and now why.
     case readProgression = 2
     /// What the quarterback did with the ball. `detail` is a `ThrowDecision`.
     case throwDecision = 3
@@ -286,9 +290,8 @@ extension DecisionPoint {
     }
 
     /// A read is the quarterback's act, so he is `primary` and the man he read is
-    /// `secondary` — the same pair, in the same order, as `throwDecision`. Nothing in the
-    /// engine builds one yet; see `DecisionKind.readProgression` for why it stays unbuilt
-    /// until a concept carries a read order.
+    /// `secondary` — the same pair, in the same order, as `throwDecision`. `index` is the
+    /// place in the order as worked, counting from one; see `DecisionKind.readProgression`.
     public static func readProgression(
         tick: UInt16, passer: PlayerSlot, receiver: PlayerSlot, index: UInt8,
         separationCentimetres: Int16

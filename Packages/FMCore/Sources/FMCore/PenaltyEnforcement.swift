@@ -261,7 +261,11 @@ extension Rules {
             (ballOn, moved) = walk(
                 from: previous, yards: yards, towardOpponentGoal: !offendingTeamHadBall)
             awardsFirstDown = !offendingTeamHadBall && foul.carriesAutomaticFirstDown
-            advancement = replayed(at: ballOn, from: situation, firstDown: awardsFirstDown)
+            if offendingTeamHadBall && foul.carriesLossOfDown {
+                advancement = lostDown(at: ballOn, moved: moved, from: situation)
+            } else {
+                advancement = replayed(at: ballOn, from: situation, firstDown: awardsFirstDown)
+            }
 
         case .spotOfFoul:
             let spot = penalty.enforcementSpot.map(Int.init) ?? previous
@@ -445,6 +449,23 @@ extension Rules {
         return Advancement(
             ballOn: ballOn, down: situation.down,
             distance: UInt8(max(1, min(Int(UInt8.max), distance))))
+    }
+
+    /// The down lost as well as the yards (2025 rulebook, 8-2-Penalty): the next down
+    /// from the new spot with the marker where it was, so second and eight walked back
+    /// ten is third and eighteen — or, when the down lost was the fourth, the series,
+    /// which is the defence's ball at that spot in its own frame.
+    private func lostDown(at ballOn: UInt8, moved: Int, from situation: Situation) -> Advancement {
+        guard let next = situation.down.next else {
+            let theirSpot = UInt8(max(1, min(99, 100 - Int(ballOn))))
+            let downs = freshDowns(at: theirSpot)
+            return Advancement(
+                ballOn: theirSpot, down: downs.down, distance: downs.distance,
+                possessionChanged: true)
+        }
+        return Advancement(
+            ballOn: ballOn, down: next,
+            distance: UInt8(max(1, min(Int(UInt8.max), Int(situation.distance) + moved))))
     }
 
     /// Whether the non-offending team prefers the flag to the play.

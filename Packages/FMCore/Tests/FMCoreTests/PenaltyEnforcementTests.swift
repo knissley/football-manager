@@ -118,6 +118,63 @@ struct PenaltyEnforcementTests {
         #expect(decision.advancement.distance == 13)
     }
 
+    /// Grounding is the one foul the engine draws that costs the down. Second and eight
+    /// from the 60 becomes third and eighteen from the 70: the down advances instead of
+    /// being replayed, and the distance grows by what was walked off (2025 rulebook,
+    /// 8-2-Penalty clause (a)). The defence always takes it, because the alternative is
+    /// the same lost down with the ten yards not walked off.
+    @Test(
+        "football · Rule 8-2-Penalty · intentional grounding costs the down and ten yards from the previous spot",
+        .tags(.football))
+    func groundingCostsTheDownAndTenYardsFromThePreviousSpot() {
+        let decision = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .second, distance: 8, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+
+        #expect(decision.accepted)
+        #expect(decision.penalty.wasAccepted)
+        #expect(decision.penalty.yards == 10)
+        #expect(decision.advancement.ballOn == 70, "ten yards from the previous spot")
+        #expect(decision.advancement.down == .third, "the down is lost, not replayed")
+        #expect(decision.advancement.distance == 18)
+        #expect(!decision.advancement.possessionChanged)
+
+        // On fourth down the lost down is the series: the defence takes over where the
+        // walk-off left the ball.
+        let fourth = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .fourth, distance: 3, ballOn: 60),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+        #expect(fourth.accepted)
+        #expect(fourth.advancement.possessionChanged, "a lost fourth down is a turnover on downs")
+        #expect(
+            fourth.advancement.ballOn == 30,
+            "the defence's ball at the enforcement spot, in its own frame")
+        #expect(fourth.advancement.down == .first)
+        #expect(fourth.advancement.distance == 10)
+    }
+
+    /// Backed up against its own goal line, the offence grounds one and the engine walks
+    /// off half the distance. That is not the book: intentional grounding is one of the two
+    /// exceptions 14-2-1 names to its half-distance ceiling (a palpably unfair act is the
+    /// other), and 8-2-Penalty clause (b) sends the ball back to where the pass was
+    /// released instead when that is the deeper spot — over ten yards back, or past the
+    /// midpoint to the offence's goal line — so the walk-off exceeds the ceiling rather
+    /// than stopping at it. The
+    /// resolver has no spot of the pass, so the ceiling stands in for the clause; the down
+    /// is lost either way. Pinned so that the stand-in is a decision and not an accident,
+    /// and so that the day the resolver places the throw this is the test that goes red.
+    @Test(
+        "pin · with no spot of the pass, a grounding backed up against the goal line walks off half the distance, the engine's stand-in for 8-2-Penalty b's spot-of-the-pass clause, which 14-2-1 excepts grounding from",
+        .tags(.pin))
+    func groundingBackedUpIsCappedAtHalfTheDistanceAsAStandIn() {
+        let backedUp = rules.enforce(
+            penalty(.intentionalGrounding), on: situation(down: .first, distance: 10, ballOn: 95),
+            outcome: outcome(0, .incomplete, kind: .pass), offendingTeamHadBall: true)
+        #expect(backedUp.advancement.ballOn == 97, "half the distance from the 5")
+        #expect(backedUp.advancement.down == .second, "the down is lost all the same")
+        #expect(backedUp.advancement.distance == 12)
+    }
+
     @Test("Automatic first downs are awarded only against the defence", .tags(.unit))
     func automaticFirstDowns() {
         for foul in Foul.allCases where foul.carriesAutomaticFirstDown {

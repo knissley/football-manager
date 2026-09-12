@@ -65,7 +65,7 @@ public struct CrudeResolver: PlayResolver {
         case .fieldGoal, .extraPoint:
             return kick(concept, situation, context, personnel, &random)
         case .twoPointPass:
-            return pass(.quickPass, situation, calls, context, personnel, &random, isTry: true)
+            return pass(.twoPointPass, situation, calls, context, personnel, &random, isTry: true)
         case .twoPointRun:
             return run(.insideRun, situation, calls, context, personnel, &random, isTry: true)
         case .kickoff, .deepKickoff:
@@ -215,7 +215,7 @@ public struct CrudeResolver: PlayResolver {
     /// **What the window has to do is be a comparison.** Pressure is one inequality —
     /// did the first man home get there before the ball came out — and that question has
     /// an answer only where the arrival can land on either side of the hold it is read
-    /// against. A window narrower than the span of `routeDepth`'s holds is not a
+    /// against. A window narrower than the span of `ReadProgression`'s breaks is not a
     /// comparison for the holds outside it: a hold under the floor is never pressured
     /// however the rush went, a hold over the ceiling is pressured on every snap a rep
     /// was lost, and two holds over the ceiling are pressured on exactly the same snaps
@@ -231,7 +231,7 @@ public struct CrudeResolver: PlayResolver {
     private enum PassRushArrival {
 
         /// The earliest a beaten blocker's man can be at the quarterback: the whole
-        /// second below the shortest hold `routeDepth` asks for, which is the screen's
+        /// second below the earliest break `ReadProgression` asks for, which is the screen's
         /// 1,400 ms.
         ///
         /// A screen is meant to be hard to pressure. A floor at or above its hold makes
@@ -409,38 +409,25 @@ public struct CrudeResolver: PlayResolver {
             }
         }
 
-        // 2. Coverage, and the read. Separation is what the quarterback is looking at.
+        // 2. Coverage. Every route runner is matched and his separation drawn, whether
+        //    or not the quarterback will ever look at him: the coverage is a fact about
+        //    two men, and the read order below decides which of those facts he consults.
         //
         // A conversion from the two is not a quick pass that happens to start closer. It
         // is a throw into a phone booth with no grass behind the defence, and a man who
         // catches it a yard short has to get in on his own. Running it as an ordinary
         // four-yard route made every completion a conversion, so the try converted at the
         // completion rate — 66% against a real 48%.
-        var depth =
-            isTry
-            ? RouteDepth(
-                yards: 1, timeMillis: 1_500, flightTicks: 3, accuracyKey: .throwAccuracyShort)
-            : routeDepth(concept)
+        var matchups: [(receiver: PlayerSlot, defender: PlayerSlot, separation: Int)] = []
 
-        // Where the ball is actually caught. Every route of a kind used to be exactly the
-        // same length — a `mediumPass` was ten yards, always — and that is most of why
-        // the passing game had no tail: completions piled up in the ten-to-fourteen band
-        // and nothing reached forty. A concept has a depth; a route run against a
-        // particular coverage, by a particular receiver, does not.
-        if !isTry {
-            let spread = max(2, abs(depth.yards) / 2 + 2)
-            depth.yards += Int(random.next(upperBound: UInt64(spread * 2 + 1))) - spread
-        }
-        var reads: [(receiver: PlayerSlot, defender: PlayerSlot, separation: Int)] = []
-
-        // Four route runners: the three receivers and the tight end, which is what `11`
-        // personnel *is* and what the slot layout says it fields. Taking three dropped
-        // the tight end silently — he stood on the field on every snap of every game
-        // without ever running a route, being thrown to, or being credited with
-        // anything.
+        // Every route runner, the back included. The loop used to stop at four — what
+        // eleven personnel fields once the tight end is counted, which he was not before
+        // that — and it left the back standing on the field on every dropback with no
+        // route to run and no ball to catch. He is the checkdown on every family but the
+        // screen, where he is the play (`ReadProgression`), so he is matched like the rest.
         let running = personnel.routeRunners()
         let covering = personnel.coverageDefenders
-        for (index, receiver) in running.prefix(4).enumerated() {
+        for (index, receiver) in running.enumerated() {
             guard !covering.isEmpty else { break }
             let defender = covering[min(index, covering.count - 1)]
             guard personnel[receiver] != nil, personnel[defender] != nil else { continue }
@@ -459,18 +446,14 @@ public struct CrudeResolver: PlayResolver {
             credit(receiver, .receiver)
             credit(defender, .coverage)
             // The matchup and what it was worth, on one point, through the factory the
-            // convention is stated on. A second point saying the quarterback read this
-            // man is not something the resolver knows: it works every route runner in
-            // whatever order the personnel hands them over, so the only index it could
-            // record is its own loop's, and a `.readProgression` is documented to carry
-            // the place in the play's read order. The separation lives here instead,
-            // where it is a fact about the coverage rather than about a read nobody made.
+            // convention is stated on. Whether the quarterback looked at this man is the
+            // read point's business, below, and it is written only for the men he did.
             decisions.append(
                 .coverageAssignment(
                     tick: UInt16(12 + index * 3), defender: defender, receiver: receiver,
                     technique: defense.coverage.isMan ? .offMan : .zoneDeep,
                     separationCentimetres: Int16(separation)))
-            reads.append((receiver, defender, separation))
+            matchups.append((receiver, defender, separation))
 
             // Only the fouls whose restrictions start at the snap. Interference needs a
             // forward pass to exist at all (8-5-1), so it waits for the throw.
@@ -481,8 +464,21 @@ public struct CrudeResolver: PlayResolver {
             }
         }
 
-        // 3. The decision. Pressure that arrives before the route develops is what turns
-        //    a read into a sack or a throwaway.
+        // 3. The reads. The quarterback works the family's order (`ReadProgression`):
+        //    each read is judged at its break, on a perceived separation that carries his
+        //    own error, against a threshold set by the depth of the throw and by nothing
+        //    about him — so that what makes a poor passer throw into coverage is that he
+        //    saw a window that was not there, not a lower bar. A read that clears is
+        //    thrown to at its break, and that is when the ball is out; one that does not
+        //    is left behind with a chance that rises with his awareness and falls once
+        //    the rush has arrived, or he stays locked on it. The escape valve is the
+        //    checkdown, the look after the numbered reads are done with — exhausted, or
+        //    left behind by a passer who locked on — from wherever the rush found him or
+        //    at the deadline with the pocket clean, and after it the ball is thrown away.
+        //    Locked on means he holds on that read: he neither moves on nor forces it, so
+        //    a throw into coverage is only ever a window he misjudged. The parameters are
+        //    `Reads`, and they are C3's (#44):
+        //    starting values, retuned in E3 and not before.
         //
         // A try is read here like any other dropback, and it used to be exempt by
         // accident: its throw is out in 1,500 ms, the earliest a rusher could get home
@@ -491,150 +487,306 @@ public struct CrudeResolver: PlayResolver {
         // never a rule — it was two constants happening to touch — and the comment here
         // named what would end it: an arrival before 1,500 ms. `PassRushArrival` starts
         // at 1,000 ms, so both exits are live, which is the football (a try can be
-        // sacked, and a quarterback can run one in when the pocket goes). Measured over
-        // the 19,638 tries in twenty thousand two-point passes, the rest being wiped out
-        // by a flag before the snap: 12.2% pressured, 1.8% sacked, 1.0% scrambled.
-        // Neither exit carries a pass result, because on neither did the ball leave, so
+        // sacked, and a quarterback can run one in when the pocket goes). Neither exit
+        // carries a pass result, because on neither did the ball leave, so
         // `passResultsAreWherePassesAre` reads the throw decision rather than the kind
         // and the register in docs/play-record.md carries both rows.
-        let timeNeeded = depth.timeMillis
-        let pressured = pressureAt.map { $0 < timeNeeded } ?? false
-        // The verdict on the pocket, once, so that *was he pressured?* has one answer per
-        // snap rather than one per rep. Pressure is the rusher getting there before the
-        // ball is out, which is what the statistic the pressure rate is banded against
-        // counts (`row:pressureRate`, 2023-24, source S2 in
-        // docs/reference/calibration-sources.md). A rep lost a beat after the throw is a
-        // lost rep and a clean pocket, and the `.blockResult` above already said so.
-        if pressured, let at = pressureAt {
+        let progression = ReadProgression.of(concept)
+        let quarterback = SlotLayout.quarterback
+        let awareness = rating(.awareness, quarterback, personnel, context)
+        let composure = rating(.underPressure, quarterback, personnel, context)
+        let perceptionNoise = max(Reads.leastPerceptionNoise, Reads.perceptionNoise - awareness / 2)
+        // From the two there is no field to run to, and the coverage loop above scaled every
+        // separation down by the same amount: a conversion is a throw into a phone booth,
+        // and the window the passer will throw into shrinks with the booth, or no try
+        // would ever go to a numbered read at all.
+        let window = isTry ? Reads.tryWindow : 1.0
+
+        /// How open a read looks to this passer: what it is, plus his own error.
+        func perceived(_ separation: Int) -> Double {
+            Double(separation)
+                + random.nextGaussian(mean: 0, standardDeviation: perceptionNoise)
+        }
+
+        /// The numbered reads this snap has men for, in the order they are worked, each
+        /// with the matchup the coverage loop gave him.
+        let reads: [(read: ReadProgression.Read, matchup: Matchup)] =
+            progression
+            .resolvedReads(in: personnel, runners: running)
+            .compactMap { entry in
+                matchups.first { $0.receiver == entry.receiver }.map { (entry.read, $0) }
+            }
+
+        /// What the passer did with the ball, and when.
+        var thrown: Throw? = nil
+        /// The next read to work, which is also how many have been worked.
+        var cursor = 0
+        /// The last moment the passer was judged at: the break of the last read he
+        /// looked at, or where pressure found him standing.
+        var now = 0
+        /// Whether he declined to come off a read that had not cleared. Once he has, no
+        /// later read is worked: the rush or the checkdown is what ends the play.
+        var lockedOn = false
+
+        /// Work the order from the cursor, stopping short of any read whose break the rush
+        /// reaches first when `limit` is the arrival, so that the reads judged in a clean
+        /// pocket and the reads judged under pressure are told apart by when the man
+        /// arrived and not by a flag set afterwards. A break the rush reaches *at* is
+        /// worked clean: pressure is the arrival before the ball is out
+        /// (`row:pressureRate`), a read judged at its break has the ball out then, and
+        /// the verdict below counts an arrival only when it beats the deadline — so a
+        /// read stopped short of here at the tie was a read nobody judged at all, and a
+        /// try, whose three reads share one break, went to the checkdown unread on one
+        /// snap in two and a half thousand (`test:everyThrowFollowsAReadWorked`).
+        func work(until limit: Int?, underPressure: Bool) {
+            while cursor < reads.count, thrown == nil, !lockedOn {
+                let (read, matchup) = reads[cursor]
+                if let limit, read.breakMillis > limit { return }
+                cursor += 1
+                // Judged at the break, or where he already is when the break has gone by:
+                // a read worked after the rush arrived is worked from the moment it did.
+                now = max(now, read.breakMillis)
+                // The read, written as it is made: the place in the order as worked on
+                // this snap, counting from one, at the moment the passer judged it.
+                decisions.append(
+                    .readProgression(
+                        tick: UInt16(now / 100), passer: quarterback, receiver: matchup.receiver,
+                        index: UInt8(cursor), separationCentimetres: Int16(matchup.separation)))
+                if perceived(matchup.separation) >= Reads.threshold(forDepth: read.depthYards)
+                    * window
+                {
+                    thrown = Throw(
+                        target: matchup, depthYards: read.depthYards, atMillis: now,
+                        decision: .primary)
+                    return
+                }
+                guard cursor < reads.count else { return }
+                var movesOn = Reads.movesOn + Reads.movesOnPerAwareness * (awareness - 60)
+                if underPressure {
+                    movesOn *=
+                        Reads.movesOnUnderPressure + Reads.movesOnPerComposure * (composure - 60)
+                }
+                if !random.nextBool(probability: min(0.97, max(0.03, movesOn))) { lockedOn = true }
+            }
+        }
+
+        // The reads the pocket was clean for: every read that breaks before the first
+        // man home, or all of them when nobody gets home.
+        work(until: pressureAt, underPressure: false)
+
+        // How long he would hold with nothing open: the family's last break, or later if
+        // he had already been judged past it.
+        let deadline = max(now, progression.holdMillis)
+        // Pressure is the rush arriving before the ball is out, and with no throw made yet
+        // the ball is not out until the deadline at the earliest. The verdict on the pocket
+        // is written once, here, and `everyDropbackHasOnePocketVerdict` holds it to that.
+        var pressureVerdictWritten = false
+        if thrown == nil, let at = pressureAt, at < deadline {
             decisions.append(
                 .init(
                     tick: UInt16(at / 100), kind: .pressureAllowed, primary: pressureOn,
                     secondary: pressureBy, detail: BlockResult.lost.rawValue, value: Int16(at)))
-        } else if nearestAt != nil {
+            pressureVerdictWritten = true
+
+            // A quarterback who feels it and takes off. Escaping was missing entirely — the
+            // resolver went straight from pressure to a sack or a throw, so `PlayKind`
+            // carried a `.scramble` case nothing could ever produce, and a quarterback could
+            // not get hurt running.
+            if random.nextBool(probability: 0.26) {
+                let mobility =
+                    (rating(.speed, quarterback, personnel, context)
+                        + rating(.elusiveness, quarterback, personnel, context)) / 2
+                if random.nextBool(probability: min(0.8, max(0.16, (mobility - 42) * 0.013))) {
+                    decisions.append(
+                        .init(
+                            tick: UInt16(at / 100), kind: .throwDecision,
+                            primary: quarterback, secondary: pressureBy,
+                            detail: ThrowDecision.scramble.rawValue, value: Int16(at)))
+
+                    // He is out of the pocket with the ball, which is the moment 8-4-7 takes
+                    // illegal contact off this down and leaves defensive holding on it. The
+                    // coverage rep above was settled before the quarterback had decided
+                    // anything, so what it drew is worth asking about again now that he has.
+                    penalty = Penalties.afterLeavingThePocket(penalty)
+
+                    let scramble = tackleSequence(
+                        carrier: quarterback, pursuit: SlotLayout.scramblePursuit,
+                        personnel: personnel, context: context,
+                        // A quarterback who took off runs the same way an outside run does:
+                        // towards the boundary, where the play ends with him upright.
+                        sideline: sidelineChance(.outsideRun, situation, context),
+                        decisions: &decisions, participants: &participants, startTick: 30,
+                        random: &random)
+                    var gained = Int16(
+                        max(-2, 2 + Int(random.next(upperBound: 6)) + scramble.extraYards))
+                    let scores = Int(situation.ballOn) - Int(gained) <= 0
+                    let dropped =
+                        scores
+                        ? nil
+                        : looseBall(
+                            carrier: quarterback,
+                            tackler: participants.first { $0.role == .tackler }?.slot,
+                            isSack: false, spot: Int(situation.ballOn) - Int(gained),
+                            personnel: personnel, context: context, participants: &participants,
+                            random: &random)
+                    if dropped?.ending == .fumbleLost { gained = 0 }
+                    return (
+                        Outcome(
+                            kind: recorded(.scramble),
+                            yards: scores ? Int16(situation.ballOn) : gained,
+                            endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
+                            participants: participants, penalties: penalty.map { [$0] } ?? [],
+                            finalSpot: dropped?.finalSpot, possessionLostAt: dropped?.lostAt,
+                            clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
+                        decisions
+                    )
+                }
+            }
+
+            // Most pressure is survived — thrown away, checked down, or simply beaten by
+            // the ball coming out. Only a minority becomes a sack.
+            if random.nextBool(probability: 0.155) {
+                // Sacked, by the rusher who actually got there. Nothing else can be credited.
+                decisions.append(
+                    .init(
+                        tick: UInt16(at / 100), kind: .throwDecision,
+                        primary: quarterback, secondary: pressureBy,
+                        detail: ThrowDecision.sack.rawValue, value: Int16(at)))
+                credit(pressureBy, .tackler)
+                if penalty == nil {
+                    penalty = Penalties.onContact(
+                        tackler: pressureBy, isQuarterback: true, personnel: personnel,
+                        context: context, random: &random)
+                }
+                let room: Int = 99 - Int(situation.ballOn)
+                let rawLoss: Int = 4 + Int(random.next(upperBound: 6))
+                let inOwnEndZone: Bool = rawLoss > room
+                let loss: Int16 = Int16(-min(rawLoss, room))
+                let runoff = UInt16(5 + Int(random.next(upperBound: 3)))
+
+                // The strip sack: he never saw it coming, so it comes out far more often
+                // than it does from a ball carrier who knows the hit is arriving.
+                let strip =
+                    inOwnEndZone
+                    ? nil
+                    : looseBall(
+                        carrier: quarterback, tackler: pressureBy, isSack: true,
+                        spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
+                        context: context, participants: &participants, random: &random)
+
+                // A sack is a play worth reacting to by anybody's reckoning, and it could
+                // not draw a word after the whistle either.
+                if penalty == nil {
+                    penalty = Penalties.afterThePlay(
+                        Outcome(kind: .sack, yards: loss, endedIn: .tackled),
+                        personnel: personnel, context: context, random: &random)
+                }
+
+                return (
+                    Outcome(
+                        kind: recorded(.sack),
+                        yards: strip?.ending == .fumbleLost
+                            ? 0 : (inOwnEndZone ? Int16(-room) : loss),
+                        endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
+                        participants: participants, penalties: penalty.map { [$0] } ?? [],
+                        finalSpot: strip?.finalSpot, possessionLostAt: strip?.lostAt,
+                        clockRunoff: runoff),
+                    decisions
+                )
+            }
+
+            // Still standing, with the rush on him: the reads left are worked under
+            // pressure, from wherever the arrival found him — a beat after it, because a
+            // ball that leaves the instant the man arrives is a ball he did not get to,
+            // and pressure is the arrival beating the ball out (`row:pressureRate`).
+            // Clamped to what a decision point carries, which the arrival already is
+            // (`PassRushArrival`): a beat after the latest arrival the tail can draw
+            // would not fit an `Int16`, and a moment that cannot be written is not one
+            // the record may be handed.
+            now = min(max(now, at + Reads.reactionMillis), Int(Int16.max))
+            work(until: nil, underPressure: true)
+        }
+
+        if thrown == nil {
+            // Nothing cleared, or he never came off a read that did not. With the pocket
+            // clean he holds to the deadline; under pressure he is where the rush found
+            // him. Either way the checkdown is the next look, and then the ball is gone.
+            if pressureAt.map({ $0 < deadline }) != true { now = deadline }
+            if let (checkdown, receiver) = progression.resolvedCheckdown(
+                in: personnel, runners: running),
+                let matchup = matchups.first(where: { $0.receiver == receiver }),
+                perceived(matchup.separation) >= Reads.checkdownThreshold * window
+            {
+                thrown = Throw(
+                    target: matchup, depthYards: checkdown.depthYards, atMillis: now,
+                    decision: .checkdown)
+            }
+        }
+
+        guard let thrown else {
+            // Thrown away. Under pressure that is the throwaway 8-2-1 Item 1 allows or the
+            // grounding it does not, which is `whenThrowingItAway`'s draw; from a clean
+            // pocket with nothing open it is an incomplete pass and no foul, because the
+            // foul's definition starts with the rush (8-2-1).
+            if !pressureVerdictWritten, nearestAt != nil {
+                decisions.append(
+                    .init(
+                        tick: UInt16(now / 100), kind: .pressureHeld, primary: nearestOn,
+                        secondary: nearestBy, detail: nearestResult.rawValue,
+                        value: Int16(now)))
+            }
+            decisions.append(
+                .init(
+                    tick: UInt16(now / 100), kind: .throwDecision, primary: quarterback,
+                    secondary: .none, detail: ThrowDecision.throwaway.rawValue,
+                    value: Int16(now)))
+            if pressureVerdictWritten, penalty == nil {
+                penalty = Penalties.whenThrowingItAway(
+                    passer: quarterback, personnel: personnel, context: context,
+                    random: &random)
+            }
+            return (
+                Outcome(
+                    kind: recorded(.pass), yards: 0, endedIn: .incomplete,
+                    passResult: .incomplete, participants: participants,
+                    penalties: penalty.map { [$0] } ?? [],
+                    clockRunoff: UInt16(4 + Int(random.next(upperBound: 4)))),
+                decisions
+            )
+        }
+
+        // The ball is out at the break of the read it went to. That is the moment the
+        // pocket verdict compares the first arrival with (`row:pressureRate` counts the
+        // dropbacks on which the passer was got to before the ball was out, 2023-24,
+        // source S2 in docs/reference/calibration-sources.md), so a passer who hits his
+        // first read on a deep concept is not pressured by a rusher who arrives at three
+        // seconds. A rep lost after the throw is a lost rep and a clean pocket, and the
+        // `.blockResult` above already said so.
+        let target = thrown.target
+        let ballOut = thrown.atMillis
+        let pressured = pressureVerdictWritten
+        if !pressured, nearestAt != nil {
             // It held until the ball came out, which is how long it had to. The pair named
             // is the rush that came closest — the one a reader asking why it held wants.
             decisions.append(
                 .init(
-                    tick: UInt16(timeNeeded / 100), kind: .pressureHeld, primary: nearestOn,
+                    tick: UInt16(ballOut / 100), kind: .pressureHeld, primary: nearestOn,
                     secondary: nearestBy, detail: nearestResult.rawValue,
-                    value: Int16(timeNeeded)))
-        }
-        let best = reads.max { $0.separation < $1.separation }
-
-        // A quarterback who feels it and takes off. Escaping was missing entirely — the
-        // resolver went straight from pressure to a sack or a throw, so `PlayKind`
-        // carried a `.scramble` case nothing could ever produce, and a quarterback could
-        // not get hurt running.
-        if pressured, random.nextBool(probability: 0.26) {
-            let mobility =
-                (rating(.speed, SlotLayout.quarterback, personnel, context)
-                    + rating(.elusiveness, SlotLayout.quarterback, personnel, context)) / 2
-            if random.nextBool(probability: min(0.8, max(0.16, (mobility - 42) * 0.013))) {
-                decisions.append(
-                    .init(
-                        tick: UInt16((pressureAt ?? 2_000) / 100), kind: .throwDecision,
-                        primary: SlotLayout.quarterback, secondary: pressureBy,
-                        detail: ThrowDecision.scramble.rawValue,
-                        value: Int16(pressureAt ?? 2_000)))
-
-                // He is out of the pocket with the ball, which is the moment 8-4-7 takes
-                // illegal contact off this down and leaves defensive holding on it. The
-                // coverage rep above was settled before the quarterback had decided
-                // anything, so what it drew is worth asking about again now that he has.
-                penalty = Penalties.afterLeavingThePocket(penalty)
-
-                let scramble = tackleSequence(
-                    carrier: SlotLayout.quarterback, pursuit: SlotLayout.scramblePursuit,
-                    personnel: personnel, context: context,
-                    // A quarterback who took off runs the same way an outside run does:
-                    // towards the boundary, where the play ends with him upright.
-                    sideline: sidelineChance(.outsideRun, situation, context),
-                    decisions: &decisions, participants: &participants, startTick: 30,
-                    random: &random)
-                var gained = Int16(
-                    max(-2, 2 + Int(random.next(upperBound: 6)) + scramble.extraYards))
-                let scores = Int(situation.ballOn) - Int(gained) <= 0
-                let dropped =
-                    scores
-                    ? nil
-                    : looseBall(
-                        carrier: SlotLayout.quarterback,
-                        tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
-                        spot: Int(situation.ballOn) - Int(gained), personnel: personnel,
-                        context: context, participants: &participants, random: &random)
-                if dropped?.ending == .fumbleLost { gained = 0 }
-                return (
-                    Outcome(
-                        kind: recorded(.scramble),
-                        yards: scores ? Int16(situation.ballOn) : gained,
-                        endedIn: dropped?.ending ?? (scores ? .touchdown : scramble.ending),
-                        participants: participants, penalties: penalty.map { [$0] } ?? [],
-                        finalSpot: dropped?.finalSpot, possessionLostAt: dropped?.lostAt,
-                        clockRunoff: UInt16(6 + Int(random.next(upperBound: 3)))),
-                    decisions
-                )
-            }
+                    value: Int16(ballOut)))
         }
 
-        // Most pressure is survived — thrown away, checked down, or simply beaten by the
-        // ball coming out. Only a minority becomes a sack.
-        if pressured, random.nextBool(probability: 0.155) {
-            // Sacked, by the rusher who actually got there. Nothing else can be credited.
-            decisions.append(
-                .init(
-                    tick: UInt16((pressureAt ?? 2_000) / 100), kind: .throwDecision,
-                    primary: SlotLayout.quarterback, secondary: pressureBy,
-                    detail: ThrowDecision.sack.rawValue, value: Int16(pressureAt ?? 2_000)))
-            credit(pressureBy, .tackler)
-            if penalty == nil {
-                penalty = Penalties.onContact(
-                    tackler: pressureBy, isQuarterback: true, personnel: personnel,
-                    context: context, random: &random)
-            }
-            let room: Int = 99 - Int(situation.ballOn)
-            let rawLoss: Int = 4 + Int(random.next(upperBound: 6))
-            let inOwnEndZone: Bool = rawLoss > room
-            let loss: Int16 = Int16(-min(rawLoss, room))
-            let runoff = UInt16(5 + Int(random.next(upperBound: 3)))
-
-            // The strip sack: he never saw it coming, so it comes out far more often than
-            // it does from a ball carrier who knows the hit is arriving.
-            let strip =
-                inOwnEndZone
-                ? nil
-                : looseBall(
-                    carrier: SlotLayout.quarterback, tackler: pressureBy, isSack: true,
-                    spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
-                    context: context, participants: &participants, random: &random)
-
-            // A sack is a play worth reacting to by anybody's reckoning, and it could not
-            // draw a word after the whistle either.
-            if penalty == nil {
-                penalty = Penalties.afterThePlay(
-                    Outcome(kind: .sack, yards: loss, endedIn: .tackled),
-                    personnel: personnel, context: context, random: &random)
-            }
-
-            return (
-                Outcome(
-                    kind: recorded(.sack),
-                    yards: strip?.ending == .fumbleLost ? 0 : (inOwnEndZone ? Int16(-room) : loss),
-                    endedIn: strip?.ending ?? (inOwnEndZone ? .safety : .tackled),
-                    participants: participants, penalties: penalty.map { [$0] } ?? [],
-                    finalSpot: strip?.finalSpot, possessionLostAt: strip?.lostAt,
-                    clockRunoff: runoff),
-                decisions
-            )
-        }
-
-        guard let target = best else {
-            return (
-                Outcome(
-                    kind: recorded(.pass), yards: 0, endedIn: .incomplete,
-                    passResult: .incomplete,
-                    participants: participants),
-                decisions
-            )
+        // Where the ball is actually caught: the read's own depth, and the spread the
+        // family used to get around its single depth, now around the read's. Every route
+        // of a kind used to be exactly the same length, and that is most of why the
+        // passing game had no tail. A read has a depth; a route run against a particular
+        // coverage, by a particular receiver, does not.
+        var depth = RouteDepth(
+            yards: thrown.depthYards,
+            flightTicks: ReadProgression.flightTicks(forDepth: thrown.depthYards),
+            accuracyKey: ReadProgression.accuracyKey(forDepth: thrown.depthYards))
+        if !isTry {
+            let spread = max(2, abs(depth.yards) / 2 + 2)
+            depth.yards += Int(random.next(upperBound: UInt64(spread * 2 + 1))) - spread
         }
 
         // Linemen who released to block a run that turned out to be a throw.
@@ -651,18 +803,26 @@ public struct CrudeResolver: PlayResolver {
         // downstream — three men look identically involved on every dropback, which
         // makes target share, catch rate and drop rate unanswerable from the stream.
         credit(target.receiver, .target)
-        let accuracy = rating(depth.accuracyKey, SlotLayout.quarterback, personnel, context)
+        let accuracy = rating(depth.accuracyKey, quarterback, personnel, context)
+        // A deep attempt beyond what the arm supports degrades before the ball arrives:
+        // the decision is the input, and nothing about the outcome is adjusted afterwards.
+        let armShortfall =
+            ReadProgression.depthClass(ofYards: thrown.depthYards) == .deep
+            ? max(0, Reads.armFloor - rating(.throwPower, quarterback, personnel, context))
+                * Reads.armShortfallPerPoint
+            : 0
         let placement = placement(
             accuracy: accuracy, pressured: pressured,
-            conditions: Conditions.throwing(context.weather, depthYards: depth.yards),
+            conditions: Conditions.throwing(context.weather, depthYards: depth.yards)
+                + armShortfall,
             random: &random)
-        let throwTick = UInt16(timeNeeded / 100)
+        let throwTick = UInt16(ballOut / 100)
         let arrivalTick = throwTick + UInt16(depth.flightTicks)
         decisions.append(
             .init(
                 tick: throwTick, kind: .throwDecision,
-                primary: SlotLayout.quarterback, secondary: target.receiver,
-                detail: ThrowDecision.primary.rawValue, value: Int16(timeNeeded)))
+                primary: quarterback, secondary: target.receiver,
+                detail: thrown.decision.rawValue, value: Int16(ballOut)))
         decisions.append(
             .init(
                 tick: arrivalTick, kind: .ballArrival,
@@ -1529,34 +1689,99 @@ public struct CrudeResolver: PlayResolver {
         return min(0.75, max(0.01, chance))
     }
 
+    /// The one matchup a throw goes to, as the coverage loop drew it.
+    private typealias Matchup = (receiver: PlayerSlot, defender: PlayerSlot, separation: Int)
+
+    /// What the passer did with the ball: the man, the depth of the read he was thrown
+    /// to, the moment the ball came out, and whether it was the read or the checkdown.
+    private struct Throw {
+        let target: Matchup
+        let depthYards: Int
+        let atMillis: Int
+        let decision: ThrowDecision
+    }
+
+    /// Where the ball is caught, how long it is in the air, and which accuracy the throw
+    /// is rated on — derived from the depth of the read thrown to (`ReadProgression`).
     private struct RouteDepth {
         var yards: Int
-        let timeMillis: Int
         let flightTicks: Int
         let accuracyKey: RatingKey
     }
 
-    private func routeDepth(_ concept: PlayConcept) -> RouteDepth {
-        switch concept {
-        case .screen:
-            return RouteDepth(
-                yards: -1, timeMillis: 1_400, flightTicks: 3, accuracyKey: .throwAccuracyShort)
-        case .quickPass:
-            return RouteDepth(
-                yards: 4, timeMillis: 1_700, flightTicks: 4, accuracyKey: .throwAccuracyShort)
-        case .mediumPass:
-            return RouteDepth(
-                yards: 10, timeMillis: 2_600, flightTicks: 7, accuracyKey: .throwAccuracyMedium)
-        case .playAction:
-            return RouteDepth(
-                yards: 12, timeMillis: 3_000, flightTicks: 8, accuracyKey: .throwAccuracyMedium)
-        case .deepPass:
-            return RouteDepth(
-                yards: 20, timeMillis: 3_400, flightTicks: 12, accuracyKey: .throwAccuracyDeep)
-        default:
-            return RouteDepth(
-                yards: 8, timeMillis: 2_200, flightTicks: 5, accuracyKey: .throwAccuracyMedium)
+    /// How the quarterback works his reads (C3, #44): starting parameters, every one of
+    /// them, to be retuned in E3 (#49) and not before.
+    ///
+    /// **The threshold does not vary by passer.** What makes a poor passer throw into
+    /// coverage is that he misjudged the window — his error is the noise on the perceived
+    /// separation, which shrinks with awareness — and not a lower bar. Nothing here is
+    /// sourced: the reference bands no rate a read process produces, which is recorded
+    /// under *what a test claims about a game and nothing sources* in
+    /// docs/reference/calibration-sources.md.
+    private enum Reads {
+        /// The standard deviation of a passer's error about how open a read is, in
+        /// centimetres, at an awareness of zero; it falls by half a centimetre a point.
+        static let perceptionNoise = 60.0
+        static let leastPerceptionNoise = 4.0
+
+        /// The perceived window a throw needs, in centimetres, by the depth of the read.
+        ///
+        /// C3's plan put these at 70, 90 and 110, and at those the first read cleared on
+        /// 98% of dropbacks and the second was worked on under 3%: a threshold under the
+        /// whole of what the coverage loop draws is not a window, it is a label. Measured
+        /// across seven generated leagues, four matchups in each, three coverages, a wide
+        /// receiver's separation runs 75 cm at the tenth percentile to 177 at the
+        /// ninetieth, median 128, and a tight end's the same to a few centimetres; a
+        /// back's runs 42 to 92, median 68. These sit inside that: a short read clears on
+        /// about seven dropbacks in ten, a medium on six and a deep on five, and a deeper
+        /// ball needs more room to be worth the throw. Set against the distribution and
+        /// not against a harness row — the rows that moved with them are in the pull
+        /// request that landed this, and where the rates belong is E3's (#49).
+        ///
+        /// A read at or behind the line of scrimmage is the screen's back, and a screen is
+        /// not a window the passer waits for: the ball is thrown behind the line to a man
+        /// with blockers releasing in front of him, and what stops it is the back being
+        /// covered, not the room a downfield throw wants. He needs the checkdown's window
+        /// and no more. Judged against a short read's, seven screens in eight were thrown
+        /// away, on a back whose separation runs 42 cm to 92.
+        static func threshold(forDepth depth: Int) -> Double {
+            if depth <= 0 { return checkdownThreshold }
+            switch ReadProgression.depthClass(ofYards: depth) {
+            case .short: return 100
+            case .medium: return 110
+            case .deep: return 125
+            }
         }
+        /// The lower bar the checkdown clears, the throw being short and late. A back's
+        /// separation runs 42 cm at the tenth percentile to 92 at the ninetieth, so this
+        /// clears on about four dropbacks in five once the passer's own error is on it:
+        /// the checkdown is the safe throw, and what it is worth is the catch model's to
+        /// decide from the room he actually had. At 70 it cleared on half, and a throwaway
+        /// followed on a quarter of all dropbacks.
+        static let checkdownThreshold = 45.0
+        /// What every threshold is multiplied by on a try: the same three fifths the
+        /// coverage loop scales a try's separation by, so that the phone booth shrinks the
+        /// window the passer accepts as much as it shrinks the room he is looking at.
+        static let tryWindow = 0.6
+
+        /// The chance a passer comes off a read that has not cleared, in a clean pocket,
+        /// at an awareness of sixty; and what each point above or below it is worth.
+        static let movesOn = 0.55
+        static let movesOnPerAwareness = 0.005
+        /// What the same chance is multiplied by once the rush has arrived, at a
+        /// composure of sixty; and what each point of `underPressure` is worth.
+        static let movesOnUnderPressure = 0.4
+        static let movesOnPerComposure = 0.006
+
+        /// A deep attempt beyond the arm: below this `throwPower`, each point short takes
+        /// this much off the chance the ball arrives on target.
+        static let armFloor = 70.0
+        static let armShortfallPerPoint = 0.004
+
+        /// The beat between the rush arriving and the earliest the passer can act on it:
+        /// one tick of the record. What it decides is only that the ball is out *after*
+        /// the man is there, never at the same instant.
+        static let reactionMillis = 100
     }
 
     private func placement(

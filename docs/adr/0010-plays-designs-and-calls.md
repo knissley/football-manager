@@ -127,3 +127,34 @@ that [#58](https://github.com/knissley/football-manager/issues/58) put in it —
 `swift run --package-path Tools/playsize` now prints a **152-byte fixed part and 510 bytes
 for a realistic play**. Read them off the tool rather than off this paragraph; the tool is
 the measurement and this is a record of one moment of it.
+
+## Amendment 2026-09-12 — where a read order lives before designs exist
+
+The first amendment put the concept on the call by value so that a record says what was
+called with no playbook to point into. C3 ([#44](https://github.com/knissley/football-manager/issues/44))
+then needed the one thing a design would have supplied and a concept does not: the order
+the quarterback works his receivers in. The question of what carries it was grilled on
+[#169](https://github.com/knissley/football-manager/issues/169) and decided there.
+
+**A read order lives on the five pass families, in the crude resolver, until designs
+exist.** `ReadProgression` in `FMSimulation` is one table per family: an ordered list of
+reads over the roles the crude personnel can name — first, second and third receiver,
+tight end, back — each with a break time and a depth, and a distinguished checkdown. It
+is keyed by this engine's slots, for the reason `SlotLayout` lives there, and it is
+deleted with the crude resolver at M5. It is **not** on `PlayConcept`: a concept is what a
+tendency table, a box score and a gameplan rule key off, and none of them wants a route
+tree, so the concept stays route-free as its own doc says.
+
+What this settles for M6. A design carries its own reads — the route's name, the side of
+the field, the read order — and the resolver reads them from the design's assignments
+instead of from the table. The record contract does not move: `readProgression` already
+carries the place in the order and the moment the read was judged, whichever source the
+order came from, so nothing M2 builds on the read points is rewritten when designs arrive.
+The five authored orders are the seed of the premade library: the decision that the quick
+game starts at the third receiver and play action at the tight end is what the first
+design in each family says.
+
+Rejected: designed plays now. They are M6, after the spatial engine at M5, in the role
+vocabulary M3.5 defines, and building them for this would have been M6 out of order, an
+identifier allocator this ADR just removed, and a caller that picks among designs.
+

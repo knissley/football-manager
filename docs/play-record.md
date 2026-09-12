@@ -171,7 +171,7 @@ DecisionPoint
 .pressureAllowed(blocker, rusher, ms)     .pressureHeld(blocker, rusher, ms)
                                           the pocket, once: got there, or did not
 .readProgression(passer, receiver, index, separationCm)
-  not emitted: no concept carries a read order, so there is no index to record
+  one per read the quarterback worked, in the order he worked them
 .throwDecision(.primary | .checkdown | .throwaway | .scramble | .sack)
 .ballArrival(receiver, separationCm, placement)
 .catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
@@ -195,27 +195,33 @@ personnel, not by how the play went, so the count is answerable before the snap:
 |---|---|
 | `.blockResult` | one per pass-rush rep — rushers, capped by the men in protection |
 | `.pressureAllowed` / `.pressureHeld` | exactly one between them, and none at all on a snap with no rep to resolve |
-| `.coverageAssignment` | one per route runner the coverage matched, up to four |
-| `.readProgression` | none, until a concept carries a read order |
+| `.coverageAssignment` | one per route runner the coverage matched, up to five — the back included, since he is the checkdown |
+| `.readProgression` | one per read the quarterback worked, in the order he worked them — up to the three numbered reads a family has; none on a snap that never reached a read |
 | `.throwDecision` | one — the throw, the throwaway, the scramble or the sack |
 | `.ballArrival` | one, on a snap where the ball was thrown |
 | `.catchAttempt` | one, where it arrived to somebody |
 | `.tackleAttempt` | up to three, after a catch, a scramble or a sack |
 
-So a four-man rush against eleven personnel that ends in a completion records four block
-results, one pocket verdict, four coverage assignments, a throw, an arrival, a catch and
-up to three tackle attempts.
+So a four-man rush against eleven personnel that ends in a completion to the second read
+records four block results, one pocket verdict, five coverage assignments, two reads, a
+throw, an arrival, a catch and up to three tackle attempts.
 
-**Why the reads are missing, and where what they carried went.** A `.readProgression` is
-documented to carry the place in the play's own read order, and no `PlayConcept` carries
-one: the resolver works every route runner in whatever order the personnel hands them
-over, so the only index it could record is its own loop's, which is not a thing a
-film-study analyst could determine and so not a thing this enum may carry. The rest of
-what a read knew is on the `.coverageAssignment` for the same receiver — who was on him,
-and how far apart they finished — and that is emitted for every route runner whether the
-quarterback looked at him or not, which is what lets a reader say a man was open and
-never got the ball. The point returns when a concept carries a read order and the
-quarterback works it.
+**What a read point says, and what it does not.** A `.readProgression` is written for
+every read the quarterback actually worked and for nothing else: `detail` is the place in
+the order as worked on this snap, counting from one, and `tick` is the moment he judged
+it — the break of the route the read is on, or later where the rush had already arrived
+by it. The order is the family's (`ReadProgression` in `FMSimulation`, decided on
+[#169](https://github.com/knissley/football-manager/issues/169)) resolved against the men
+on the field, so both are checkable against a table rather than against the loop that
+wrote them, which is the difference between a read and the loop index this point once
+carried ([#170](https://github.com/knissley/football-manager/issues/170)). A throw to a
+read follows its own read point, so the man thrown to is the last man read; the checkdown
+is a `.throwDecision` of its own kind and writes no read point, because it is not a
+numbered read; a throwaway writes none either. Who was covering whom and how open he got
+stay on the `.coverageAssignment` for the same receiver, emitted for every route runner
+whether the quarterback looked at him or not, which is what lets a reader say a man was
+open and never read — and, now, why: he was third in the order, or the passer never came
+off his first.
 
 **The rep and the pressure are two different facts.** A rusher beating his blocker is a
 `.blockResult` with `BlockResult.lost` and the milliseconds he took. Whether the

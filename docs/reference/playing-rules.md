@@ -32,11 +32,23 @@ Which rules must be true of a game, and what checks each, is
 ## Rule 3 — Definitions
 
 - **3-8-2** — A series is four scrimmage downs to reach the line to gain. —
-  `test:firstDown`, `test:turnoverOnDowns`
+  `test:firstDown`, `test:turnoverOnDowns`; a fourth down lost to a foul's loss of down is
+  the series too —
+  `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
+- **3-36-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts
+  on the offence's runoff, and a try never meets it (3-40), nor does a down that ran the
+  period out (4-8-1). — `test:groundedTryInsideTwoMinutesRunsNothingOff`,
+  `test:groundingAsTheHalfExpiresElectsNothing`
+- **3-40** — A try is one untimed scrimmage down, played to add one point by a kick or two
+  by a touchdown. Untimed is the word that matters to the clock: time is not in during it
+  (3-36-3), so an act on a try that conserves time carries no runoff. —
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`
 - **3-41** — The two-minute warning. The down under way when the clock runs past 2:00
-  finishes and the clock is then dead; it belongs to the second and fourth periods, and to
+  finishes and the clock is then dead; the warning is an automatic timeout at the
+  conclusion of that down, so an act during it came before the warning and 4-7-1 does not
+  reach it — `test:groundingOnTheDownThatBringsTheWarningRunsNothingOff`; it belongs to the second and fourth periods, and to
   the periods Rule 16 times as them — regular-season overtime (16-1-3-e) and a second or
   fourth postseason overtime period (16-1-4-h). — `test:warningBetweenDowns`,
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
@@ -91,7 +103,10 @@ Which rules must be true of a game, and what checks each, is
   `test:outOfBoundsAcrossFiveMinutesOfTheFourthQuarterWaitsForTheSnap`,
   `test:outOfBoundsAcrossTheTwoMinuteWarningOfTheSecondQuarterWaitsForTheSnap`
 - **4-3-2-a-1** — After a change of possession it waits for the snap. —
-  `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`
+  `test:changeOfPossessionStops`, `test:turnoverOnDownsStopsTheClock`; the clause is
+  scoped to a runner out of bounds, and it is not an exception to 4-3-2-g's restart after
+  a runoff —
+  `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **4-3-2-e** — Where either side's flag has stopped the clock, between downs or at the end
   of one, the clock starts again once the penalty is settled exactly where it would have
   started had no flag been thrown. **The article names declination beside enforcement**, so
@@ -122,8 +137,12 @@ Which rules must be true of a game, and what checks each, is
   `test:acceptedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`,
   `test:offensiveFoulDuringAFourthQuarterDownRestartsTheClockOnTheReady`,
   `test:declinedFoulDuringADownInsideFiveMinutesWaitsForTheSnap`
-- **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. —
-  `test:falseStartInsideTwoMinutesCostsTenSeconds`
+- **4-3-2-g** — After a ten-second runoff the clock starts on the ready for play. The
+  article names no exception for a change of possession, so a runoff on a fourth-down
+  grounding starts the new offence's clock on the ready too. —
+  `test:falseStartInsideTwoMinutesCostsTenSeconds`,
+  `test:groundingInsideTwoMinutesRunsTenSecondsOff`,
+  `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **4-3-2-h** — The try is untimed. — `test:touchdownAsTheSecondQuarterExpires`
 - **4-4-a** — A free kick down stops the clock. — `test:returnedKickoffAdvancesTheClock`
 - **4-4-c** — A runner going out of bounds stops it. — `test:outOfBoundsLate`
@@ -225,10 +244,21 @@ Which rules must be true of a game, and what checks each, is
   come off, the play clock goes back to 30, and the game clock restarts on the ready. The
   offence may spend a charged timeout instead, and then the clock starts on the snap. The
   defence may always decline the runoff and keep the yardage, and declining the yardage
-  declines the runoff with it. — `test:tenSeconds`,
+  declines the runoff with it. "While time is in" excludes a try, an untimed down (3-40),
+  and "after the two-minute warning" excludes the down that brings the warning (3-41). —
+  `test:tenSeconds`,
   `test:falseStartInsideTwoMinutesCostsTenSeconds`, `test:trailingDefenseDeclinesTheRunoff`,
   `test:offenseTakesATimeoutInsteadOfTheRunoff`,
-  `test:falseStartWithTheClockStoppedCostsNoTime`
+  `test:falseStartWithTheClockStoppedCostsNoTime`,
+  `test:groundingInsideTwoMinutesRunsTenSecondsOff`,
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`,
+  `test:groundingOnTheDownThatBringsTheWarningRunsNothingOff`,
+  `test:groundingAsTheHalfExpiresElectsNothing`, `test:noRunoffOnAnEndedHalf`; the restart
+  on the ready is 4-3-2-g's and holds after a change of possession too —
+  `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`;
+  **not reached**: declining the yardage declines the runoff with it, with the play clock
+  at 25 and the clock on the snap, and the defence never declines a grounding, since
+  accepting it costs the offence the same down and ten yards besides
 - **4-7-1 Item 2** — The same act by the defence is not a runoff: the play clock resets to
   40 and the clock starts on the ready unless the offence wants the snap. —
   `test:deadBallFoulBeforeTheSnapChargesNoTime`
@@ -260,6 +290,10 @@ Which rules must be true of a game, and what checks each, is
   expired it calls for one. — `test:touchdownAsTheSecondQuarterExpires`,
   `test:walkOffTryIsTheCallerChoice`; and nothing extends one that expires between downs,
   which is what a knee-down sequence is counting on — `test:aKneltOutLeadStaysKnelt`
+- **4-8-2-b** — A foul by the offence extends nothing: the period ends with the down, and
+  a half that is over has no time in for a conserving act to be charged against, so no
+  runoff, timeout or declination is elected on it —
+  `test:groundingAsTheHalfExpiresElectsNothing`, `test:noRunoffOnAnEndedHalf`
 - **4-8-2-c** — A touchdown on the last play of a period still gets its try. It is waived
   only during sudden-death overtime, or when time in the fourth period has expired and a
   successful try could not affect the outcome. — `test:lastPlayTouchdownDownSeven`,
@@ -387,6 +421,39 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   either way. So an interception is a catch but it is not a completion, which is what
   decides whether a foul before it is inside 8-6-1-d. —
   `test:defensiveFoulBeforeADeepInterceptionIsEnforcedFromTheDeadBallSpot`
+- **8-2-1** — A passer about to lose ground to the rush who throws a forward pass nowhere
+  near any receiver who was eligible at the snap has grounded it, and the ball falling
+  incomplete is not part of the definition. *Read in the 2026 edition, the only one the
+  session that entered it could reach; that edition's own list of what it changed names
+  6-1-3, 6-1-5, 6-1-6 and 19-2 and nothing in Rule 8 or in 4-7, so this is the 2025
+  article. A reading in the 2025 book is still owed, and this note comes off when it is
+  done.* — `test:groundingCostsTheDownAndTenYardsFromThePreviousSpot`,
+  `test:groundingInsideTwoMinutesRunsTenSecondsOff`; drawn by the crude resolver as the
+  illegal share of its throwaways (C3 #44)
+- **8-2-1 Item 1** — Not grounding when the passer is, or has been, outside the pocket area
+  and the ball comes down at or past the line of scrimmage extended, whoever could have
+  caught it; he is outside it the moment any part of him or of the ball is. —
+  **modelling**: the crude resolver places nobody, so it cannot know where the passer or the
+  ball was. A throwaway is drawn as one this item allows against the passer's `awareness`
+  and `underPressure`, and as grounding otherwise — `test:everyFoulIsCalled` drives that
+  draw; the spatial engine measures it (M5)
+- **8-2-1 Item 2** — Not grounding when a defender's contact took the pass off its line
+  after the throwing motion had started toward a receiver, or knocked a pass thrown from
+  outside the pocket down short of the line. — not modelled: the resolver has no contact
+  on the throw
+- **8-2-Penalty** — Loss of down and ten yards from the previous spot; loss of down at the
+  spot of the throw instead when that spot is more than ten yards behind the previous spot
+  or past half the distance to the goal; a safety when the passer, all of him and the ball,
+  is in his own end zone as he throws. The clause sends the reader to 4-7 for what the act
+  costs inside two minutes. — `test:groundingCostsTheDownAndTenYardsFromThePreviousSpot`;
+  **modelling**: the resolver has no spot of the throw, so every grounding is walked off as
+  the first clause, and where the ten yards would reach past half the distance the engine
+  walks off half the distance — a stand-in for clause (b), which sends the ball to the spot
+  of the pass when that spot is more than ten yards behind the previous spot or more than
+  half the distance, and not 14-2-1, whose ceiling names grounding as one of its two
+  exceptions —
+  `test:groundingBackedUpIsCappedAtHalfTheDistanceAsAStandIn` (a pin); the
+  spot-of-the-throw clause and the safety are not reached
 - **8-2-1 Item 3** — A T-formation quarterback may stop the clock without fouling for
   intentional grounding if, the moment the ball reaches him, he starts one unbroken throwing
   motion and puts the ball straight into the ground. 3-42 makes that any player aligned a
@@ -521,9 +588,12 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   the defending team on the ensuing kickoff. — `test:falseStartOnTheKickMovesItBack`,
   `test:offsideOnTheConversionMovesItIn`, `test:falseStartOnATryMovesTheTry`,
   `test:anOffensiveFoulOnASuccessfulTryRepeatsIt`, `test:holdingOnASuccessfulTryRepeatsIt`,
-  `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; the loss-of-down exception in
-  Item 3-b is not modelled, because no foul the engine draws on a try carries a loss of
-  down. Nothing in the article exempts a try from the half-distance ceiling of 14-2-1;
+  `test:aDefensiveFoulOnASuccessfulTryMovesTheFreeKick`; **Item 3-b** ends a try on a
+  foul that carries a loss of down — unsuccessful, and not replayed — which a grounded
+  two-point pass now is, with the kickoff from its ordinary spot because Item 3-c reaches
+  only a foul after a change of possession —
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`. Nothing in the article exempts a try
+  from the half-distance ceiling of 14-2-1;
   its interference exception applies that ceiling itself, in two places —
   `test:offsideOnATryFromTheSevenIsHalfTheDistance`
 - **11-3-4** — After a try, the team on defence for it receives the succeeding free kick. —

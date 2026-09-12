@@ -1164,6 +1164,46 @@ report(
     Double(caughtForNothing.count) / Double(max(1, completions.count)) * 100)
 
 print("")
+print("  The reads")
+// What the quarterback did with the ball, read off the throw decision the record carries
+// on every dropback (C3, #44): a throw to a numbered read, the checkdown, a throwaway, a
+// scramble or a sack. None of the rows has a band, and each says why in Targets.swift.
+let throwDecisions = dropbacks.compactMap { play in
+    play.decisions.first { $0.kind == .throwDecision }?.throwDecisionValue
+}
+func decisionShare(_ decision: ThrowDecision) -> Double {
+    Double(throwDecisions.filter { $0 == decision }.count) / Double(max(1, dropbacks.count)) * 100
+}
+report("throwawaysPerDropback", decisionShare(.throwaway))
+report("checkdownsPerDropback", decisionShare(.checkdown))
+// A throw to a numbered read follows the read points the passer wrote on his way to it,
+// so the read it went to is the last of them — one point means the first read.
+let throwsToARead = dropbacks.filter { play in
+    play.decisions.first { $0.kind == .throwDecision }?.throwDecisionValue == .primary
+}
+let toTheFirstRead = throwsToARead.filter { play in
+    play.decisions.filter { $0.kind == .readProgression }.count == 1
+}
+report(
+    "firstReadShare",
+    throwsToARead.isEmpty
+        ? nil : Double(toTheFirstRead.count) / Double(throwsToARead.count) * 100)
+// Who the ball goes to, by the position he plays: the footprint the read order and the
+// checkdown leave, and the one of these rows a source can band (E8 #179).
+// Over dropbacks, the denominator every read row shares: a two-point try's target is not
+// in it, as its attempt is in none of the passing rows.
+let targets = dropbacks.flatMap { play in play.outcome.participants.filter { $0.role == .target } }
+func targetShare(_ positions: Set<Position>) -> Double? {
+    targets.isEmpty
+        ? nil
+        : Double(targets.filter { positions.contains($0.position) }.count)
+            / Double(targets.count) * 100
+}
+report("targetShare.wideReceiver", targetShare([.wideReceiver]))
+report("targetShare.tightEnd", targetShare([.tightEnd]))
+report("targetShare.runningBack", targetShare([.runningBack, .fullback]))
+
+print("")
 print("  How drives end")
 let totalDrives = driveEnds.values.reduce(0, +)
 for (end, count) in driveEnds.sorted(by: { ($0.value, $0.key) > ($1.value, $1.key) }) {

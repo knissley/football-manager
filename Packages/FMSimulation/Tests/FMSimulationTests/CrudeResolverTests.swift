@@ -129,17 +129,25 @@ struct CrudeResolverTests {
         #expect(picks > 0, "eight games produced no interceptions")
     }
 
-    /// A completion names a receiver, and that receiver is the one the throw went to.
+    /// A completion names a receiver, and that receiver is the one the throw went to:
+    /// the read he actually made, or the checkdown he took instead.
     @Test("A completion's target is the receiver the quarterback read to", .tags(.contract))
     func completionsNameTheirTarget() {
+        var checked = 0
         for seed in UInt64(1)...4 {
             for play in game(seed: seed).plays
             where play.outcome.kind == .pass && play.outcome.yards > 0 {
                 guard
                     let thrown = play.decisions.first(where: {
-                        $0.kind == .throwDecision && $0.detail == ThrowDecision.primary.rawValue
+                        $0.kind == .throwDecision
+                            && ($0.detail == ThrowDecision.primary.rawValue
+                                || $0.detail == ThrowDecision.checkdown.rawValue)
                     })
-                else { continue }
+                else {
+                    Issue.record("a completion with no throw to a read or a checkdown behind it")
+                    continue
+                }
+                checked += 1
                 let target = thrown.secondary
                 #expect(
                     play.decisions.contains { $0.kind == .ballArrival && $0.primary == target },
@@ -147,8 +155,17 @@ struct CrudeResolverTests {
                 #expect(
                     play.outcome.participants.contains { $0.slot == target },
                     "the target was not credited")
+                // The man thrown to is the last man the passer looked at: a throw to a
+                // read follows its own read point, and a checkdown follows none of its
+                // own, because the checkdown is not a numbered read.
+                if thrown.detail == ThrowDecision.primary.rawValue {
+                    #expect(
+                        play.decisions.last { $0.kind == .readProgression }?.secondary == target,
+                        "the ball went to a man other than the last read")
+                }
             }
         }
+        #expect(checked > 0, "four games produced no completion")
     }
 
     /// The coverage matchup is the one point that says who was covering whom and how far
@@ -193,25 +210,64 @@ struct CrudeResolverTests {
         #expect(matched > 0, "four games produced no throw with a coverage matchup behind it")
     }
 
-    /// The read is the one decision the engine cannot honestly write. `DecisionKind` says
-    /// every case is something a film-study analyst could determine and that a read's
-    /// `detail` is the progression index; the engine has no progression, so the only
-    /// index it could put there is the order its own loop happened to run in, which is
-    /// not on the film. Nothing downstream may be given a number of that kind to read, so
-    /// the point is not emitted until there is a progression for it to index into.
+    /// A read point is written for every read the quarterback actually worked, and for
+    /// nothing else. `DecisionKind` says its `detail` is the place in the play's own read
+    /// order counting from one and its `tick` the moment he judged it; the order is the
+    /// family's (`ReadProgression`) resolved against the men on the field, so both are
+    /// checkable against the table rather than against the loop that wrote them — which
+    /// is the difference between a read and the loop index this point used to carry
+    /// ([#170](https://github.com/knissley/football-manager/issues/170)).
     ///
-    /// What the coverage loop does know — who was covering whom, and how far apart they
-    /// finished — is on the `.coverageAssignment` beside it, which is why nothing is lost
-    /// by the silence.
-    @Test("No decision claims a read the engine never made", .tags(.contract))
-    func noReadWithoutAProgression() {
+    /// Rewritten, not deleted: this test used to assert that no read point was ever
+    /// written, because no order existed to index into. One exists now, and the claim is
+    /// the contract it carries.
+    @Test(
+        "Every read point is a read the quarterback made, in the play's own order", .tags(.contract)
+    )
+    func readsAreThePlaysOwnOrder() {
+        var readsSeen = 0
+        var playsWithReads = 0
         for seed in UInt64(1)...8 {
             for play in game(seed: seed).plays {
+                let reads = play.decisions.filter { $0.kind == .readProgression }
+                if reads.isEmpty { continue }
+                playsWithReads += 1
+                let progression = ReadProgression.of(play.calls.offense.concept)
+                let firstBreak = UInt16((progression.reads.first?.breakMillis ?? 0) / 100)
                 #expect(
-                    !play.decisions.contains { $0.kind == .readProgression },
-                    "a read progression was recorded with no progression to index into")
+                    play.outcome.kind.isDropback || play.outcome.kind == .twoPointConversion,
+                    "a read was written on a \(play.outcome.kind)")
+                var lastTick: UInt16 = 0
+                for (place, read) in reads.enumerated() {
+                    readsSeen += 1
+                    #expect(
+                        read.primary == SlotLayout.quarterback,
+                        "a read that is not the quarterback's")
+                    #expect(read.secondary.isOffense, "a read of a defender")
+                    #expect(
+                        Int(read.detail) == place + 1,
+                        "read \(place + 1) carries index \(read.detail): the order is not contiguous from one"
+                    )
+                    // Judged at the break, or later where the rush had already arrived by
+                    // it; never before the first break the family asks for, and never
+                    // running backwards.
+                    #expect(
+                        read.tick >= firstBreak && read.tick >= lastTick,
+                        "a read judged at tick \(read.tick) on a \(play.calls.offense.concept) whose first break is \(firstBreak), after one at \(lastTick)"
+                    )
+                    lastTick = read.tick
+                    #expect(read.value > 0, "a read with no separation on it")
+                    #expect(
+                        play.outcome.participants.contains { $0.slot == read.secondary },
+                        "a read of a man the play never credited")
+                }
+                #expect(
+                    reads.count <= progression.reads.count,
+                    "\(reads.count) reads on a \(play.calls.offense.concept), which has \(progression.reads.count)"
+                )
             }
         }
+        #expect(readsSeen > 0 && playsWithReads > 0, "eight games produced no read at all")
     }
 
     /// Decisions happen in order. A ball arriving before it was thrown is a causal chain
@@ -955,109 +1011,192 @@ struct PocketTests {
         ).decisions
     }
 
-    /// What the pooled sample says about each pass concept, in the order they hold the
-    /// ball: the hold its record reports, whether each snap came back pressured, and when
-    /// the first rusher got home on that snap — the last so the pairing can be checked
-    /// rather than assumed.
+    /// What the pooled sample says about each pass family, in the order they hold the
+    /// ball: the first break and the hold, read off the table; whether each snap came
+    /// back pressured; when the first rusher got home on that snap — so the pairing can be
+    /// checked rather than assumed — and when the ball came out, which is the break of the
+    /// read it went to and so varies snap by snap, or nothing on a snap the ball never
+    /// left.
+    /// A throw is the end of a read process: the ball goes to a read that cleared, or to
+    /// the checkdown or to nobody after the reads did not. So a dropback that ended in a
+    /// throw, with a numbered read on the field to be worked, wrote at least one read
+    /// point — whatever the rush did, because under pressure the reads left are worked
+    /// from where it found him, and a sack or a scramble is not a throw. Whether a read
+    /// was there to work is read off the men credited on the play against the family's
+    /// roles, the way the resolver resolves them.
+    ///
+    /// The one way to reach the checkdown with nobody read was an arrival at the instant
+    /// of a break: the clean loop stopped short of a read whose break the rush reached
+    /// *at*, and the verdict counted pressure only for an arrival *before* the deadline,
+    /// so the read fell between the two. A try, whose three reads share one break at
+    /// 1,500 ms, reached the checkdown or a throwaway that way on about one snap in two
+    /// and a half thousand, with nobody read and the pocket recorded as held — which is
+    /// why the tries are swept here and not only the corpus. The sweep is one seed, so it
+    /// is the same five thousand tries every run: four of them reached a throw unread
+    /// before the tie was settled, and none may now.
+    @Test(
+        "contract · a dropback that ended in a throw worked a read, whenever the play had one to work",
+        .tags(.contract))
+    func everyThrowFollowsAReadWorked() {
+        var throwsWithAReadAvailable = 0
+        var unread: [String] = []
+        func check(
+            _ concept: PlayConcept, _ outcome: Outcome, _ decisions: [DecisionPoint],
+            _ label: String
+        ) {
+            guard
+                let decision = decisions.last(where: { $0.kind == .throwDecision })?
+                    .throwDecisionValue,
+                decision == .primary || decision == .checkdown || decision == .throwaway
+            else { return }
+            let credited = outcome.participants.filter {
+                $0.role == .receiver || $0.role == .target
+            }
+            let receivers = credited.filter { $0.position == .wideReceiver }.count
+            let tightEnds = credited.filter { $0.position == .tightEnd }.count
+            let backs = credited.filter { $0.position == .runningBack || $0.position == .fullback }
+                .count
+            let available = ReadProgression.of(concept).reads.contains { read in
+                switch read.role {
+                case .firstReceiver: return receivers >= 1
+                case .secondReceiver: return receivers >= 2
+                case .thirdReceiver: return receivers >= 3
+                case .tightEnd: return tightEnds >= 1
+                case .back: return backs >= 1
+                }
+            }
+            guard available else { return }
+            throwsWithAReadAvailable += 1
+            if !decisions.contains(where: { $0.kind == .readProgression }) { unread.append(label) }
+        }
+        for game in TestWorld.corpus {
+            for play in game.plays where play.outcome.kind.isDropback {
+                check(
+                    play.calls.offense.concept, play.outcome, play.decisions,
+                    "game \(game.game) play \(play.index)")
+            }
+        }
+        for (index, snap) in TestWorld.resolved(.twoPointPass, count: 5_000).enumerated() {
+            check(.twoPointPass, snap.outcome, snap.decisions, "try \(index)")
+        }
+        #expect(
+            throwsWithAReadAvailable > 6_000,
+            "\(throwsWithAReadAvailable) throws with a read to work: too few to assert on")
+        #expect(
+            unread.isEmpty,
+            "\(unread.count) throws with nobody read, the first of them \(unread.prefix(5))")
+    }
+
     private func pooledPocket() -> [(
-        concept: PlayConcept, hold: Int, pressured: [Bool], firstArrival: [Int]
+        concept: PlayConcept, firstBreak: Int, hold: Int, pressured: [Bool],
+        firstArrival: [Int], ballOut: [Int?], snapped: [Bool]
     )] {
         let rosters = Self.pocketRosterSeeds.map { (seed: $0, context: context(seed: $0)) }
         return Self.passConcepts.map { concept in
-            var hold = 0
+            let progression = ReadProgression.of(concept)
             var pressured: [Bool] = []
             var firstArrival: [Int] = []
+            var ballOut: [Int?] = []
+            var snapped: [Bool] = []
             for roster in rosters {
                 for index in 0..<Self.dropbacksPerRoster {
                     let decisions = coupledDropback(
                         concept, context: roster.context, rosterSeed: roster.seed, index: index)
                     pressured.append(decisions.contains { $0.kind == .pressureAllowed })
-                    // The hold is the same on every snap of a concept, and only a snap the
-                    // protection survived reports it: a pressured snap was over before the
-                    // hold was up, so its record carries the arrival instead.
-                    if let held = decisions.first(where: { $0.kind == .pressureHeld }) {
-                        hold = Int(held.value)
-                    }
                     let arrivals = decisions.filter {
                         $0.kind == .blockResult && $0.blockResultValue == .lost
                     }.map { Int($0.value) }
                     firstArrival.append(arrivals.min() ?? -1)
+                    // The ball is out at the throw, the checkdown or the throwaway, and
+                    // never on a sack or a scramble.
+                    let out = decisions.first { $0.kind == .throwDecision }.flatMap {
+                        point -> Int? in
+                        switch point.throwDecisionValue {
+                        case .primary, .checkdown, .throwaway: return Int(point.value)
+                        default: return nil
+                        }
+                    }
+                    ballOut.append(out)
+                    // A flag before the snap is a down that never happened, with no throw
+                    // decision on it and nothing for the pocket to say.
+                    snapped.append(decisions.contains { $0.kind == .throwDecision })
                 }
             }
-            return (concept, hold, pressured, firstArrival)
+            return (
+                concept, progression.reads.first?.breakMillis ?? 0, progression.holdMillis,
+                pressured, firstArrival, ballOut, snapped
+            )
         }
     }
 
-    /// The other half of the same claim: how long the ball is held is what decides how
-    /// much of the rush gets home.
+    /// The other half of the same claim: pressure is the first man home arriving before
+    /// the ball is out, and nothing else decides it.
     ///
     /// **This is a promise the engine makes about itself, and it is deliberately not a
-    /// football test.** The claim it used to make was: pressure rises *strictly* from
-    /// each concept to the next, screen through deep pass. Four of those links, one
-    /// sentence, and nothing sourced any of them. What the references band is pressure
-    /// per dropback pooled over all of them — `row:pressureRate`, 27.8-32.3%, 2023-24,
-    /// source S2 in docs/reference/calibration-sources.md, which the harness grades — and
-    /// neither that file nor the playing rules splits it by concept, by pass depth, or by
-    /// the time the quarterback held the ball. A split is a rate, so the rulebook has
-    /// nothing to say about it; it is a sourcing gap, and it is recorded as one under
-    /// *what a generated world claims and nothing sources*. Asserting a chain of
-    /// inequalities nothing sources, as football, is the thing this project most wants
-    /// not to do, so the chain is made against the resolver's own definition of pressure
-    /// instead — which is exactly what a `.contract` is for.
+    /// football test.** It has been rewritten twice. The claim it first made was that
+    /// pressure rises *strictly* from each concept to the next, screen through deep pass —
+    /// four links, and nothing sourced any of them: the references band pressure per
+    /// dropback pooled over all of them (`row:pressureRate`, 2023-24, source S2 in
+    /// docs/reference/calibration-sources.md, which the harness grades) and split it by
+    /// nothing, which is recorded as a sourcing gap under *what a test claims about a game
+    /// and nothing sources*. The second claim was that a longer hold is never pressured
+    /// less often than a shorter one, off the same rush — true while a family had one
+    /// hold. It no longer does: the ball comes out at the break of the read it went to
+    /// (`ReadProgression`, C3 #44), so the hold is the snap's own and two families' holds
+    /// overlap. What survives, and what this asserts, is the definition underneath both:
+    /// a dropback is pressured exactly when the first rep lost came home before the
+    /// record's own ball-out moment, and a sack or a scramble is pressured by
+    /// construction. Snap by snap, on the paired draw above, with no tolerance.
     ///
-    /// What the resolver promises, then. Pressure is the first rusher home arriving
-    /// *before the ball is out*. The arrival is a fact about two men and is drawn before
-    /// the concept's route is ever consulted, so for one rush the verdict is a threshold
-    /// on the hold and nothing else: lengthen the hold and a snap can only turn from
-    /// clean to pressured, never back. That is asserted here snap by snap, on the paired
-    /// draw above, so it holds exactly rather than on average — no tolerance, no sampling
-    /// error, and no roster able to decide the answer.
-    ///
-    /// **The last link is flat, and that is the engine and not the sample.** A beaten
-    /// blocker is beaten between 1,500 ms and 2,899 ms; play action asks for 3,000 and a
-    /// deep drop for 3,400. Both sit past the latest a rusher can arrive, so the verdict
-    /// cannot tell them apart and returns the same 0.5559 on the same snaps — measured
-    /// over 2,450 paired dropbacks each, identical to the last snap, not merely close.
-    /// A strict inequality there was green on one roster's luck. Whether the sport
-    /// separates those two is the unsourced question above; if it is ever sourced and it
-    /// does, the fix is the hold in `routeDepth`, and this assertion is already the shape
-    /// that would catch it going the wrong way.
-    ///
-    /// The span is the other half, because a superset claim is satisfied by a pocket with
-    /// no clock at all: if pressure were the lost rep again, all five concepts would be
-    /// pressured on exactly the same snaps and every link would pass. So the ends of the
-    /// chain are also held apart. A tenth is far under the 0.5559 the engine spreads them
-    /// by, so it pins nothing about the clock's shape, and far over the nothing a
-    /// clockless pocket would produce — under the pairing that null has no sampling
-    /// spread at all, since the two ends would be the same snaps.
+    /// The ends of the chain are still held apart, because a per-snap inequality is also
+    /// satisfied by a pocket with no clock at all — if pressure were the lost rep again,
+    /// every family would be pressured on exactly the same snaps. A tenth between the
+    /// screen and the deep drop is far under what the engine spreads them by and far over
+    /// the nothing a clockless pocket would produce.
     @Test(
-        "A longer hold is never pressured less often than a shorter one, off the same rush",
+        "Pressure is the first man home beating the ball out, snap by snap, off the same rush",
         .tags(.contract))
-    func pressureNeverFallsAsTheHoldGrows() {
+    func pressureIsTheArrivalBeatingTheBallOut() {
         let measured = pooledPocket()
         let share = { (entry: [Bool]) in
             Double(entry.filter { $0 }.count) / Double(entry.count)
         }
+        var checked = 0
+        var sample = ""
+        for entry in measured {
+            for index in entry.pressured.indices {
+                let arrival = entry.firstArrival[index]
+                if let out = entry.ballOut[index] {
+                    checked += 1
+                    let expected = arrival > 0 && arrival < out
+                    if entry.pressured[index] != expected, sample.isEmpty {
+                        sample =
+                            "\(entry.concept): first man home at \(arrival)ms, ball out at \(out)ms, recorded \(entry.pressured[index] ? "pressured" : "clean")"
+                    }
+                } else if entry.snapped[index] {
+                    #expect(
+                        entry.pressured[index],
+                        "\(entry.concept): a sack or a scramble with a clean pocket")
+                }
+            }
+        }
+        #expect(checked > 0, "no dropback in the pooled sample ever got the ball out")
+        #expect(
+            sample.isEmpty,
+            "a pocket verdict disagrees with the arrival and the ball-out — \(sample)")
         for (earlier, later) in zip(measured, measured.dropFirst()) {
             // The pairing, before anything is read off it: the same roster and the same
-            // index must have produced the same rush under both concepts, or what follows
-            // compares two samples rather than two holds.
+            // index must have produced the same rush under both families, or what follows
+            // compares two samples rather than two orders.
             #expect(
                 earlier.firstArrival == later.firstArrival,
                 "\(earlier.concept) and \(later.concept) did not see the same rush on the same snaps"
             )
-            // And the chain really is in hold order, read off the records rather than
-            // assumed from the order the concepts happen to be listed in.
+            // And the chain really is in hold order, read off the table rather than
+            // assumed from the order the families happen to be listed in.
             #expect(
                 earlier.hold < later.hold,
                 "\(earlier.concept) holds \(earlier.hold)ms against \(later.concept) at \(later.hold)ms: the chain is not ordered by the hold"
-            )
-            let clearedByWaitingLonger = zip(earlier.pressured, later.pressured).filter {
-                $0 && !$1
-            }.count
-            #expect(
-                clearedByWaitingLonger == 0,
-                "\(clearedByWaitingLonger) of \(earlier.pressured.count) snaps were pressured holding \(earlier.hold)ms and clean holding \(later.hold)ms, off the same rush"
             )
         }
         guard let shortest = measured.first, let longest = measured.last else {
@@ -1067,45 +1206,42 @@ struct PocketTests {
         let span = share(longest.pressured) - share(shortest.pressured)
         #expect(
             span > 0.1,
-            "\(shortest.concept) at \(shortest.hold)ms is pressured \(share(shortest.pressured)) of the time and \(longest.concept) at \(longest.hold)ms \(share(longest.pressured)): the pocket is not on a clock"
+            "\(shortest.concept) holding to \(shortest.hold)ms is pressured \(share(shortest.pressured)) of the time and \(longest.concept) holding to \(longest.hold)ms \(share(longest.pressured)): the pocket is not on a clock"
         )
     }
 
-    /// The window the rush arrives in has to span the holds it is compared against, or
+    /// The window the rush arrives in has to span the breaks it is compared against, or
     /// the comparison is not a comparison.
     ///
     /// Pressure is one inequality: did the first man home get there before the ball came
-    /// out. The arrival is drawn once per beaten blocker, the hold is a property of the
-    /// concept, and the verdict is the two read against each other. An inequality whose
-    /// two sides cannot cross is not an inequality — it is a constant wearing one — and
-    /// that is the failure this asserts against.
+    /// out. The arrival is drawn once per beaten blocker, the ball comes out at the break
+    /// of the read thrown to, and the verdict is the two read against each other. An
+    /// inequality whose two sides cannot cross is not an inequality — it is a constant
+    /// wearing one — and that is the failure this asserts against.
     ///
-    /// It bites at both ends. A hold **under the earliest arrival** is never pressured,
-    /// whatever the rush did and whoever is blocking: the concept is un-pressurable by
+    /// It bites at both ends. A break **under the earliest arrival** is never pressured,
+    /// whatever the rush did and whoever is blocking: the read is un-pressurable by
     /// construction rather than hard to pressure. A hold **over the latest arrival** is
     /// pressured on every snap a rep was lost, so the hold stops being read at all — and
     /// any two such holds are then pressured on exactly the same snaps, which makes them
-    /// the same concept however far apart their numbers look. Both are silent: the shares
+    /// the same family however far apart their numbers look. Both are silent: the shares
     /// come out plausible, and nothing in them says the dial is dead.
     ///
     /// So four things, all measured off the paired sample above and none of them a
-    /// statement about a constant, so that a hold moved out of the window fails this
+    /// statement about a constant, so that a break moved out of the window fails this
     /// rather than the next person to wonder why a parameter does nothing:
     ///
-    /// 1. the **earliest** first arrival is sooner than the shortest hold any concept
+    /// 1. the **earliest** first arrival is sooner than the earliest break any family
     ///    asks for, so the quickest ball in the game can still be beaten;
     /// 2. the **latest** first arrival is later than the longest hold, so the deepest
     ///    drop in the game can still be protected;
-    /// 3. no concept's verdict is a constant — every one of them is pressured on some
+    /// 3. no family's verdict is a constant — every one of them is pressured on some
     ///    snaps and clean on others;
-    /// 4. no two concepts are pressured on the *same* snaps — waiting longer has to turn
-    ///    at least one clean snap into a pressured one, or the extra hold bought nothing.
-    ///
-    /// The fourth is the exact complement of the superset in the test above: that one
-    /// says a longer hold is never pressured *less*, this one says it is pressured
-    /// *more*. Together they are what makes the hold a dial rather than a label.
+    /// 4. no two adjacent families are pressured on the *same* snaps — holding longer has
+    ///    to turn at least one clean snap into a pressured one, or the extra hold bought
+    ///    nothing.
     @Test(
-        "The rush's arrival window spans every route hold, so every hold is read",
+        "The rush's arrival window spans every read's break, so every break is read",
         .tags(.contract))
     func theArrivalWindowSpansTheRouteHolds() {
         let measured = pooledPocket()
@@ -1114,25 +1250,26 @@ struct PocketTests {
             return
         }
         // The first man home, on the snaps anybody got home at all. This is the quantity
-        // the hold is compared against, so it is the one that has to span them — a later
+        // the break is compared against, so it is the one that has to span them — a later
         // rusher on the same snap never decides anything.
         let arrivals = shortest.firstArrival.filter { $0 > 0 }
         #expect(arrivals.count > 0, "no rusher ever got home: nothing to span")
         let earliest = arrivals.min() ?? 0
         let latest = arrivals.max() ?? 0
+        let earliestBreak = measured.map(\.firstBreak).min() ?? 0
         #expect(
-            earliest < shortest.hold,
-            "the earliest arrival in \(arrivals.count) rushes is \(earliest)ms and the shortest hold is \(shortest.concept) at \(shortest.hold)ms: that concept cannot be pressured at all"
+            earliest < earliestBreak,
+            "the earliest arrival in \(arrivals.count) rushes is \(earliest)ms and the earliest break any family asks for is \(earliestBreak)ms: that read cannot be pressured at all"
         )
         #expect(
             latest > longest.hold,
-            "the latest arrival in \(arrivals.count) rushes is \(latest)ms and the longest hold is \(longest.concept) at \(longest.hold)ms: that concept is pressured whenever any rep is lost, so its hold is never read"
+            "the latest arrival in \(arrivals.count) rushes is \(latest)ms and the longest hold is \(longest.concept) at \(longest.hold)ms: that family is pressured whenever any rep is lost, so its hold is never read"
         )
         for entry in measured {
             let pressured = entry.pressured.filter { $0 }.count
             #expect(
                 pressured > 0 && pressured < entry.pressured.count,
-                "\(entry.concept) at \(entry.hold)ms came back pressured on \(pressured) of \(entry.pressured.count) snaps: its verdict is a constant, not a comparison"
+                "\(entry.concept) holding to \(entry.hold)ms came back pressured on \(pressured) of \(entry.pressured.count) snaps: its verdict is a constant, not a comparison"
             )
         }
         for (earlier, later) in zip(measured, measured.dropFirst()) {
@@ -1140,7 +1277,7 @@ struct PocketTests {
                 .count
             #expect(
                 boughtByWaiting > 0,
-                "\(earlier.concept) at \(earlier.hold)ms and \(later.concept) at \(later.hold)ms were pressured on exactly the same snaps: \(later.hold - earlier.hold)ms of extra hold changed nothing"
+                "\(earlier.concept) holding to \(earlier.hold)ms and \(later.concept) holding to \(later.hold)ms were pressured on exactly the same snaps: \(later.hold - earlier.hold)ms of extra hold changed nothing"
             )
         }
     }

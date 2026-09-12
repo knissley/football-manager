@@ -105,6 +105,14 @@ public enum RulesScenario: String, CaseIterable, Sendable {
     case trailingByAPickSix = "trailing-by-a-pick-six"
 
     // Fouls during a down
+    case intentionalGroundingInsideTwoMinutes = "intentional-grounding-inside-two-minutes"
+    case intentionalGroundingOnATwoPointTryInsideTwoMinutes =
+        "intentional-grounding-on-a-two-point-try-inside-two-minutes"
+    case intentionalGroundingOnTheDownThatBringsTheWarning =
+        "intentional-grounding-on-the-down-that-brings-the-warning"
+    case intentionalGroundingAsTheHalfExpires = "intentional-grounding-as-the-half-expires"
+    case intentionalGroundingOnFourthDownInsideTwoMinutes =
+        "intentional-grounding-on-fourth-down-inside-two-minutes"
     case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
     case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
         "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
@@ -300,6 +308,16 @@ extension RulesScenario {
             return RulesScenarios.neutralZoneInfractionOnATrailingOffense
         case .trailingByAPickSix: return RulesScenarios.trailingByAPickSix
 
+        case .intentionalGroundingInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingInsideTwoMinutes
+        case .intentionalGroundingOnATwoPointTryInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingOnATwoPointTryInsideTwoMinutes
+        case .intentionalGroundingOnTheDownThatBringsTheWarning:
+            return RulesScenarios.intentionalGroundingOnTheDownThatBringsTheWarning
+        case .intentionalGroundingAsTheHalfExpires:
+            return RulesScenarios.intentionalGroundingAsTheHalfExpires
+        case .intentionalGroundingOnFourthDownInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingOnFourthDownInsideTwoMinutes
         case .defensiveHoldingOnAPlayEndingInBounds:
             return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
         case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
@@ -648,6 +666,26 @@ extension RulesScenario {
         case .neutralZoneInfractionOnATrailingOffense:
             return [
                 "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap"
+            ]
+        case .intentionalGroundingInsideTwoMinutes:
+            return [
+                "football · Rule 8-2-1, 8-2-Penalty, 4-7-1-b, 4-7-1 Item 1 · a pass grounded under pressure inside two minutes costs the down and ten yards from the previous spot, and ten seconds off a running clock, which then restarts on the ready"
+            ]
+        case .intentionalGroundingOnATwoPointTryInsideTwoMinutes:
+            return [
+                "football · Rule 3-40, 3-36-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left"
+            ]
+        case .intentionalGroundingOnTheDownThatBringsTheWarning:
+            return [
+                "football · Rule 3-41, 4-7-1, 8-2-Penalty · a pass grounded on the down that brings the two-minute warning loses the down and ten yards but no ten seconds, because the warning occurs at the conclusion of that down and the act came before it, and the clock then waits for the snap"
+            ]
+        case .intentionalGroundingAsTheHalfExpires:
+            return [
+                "football · Rule 4-8-1, 4-8-2-b, 4-7-1 Item 1 · a pass grounded on the down that runs the half out ends the half with no clock election, because an offensive foul extends nothing and there is no time in to take ten seconds from"
+            ]
+        case .intentionalGroundingOnFourthDownInsideTwoMinutes:
+            return [
+                "football · Rule 8-2-Penalty, 3-8-2, 4-7-1 Item 1, 4-3-2-g · a pass grounded on fourth down inside two minutes turns the ball over where the ten yards leave it, runs ten seconds off, and starts the clock on the ready for the new offence as after any runoff"
             ]
         case .defensiveHoldingOnAPlayEndingInBounds:
             return [

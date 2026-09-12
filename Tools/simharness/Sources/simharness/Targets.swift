@@ -367,6 +367,46 @@ struct CalibrationTarget: Sendable {
                 "Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up."
         ),
 
+        // What the quarterback did with the ball once he had worked his reads (C3, #44).
+        // None of these has a band and each says why; the figures C3's plan once carried
+        // for the first two were from memory and were withdrawn under rule 10.
+        CalibrationTarget(
+            id: "throwawaysPerDropback", label: "throwaways per dropback", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note:
+                "Dropbacks the passer threw away with nothing open, legally or as grounding, over dropbacks. Unsourced: a throwaway is a charting judgement the play-by-play does not carry, as a drop is."
+        ),
+        CalibrationTarget(
+            id: "checkdownsPerDropback", label: "checkdowns per dropback", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note:
+                "Dropbacks thrown to the checkdown rather than to a numbered read, over dropbacks. Unsourced: no feed marks a checkdown; the footprint it leaves is row:targetShare.runningBack."
+        ),
+        CalibrationTarget(
+            id: "firstReadShare", label: "throws to the first read", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note:
+                "Throws to a numbered read that went to the first one, over throws to a numbered read. No band: a read order is coaching design and nothing charts it. Printed because row:pressureRate's move under C3 is bounded by it — the ball comes out at the break of the read thrown to, and the first read's is the earliest."
+        ),
+        CalibrationTarget(
+            id: "targetShare.wideReceiver", label: "targets to wide receivers", low: nil,
+            high: nil, season: .unsourced, source: "", rulesSensitiveTo: [], gate: false,
+            unit: "%",
+            note:
+                "Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release."
+        ),
+        CalibrationTarget(
+            id: "targetShare.tightEnd", label: "targets to tight ends", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note: "As row:targetShare.wideReceiver, for the tight end. Unsourced until E8 #179."
+        ),
+        CalibrationTarget(
+            id: "targetShare.runningBack", label: "targets to backs", low: nil, high: nil,
+            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
+            note:
+                "As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown. Unsourced until E8 #179."
+        ),
+
         // The shape of the stream.
         CalibrationTarget(
             id: "playsPerGame", label: "plays per game", low: 152, high: 170,

@@ -213,6 +213,36 @@ extension Snap {
             clockRunoff: seconds)
     }
 
+    /// A pass thrown away under pressure from inside the pocket to nobody: incomplete,
+    /// with the passer flagged for intentional grounding (2025 rulebook, 8-2-1). The kind
+    /// and the pass result are what the crude resolver writes for the same event, and
+    /// the offender is the quarterback's slot.
+    public func grounding(seconds: UInt16 = 5) -> Outcome {
+        Outcome(
+            kind: .pass, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+            penalties: [
+                PenaltyRecord(
+                    foul: .intentionalGrounding, offender: PlayerSlot(0), offendingTeam: offense,
+                    yards: Foul.intentionalGrounding.yards, wasAccepted: false)
+            ],
+            clockRunoff: seconds)
+    }
+
+    /// A two-point pass grounded under pressure: the try is over, unconverted, and the
+    /// passer is flagged (2025 rulebook, 8-2-1). The kind is the try's and not the
+    /// pass's, as `twoPoint(converted:)` has it, because the down is the try whatever the
+    /// pass did (11-3-1); the offender is the quarterback's slot.
+    public func groundedTry() -> Outcome {
+        Outcome(
+            kind: .twoPointConversion, yards: 0, endedIn: .incomplete, passResult: .incomplete,
+            penalties: [
+                PenaltyRecord(
+                    foul: .intentionalGrounding, offender: PlayerSlot(0), offendingTeam: offense,
+                    yards: Foul.intentionalGrounding.yards, wasAccepted: false)
+            ],
+            clockRunoff: 0)
+    }
+
     /// A place kick that went where it was told to, with a flag on it.
     public func kick(
         _ concept: PlayConcept, good: Bool, foulBy foul: Foul, seconds: UInt16 = 5

@@ -163,7 +163,7 @@ struct VocabularyCoverageTests {
 
     /// Every foul in the book, asserted against the draw that produces it.
     ///
-    /// `Foul` has thirty-three cases, every one with its yardage, its side and its
+    /// `Foul` has thirty-four cases, every one with its yardage, its side and its
     /// automatic-first-down rule already settled in `FMCore`, and the engine threw twelve
     /// of them: there was no offensive pass interference in the league, nobody was ever
     /// called for lining up wrong, and a kicker could be run over with impunity. That is
@@ -179,7 +179,7 @@ struct VocabularyCoverageTests {
     ///
     /// Each entry drives one of the resolver's penalty draws directly, many times, and
     /// names the branches of `Foul` that draw can return. Between them they account for
-    /// all thirty-three: a foul in `Foul.allCases` that no entry claims fails below, so a
+    /// all thirty-four: a foul in `Foul.allCases` that no entry claims fails below, so a
     /// new case cannot be added without saying which draw throws it.
     ///
     /// The counts are not arbitrary. `Penalties.preSnap` gets forty thousand because its
@@ -309,6 +309,15 @@ struct VocabularyCoverageTests {
                         defender: PlayerSlot(18), receiver: PlayerSlot(2),
                         separationCentimetres: 300, routeDepth: 14, catchPoint: 30,
                         personnel: dropback, context: context, random: &random)
+                }
+            ),
+            (
+                "Penalties.whenThrowingItAway",
+                [.intentionalGrounding],
+                sweep(20_000) { random in
+                    Penalties.whenThrowingItAway(
+                        passer: PlayerSlot(0), personnel: dropback, context: context,
+                        random: &random)
                 }
             ),
             (
@@ -517,16 +526,13 @@ struct VocabularyCoverageTests {
     /// and each test reads both directions: an unregistered case never seen fails, and a
     /// registered case that turns up fails too, so the register cannot rot.
     ///
-    /// Measured with every register empty: the engine reaches 3 of 5 throw decisions,
+    /// Measured with every register empty: the engine reached 3 of 5 throw decisions,
     /// 2 of 5 tackle results, 2 of 5 block results and 2 of 6 coverage techniques, and
     /// every catch result and ball placement. The issue that closes each gap is the one
-    /// named beside it, and deleting an entry is how it reports that it landed.
-    static let unreachableThrowDecisions: [ThrowDecision: String] = [
-        .checkdown:
-            "C3 (#44) — the quarterback throws to the best-separated read on the field; he never takes the checkdown.",
-        .throwaway:
-            "C3 (#44) — pressure becomes a sack, a scramble or a throw; nothing is ever thrown away.",
-    ]
+    /// named beside it, and deleting an entry is how it reports that it landed — the
+    /// checkdown and the throwaway came off the register with C3 (#44), which is where
+    /// the quarterback learned to take one and to throw the other.
+    static let unreachableThrowDecisions: [ThrowDecision: String] = [:]
     static let unreachableCatchResults: [CatchResult: String] = [:]
     static let unreachableTackleResults: [TackleResult: String] = [
         .assisted: "C4 (#39) — the crude resolver credits a single tackler, so nobody assists.",

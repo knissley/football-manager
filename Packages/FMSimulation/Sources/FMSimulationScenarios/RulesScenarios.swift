@@ -666,6 +666,116 @@ public enum RulesScenarios {
         }
     }
 
+    /// A pass grounded under pressure inside the last two minutes of the fourth quarter,
+    /// on a down the clock was running into and that is not a fourth down, by an offence
+    /// that had the ball on the play before: the act 4-7-1 lists at (b), committed with
+    /// time in, so that what is left to watch is the ten seconds and the down.
+    static var intentionalGroundingInsideTwoMinutes: ScriptedGame {
+        ScriptedGame { snap in
+            guard snap.isScrimmage, snap.quarter == 4, (40...119).contains(snap.clock),
+                snap.clockIsRunning, snap.down != .fourth,
+                let previous = snap.previous, previous.outcome.penalties.isEmpty,
+                previous.situation.possession == snap.possession
+            else { return snap.neutral }
+            return snap.grounding()
+        }
+    }
+
+    /// A team a long way behind scores inside the last two minutes of the fourth quarter,
+    /// goes for two, and grounds the try. A try is one untimed scrimmage down (3-40), so
+    /// time is not in (3-36-3), and 4-7-1 Item 1 — the runoff for an offensive act "while
+    /// time is in" — has no ten seconds to run: the foul is enforced and the kickoff is
+    /// put in play at the clock the touchdown left. The deficit is built in the first
+    /// quarter, four touchdowns by whoever has the ball first, so that the side defending
+    /// the try leads and has no reason to turn a runoff down; a leading offence's try
+    /// hid the runoff before this scenario, because the trailing defence declined it.
+    static var intentionalGroundingOnATwoPointTryInsideTwoMinutes: ScriptedGame {
+        ScriptedGame(caller: ScriptedCaller(twoPointDecision: { _ in true })) { snap in
+            if snap.isScrimmage, snap.quarter == 1, snap.down == .first,
+                (0..<24).contains(snap.differential)
+            {
+                return snap.touchdown()
+            }
+            if snap.isScrimmage, snap.quarter == 4, (60...119).contains(snap.clock),
+                snap.clockIsRunning, snap.differential < 0
+            {
+                return snap.touchdown()
+            }
+            if snap.isTry, snap.concept == .twoPointPass, snap.quarter == 4, snap.clock < 120,
+                snap.differential < 0
+            {
+                return snap.groundedTry()
+            }
+            return snap.neutral
+        }
+    }
+
+    /// The grounding comes on the down that brings the two-minute warning: snapped with a
+    /// little over two minutes left, and running the clock through 2:00. The warning is an
+    /// automatic timeout at the conclusion of the last down snapped before two minutes
+    /// remain (3-41), so a foul during that down came before it, and 4-7-1 reaches only
+    /// the acts after it: the down and the ten yards are lost as ever, no ten seconds
+    /// are, and the clock — stopped by the warning — waits for the snap.
+    ///
+    /// The offence plays fast all game so that no two snaps are more than about twenty
+    /// seconds apart and one is sure to fall in the window; the snap is where the clock
+    /// stood less the measured huddle, and the play's own seconds are set from that to
+    /// end it under 2:00 whichever play clock the interval was counted against.
+    static var intentionalGroundingOnTheDownThatBringsTheWarning: ScriptedGame {
+        ScriptedGame(caller: ScriptedCaller(offensiveTempo: { _ in .fast })) { snap in
+            let huddle = snap.clockIsRunning ? Int(snap.huddle ?? 0) : 0
+            let snapped = Int(snap.clock) - huddle
+            guard snap.isScrimmage, snap.quarter == 4, snap.down != .fourth,
+                (121...145).contains(snapped),
+                let previous = snap.previous, previous.outcome.penalties.isEmpty
+            else { return snap.neutral }
+            return snap.grounding(seconds: UInt16(snapped - 112))
+        }
+    }
+
+    /// The grounding comes on the down that runs the first half out: a pass snapped in the
+    /// last forty seconds of the second quarter whose own seconds take the clock to zero.
+    /// The period continues until the down ends (4-8-1) and an offensive foul extends
+    /// nothing (4-8-2-b), so the half is over when the flag is enforced, time is not in,
+    /// and 4-7-1 Item 1 has neither ten seconds to run off nor a timeout to offer in their
+    /// place: no clock election is written, and the next snap is the second half's.
+    static var intentionalGroundingAsTheHalfExpires: ScriptedGame {
+        ScriptedGame { snap in
+            let huddle = snap.clockIsRunning ? Int(snap.huddle ?? 0) : 0
+            let snapped = Int(snap.clock) - huddle
+            guard snap.isScrimmage, snap.quarter == 2, snap.down != .fourth,
+                (1...40).contains(snapped),
+                let previous = snap.previous, previous.outcome.penalties.isEmpty
+            else { return snap.neutral }
+            return snap.grounding(seconds: UInt16(snapped + 3))
+        }
+    }
+
+    /// A team a long way behind grounds a pass on fourth down inside the last two minutes
+    /// of the fourth quarter. The down is lost and it was the last of the series, so the
+    /// defence takes over where the ten yards leave the ball (8-2-Penalty, 3-8-2); the act
+    /// is the offence's, after the warning and with time in, so the ten seconds come off
+    /// (4-7-1 Item 1) — the side taking the ball leads and has no reason to turn them
+    /// down — and then the clock starts on the ready for the new offence, as after any
+    /// runoff (4-3-2-g), the change of possession notwithstanding. The deficit is built in
+    /// the first quarter, four touchdowns by whoever has the ball first.
+    static var intentionalGroundingOnFourthDownInsideTwoMinutes: ScriptedGame {
+        ScriptedGame { snap in
+            if snap.isScrimmage, snap.quarter == 1, snap.down == .first,
+                (0..<24).contains(snap.differential)
+            {
+                return snap.touchdown()
+            }
+            guard snap.isScrimmage, snap.quarter == 4, (40...119).contains(snap.clock),
+                snap.clockIsRunning, snap.down == .fourth, snap.differential < 0,
+                snap.ballOn > 15,
+                let previous = snap.previous, previous.outcome.penalties.isEmpty,
+                previous.situation.possession == snap.possession
+            else { return snap.neutral }
+            return snap.grounding()
+        }
+    }
+
     /// The second snap of the game — the first with the clock running into it, since the
     /// opening kickoff leaves it dead until the snap — draws a defensive holding on a run
     /// stopped for no gain. The first period has neither a two-minute warning nor a late
