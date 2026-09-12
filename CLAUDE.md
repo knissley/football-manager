@@ -341,3 +341,7 @@ regardless. Never describe untested code as working — say plainly that it is u
 - `/feature-module` — scaffold a new feature module to the repo's layering
 - `/football-domain` — reference for football rules, terminology, roster and cap
   structure. Load it before writing sim logic or naming domain types.
+- `/orchestrator` — how the audit backlog is run: dispatching implementers to issues,
+  verifying what they report, and merging. Its second half is the standing brief every
+  implementer and reviewer is handed. Load it when driving issues from #1 to merged rather
+  than implementing one yourself.
