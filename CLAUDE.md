@@ -229,8 +229,8 @@ against the `audit-backlog` label query).
 Wave 0 runs in parallel; every wave after it changes engine behaviour and therefore the
 golden constants, so those issues run one at a time in wave order, each cut from the `main`
 the one before it produced. Not `git rebase`: pushed history is never rewritten here, and a
-branch that `main` has moved under merges `origin/main` in. Every commit on `main` is a merge
-commit.
+branch that `main` has moved under merges `origin/main` in. Measured 2026-09-12: the last forty
+commits on `main` are forty merge commits.
 
 How the backlog is dispatched, verified and merged — and the standing brief every implementer
 is handed — is the `/orchestrator` skill.

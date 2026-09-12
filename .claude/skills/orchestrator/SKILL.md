@@ -26,10 +26,11 @@ wrong. You may edit issues, split them, or file new ones — and you say so on t
 Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
 
 **`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress`,
-plus **`blocked`** — **not dispatchable**. (`done` is the fourth, and it lands on an issue
-GitHub has already closed, so no *open* issue should be carrying it.) (A `status:review` label exists and is
-carried by **nothing** — measured across all 115 backlog issues, open and closed. It is not
-part of the flow; do not start using it without deciding what it would mean.)
+plus **`blocked`** — **not dispatchable**. `done` is the fourth and it lands on an issue GitHub
+has already closed, so no *open* issue should be carrying it. (A `status:review` label also
+exists and is carried by **nothing** — measured across all 115 backlog issues, open and
+closed. It is not part of the flow; do not start using it without deciding what it would
+mean.)
 
 **`blocked` says the issue cannot be picked up. It does not say why.** There are two reasons
 and they are not the same:
