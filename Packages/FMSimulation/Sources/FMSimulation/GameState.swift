@@ -744,10 +744,17 @@ extension GameSimulator {
             // exactly as a dead-ball foul is: by the offence after the two-minute warning it
             // costs ten seconds on top of the enforcement, the play clock is set to thirty
             // and the clock restarts on the ready, with the same two alternatives (Item 1).
-            // Time is in for the whole of a down, so the question a dead-ball foul asks
-            // about the clock at the flag has one answer here. The runoff comes off the
-            // clock the down left, which is where the flag is enforced.
-            if let penalty = outcome.penalties.first, penalty.wasAccepted,
+            // Time is in for the whole of a timed down, so the question a dead-ball foul
+            // asks about the clock at the flag has one answer here — and none on a try,
+            // which is an untimed down (3-40) during which time is not in (3-3), so Item
+            // 1's "while time is in" is never met on one. Nor is "after the two-minute
+            // warning" met on the down that brings it: the warning is an automatic timeout
+            // at the conclusion of the last down snapped before two minutes remain (3-41),
+            // so an act during that down came before it, whatever the clock the down
+            // left reads. The runoff comes off the clock the down left, which is where
+            // the flag is enforced.
+            if !pendingTry, !warningTaken,
+                let penalty = outcome.penalties.first, penalty.wasAccepted,
                 penalty.offendingTeam == possession, penalty.foul.isLiveBallActThatConservesTime,
                 rules.carriesRunoff(
                     foul: penalty.foul, byOffense: true, quarter: clock.quarter,

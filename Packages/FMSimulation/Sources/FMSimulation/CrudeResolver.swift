@@ -515,9 +515,8 @@ public struct CrudeResolver: PlayResolver {
 
         /// What the passer did with the ball, and when.
         var thrown: Throw? = nil
-        /// The next read to work, and how many have been worked.
+        /// The next read to work, which is also how many have been worked.
         var cursor = 0
-        var judged = 0
         /// The last moment the passer was judged at: the break of the last read he
         /// looked at, or where pressure found him standing.
         var now = 0
@@ -528,13 +527,18 @@ public struct CrudeResolver: PlayResolver {
         /// Work the order from the cursor, stopping short of any read whose break the rush
         /// reaches first when `limit` is the arrival, so that the reads judged in a clean
         /// pocket and the reads judged under pressure are told apart by when the man
-        /// arrived and not by a flag set afterwards.
+        /// arrived and not by a flag set afterwards. A break the rush reaches *at* is
+        /// worked clean: pressure is the arrival before the ball is out
+        /// (`row:pressureRate`), a read judged at its break has the ball out then, and
+        /// the verdict below counts an arrival only when it beats the deadline — so a
+        /// read stopped short of here at the tie was a read nobody judged at all, and a
+        /// try, whose three reads share one break, went to the checkdown unread on one
+        /// snap in two and a half thousand (`test:everyThrowFollowsAReadWorked`).
         func work(until limit: Int?, underPressure: Bool) {
             while cursor < reads.count, thrown == nil, !lockedOn {
                 let (read, matchup) = reads[cursor]
-                if let limit, read.breakMillis >= limit { return }
+                if let limit, read.breakMillis > limit { return }
                 cursor += 1
-                judged += 1
                 // Judged at the break, or where he already is when the break has gone by:
                 // a read worked after the rush arrived is worked from the moment it did.
                 now = max(now, read.breakMillis)
@@ -543,7 +547,7 @@ public struct CrudeResolver: PlayResolver {
                 decisions.append(
                     .readProgression(
                         tick: UInt16(now / 100), passer: quarterback, receiver: matchup.receiver,
-                        index: UInt8(judged), separationCentimetres: Int16(matchup.separation)))
+                        index: UInt8(cursor), separationCentimetres: Int16(matchup.separation)))
                 if perceived(matchup.separation) >= Reads.threshold(forDepth: read.depthYards)
                     * window
                 {
@@ -691,7 +695,11 @@ public struct CrudeResolver: PlayResolver {
             // pressure, from wherever the arrival found him — a beat after it, because a
             // ball that leaves the instant the man arrives is a ball he did not get to,
             // and pressure is the arrival beating the ball out (`row:pressureRate`).
-            now = max(now, at + Reads.reactionMillis)
+            // Clamped to what a decision point carries, which the arrival already is
+            // (`PassRushArrival`): a beat after the latest arrival the tail can draw
+            // would not fit an `Int16`, and a moment that cannot be written is not one
+            // the record may be handed.
+            now = min(max(now, at + Reads.reactionMillis), Int(Int16.max))
             work(until: nil, underPressure: true)
         }
 

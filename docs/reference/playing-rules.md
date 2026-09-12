@@ -31,12 +31,21 @@ Which rules must be true of a game, and what checks each, is
 
 ## Rule 3 — Definitions
 
+- **3-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts on
+  the offence's runoff, and a try never meets it (3-40). —
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`
 - **3-8-2** — A series is four scrimmage downs to reach the line to gain. —
   `test:firstDown`, `test:turnoverOnDowns`
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
+- **3-40** — A try is one untimed scrimmage down, played to add one point by a kick or two
+  by a touchdown. Untimed is the word that matters to the clock: time is not in during it
+  (3-3), so an act on a try that conserves time carries no runoff. —
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`
 - **3-41** — The two-minute warning. The down under way when the clock runs past 2:00
-  finishes and the clock is then dead; it belongs to the second and fourth periods, and to
+  finishes and the clock is then dead; the warning is an automatic timeout at the
+  conclusion of that down, so an act during it came before the warning and 4-7-1 does not
+  reach it — `test:groundingOnTheDownThatBringsTheWarningRunsNothingOff`; it belongs to the second and fourth periods, and to
   the periods Rule 16 times as them — regular-season overtime (16-1-3-e) and a second or
   fourth postseason overtime period (16-1-4-h). — `test:warningBetweenDowns`,
   `test:warningDuringADown`, `test:noWarningMidHalf`, `test:warningInRegularSeasonOvertime`,
@@ -225,10 +234,15 @@ Which rules must be true of a game, and what checks each, is
   come off, the play clock goes back to 30, and the game clock restarts on the ready. The
   offence may spend a charged timeout instead, and then the clock starts on the snap. The
   defence may always decline the runoff and keep the yardage, and declining the yardage
-  declines the runoff with it. — `test:tenSeconds`,
+  declines the runoff with it. "While time is in" excludes a try, an untimed down (3-40),
+  and "after the two-minute warning" excludes the down that brings the warning (3-41). —
+  `test:tenSeconds`,
   `test:falseStartInsideTwoMinutesCostsTenSeconds`, `test:trailingDefenseDeclinesTheRunoff`,
   `test:offenseTakesATimeoutInsteadOfTheRunoff`,
-  `test:falseStartWithTheClockStoppedCostsNoTime`
+  `test:falseStartWithTheClockStoppedCostsNoTime`,
+  `test:groundingInsideTwoMinutesRunsTenSecondsOff`,
+  `test:groundedTryInsideTwoMinutesRunsNothingOff`,
+  `test:groundingOnTheDownThatBringsTheWarningRunsNothingOff`
 - **4-7-1 Item 2** — The same act by the defence is not a runoff: the play clock resets to
   40 and the clock starts on the ready unless the offence wants the snap. —
   `test:deadBallFoulBeforeTheSnapChargesNoTime`

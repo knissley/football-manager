@@ -35,8 +35,8 @@ so, then what checks it:
 - **modelling** marks a place where the engine deliberately does something simpler than the
   sport. The rule is still the rule; the note says what we do instead.
 
-A rule is not a rate. Entries 1 to 95 are rules, and a scenario is what checks one. Entries
-96 to 125 are what a league of games has to *look* like, and a harness band over a sourced
+A rule is not a rate. Entries 1 to 97 are rules, and a scenario is what checks one. Entries
+98 to 127 are what a league of games has to *look* like, and a harness band over a sourced
 season is what checks one. A band is evidence about a rate and never about a rule.
 
 ## Game length and overtime
@@ -442,10 +442,22 @@ season is what checks one. A band is evidence about a rate and never about a rul
     **modelling**: the resolver places nobody, so it draws grounding as the share of its
     throwaways under pressure that got neither the passer out of the pocket nor the ball
     past the line (8-2-1 Item 1), against his `awareness` and `underPressure`
+66. A try is one untimed scrimmage down, so time is not in during it, and the ten-second
+    runoff — which 4-7-1 Item 1 runs only for an act committed while time is in — has
+    nothing to run on a try: a two-point pass grounded inside two minutes loses the foul's
+    yardage where a foul on a try is enforced and no seconds, and the kickoff is put in play
+    at the clock the touchdown left. `[2025 · 3-40, 3-3, 4-7-1 Item 1]` —
+    `test:groundedTryInsideTwoMinutesRunsNothingOff`
+67. The two-minute warning is an automatic timeout at the conclusion of the last down
+    snapped before two minutes remain, so an act during that down was committed before the
+    warning and 4-7-1 does not reach it: a pass grounded on the down that brings the
+    warning loses the down and ten yards and no seconds, and the clock the warning stopped
+    waits for the snap. `[2025 · 3-41, 4-7-1, 8-2-Penalty]` —
+    `test:groundingOnTheDownThatBringsTheWarningRunsNothingOff`
 
 ## Where a foul is enforced from
 
-66. Half the distance to the goal is measured from the spot of enforcement, whichever spot
+68. Half the distance to the goal is measured from the spot of enforcement, whichever spot
     that is, and it is a ceiling on every distance penalty rather than only on one that
     would reach the goal line: a walk-off never carries the ball past the midpoint between
     the enforcement spot and the goal line the offending team defends. A try is no
@@ -464,42 +476,42 @@ season is what checks one. A band is evidence about a rate and never about a rul
     yards and the midpoint often is not one, so the walk-off is rounded down and the ball
     is left on the nearer whole yard the ceiling allows — the 4 from the 7, where the
     article's midpoint is the three and a half. The article says nothing about rounding.
-67. Every foul is enforced from one of the spots the book lists — the previous spot, the
+69. Every foul is enforced from one of the spots the book lists — the previous spot, the
     spot of the foul, the succeeding spot, the dead-ball spot and the rest — and never from
     somewhere convenient. `[2025 · 14-3-4]` — `test:enforcementFamilies`
-68. A flag that comes down before the ball is snapped walks off from the succeeding spot
+70. A flag that comes down before the ball is snapped walks off from the succeeding spot
     and the same down is played again; one that comes down as it is snapped walks off from
     the previous spot instead, and the down is played over. Either way, if enforcing the
     penalty produces a first down, it is a first down instead. `[2025 · 14-4-1]` —
     `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `test:preSnapKillsThePlay`
-69. The basic spot for a foul during a run not followed by a change of possession is the
+71. The basic spot for a foul during a run not followed by a change of possession is the
     dead-ball spot, so a facemask at the end of a 20-yard run is fifteen more from where the
     run ended, and a first down. `[2025 · 14-3-5-a, 14-3-6, 12-2-15]` —
     `test:facemaskAtTheEndOfARun`, `test:facemaskAtTheEndOfARunIsEnforcedFromTheEndOfTheRun`
-70. Under the three-and-one method a defensive foul during a run is enforced from the basic
+72. Under the three-and-one method a defensive foul during a run is enforced from the basic
     spot and so is an offensive foul in advance of it, while an offensive foul behind the
     basic spot is enforced from the spot of the foul. `[2025 · 14-3-6]` —
     `test:blockInTheBackDuringARun`, `test:holdingOnAGain`
-71. Its exception: an offensive foul behind the line of scrimmage is enforced from the
+73. Its exception: an offensive foul behind the line of scrimmage is enforced from the
     previous spot, and so is a defensive one when the basic spot is behind the line.
     `[2025 · 14-3-6]` — `test:blockInTheBackBehindTheLine`, `test:contactFoulOnALoss`
-72. Between the snap and the moment a forward pass from behind the line is over, a foul by
+74. Between the snap and the moment a forward pass from behind the line is over, a foul by
     either team is enforced from the previous spot; the catch is the boundary, and what
     follows it is a run. `[2025 · 8-6-1]` — `test:roughingOnAnIncompletion`,
     `test:enforcementFamilies`
-73. A personal foul by the defence before a completion is enforced from the dead-ball spot
+75. A personal foul by the defence before a completion is enforced from the dead-ball spot
     or the previous spot, whichever favours the offence. `[2025 · 8-6-1-d]` —
     `test:roughingOnACompletion`
-74. Defensive pass interference is a first down at the spot of the foul.
+76. Defensive pass interference is a first down at the spot of the foul.
     `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:spotFouls`, `test:interferenceDownfield`
-75. Defensive pass interference in the end zone is first and goal at the 1, or half the
+77. Defensive pass interference in the end zone is first and goal at the 1, or half the
     distance to the goal when the previous spot was inside the 2.
     `[2025 · 8-5-Penalty, 8-6-1-b]` — `test:interferenceInTheEndZone`,
     `test:interferenceInTheEndZoneSpotsAtTheOne`,
     `test:interferenceInTheEndZoneFromInsideTheTwo`
-76. Offensive pass interference is ten yards from the previous spot, and the down is
+78. Offensive pass interference is ten yards from the previous spot, and the down is
     replayed. `[2025 · 8-5-Penalty]` — `test:offensiveInterference`
-77. A defensive interference flag is the reason the pass was not caught: the foul is
+79. A defensive interference flag is the reason the pass was not caught: the foul is
     contact past the first yard downfield that spoils an eligible receiver's chance at the
     ball, and the defence's restrictions run from the throw until the ball is touched, so
     on the matchup it is called a flag and a catch cannot both have happened.
@@ -509,18 +521,18 @@ season is what checks one. A band is evidence about a rate and never about a rul
     which is its own simplification and not the article's — 8-5-1 protects every eligible
     receiver — so what it cannot produce is a flag away from the ball, on a matchup the
     throw was never going to.
-78. Contact that would otherwise be interference is permissible when the pass is clearly
+80. Contact that would otherwise be interference is permissible when the pass is clearly
     uncatchable by the players involved, the article's own exception being the offence's
     blocking downfield. `[2025 · 8-5-3-c, 8-3-2, 8-5-4]` —
     `test:noInterferenceOnAnUncatchableBall`
     **modelling**: the offence's downfield block is not drawn as an act of its own, so the
     exception has nothing to except and neither kind is called on a throw the record says
     nobody could reach.
-79. A shove or a push-off that buys a receiver room is interference by the offence, and the
+81. A shove or a push-off that buys a receiver room is interference by the offence, and the
     penalty takes ten yards from the previous spot — which brings back whatever the down
     produced, a catch included. `[2025 · 8-5-2, 8-5-Penalty]` —
     `test:offensiveInterferenceCanSitOnACatch`, `test:offensiveInterference`
-80. Illegal contact is a foul only while the passer is still back there with it. Both
+82. Illegal contact is a foul only while the passer is still back there with it. Both
     halves of the restriction — the chuck inside five yards and the contact beyond them —
     are written for a down the man who took the snap is spending in the pocket holding the
     ball, and the article that ends them is careful about which fouls go with them: a
@@ -543,21 +555,21 @@ season is what checks one. A band is evidence about a rate and never about a rul
     not. The engine has no illegal cut block to end, and the giving-up clause it satisfies
     by construction, since the coverage contact is drawn before the quarterback has
     decided anything at all
-81. Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
+83. Unsportsmanlike conduct after the play is fifteen yards from the succeeding spot, and an
     automatic first down when it is the defence's. `[2025 · 12-3-1]` —
     `test:conductFoulAfterThePlay`
-82. When a run with a foul in it is followed by a change of possession, a personal foul by
+84. When a run with a foul in it is followed by a change of possession, a personal foul by
     the team that lost the ball is enforced from the dead-ball spot and the defence keeps
     the ball. `[2025 · 14-4-3-b]` — `test:facemaskByTheFormerOffenseOnAReturn`,
     `test:blockInTheBackOnAReturn`
-83. A defensive foul during a touchdown leaves the score standing; an offensive contact foul
+85. A defensive foul during a touchdown leaves the score standing; an offensive contact foul
     during its own touchdown nullifies it, enforced from the previous spot.
     `[2025 · 14-2-3, 14-3-6]` — `test:defensiveFoulOnATouchdown`,
     `test:offensiveContactFoulOnItsOwnScore`
-84. The non-penalised team takes whichever of the two outcomes is better for it, and a
+86. The non-penalised team takes whichever of the two outcomes is better for it, and a
     double foul with no change of possession offsets and replays the down.
     `[2025 · 14-5-1]` — `test:flagsAreEnforced`
-85. A personal or unsportsmanlike foul during a down in which the opponent kicks a field
+87. A personal or unsportsmanlike foul during a down in which the opponent kicks a field
     goal or scores a safety is enforced on the free kick, and one during a touchdown is
     enforced on the try; a dead-ball foul after any score goes on whichever of the two
     follows it. `[2025 · 14-2-3, 11-3-3 Item 1, 11-3-3 Item 7]` —
@@ -585,7 +597,7 @@ season is what checks one. A band is evidence about a rate and never about a rul
     `[2025 · 12-2-12]` —
     `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
     `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`
-86. The basic spot when a **run** is followed by a change of possession is the spot where
+88. The basic spot when a **run** is followed by a change of possession is the spot where
     possession was lost, and a defensive foul there gives the ball back to the offence
     before enforcement — unless that spot is **behind the line of scrimmage**, in which
     case a defensive foul, whether it was behind the line or beyond it, comes off the
@@ -616,7 +628,7 @@ season is what checks one. A band is evidence about a rate and never about a rul
     then fumbled away** is enforced from the fumble, where 14-4-5-d gives the previous spot
     if the foul preceded the catch — the record cannot tell the two apart.
     [#58](https://github.com/knissley/football-manager/issues/58) carries both
-87. A pass grounded costs the down as well as ten yards from the previous spot — second and
+89. A pass grounded costs the down as well as ten yards from the previous spot — second and
     ten becomes third and twenty — and on fourth down the lost down is the series, the
     defence taking over where the walk-off leaves the ball; half the distance caps the ten.
     `[2025 · 8-2-1, 8-2-Penalty, 14-2-1]` —
@@ -627,7 +639,7 @@ season is what checks one. A band is evidence about a rate and never about a rul
 
 ## Kickoffs and onside kicks
 
-88. An onside kick the kicking team legally recovers is its ball, first and ten, where the
+90. An onside kick the kicking team legally recovers is its ball, first and ten, where the
     play died, and it may not recover before the ball reaches the receiving team's
     restraining line ten yards on, so either side comes up with it at or beyond there.
     `[2025 · 6-1-4-c, 6-1-4-d, 6-1-6, 6-1-6-e, 6-1-6-g]` —
@@ -638,12 +650,12 @@ season is what checks one. A band is evidence about a rate and never about a rul
     goal line scores. `[2025 · 8-7-3 Item 1, 11-2-1, 11-3-1, 11-3-4]` —
     `test:kickoffFumbledAndCarriedInIsTheKickersTouchdown`; **modelling**: the crude
     resolver never fumbles a kick, so only a script reaches it
-89. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
+91. Only a trailing team may attempt an onside kick, it must declare it, and it may do so at
     any point in the game. `[2025 · 6-1-1-c, 6-1-6]` —
     `test:onsideKicksAreDeclaredWheneverTrailing`, `test:onsideDeclarationFollowsTheBook`;
     the declaration itself is not in the stream, so what the engine models is the rule's
     two conditions and not the notice to the Referee
-90. A kickoff is from the kicking team's 35 and a safety kick from its 20 — unless a
+92. A kickoff is from the kicking team's 35 and a safety kick from its 20 — unless a
     distance penalty has moved that line — and the landing zone is the receiving team's 20
     out to its goal line. `[2025 · 6-1-2-a, 6-1-2-b, 6-1-2-e]` —
     `test:theLandingZoneIsTheLastTwenty`, `test:aPenaltyMovesTheKickAndChangesIt`,
@@ -651,36 +663,36 @@ season is what checks one. A band is evidence about a rate and never about a rul
     the formation article requires of it `[2025 · 6-1-2-c, 6-1-2-d, 6-1-3-b]` are
     **not yet enforced** and no issue carries them: nobody lines up for a free kick in the
     crude resolver, so there is no alignment to be illegal
-91. A kick that reaches the end zone without coming down in the landing zone first is a
+93. A kick that reaches the end zone without coming down in the landing zone first is a
     touchback at the receiving team's 35. `[2025 · 6-1-5]` —
     `test:kickoffTouchbackIsAtTheThirtyFive`, `test:aKickoffTouchbackOutrunsAPunts`. The
     book's other touchback, at the 20 for a kick that comes down in the landing zone first
     `[2025 · 6-1-5-a]`, is **not yet enforced** and no issue carries it: the crude resolver
     returns every kick it puts in the landing zone, so it never reaches that case, and the
     spatial resolver is where a kick that bounces into the end zone comes from
-92. A kick that goes out of bounds or comes down short of the landing zone hands the
+94. A kick that goes out of bounds or comes down short of the landing zone hands the
     receiving team its choice of spots, 25 yards on from the kick being the usual one.
     `[2025 · 6-2-4]` — `test:aKickOutOfBoundsIsTwentyFiveYardsOn`,
     `test:aShortKickIsSpottedWhereItLiesWhenThatIsNearer`,
     `test:aShortOrOutOfBoundsKickIsGivenAway`. The safety kick's 30 rather than 25 is
     **not yet enforced** and no issue carries it: `Rules.advance` is a function of the
     situation and the outcome, and neither says which kind of free kick this was
-93. A returned kick changes hands where the return ended, and a kick returned all the way is
+95. A returned kick changes hands where the return ended, and a kick returned all the way is
     a touchdown for the returning team. `[2025 · 6-1-4]` — `test:returnedKickChangesHands`,
     `test:kickReturnedForScore`
 
 ## The field, the series and the stream
 
-94. A series is four scrimmage downs to reach the line to gain, which sits ten yards
+96. A series is four scrimmage downs to reach the line to gain, which sits ten yards
     downfield of where the series began or on the goal line when that is closer; reaching it
     starts a new series and failing on fourth down hands the ball over at the spot.
     `[2025 · 3-8-2, 3-8-3, 7-3-1]` — `test:firstDown`, `test:firstAndGoal`,
     `test:turnoverOnDowns`, `test:fourthDownConversion`, `test:gainMovesForward`,
     `test:lossMovesBack`
-95. Every ball is on a legal spot, in a legal down and distance, in a period the rules
+97. Every ball is on a legal spot, in a legal down and distance, in a period the rules
     define. `[2025 · 1-1-1, 3-8-2, 4-1-1]` — `test:spotsAreAlwaysLegal`,
     `test:situationsAreValid`, `test:streamIsOrdered`
-96. **Contract**, not a rule: the package a defensive call names is the package the
+98. **Contract**, not a rule: the package a defensive call names is the package the
     situation says is on the field. Both are held by value in the record so a reader
     years later can ask what was called ([ADR-0010](adr/0010-plays-designs-and-calls.md)),
     and a record that answers the question two ways cannot be read. —
@@ -693,77 +705,77 @@ The band and the season are in the [calibration table](match-engine.md#calibrati
 what every one of them was derived from is in
 [`reference/calibration-sources.md`](reference/calibration-sources.md).
 
-97. A team scores about what a real team scores, and the game's points come mostly from
+99. A team scores about what a real team scores, and the game's points come mostly from
     touchdowns and then from field goals. Games finish about as far apart as real ones, and
     about as much of that distance is one club being better than the other. —
     `row:points`, `row:pointsFromTouchdowns`, `row:pointsFromFieldGoals`,
     `row:gamesWithin3`, `row:gamesWithin7`, `row:gamesBy14plus`, `row:marginSigma`,
     `row:betweenTeamSigma`
-98. Games end tied about as rarely as they really do, reach overtime about as often, and
+100. Games end tied about as rarely as they really do, reach overtime about as often, and
     play about as much of the overtime period. — `row:tiesPerGame`, `row:overtimeRate`,
     `row:overtimeLength`
-99. A team throws for and runs for about what a real team does, at about the same yards a
+101. A team throws for and runs for about what a real team does, at about the same yards a
     carry, a completion, an attempt and a play. — `row:passingYards`, `row:rushingYards`,
     `row:yardsPerCarry`, `row:yardsPerAttempt`, `row:yardsPerCompletion`, `row:yardsPerPlay`
-100. Passes are completed, pressured, sacked and intercepted at about the real rates. —
+102. Passes are completed, pressured, sacked and intercepted at about the real rates. —
     `row:completionPercentage`, `row:sackRate`, `row:interceptionRate`, `row:pressureRate`,
     `row:completionsZeroOrFewer`
-101. A game holds about as many snaps as a real one, and a team runs about as many plays from
+103. A game holds about as many snaps as a real one, and a team runs about as many plays from
     scrimmage. — `row:playsPerGame`, `row:playsFromScrimmage`
-102. Third down comes up at about the real distance and is converted at about the real rate,
+104. Third down comes up at about the real distance and is converted at about the real rate,
     and first down gains about what it really gains. — `row:thirdDownDistance`,
     `row:thirdDownConversion`, `row:firstDownGain`, `row:firstDownsPerTeamGame`
-103. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
+105. The shape of a carry is right and not just its mean: about as many are stuffed, gain two
     or fewer, reach ten, and break twenty. — `row:carriesStuffed`, `row:carries2orFewer`,
     `row:carries10plus`, `row:carries20plus`
-104. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
+106. The shape of a dropback is right too — losses, no-gains, ten, twenty and forty-plus. —
     `row:dropbackLoss`, `row:dropbackNoGain`, `row:dropback10plus`, `row:dropback20plus`,
     `row:dropback40plus`
-105. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
+107. Drives end in a punt, a touchdown or on downs at about the real rates, and there are
     about as many of them a game. — `row:driveEndPunt`, `row:driveEndTouchdown`,
     `row:driveEndDowns`, `row:drivesPerTeamGame`, `row:playsPerDrive`
-106. The shape of a drive is right: three-and-outs, short drives, middling ones and long
+108. The shape of a drive is right: three-and-outs, short drives, middling ones and long
     ones. — `row:drives3orFewer`, `row:drives4to7`, `row:drives8plus`, `row:threeAndOut`
-107. A trip inside the 20 ends in a touchdown about as often as it really does. —
+109. A trip inside the 20 ends in a touchdown about as often as it really does. —
     `row:redZoneTouchdownRate`
-108. Drives start about where they really start, and about as often inside their own half. —
+110. Drives start about where they really start, and about as often inside their own half. —
      `row:averageStart.2025`, `row:averageStart.2024`, `row:ownHalfStarts.2025`,
      `row:ownHalfStarts.2024`, `row:snapsInsideOwn10`
-109. Teams punt about as often, for about the real gross and net, about as many punts come
+111. Teams punt about as often, for about the real gross and net, about as many punts come
      back, and a returned kick comes back about as far. — `row:puntsPerTeamGame`,
      `row:netPunt`, `row:grossPunt`, `row:puntsReturned`, `row:puntReturnYards`,
      `row:kickoffReturnYards.2025`, `row:kickoffReturnYards.2024`; all four distances are
      read off the record, which says where every kick was fielded —
      `test:kickDistancesAreDerivable`, `test:onlyKicksAreFielded`
-110. Field goals are attempted about as often, from about the real spread of distances, and
+112. Field goals are attempted about as often, from about the real spread of distances, and
      made at about the real rate from each. — `row:fieldGoalsPerTeamGame`,
      `row:fieldGoalsUnder30`, `row:fieldGoals30to39`, `row:fieldGoals40to49`,
      `row:fieldGoals50plus`, `row:fieldGoalAttemptsUnder30`, `row:fieldGoalAttempts30to39`,
      `row:fieldGoalAttempts40to49`, `row:fieldGoalAttempts50plus`
-111. Extra points are made, and two-point tries taken and converted, at about the real
+113. Extra points are made, and two-point tries taken and converted, at about the real
      rates. — `row:extraPointsMade`, `row:twoPointTries`, `row:twoPointConversion`
-112. Fourth down is punted, kicked and gone for at about the real rates, and converted at
+114. Fourth down is punted, kicked and gone for at about the real rates, and converted at
      about the real one. — `row:fourthDownPunted`, `row:fourthDownKicked`,
      `row:fourthDownWentForIt`, `row:fourthDownAttempts`, `row:fourthDownConversion`,
      `row:fourthAndOneWentForIt`
-113. The ball is turned over, lost and fallen on at about the real rates, and about as many
+115. The ball is turned over, lost and fallen on at about the real rates, and about as many
      touchdowns are scored by somebody other than the offence. — `row:turnovers`,
      `row:fumblesLost`, `row:fumblesKept`, `row:defensiveReturnTouchdowns`,
      `row:nonOffensiveTouchdowns.2025`, `row:nonOffensiveTouchdowns.2024`,
      `row:kickReturnTouchdowns.2025`, `row:kickReturnTouchdowns.2024`, `row:safeties`
-114. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
+116. Kickoffs are returned and taken for touchbacks at the rates the kickoff rule in force
      produces, and onside kicks are attempted and recovered at about the real rates. —
      `row:kickoffsReturned.2025`, `row:kickoffsReturned.2024`, `row:kickoffTouchbacks.2025`,
      `row:kickoffTouchbacks.2024`, `row:onsideKicks.2025`, `row:onsideKicks.2024`,
      `row:onsideRecovery.2025`, `row:onsideRecovery.2024`
-115. About as many flags fly as really do, spread over the fouls that really get called, and
+117. About as many flags fly as really do, spread over the fouls that really get called, and
      the road team commits a few more pre-snap fouls than the home team. —
      `row:penaltiesPerGame`, `row:penalty.offensiveHolding`, `row:penalty.falseStart`,
      `row:penalty.defensivePassInterference`, `row:penalty.defensiveHolding`,
      `row:penalty.unnecessaryRoughness`, `row:penalty.delayOfGame`, `row:penalty.offside`,
      `row:penalty.illegalFormation`, `row:penalty.roughingThePasser`,
      `row:penalty.neutralZoneInfraction`, `row:preSnapRoadVsHome`
-116. Personnel looks like the sport's: 11 personnel against nickel most of the time, the
+118. Personnel looks like the sport's: 11 personnel against nickel most of the time, the
      four-back front against a second back and on most but not all of the snaps with a
      second tight end, and a run gains more into a box it does not outnumber by much. —
      `row:personnel11`, `row:packageNickel`, `row:packageBase`, `row:ypcEvenCount`,
@@ -782,10 +794,10 @@ what every one of them was derived from is in
      ([#49](https://github.com/knissley/football-manager/issues/49)). The durable check that
      no graded row reads `n/a` silently is
      [#42](https://github.com/knissley/football-manager/issues/42)'s.
-117. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
+119. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
-118. Every man on the field is in the record, and each position group takes about as many
+120. Every man on the field is in the record, and each position group takes about as many
      snaps a game as it really does: one quarterback and five linemen a snap, a back and a
      tight end and change, close to three receivers, a front seven of six or seven and
      four or five defensive backs. — `row:snaps.quarterback`, `row:snaps.backfield`,
@@ -795,20 +807,20 @@ what every one of them was derived from is in
      `test:quarterbackSnapsSumToScrimmagePlays`; and every flag names a player the record
      identifies, on the offending team and on its side of the ball, whether or not the
      play credited him — `test:offendersAreReal`
-119. Over a season, team win totals spread about as widely as they really do. —
+121. Over a season, team win totals spread about as widely as they really do. —
      `row:winTotalSigma`, which cannot be measured before there is a schedule, at M3
-120. The middle of the run distribution is a large part of it: the ordinary carry gains three
+122. The middle of the run distribution is a large part of it: the ordinary carry gains three
      to nine yards, of which there are at least an even share of the three kinds and more
      than there are carries of ten or more. Derived from `row:carries2orFewer` and
      `row:carries10plus` rather than sourced on its own — every carry falls in exactly one
      of three, so those two banded at 40.6–46.5 and 9.6–11.2 put the middle between 42.3
      and 49.8, with no band of its own in `Targets.swift`. **That derivation runs both ways,
-     so the two rows of entry 101 grade the 42.3 floor between them** over four hundred
+     so the two rows of entry 103 grade the 42.3 floor between them** over four hundred
      games at two seeds, and the test asserts the two weaker claims above, which forty games
      can resolve and the bands imply with room. The harness prints the whole histogram and
      the derived middle beside them, ungraded. — `test:theMiddleIsTheLargestPartOfTheRunGame`,
      `row:carries2orFewer`, `row:carries10plus`
-121. A carry of twenty yards or more has a broken tackle in front of it. A long run is a man
+123. A carry of twenty yards or more has a broken tackle in front of it. A long run is a man
      beaten, not a hole measured: a tail drawn off the blocking puts the yards on the
      offensive line and leaves the carrier's contact balance worth nothing where it should
      show most. — `test:aBreakawayIsAlwaysABrokenTackle`, and yards do not fall as the hole
@@ -816,16 +828,16 @@ what every one of them was derived from is in
 
 ## What the harness cannot check yet
 
-122. A completion is a completion whether it gained a yard, none, or lost one. The record
+124. A completion is a completion whether it gained a yard, none, or lost one. The record
      says a pass was caught, and the harness reads that rather than inferring it from
      positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
      `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-123. Players miss games at about the rate they really do, and heavy rain takes points off a
+125. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
-124. Receivers drop about as many as they really do, defenders knock away about as many,
+126. Receivers drop about as many as they really do, defenders knock away about as many,
      and a defensive interference flag is thrown about as often as one is enforced. The
      first two have no band anybody has cited — the play-by-play charts neither a drop nor
      a break-up — and the third is a count of flags rather than of enforced fouls, which
@@ -837,7 +849,7 @@ what every one of them was derived from is in
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail, and the
      rates themselves are
      [#49](https://github.com/knissley/football-manager/issues/49)'s
-125. A defensive interference flag on a pass that was then completed is the engine
+127. A defensive interference flag on a pass that was then completed is the engine
      contradicting itself rather than a rate to be sourced, so `row:interferenceOnCompletions`
      carries a band of zero that no season stands behind and is graded by
      `test:interferenceMeansNoCatch` instead. `[2025 · 8-5-1]` —

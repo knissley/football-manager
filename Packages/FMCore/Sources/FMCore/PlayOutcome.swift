@@ -222,8 +222,9 @@ public enum Foul: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case offensivePassInterference = 42
     case illegalContact = 43
     /// A passer about to lose ground to the rush who throws a forward pass nowhere near
-    /// any receiver who was eligible at the snap (2025 rulebook, 8-2-1). The one foul in
-    /// the book that costs the down: ten yards from the previous spot and the down with
+    /// any receiver who was eligible at the snap (2025 rulebook, 8-2-1). The one foul the
+    /// engine draws that costs the down — the book has others, an illegal forward pass
+    /// among them (8-1-Penalty) — ten yards from the previous spot and the down with
     /// them (8-2-Penalty), and inside two minutes it is one of the acts that conserve
     /// time, so it carries the runoff on top (4-7-1-b).
     case intentionalGrounding = 44

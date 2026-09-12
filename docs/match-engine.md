@@ -253,13 +253,19 @@ by the share of snaps thrown to the first read, which the harness prints as
 
 *How the passer works it.* Each read is judged at its break on a perceived separation that
 carries his own error — normal, with a standard deviation of 60 cm less half his
-`awareness` — against a threshold set by the depth of the throw and by nothing about him:
-100 cm short, 110 medium, 125 deep. A read that clears is thrown to at its break. One that
+`awareness`, and never under 4 cm — against a threshold set by the depth of the throw and
+by nothing about him: 100 cm short, 110 medium, 125 deep, every one of them multiplied by
+the three fifths the coverage loop scales a try's separation by when the snap is a try. A
+read that clears is thrown to at its break. One that
 does not is left behind with a chance of 0.55 plus 0.005 a point of awareness above sixty
 in a clean pocket, multiplied by 0.4 plus 0.006 a point of `underPressure` above sixty once
 the rush has arrived; otherwise he stays locked on it. When the rush arrives before the ball
 is out, the scramble and the sack are drawn as they always were, and a passer still
-standing works what is left under pressure, a beat after the arrival. With nothing open
+standing works what is left under pressure, a beat after the arrival. An arrival at the
+instant of a break is not before the ball is out: that read is judged clean, which is the
+tie rule `test:everyThrowFollowsAReadWorked` holds, and without it a try, whose reads share
+one break, went to the checkdown with nobody read on one snap in two and a half thousand.
+With nothing open
 the checkdown is the next look, a perceived 45 cm being enough for a ball that short and
 that late, and after it the ball is thrown away — legally, or as intentional grounding
 (8-2-1), which is drawn against his awareness and his composure because the resolver places

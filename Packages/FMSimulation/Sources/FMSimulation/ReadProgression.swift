@@ -181,14 +181,17 @@ struct ReadProgression: Sendable, Hashable {
     /// why a read point's index is its place in the order *as worked* rather than in the
     /// table.
     func resolvedReads(in lineup: Lineup) -> [(read: Read, receiver: PlayerSlot)] {
-        reads.compactMap { read in
-            read.role.slot(in: lineup).map { (read, $0) }
+        let runners = lineup.routeRunners()
+        return reads.compactMap { read in
+            read.role.slot(among: runners, in: lineup).map { (read, $0) }
         }
     }
 
     /// The checkdown's man, when the family has one and the grouping fielded him.
     func resolvedCheckdown(in lineup: Lineup) -> (checkdown: Checkdown, receiver: PlayerSlot)? {
-        guard let checkdown, let slot = checkdown.role.slot(in: lineup) else { return nil }
+        guard let checkdown,
+            let slot = checkdown.role.slot(among: lineup.routeRunners(), in: lineup)
+        else { return nil }
         return (checkdown, slot)
     }
 }
@@ -201,7 +204,12 @@ extension ReadProgression.Role {
     /// Read off `Lineup.routeRunners()`, which is the order the coverage matches, so a
     /// read and its matchup name the same man.
     func slot(in lineup: Lineup) -> PlayerSlot? {
-        let runners = lineup.routeRunners()
+        slot(among: lineup.routeRunners(), in: lineup)
+    }
+
+    /// The same, given the route runners already read off the lineup — once per snap
+    /// rather than once per role, since the order is what every role is read against.
+    func slot(among runners: [PlayerSlot], in lineup: Lineup) -> PlayerSlot? {
         let receivers = runners.filter { lineup.position(at: $0) == .wideReceiver }
         switch self {
         case .firstReceiver: return receivers.count > 0 ? receivers[0] : nil
