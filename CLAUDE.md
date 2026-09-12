@@ -210,6 +210,31 @@ outcome they cannot cite. Details under Conventions → Tests.
   eighteen ties in four hundred games on every run for a week. Nobody had written down
   that the real number is two.
 
+## How work flows: design, then orchestrate
+
+The project runs in one loop. The **designer** (`/game-designer`) owns what the game is
+for: `docs/vision.md`, `docs/roadmap.md`, `docs/design-decisions.md` and `docs/design/`.
+The **orchestrator** (`/orchestrator`) owns how and when work lands: the tracker issue, the
+issues on it, the branches and the PRs. Ideas are worked through in **grilling sessions**
+(`/design-grill`), one idea each, which produce a brief and edit nothing. An **audit** in
+a fresh session gates every milestone's exit. The owner sits between each pair, and the
+process is written down in [`docs/design/README.md`](docs/design/README.md). Both
+trackers keep their state in the body and their history in comments.
+
+Three rules keep the two halves from colliding:
+
+- **Design reaches implementation as issues**, in the standard body with a `Where it
+  fits` line, filed after the owner has read them on a review page. Never as a doc edit
+  an agent is expected to notice, never as a message that bypasses the owner.
+- **Two writers never edit one file at once.** The designer does not touch a file named in
+  an in-progress issue's Files list, or one the tracker's Current state names as in
+  flight; an agent working an issue does not edit the vision, the roadmap's plan, or a
+  decision's text beyond what its issue says.
+- **Every milestone has a stream list.** Before a milestone opens, the designer has
+  written the facts the record must carry for it and checked them against
+  `docs/play-record.md`. The contract stops moving after M1 by design, so a missing fact
+  is found before M1 closes or it costs a rewrite.
+
 ## Current work: the audit backlog
 
 The tracker is **#1**, and **its body is the state** — the Current state section at the top
@@ -230,7 +255,8 @@ Wave 0 runs in parallel; every wave after it changes engine behaviour and theref
 golden constants, so those issues run one at a time in wave order, each cut from the `main`
 the one before it produced. Not `git rebase`: pushed history is never rewritten here, and a
 branch that `main` has moved under merges `origin/main` in. Measured 2026-09-12: the last forty
-commits on `main` are forty merge commits.
+commits on `main`'s first-parent chain are all merges (`git log -40 --first-parent`; plain
+`git log -40` shows six, the rest being the branches' own commits).
 
 How the backlog is dispatched, verified and merged — and the standing brief every implementer
 is handed — is the `/orchestrator` skill.
@@ -366,7 +392,10 @@ regardless. Never describe untested code as working — say plainly that it is u
 - `/feature-module` — scaffold a new feature module to the repo's layering
 - `/football-domain` — reference for football rules, terminology, roster and cap
   structure. Load it before writing sim logic or naming domain types.
-- `/orchestrator` — how the audit backlog is run: dispatching implementers to issues,
-  verifying what they report, and merging. Its second half is the standing brief every
-  implementer and reviewer is handed. Load it when driving issues from #1 to merged rather
-  than implementing one yourself.
+- `/orchestrator` — how a filed backlog is run from its tracker (#1 today): dispatching
+  implementers to issues, reviewing and verifying what they report, and merging. Its second
+  half is the standing brief every implementer and reviewer is handed. Load it when driving
+  issues from a tracker to merged rather than implementing one yourself.
+- `/game-designer` — the designer: review the state of the design, judge a brief, deepen
+  the milestone ahead, open a milestone as a backlog
+- `/design-grill` — work one idea into a brief, in a fresh session; edits nothing
