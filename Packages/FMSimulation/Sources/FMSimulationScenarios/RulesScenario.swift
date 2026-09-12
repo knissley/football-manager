@@ -106,6 +106,10 @@ public enum RulesScenario: String, CaseIterable, Sendable {
 
     // Fouls during a down
     case intentionalGroundingInsideTwoMinutes = "intentional-grounding-inside-two-minutes"
+    case intentionalGroundingOnATwoPointTryInsideTwoMinutes =
+        "intentional-grounding-on-a-two-point-try-inside-two-minutes"
+    case intentionalGroundingOnTheDownThatBringsTheWarning =
+        "intentional-grounding-on-the-down-that-brings-the-warning"
     case defensiveHoldingOnAPlayEndingInBounds = "defensive-holding-on-a-play-ending-in-bounds"
     case defensiveHoldingInsideFiveMinutesOfTheFourthQuarter =
         "defensive-holding-inside-five-minutes-of-the-fourth-quarter"
@@ -303,6 +307,10 @@ extension RulesScenario {
 
         case .intentionalGroundingInsideTwoMinutes:
             return RulesScenarios.intentionalGroundingInsideTwoMinutes
+        case .intentionalGroundingOnATwoPointTryInsideTwoMinutes:
+            return RulesScenarios.intentionalGroundingOnATwoPointTryInsideTwoMinutes
+        case .intentionalGroundingOnTheDownThatBringsTheWarning:
+            return RulesScenarios.intentionalGroundingOnTheDownThatBringsTheWarning
         case .defensiveHoldingOnAPlayEndingInBounds:
             return RulesScenarios.defensiveHoldingOnAPlayEndingInBounds
         case .defensiveHoldingInsideFiveMinutesOfTheFourthQuarter:
@@ -655,6 +663,14 @@ extension RulesScenario {
         case .intentionalGroundingInsideTwoMinutes:
             return [
                 "football · Rule 8-2-1, 8-2-Penalty, 4-7-1-b, 4-7-1 Item 1 · a pass grounded under pressure inside two minutes costs the down and ten yards from the previous spot, and ten seconds off a running clock, which then restarts on the ready"
+            ]
+        case .intentionalGroundingOnATwoPointTryInsideTwoMinutes:
+            return [
+                "football · Rule 3-40, 3-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left"
+            ]
+        case .intentionalGroundingOnTheDownThatBringsTheWarning:
+            return [
+                "football · Rule 3-41, 4-7-1, 8-2-Penalty · a pass grounded on the down that brings the two-minute warning loses the down and ten yards but no ten seconds, because the warning occurs at the conclusion of that down and the act came before it, and the clock then waits for the snap"
             ]
         case .defensiveHoldingOnAPlayEndingInBounds:
             return [

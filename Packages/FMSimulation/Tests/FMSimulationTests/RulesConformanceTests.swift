@@ -1443,6 +1443,95 @@ struct RulesConformanceTests {
         )
     }
 
+    /// A try is one untimed scrimmage down (3-40), so time is not in during it (3-3), and
+    /// 4-7-1 Item 1 runs its ten seconds only for an act committed "while time is in".
+    /// The grounding is still a foul, enforced where the rules put a foul on a try; what
+    /// the clock does is nothing. Before this test the live-ball branch put 4-7-1's
+    /// question with the clock assumed running, because time is in for the whole of a
+    /// timed down, and a trailing team's grounded two-point try lost ten seconds it could
+    /// not lose — hidden on a leading team's try, whose trailing defence declines the
+    /// runoff anyway.
+    @Test(
+        "football · Rule 3-40, 3-3, 4-7-1 Item 1 · a two-point try grounded inside two minutes carries no ten-second runoff, because a try is an untimed down and time is not in, and the kickoff is put in play at the clock the touchdown left",
+        .tags(.football)
+    )
+    func groundedTryInsideTwoMinutesRunsNothingOff() {
+        let trace = RulesScenario.intentionalGroundingOnATwoPointTryInsideTwoMinutes.run()
+        guard
+            let flagged = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .twoPointConversion
+                    && $0.outcome.penalties.first?.foul == .intentionalGrounding
+            })
+        else {
+            Issue.record("the script never grounded a two-point try in the fourth quarter")
+            return
+        }
+        let before = flagged.play.situation
+        #expect(
+            before.clockRemaining < 120, "the scenario meant the try to come inside two minutes")
+        #expect(
+            before.scoreDifferential < 0,
+            "the scenario meant the side trying to be trailing, so that the defence has no reason of its own to decline a runoff"
+        )
+        #expect(
+            !flagged.play.decisions.contains { $0.clockElectionValue == .runoff },
+            "a ten-second runoff was elected on an untimed down")
+        trace.expectPlay(
+            flagged.index + 1, clock: before.clockRemaining, clockRunning: false,
+            "the kickoff is put in play at the clock the touchdown left: the try took none and the flag took none"
+        )
+    }
+
+    /// The two-minute warning is an automatic timeout at the conclusion of the last down
+    /// snapped before two minutes remain (3-41), so a foul during that down was committed
+    /// before the warning, and 4-7-1 reaches only the acts after it. The grounding costs
+    /// what it always costs — the down and ten yards from the previous spot — and the
+    /// warning stops the clock until the snap, as it does after any down it concludes.
+    /// Before this test the live-ball branch read the clock the down *left*, which was
+    /// under two minutes, and ran the ten seconds off.
+    @Test(
+        "football · Rule 3-41, 4-7-1, 8-2-Penalty · a pass grounded on the down that brings the two-minute warning loses the down and ten yards but no ten seconds, because the warning occurs at the conclusion of that down and the act came before it, and the clock then waits for the snap",
+        .tags(.football)
+    )
+    func groundingOnTheDownThatBringsTheWarningRunsNothingOff() {
+        let trace = RulesScenario.intentionalGroundingOnTheDownThatBringsTheWarning.run()
+        guard
+            let flagged = trace.first(where: {
+                $0.situation.quarter == 4 && $0.outcome.kind == .pass
+                    && $0.outcome.penalties.first?.foul == .intentionalGrounding
+                    && $0.outcome.penalties.first?.wasAccepted == true
+            })
+        else {
+            Issue.record("the script never drew an accepted grounding call in the fourth quarter")
+            return
+        }
+        let before = flagged.play.situation
+        #expect(
+            before.clockRemaining > 120,
+            "the scenario meant the pass to be snapped with more than two minutes left")
+        let left = Int(before.clockRemaining) - Int(flagged.play.outcome.clockRunoff)
+        #expect(left < 120, "the scenario meant the down to run the clock through two minutes")
+        guard let lostDown = before.down.next else {
+            Issue.record(
+                "the scenario meant the grounding to come on a down with another behind it")
+            return
+        }
+        trace.expectPlay(
+            flagged.index + 1, possession: before.possession, down: lostDown,
+            distance: before.distance + 10, ballOn: before.ballOn + 10,
+            "ten yards from the previous spot and the down, as on any grounding")
+        #expect(
+            !flagged.play.decisions.contains { $0.clockElectionValue == .runoff },
+            "a ten-second runoff was elected for an act committed before the warning")
+        #expect(
+            trace[flagged.index + 1]?.hasTwoMinuteWarningBeforeTheSnap == true,
+            "the warning belongs to the snap after the down that brought it")
+        trace.expectPlay(
+            flagged.index + 1, clock: UInt16(max(0, left)), clockRunning: false,
+            "the down's own seconds and no more, and the clock the warning stopped waits for the snap"
+        )
+    }
+
     /// Rewritten from 4-3-2-e (wave 1 review). This scenario used to run in the fourth
     /// quarter and assert that the clock restarts on the ready-for-play signal after
     /// the flag, which is wrong football there: an offensive foul during the fourth

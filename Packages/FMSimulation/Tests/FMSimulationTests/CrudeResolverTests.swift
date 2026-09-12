@@ -1017,6 +1017,76 @@ struct PocketTests {
     /// checked rather than assumed — and when the ball came out, which is the break of the
     /// read it went to and so varies snap by snap, or nothing on a snap the ball never
     /// left.
+    /// A throw is the end of a read process: the ball goes to a read that cleared, or to
+    /// the checkdown or to nobody after the reads did not. So a dropback that ended in a
+    /// throw, with a numbered read on the field to be worked, wrote at least one read
+    /// point — whatever the rush did, because under pressure the reads left are worked
+    /// from where it found him, and a sack or a scramble is not a throw. Whether a read
+    /// was there to work is read off the men credited on the play against the family's
+    /// roles, the way the resolver resolves them.
+    ///
+    /// The one way to reach the checkdown with nobody read was an arrival at the instant
+    /// of a break: the clean loop stopped short of a read whose break the rush reached
+    /// *at*, and the verdict counted pressure only for an arrival *before* the deadline,
+    /// so the read fell between the two. A try, whose three reads share one break at
+    /// 1,500 ms, reached the checkdown or a throwaway that way on about one snap in two
+    /// and a half thousand, with nobody read and the pocket recorded as held — which is
+    /// why the tries are swept here and not only the corpus. The sweep is one seed, so it
+    /// is the same five thousand tries every run: four of them reached a throw unread
+    /// before the tie was settled, and none may now.
+    @Test(
+        "contract · a dropback that ended in a throw worked a read, whenever the play had one to work",
+        .tags(.contract))
+    func everyThrowFollowsAReadWorked() {
+        var throwsWithAReadAvailable = 0
+        var unread: [String] = []
+        func check(
+            _ concept: PlayConcept, _ outcome: Outcome, _ decisions: [DecisionPoint],
+            _ label: String
+        ) {
+            guard
+                let decision = decisions.last(where: { $0.kind == .throwDecision })?
+                    .throwDecisionValue,
+                decision == .primary || decision == .checkdown || decision == .throwaway
+            else { return }
+            let credited = outcome.participants.filter {
+                $0.role == .receiver || $0.role == .target
+            }
+            let receivers = credited.filter { $0.position == .wideReceiver }.count
+            let tightEnds = credited.filter { $0.position == .tightEnd }.count
+            let backs = credited.filter { $0.position == .runningBack || $0.position == .fullback }
+                .count
+            let available = ReadProgression.of(concept).reads.contains { read in
+                switch read.role {
+                case .firstReceiver: return receivers >= 1
+                case .secondReceiver: return receivers >= 2
+                case .thirdReceiver: return receivers >= 3
+                case .tightEnd: return tightEnds >= 1
+                case .back: return backs >= 1
+                }
+            }
+            guard available else { return }
+            throwsWithAReadAvailable += 1
+            if !decisions.contains(where: { $0.kind == .readProgression }) { unread.append(label) }
+        }
+        for game in TestWorld.corpus {
+            for play in game.plays where play.outcome.kind.isDropback {
+                check(
+                    play.calls.offense.concept, play.outcome, play.decisions,
+                    "game \(game.game) play \(play.index)")
+            }
+        }
+        for (index, snap) in TestWorld.resolved(.twoPointPass, count: 5_000).enumerated() {
+            check(.twoPointPass, snap.outcome, snap.decisions, "try \(index)")
+        }
+        #expect(
+            throwsWithAReadAvailable > 6_000,
+            "\(throwsWithAReadAvailable) throws with a read to work: too few to assert on")
+        #expect(
+            unread.isEmpty,
+            "\(unread.count) throws with nobody read, the first of them \(unread.prefix(5))")
+    }
+
     private func pooledPocket() -> [(
         concept: PlayConcept, firstBreak: Int, hold: Int, pressured: [Bool],
         firstArrival: [Int], ballOut: [Int?], snapped: [Bool]
