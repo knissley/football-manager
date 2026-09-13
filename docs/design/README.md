@@ -1,7 +1,8 @@
 # Design
 
 **Status: built.** This directory and the skills it names are the process; the briefs
-in it are the depth behind the roadmap.
+in it are the depth behind the roadmap. This page says what the loop is and who owns
+what; [`playbook.md`](playbook.md) says how to run it, step by step, with the prompts.
 
 The project runs in one loop: **design, then orchestrate, then repeat.** The designer
 decides what a milestone is for and what it needs; the orchestrator lands it; an audit at
@@ -46,7 +47,7 @@ from one to the next except through a document or an issue.
 | `docs/weekly-loop.md`, `docs/gameplan.md`, `docs/schemes.md`, `docs/traits.md`, `docs/draft-and-scouting.md`, `docs/news-and-narrative.md`, `docs/play-calling.md`: the system designs | the designer, for what is designed | the issue that builds a part of one edits that part and the status line |
 | `docs/reference/`, `docs/invariants.md`, `docs/play-record.md`, `docs/match-engine.md` and the rest | the issue that changes the thing they describe | the designer reads them as truth and files an issue when they are wrong |
 | the implementation tracker and its issues | orchestrator | the designer comments; the owner decides |
-| the design tracker | designer | the owner decides |
+| the design tracker (#183) | designer | the owner decides |
 
 Both trackers keep their **state in the body**, rewritten in place, and their **history in
 comments**. A fresh session reads the body's Current state section, not the thread.
