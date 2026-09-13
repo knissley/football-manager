@@ -1,0 +1,186 @@
+import FMCore
+import FMRandom
+import Testing
+
+@testable import FMSimulation
+
+/// Forward progress, on the one play where the engine can produce the case.
+///
+/// A completion is composed as the depth the ball was caught at plus what happened after
+/// the catch, so "the receiver is spotted where his advance ended" is the claim that the
+/// second term is never negative. Rule **3-12-1** makes a runner's — or an airborne
+/// receiver's — progress the furthest he got toward his opponent's goal, and leaves the ball
+/// dead there however far an opponent afterwards drives him back. **7-3-3** settles the
+/// airborne case the same way: a man who takes the ball in the air in bounds with an
+/// opponent carrying him back is down at once, and his spot is where that opponent first hit
+/// him once he had control aloft. Either way the spot is the catch point and never a yard
+/// line behind it.
+///
+/// **The claim is checked at the resolver's seam rather than over a play stream, because
+/// the catch point is not on the record.** `PlayRecord` carries the total a completion
+/// gained and not the depth the ball was caught at, so no query over the stream can say
+/// whether a given completion was spotted at its catch point or two yards behind it: the
+/// two are the same number on the record. `yardsAfterCatch` is the term that would be
+/// negative, so that is where the claim is asserted, with real personnel, real ratings and
+/// the resolver's own draws.
+@Suite("Forward progress")
+struct ForwardProgressTests {
+
+    /// The situation the snaps below are taken from: first and ten at midfield, nothing
+    /// about the clock or the score pulling on anything.
+    private static let midfield = Situation(
+        quarter: 2, clockRemaining: 800, down: .first, distance: 10, ballOn: 50,
+        possession: TeamID(1), scoreDifferential: 0, offensePersonnel: .eleven,
+        defensePackage: .nickel)
+
+    /// The separation the catch is made at. Below `inStride`'s threshold, so nothing is
+    /// added for separation earned before the ball arrived, and below the point where a
+    /// blown coverage becomes likely: what is left is the receiver, the man on him, and
+    /// the contact.
+    private static let tightWindow = 100
+
+    /// A league in which no receiver creates anything after the catch and no defender
+    /// misses a tackle.
+    ///
+    /// This is the case the article governs, constructed rather than waited for. With
+    /// ordinary ratings a negative after-catch term is a tail event — it needs a receiver
+    /// well below average with the ball and a tackle made on the first attempt — and a
+    /// suite that waits for one is a suite whose green run means the draw went a
+    /// particular way. Floored elusiveness and speed on the offence put the after-catch
+    /// term below zero on most snaps; maximum tackling on the defence keeps the first man
+    /// from being beaten, so nothing is added back.
+    private static func noYardsAfterTheCatch(seed: UInt64 = 5) -> PlayContext {
+        let setup = TestWorld.setup(seed: seed)
+        let players = setup.players.mapValues { player -> Player in
+            var rigged = player
+            rigged.ratings[.elusiveness] = 0
+            rigged.ratings[.speed] = 0
+            rigged.ratings[.breakTackle] = 0
+            rigged.ratings[.tackling] = 99
+            return rigged
+        }
+        return PlayContext(
+            offense: setup.home.id,
+            defense: setup.away.id,
+            offenseRotation: setup.home.rotation(),
+            defenseRotation: setup.away.rotation(),
+            players: players,
+            offenseScheme: setup.home.scheme,
+            defenseScheme: setup.away.scheme,
+            rules: .standard)
+    }
+
+    /// What he does with it once it is in his hands, over a sweep of snaps: the yardage
+    /// after the catch, and whether the coverage was blown — which is the other branch the
+    /// spot comes out of, and has its own arithmetic.
+    private func afterTheCatch(count: Int, seed: UInt64 = 31) -> [(yards: Int, wideOpen: Bool)] {
+        let context = Self.noYardsAfterTheCatch()
+        let resolver = CrudeResolver()
+        var random = SplittableRandom(seed: seed)
+        var swept: [(yards: Int, wideOpen: Bool)] = []
+        swept.reserveCapacity(count)
+        for _ in 0..<count {
+            let personnel = Lineup.onField(
+                context, concept: .mediumPass, situation: Self.midfield, random: &random)
+            guard
+                let carrier = SlotLayout.receivers.first(where: { personnel[$0] != nil }),
+                let coveredBy = SlotLayout.coverage.first(where: { personnel[$0] != nil })
+            else {
+                Issue.record("the lineup had nobody to throw to or nobody covering him")
+                return swept
+            }
+            var decisions: [DecisionPoint] = []
+            var participants: [Participation] = []
+            let result = resolver.yardsAfterCatch(
+                carrier: carrier, coveredBy: coveredBy, personnel: personnel, context: context,
+                separation: Self.tightWindow, sideline: 0.12,
+                decisions: &decisions, participants: &participants, startTick: 20,
+                random: &random)
+            // The blown-coverage branch writes a hole-quality point of its own and the
+            // ordinary one does not, so the record says which arithmetic produced the
+            // number.
+            let wideOpen = decisions.contains { $0.kind == .holeQuality && $0.detail == 3 }
+            swept.append((result.yards, wideOpen))
+        }
+        return swept
+    }
+
+    /// A receiver cannot be spotted behind the point where his advance ended.
+    ///
+    /// Both of the resolver's after-catch branches are swept, because both can compute a
+    /// negative number and both are floored: the ordinary one, where what he does with the
+    /// ball is worth less than nothing and the first tackler is not beaten, and the
+    /// blown-coverage one, where the burst a slow receiver runs into the open field comes
+    /// out below zero. A sweep that reached only one of them would leave the other
+    /// unasserted, so the count of each is checked before the claim is made of either.
+    @Test(
+        "football · Rules 3-12-1, 7-3-3 · a receiver whose after-catch contact would carry him backward is spotted at the catch point",
+        .tags(.football))
+    func aReceiverIsSpottedWhereHisAdvanceEnded() {
+        let swept = afterTheCatch(count: 4_000)
+        let wideOpen = swept.filter(\.wideOpen)
+        let covered = swept.filter { !$0.wideOpen }
+
+        // The instrument before the claim: a sweep that never reached a branch cannot say
+        // anything about it, and a sweep where nothing was ever spotted at the catch point
+        // never put the spot under load at all.
+        //
+        // Measured over these four thousand snaps: 3,801 ended with the man on him making
+        // the tackle and 199 blew the coverage; 3,729 of the first and 49 of the second came
+        // back at the catch point. The floors below them are what held, and they are
+        // load-bearing at both: dropping the one at the end of `yardsAfterCatch` puts 2,470
+        // of these snaps behind the catch point, and dropping the blown-coverage one puts 45
+        // there. The thresholds are an order of magnitude under what the sweep reaches, so
+        // they fail on a branch that has gone unreachable rather than on an ordinary drift.
+        let coveredAtTheCatch = covered.count(where: { $0.yards == 0 })
+        let wideOpenAtTheCatch = wideOpen.count(where: { $0.yards == 0 })
+        #expect(covered.count > 100, "\(covered.count) snaps ended with the man on him making it")
+        #expect(wideOpen.count > 10, "\(wideOpen.count) snaps blew the coverage")
+        #expect(
+            coveredAtTheCatch > 50,
+            "\(coveredAtTheCatch) snaps were spotted at the catch point with the man on him")
+        #expect(
+            wideOpenAtTheCatch > 5,
+            "\(wideOpenAtTheCatch) snaps were spotted at the catch point on a blown coverage")
+
+        for (yards, wideOpen) in swept {
+            let branch = wideOpen ? "a blown coverage" : "the man on him"
+            #expect(
+                yards >= 0,
+                "a receiver was carried \(-yards) yards behind the catch point by \(branch)")
+        }
+    }
+
+    /// The other half of the same rule: the floor zeroes the after-catch *term*, not the
+    /// play, so a ball taken behind the line is still spotted behind the line.
+    ///
+    /// Progress is as far as he got and no further (**3-12-1**), and **3-12-2** is what
+    /// makes "behind" mean anything: behind designates a point nearer the offence's own goal
+    /// line. A receiver who takes the ball three yards behind the line never advanced past
+    /// it, so the down is a loss of three, and an engine that floored the *play* at zero
+    /// instead would be awarding him progress he never made.
+    ///
+    /// This is asserted over whole plays rather than at the seam, because here the record is
+    /// enough: a completion recorded for a loss can only be a ball caught behind the line,
+    /// the after-catch term being floored at zero by the test above. The screen is the
+    /// concept that throws there, which is why the sweep is screens.
+    ///
+    /// Measured over this sweep: 3,000 screens, 1,747 of them completed, 663 of those for a
+    /// loss, the worst of them 3 yards. The guards are a completion count two-thirds under
+    /// what the sweep reaches and a loss count of one, so they fail on a play that can no
+    /// longer lose yardage rather than on a drift in how often it does. *How often* is a
+    /// rate, and no band sources it, so nothing here asserts one.
+    @Test(
+        "football · Rules 3-12-1, 3-12-2 · a ball caught behind the line is spotted behind the line: the floor zeroes the after-catch term, not the play",
+        .tags(.football))
+    func aCompletionBehindTheLineIsSpottedBehindTheLine() {
+        let completions = TestWorld.resolved(.screen, count: 3_000)
+            .filter { $0.outcome.passResult == .complete }
+        let forALoss = completions.filter { $0.outcome.yards < 0 }
+
+        #expect(completions.count > 500, "\(completions.count) of 3,000 screens were completed")
+        #expect(
+            !forALoss.isEmpty,
+            "no completion lost a yard, so the ball can no longer be caught behind the line")
+    }
+}
