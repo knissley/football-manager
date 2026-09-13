@@ -39,9 +39,9 @@ issue that reopened it (the convention ADR-0003 and decision 97 already follow).
    Nothing you decided lives anywhere else unless it is in a doc.
 3. `docs/vision.md`, `docs/roadmap.md`, `docs/design-decisions.md` including its open
    questions, and `docs/design/README.md`.
-4. The implementation tracker (`#1` for the audit backlog, or whatever tracker the
-   current milestone runs on): its Current state section, then the latest wave summary
-   comment. Its comments are history; do not read them to find out where things stand.
+4. The implementation tracker (the open issue labelled `tracker`, which the design
+   tracker's Current state names): its Current state section, then the latest wave
+   summary comment. Its comments are history; do not read them to find out where things stand.
 5. One printed game: `cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11`.
    Aggregates hide what a fan notices. Read it before you judge anything about fun.
 

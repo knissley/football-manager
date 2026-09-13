@@ -17,8 +17,9 @@ this.* One next step, not a menu.
    with.
 3. The design tracker's body (the open issue labelled `design`; #183 today): its Current
    state section only.
-4. The implementation tracker's body (the open issue labelled `tracker`; #1 today): its
-   Current state section only.
+4. The implementation tracker's body: the open issue labelled `tracker`, which the design
+   tracker's Current state also names. Its Current state section only, including the
+   gates it lists: the items the owner releases by hand, which differ per milestone.
 5. The open pull requests, titles and authors.
 6. The newest comment on each tracker, dated, so you can tell whether a wave summary is
    newer than the last design review.
@@ -33,8 +34,8 @@ Answer these in order and stop at the first that is true. Each names the playboo
 
 1. **Is there no open issue labelled `design`?** The loop is not installed. Say so; the
    next step is to file the design tracker from the playbook's description of it.
-2. **Does the implementation tracker's Current state say everything is merged and the
-   retune has landed, with no exit audit recorded?** Step 7, the exit audit.
+2. **Does the implementation tracker's Current state say every issue is done and every
+   gate it names has landed, with no exit audit recorded?** Step 7, the exit audit.
 3. **Does it say the exit audit's findings are filed and the milestone is done, with no
    newer tracker open?** Step 8, the designer opens the next milestone.
 4. **Is there a tracker for a new milestone whose Current state shows nothing in flight
@@ -47,10 +48,10 @@ Answer these in order and stop at the first that is true. Each names the playboo
 8. **Does it list proposed doc edits awaiting the owner, or drift owed with a designer
    proposal already posted?** Step 2.
 9. **Does it list a missing stream fact not yet filed?** Step 3.
-10. **Is the stream list for the milestone ahead not started, and the implementation
-    tracker's retune not yet merged?** Step 1 if no design review has ever been posted,
-    otherwise step 6 with the stream list as the ask. This is the urgent one while the
-    contract is still open.
+10. **Is the stream list for the milestone ahead not started?** Step 1 if no design
+    review has ever been posted, otherwise step 6 with the stream list as the ask. Most
+    urgent while the milestone in flight is the one that fixes the record contract, since
+    a fact found missing after that costs a schema change rather than an edit.
 11. **Otherwise**: step 4, with the first topic in the design tracker's grill queue.
 
 If two of these are true at once and both are urgent (a `needs-owner` item and a missing
@@ -70,8 +71,10 @@ Read: <the trackers, shas and dates you read, so the owner can check you>.
 
 ## Rules
 
-- **Re-derive, do not re-quote.** Counts and shas come from the bodies you read today,
-  not from this skill, the playbook, or a previous answer.
+- **Re-derive, do not re-quote.** Counts, shas, gates and tracker numbers come from the
+  bodies you read today, not from this skill, the playbook, or a previous answer. Nothing
+  here is specific to one milestone's backlog; if an answer needs a gate's name, read it
+  off the tracker.
 - **One next step.** A list of everything that could be done is not help; the owner
   asked what to do now.
 - **Edit nothing, file nothing, post nothing.** If the trackers disagree with each other

@@ -5,10 +5,14 @@
 to paste, and what comes back. Start at [*What just happened?*](#what-just-happened)
 and go to the step it names. `/next` reads the two trackers and does this lookup for you.
 
-Two issues carry all the state. **#1** is the implementation tracker (the audit backlog
-today; the next milestone's tracker replaces it). **#183** is the design tracker. Each
-keeps its state in the body's *Current state* section and its history in comments. When
-in doubt, read those two sections and nothing else.
+Two issues carry all the state. **The design tracker is #183**, the one issue that lives
+across milestones; it is the only number this playbook names. **The implementation
+tracker changes every milestone**: it is the open issue labelled `tracker`, and the design
+tracker's Current state names it. Each keeps its state in the body's *Current state*
+section and its history in comments. When in doubt, read those two sections and nothing
+else. Every milestone's tracker names its own **gates**, the items the owner releases by
+hand (M1's is the engine-wide retune); "the gates have landed" below means whatever the
+current tracker lists.
 
 ## The sessions
 
@@ -35,7 +39,7 @@ tracker number; it continues from the issue body, not from memory.
 | The designer proposed doc edits and I agree | [Step 2](#step-2-approve-the-designers-edits-as-a-docs-pr) |
 | The designer found a fact the record does not carry | [Step 3](#step-3-a-missing-stream-fact-goes-to-the-implementation-tracker-now) |
 | An issue on the implementation tracker is `needs-owner` | Answer it on the issue, remove the label, then [Step 6](#step-6-run-the-designer-after-every-wave-summary) |
-| The implementation tracker's Current state says everything is done | [Step 7](#step-7-the-exit-audit) |
+| The implementation tracker's Current state says every issue and every gate has landed | [Step 7](#step-7-the-exit-audit) |
 | The exit audit's findings are filed | [Step 8](#step-8-the-designer-opens-the-next-milestone) |
 | The designer has filed the next milestone's issues and tracker | [Step 9](#step-9-start-the-orchestrator-on-the-new-tracker) |
 | A session died or the container restarted | [Resuming](#resuming) |
@@ -79,7 +83,9 @@ fact the next milestone needs and `PlayRecord` does not carry, the designer draf
 issue in the standard body (`.claude/skills/orchestrator/references/issue-template.md`)
 on the record track with a `Where it fits` line. You read it. It is filed on the
 implementation tracker with a comment there, and the orchestrator slots it before the
-retune. The contract stops moving when the milestone closes, so this never waits.
+milestone's closing gate. While M1 is open this never waits, because the contract stops
+moving when M1 closes; after that a missing fact is still filed the same way and costs a
+record schema change, which is why the stream list is written before a milestone opens.
 
 ### Step 4: grill one idea
 
@@ -118,15 +124,16 @@ runs `/adr` for anything it reversed. Then Step 2. Parked ideas go to
 When the orchestrator posts a wave summary comment on the implementation tracker, or you
 answer a `needs-owner` question that changes a decision, go to the designer session:
 
-*"Wave summary posted on #1; run the state-of-the-design review."*
+*"A wave summary is posted on the implementation tracker; run the state-of-the-design
+review."*
 
 Same output as Step 1. A session with nothing to report still posts the header, so the
 absence of a review never has to be interpreted.
 
 ### Step 7: the exit audit
 
-When the implementation tracker's Current state says everything is merged and the
-retune has landed, a fresh session audits the milestone against its exit criteria in
+When the implementation tracker's Current state says every issue is done and every gate
+it names has landed, a fresh session audits the milestone against its exit criteria in
 the roadmap. H5 #47 is the skill for this; until it lands, the session runs the way the
 September audit did: read-only, findings reported to you first, issues filed together
 after you have read them. Findings go on the implementation tracker before the milestone
@@ -138,8 +145,9 @@ In the designer session: *"The exit audit has run; open M<n+1> as a backlog."* I
 the milestone's depth into issues in the standard body with tracks, waves, dependencies
 and `Where it fits` lines, drafted in one data file rendered to a review page. You read
 the page. It files the issues in dependency order and a tracker issue titled
-`M<n+1> tracker`, labelled `tracker`, with a Current state section at the top. The old
-tracker is closed with a comment naming the new one.
+`M<n+1> tracker`, labelled `tracker`, with a Current state section at the top and its own
+gates listed. The old tracker is closed with a comment naming the new one, and the design
+tracker's Current state is rewritten to name it.
 
 ### Step 9: start the orchestrator on the new tracker
 
@@ -178,7 +186,7 @@ after this one.
 
 ## `/next`
 
-In any session on the repository, `/next` reads `CLAUDE.md`, this playbook, #183's
-Current state, the implementation tracker's Current state and the open PRs, and tells
-you which step you are at, which session to open, and the exact prompt to paste. It
-edits nothing and files nothing.
+In any session on the repository, `/next` reads `CLAUDE.md`, this playbook, the design
+tracker's Current state, the implementation tracker's Current state and the open PRs,
+and tells you which step you are at, which session to open, and the exact prompt to
+paste. It edits nothing and files nothing.
