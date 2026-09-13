@@ -33,7 +33,9 @@ tracker number; it continues from the issue body, not from memory.
 | Event | Go to |
 |---|---|
 | Nothing yet; I want to know where things stand | [`/next`](#next) |
-| I have an idea, or an hour and a queued grill topic | [Step 4](#step-4-grill-one-idea) |
+| I have an idea, or an hour and a queued grill topic | [Step 4](#step-4-grill-one-idea-or-chart-a-milestone) |
+| The designer says the milestone ahead needs charting | [Step 4, chart mode](#step-4-grill-one-idea-or-chart-a-milestone) |
+| A grill is stalling on how something should look or behave | a prototype, inside [Step 4](#step-4-grill-one-idea-or-chart-a-milestone) |
 | A grill session ended with a brief | [Step 5](#step-5-carry-the-brief-to-the-designer) |
 | The orchestrator posted a wave summary on the implementation tracker | [Step 6](#step-6-run-the-designer-after-every-wave-summary) |
 | The designer proposed doc edits and I agree | [Step 2](#step-2-approve-the-designers-edits-as-a-docs-pr) |
@@ -87,10 +89,12 @@ milestone's closing gate. While M1 is open this never waits, because the contrac
 moving when M1 closes; after that a missing fact is still filed the same way and costs a
 record schema change, which is why the stream list is written before a milestone opens.
 
-### Step 4: grill one idea
+### Step 4: grill one idea, or chart a milestone
 
 A fresh session per idea, on the repository, any capable model. Take the next topic from
-#183's grill queue, or your own. Paste:
+#183's grill queue, or your own. The queue holds only questions where your answer is the
+design; questions the reference can answer are marked AFK there and the designer answers
+them by reading, so never spend a session on one. Paste:
 
 ```
 /design-grill
@@ -104,13 +108,32 @@ systems touched, what the record must carry, the fun test, cost and home, the cu
 contradictions), recommends at each, and waits. It ends with a brief and the three
 things the designer should push back on. It never edits the repository. Copy the brief.
 
+If the rung about *the moment* stalls on how something should look or behave, the session
+stops and makes a **prototype**, the cheapest concrete thing you can react to, then carries
+on; the brief links it. Queue entries the designer marked *prototype* start there.
+
+**Chart mode**, when #183's Current state says the milestone ahead needs charting. Same
+kind of session, one milestone instead of one idea, breadth-first instead of up the
+ladder:
+
+```
+/design-grill
+
+Chart M<n>. Fan out across everything the milestone must decide; do not go deep on any
+thread. Sort each question sharp or fog, and HITL or AFK. End with the chart.
+```
+
+What comes back is a chart: destination, already decided, sharp questions in dependency
+order, not yet specified, out of scope, stream facts suspected missing. Carry it to the
+designer exactly as you would a brief; it rewrites #183's Current state from it.
+
 ### Step 5: carry the brief to the designer
 
 In the designer session:
 
 ```
 Brief for review:
-<paste the brief>
+<paste the brief, or the chart>
 ```
 
 What comes back: accepted, parked, or rejected, posted on #183 with the reason. If

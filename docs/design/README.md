@@ -16,7 +16,13 @@ from one to the next except through a document or an issue.
    roadmap's own unknowns.
 2. **A grilling session** (`/design-grill`, one idea, a fresh session) works it into a
    brief in the shape of [`briefs/TEMPLATE.md`](briefs/TEMPLATE.md). The session never
-   edits the repository; the brief is text the owner carries.
+   edits the repository; the brief is text the owner carries. A milestone whose unknowns
+   outnumber its decisions gets a **charting session** first (`/design-grill` in chart
+   mode, breadth-first), whose output is a fog list and a question queue rather than a
+   brief. A question about how something should look or behave gets a **prototype** to
+   react to before it gets a brief. Questions the reference or the tree can answer are
+   marked AFK and answered by the designer, by reading; only questions where the owner's
+   answer is the design cost a session.
 3. **The designer** (`/game-designer`) judges the brief against the vision, the roadmap,
    the decisions and the reference: accepted, parked, or rejected. An accepted brief lands
    in `briefs/` and is linked from its milestone in `docs/roadmap.md`; a settled choice
@@ -68,7 +74,10 @@ says. When the two need the same file, the designer waits for the merge.
 - A choice that rejected a real alternative: an ADR.
 - An idea worked through: a brief.
 - An idea not now: the parking lot.
-- A question for the owner: the design tracker.
+- An idea ruled beyond the destination: the parking lot's *Ruled out* table.
+- A question for the owner: the design tracker's grill queue, marked grill or prototype.
+- A question the reference can answer: the designer, by reading; nobody's session.
+- A question not yet sharp enough to ask: the design tracker's *Not yet specified*.
 - Work: an issue in the standard body.
 
 ## Cadence

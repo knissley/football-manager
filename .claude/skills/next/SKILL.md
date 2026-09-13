@@ -48,11 +48,16 @@ Answer these in order and stop at the first that is true. Each names the playboo
 8. **Does it list proposed doc edits awaiting the owner, or drift owed with a designer
    proposal already posted?** Step 2.
 9. **Does it list a missing stream fact not yet filed?** Step 3.
-10. **Is the stream list for the milestone ahead not started?** Step 1 if no design
+10. **Does it say the milestone ahead needs charting, and no chart is recorded?** Step 4
+    in chart mode.
+11. **Is the stream list for the milestone ahead not started?** Step 1 if no design
     review has ever been posted, otherwise step 6 with the stream list as the ask. Most
     urgent while the milestone in flight is the one that fixes the record contract, since
     a fact found missing after that costs a schema change rather than an edit.
-11. **Otherwise**: step 4, with the first topic in the design tracker's grill queue.
+12. **Otherwise**: step 4, with the first HITL topic in the design tracker's grill queue,
+    in the mode it is marked (grill or prototype). If the queue holds only AFK questions,
+    step 6, with answering them as the ask: they are the designer's to read, not the
+    owner's to sit through.
 
 If two of these are true at once and both are urgent (a `needs-owner` item and a missing
 stream fact, say), name the first as the next step and the second as *also due*, and no

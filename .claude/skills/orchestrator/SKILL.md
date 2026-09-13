@@ -1,6 +1,7 @@
 ---
 name: orchestrator
 description: Run a filed backlog from its tracker issue — dispatch implementers to issues, verify what they report, and merge. Load when driving issues from a tracker (today #1, the audit backlog) to merged rather than implementing one yourself, and use its second half as the brief handed to every implementer and reviewer.
+disable-model-invocation: true
 ---
 
 # Orchestrating a backlog
