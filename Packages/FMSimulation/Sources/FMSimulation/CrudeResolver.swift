@@ -1884,6 +1884,10 @@ public struct CrudeResolver: PlayResolver {
                     tick: startTick, kind: .holeQuality, primary: carrier, detail: 3,
                     value: Int16(separation)))
             let burst = 14 + Int((speed - 55) * 0.45) + Int(random.next(upperBound: 38))
+            // Forward progress again, for the same reason as the floor at the end of this
+            // function: a receiver slow enough draws a burst below zero, and 3-12-1 leaves
+            // him at the catch rather than behind it. Not an arbitrary clamp — read the
+            // floor below for the article.
             return (max(0, burst), .tackled)
         }
 
@@ -1902,6 +1906,24 @@ public struct CrudeResolver: PlayResolver {
         // possession target and one who turns a slant into forty was invisible.
         let openField = context.effective(.elusiveness, for: personnel[carrier], onOffense: true)
         let loose = Int(random.next(upperBound: 3)) + Int((openField - 68) * 0.04)
+        // **The floor is forward progress, not a convenience.** 3-12-1 makes a runner's —
+        // or an airborne receiver's — progress the furthest he got toward the defence's
+        // goal line, and leaves the ball dead there however far an opponent afterwards
+        // drives him back; 7-3-3 settles the airborne catch the same way, at the opponent's
+        // first contact once he had control in the air. A receiver therefore cannot be
+        // carried behind the point where he took the ball, and this is the term that would
+        // carry him there.
+        //
+        // It zeroes the *term* and not the play, which is what makes the composition at the
+        // call site — the depth plus this — faithful in both directions: a ball taken at
+        // plus five and driven back to plus two is still plus five, and a screen taken at
+        // minus three is still minus three, because minus three is as far as he ever got.
+        // What this does not model is the runner who retreats of his own accord, whom the
+        // article does not protect: he is spotted where he is put down, and nothing here
+        // can tell the two apart.
+        //
+        // Checked by `aReceiverIsSpottedWhereHisAdvanceEnded`, which sweeps both of this
+        // function's branches with the after-catch term driven below zero.
         return (max(0, loose + inStride + tackle.extraYards), tackle.ending)
     }
 

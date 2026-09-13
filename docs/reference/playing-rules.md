@@ -37,6 +37,17 @@ Which rules must be true of a game, and what checks each, is
   `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
+- **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
+  furthest point he reached toward the defence's goal line, and the ball is dead there
+  however far an opponent afterwards pushes or carries him back the other way. It is the
+  article behind the yards-after-catch floor in `CrudeResolver`: a completion is the depth
+  the ball was caught at plus what he did with it afterwards, so flooring the second term at
+  zero is what spots a receiver at the catch instead of behind it, and a ball taken behind
+  the line is still spotted behind the line because that is as far as he ever got. One thing
+  the article does not reach, and this is an inference from the wording rather than something
+  it states: the man it protects him from is an *opponent*, so a runner who gives ground of
+  his own accord is outside it and is spotted where he is put down. The engine cannot tell
+  the two apart and does not try. — `test:aReceiverIsSpottedWhereHisAdvanceEnded`
 - **3-36-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts
   on the offence's runoff, and a try never meets it (3-40), nor does a down that ran the
   period out (4-8-1). — `test:groundedTryInsideTwoMinutesRunsNothingOff`,
@@ -403,6 +414,16 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 
 - **7-3-1** — Four downs to advance to the line to gain. — `test:firstDown`,
   `test:fourthDownConversion`
+- **7-3-3** — Where the ball lies dead in the field of play, its forward part is what any
+  distance gained or lost is measured from, the ball first turned so its long axis runs with
+  the sidelines and its frontmost point held. The sentence that bears on this engine is the
+  last one, which is the airborne half of forward progress: a player of either team who
+  completes a catch or an interception in bounds while airborne, an opponent having driven
+  him back, is dead at that moment, and his progress is the spot where that opponent first
+  made contact once he had control of the ball in the air. — the measuring convention is not
+  modelled, and need not be: the engine spots in whole yards and has no ball to rotate. The
+  airborne catch is what the after-catch floor implements, with 3-12-1 —
+  `test:aReceiverIsSpottedWhereHisAdvanceEnded`
 - **7-4-2** — False start: five yards, enforced before the snap. —
   `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `test:falseStartOnTheKickMovesItBack`
 - **7-4-3** — Encroachment: five yards, pre-snap, defence. — `test:everyFoulIsCalled`
