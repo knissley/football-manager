@@ -42,15 +42,14 @@ Which rules must be true of a game, and what checks each, is
   far an opponent afterwards pushes or carries him back the other way. (The article says
   *goal*, which 1-3-1 defines as the plane above the crossbar, not the goal line; for a spot
   the two read the same direction, and the book's word is kept here so the entry cannot be
-  mistaken for a claim about the goal line.) It is the
-  article behind the yards-after-catch floor in `CrudeResolver`: a completion is the depth
-  the ball was caught at plus what he did with it afterwards, so flooring the second term at
-  zero is what spots a receiver at the catch instead of behind it, and a ball taken behind
-  the line is still spotted behind the line because that is as far as he ever got. One thing
-  the article does not reach, and this is an inference from the wording rather than something
-  it states: the man it protects him from is an *opponent*, so a runner who gives ground of
-  his own accord is outside it and is spotted where he is put down. The engine cannot tell
-  the two apart and does not try. — `test:aReceiverIsSpottedWhereHisAdvanceEnded`
+  mistaken for a claim about the goal line.) It is the article behind the yards-after-catch
+  floor in `CrudeResolver`: a completion is the depth the ball was caught at plus what he did
+  with it afterwards, so flooring the second term at zero is what spots a receiver at the
+  catch instead of behind it, and a ball taken behind the line is still spotted behind the
+  line because that is as far as he ever got. One thing the article does not reach, and this
+  is an inference from the wording rather than something it states: the man it protects him
+  from is an *opponent*, so a runner who gives ground of his own accord is outside it and is
+  spotted where he is put down. The engine cannot tell the two apart and does not try. — `test:aReceiverIsSpottedWhereHisAdvanceEnded`
 - **3-36-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts
   on the offence's runoff, and a try never meets it (3-40), nor does a down that ran the
   period out (4-8-1). — `test:groundedTryInsideTwoMinutesRunsNothingOff`,
