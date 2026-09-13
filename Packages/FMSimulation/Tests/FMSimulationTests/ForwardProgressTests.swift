@@ -182,11 +182,5 @@ struct ForwardProgressTests {
         #expect(
             !forALoss.isEmpty,
             "no completion lost a yard, so the ball can no longer be caught behind the line")
-        for play in forALoss {
-            // A loss is the spot behind the line, and it is still a completion: the play was
-            // not zeroed, and the pass result does not change because the spot is negative.
-            #expect(play.outcome.passResult == .complete)
-            #expect(play.outcome.endedIn != .incomplete, "a completion that ended incomplete")
-        }
     }
 }

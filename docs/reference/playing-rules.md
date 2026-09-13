@@ -40,8 +40,9 @@ Which rules must be true of a game, and what checks each, is
 - **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
   furthest point he reached toward his opponent's goal, and the ball is dead there however
   far an opponent afterwards pushes or carries him back the other way. (The article says
-  *goal*, which 1-3-1 defines as the vertical plane reaching up above the crossbar and across
-  between the outer edges of the goal posts — not the goal line. That the two read the same
+  *goal*, which 1-3-1 defines as the vertical plane that rises without limit above the
+  crossbar, bounded sideways by the lines that the posts' outer edges mark out — not the goal
+  line. That the two read the same
   direction is 3-12-2's, not an inference: forward, beyond and in advance of all designate a
   point nearer the defence's goal line. The book's word is kept here so the entry cannot be
   mistaken for a claim about the goal line.) It is the article behind the yards-after-catch
@@ -58,11 +59,15 @@ Which rules must be true of a game, and what checks each, is
 - **3-12-2** — Forward, beyond and in advance of all designate a point nearer the defence's
   goal line; backward and behind designate one nearer the offence's own. A pass thrown
   parallel to a yard line counts as backward, and so does a man on the offence who is moving
-  parallel to a yard line when the ball is snapped. It is the article that gives "behind the
-  line" its meaning, and so the one that makes a completion for a loss an outcome rather than
-  an arithmetic accident — `test:aCompletionBehindTheLineIsSpottedBehindTheLine`; the two
-  backward-by-definition clauses are not modelled, and neither can arise: the engine draws no
-  lateral ball flight and no pre-snap movement.
+  parallel to a yard line when the ball is snapped. It is the article that fixes which way
+  *behind* points — toward the offence's own goal line; what "the line" itself is comes from
+  the line of scrimmage and not from here — and so the one that makes a completion for a loss
+  an outcome rather than an arithmetic accident —
+  `test:aCompletionBehindTheLineIsSpottedBehindTheLine`; the two backward-by-definition
+  clauses are not modelled, and neither can arise: the engine draws no lateral ball flight,
+  and while `OffensiveCall.usedMotion` records *that* a man moved before the snap and
+  `Penalties` reads it, nothing anywhere records *which way* he moved — which is the thing
+  the clause classifies.
 - **3-36-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts
   on the offence's runoff, and a try never meets it (3-40), nor does a down that ran the
   period out (4-8-1). — `test:groundedTryInsideTwoMinutesRunsNothingOff`,
