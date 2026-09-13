@@ -123,12 +123,25 @@ struct ForwardProgressTests {
 
         // The instrument before the claim: a sweep that never reached a branch cannot say
         // anything about it, and a sweep where nothing was ever spotted at the catch point
-        // never put the floor under load at all.
+        // never put the spot under load at all.
+        //
+        // Measured over these four thousand snaps: 3,801 ended with the man on him making
+        // the tackle and 199 blew the coverage; 3,729 of the first and 49 of the second came
+        // back at the catch point. The floors below them are what held, and they are
+        // load-bearing at both: dropping the one at the end of `yardsAfterCatch` puts 2,470
+        // of these snaps behind the catch point, and dropping the blown-coverage one puts 45
+        // there. The thresholds are an order of magnitude under what the sweep reaches, so
+        // they fail on a branch that has gone unreachable rather than on an ordinary drift.
+        let coveredAtTheCatch = covered.count(where: { $0.yards == 0 })
+        let wideOpenAtTheCatch = wideOpen.count(where: { $0.yards == 0 })
         #expect(covered.count > 100, "\(covered.count) snaps ended with the man on him making it")
         #expect(wideOpen.count > 10, "\(wideOpen.count) snaps blew the coverage")
         #expect(
-            covered.count(where: { $0.yards == 0 }) > 50,
-            "no snap was spotted at the catch point, so the spot was never under load")
+            coveredAtTheCatch > 50,
+            "\(coveredAtTheCatch) snaps were spotted at the catch point with the man on him")
+        #expect(
+            wideOpenAtTheCatch > 5,
+            "\(wideOpenAtTheCatch) snaps were spotted at the catch point on a blown coverage")
 
         for (yards, wideOpen) in swept {
             let branch = wideOpen ? "a blown coverage" : "the man on him"
