@@ -1,13 +1,15 @@
 ---
 name: orchestrator
-description: Run the audit backlog — dispatch implementers to issues, verify what they report, and merge. Load when driving issues from the tracker (#1) to merged rather than implementing one yourself, and use its second half as the brief handed to every implementer and reviewer.
+description: Run a filed backlog from its tracker issue — dispatch implementers to issues, verify what they report, and merge. Load when driving issues from a tracker (today #1, the audit backlog) to merged rather than implementing one yourself, and use its second half as the brief handed to every implementer and reviewer.
 ---
 
-# Orchestrating the audit backlog
+# Orchestrating a backlog
 
-The backlog is tracked in **#1**. This skill is how work gets from a `status:ready` issue to
-`main` without the owner approving each PR, and what every implementer must be told before it
-starts.
+**Argument: the tracker issue number.** With none, the open issue labelled `tracker`; today
+that is **#1**, the audit backlog, and the next one is whatever tracker the designer
+(`/game-designer`) opens for the next milestone. The tracker's body names the label its
+issues carry. This skill is how work gets from a `status:ready` issue to `main` without the
+owner approving each PR, and what every implementer must be told before it starts.
 
 Two halves. **Part 1 is yours.** **Part 2 is the brief you hand to each implementer** — paste
 it, or point them here.
@@ -19,11 +21,15 @@ it, or point them here.
 You dispatch subagents to implement issues. **You never implement an issue yourself.** What
 you do personally: read every report critically, **verify the hard constraints in the tree
 rather than trusting the report**, merge, and correct the record when something turns out
-wrong. You may edit issues, split them, or file new ones — and you say so on the tracker.
+wrong. You may edit issues, split them, or file new ones from what an agent measured — each filed
+one carries a `Where it fits` line naming the batch it lands in and what it must follow, and
+you say so on the tracker. **You are not the designer.** An idea that is not a defect a fan
+would notice in the printed game goes to the owner and the design tracker, never into a wave.
 
 ## The state machine
 
-Every backlog issue carries `audit-backlog`, a `track:<A–I>` and usually a `wave:<0–4>`.
+Every backlog issue carries the backlog's label (`audit-backlog` today), a `track:<letter>`
+and usually a `wave:<n>`.
 
 **`status:` is the state, and every open issue has exactly one:** `ready` → `in-progress`,
 plus **`blocked`** — **not dispatchable**. `done` is the fourth and it lands on an issue GitHub
@@ -64,12 +70,18 @@ yourself; GitHub does not.** A PR that satisfies only part of an issue says **`R
 
 ## Maintaining the tracker
 
-**#1's body is the state. Its comments are history.**
+**The tracker's body is the state. Its comments are history.**
 
-- **The Current state section at the top of #1's body is rewritten in place** — `main` sha,
-  counts, what is in flight, what is waiting on the owner, the queue. Update it when `main`
-  moves, when an issue lands, when something becomes owner-gated, or when the queue changes.
+- **The Current state section at the top of the tracker's body is rewritten in place** —
+  `main` sha, counts, what is in flight, what is waiting on the owner, the queue. Update it
+  when `main` moves, when an issue lands, when something becomes owner-gated, or when the
+  queue changes.
   **Never append current state as a comment.**
+- **An in-flight branch's entry is the handoff.** Per branch: its name, head sha, the issues
+  it closes, what has been verified on that head (which checks, which harness seeds, which
+  review round and its result), and the exact next action. A session that pauses rewrites
+  these before it deletes its triggers; a session that resumes reads them and continues from
+  the body, not from memory.
 - **Comments are for what is cross-cutting and permanent**: a residual reported to the retune,
   a standing-rule change, a wave summary, a correction to something already on the record.
 - **Do not post a status comment describing where things stand.** Three such comments were
@@ -80,11 +92,32 @@ yourself; GitHub does not.** A PR that satisfies only part of an issue says **`R
   read the sha. A count quoted from the previous version of the section is exactly the mistake
   the failure-mode section below describes.
 
-The wave tables further down #1 are a filing-time record, not an index: **39 of the 115
-backlog issues do not appear in them at all** — measured 2026-09-12, and re-derivable by
-diffing the issue numbers in those tables against the `audit-backlog` label query. (#1's own
+The wave tables further down the tracker are a filing-time record, not an index: **39 of
+the 115 backlog issues do not appear in them at all** — measured 2026-09-12, and re-derivable
+by diffing the issue numbers in those tables against the `audit-backlog` label query. (The
 body said 38 until that count was taken; an off-by-one in the sentence warning you the tables
-are unreliable.) **The live backlog is the labels.**
+are unreliable.) **The live backlog is the labels.** A table the state document declares
+unreliable is the re-quoting trap the last section of this part describes, so **do not
+maintain the tables by hand**: when you next rewrite the body, regenerate them from the label
+query, or delete them and keep only the notes beneath, which are the part labels cannot
+recover.
+
+## Scope, and the wave summary
+
+Two standing rules, agreed with the owner at the re-audit of 2026-09-11 and until now
+recorded only in a comment on #1, which by this skill's own convention is history:
+
+- **No new rules-layer or resolver issue is dispatched unless it moves a graded harness row
+  or a fan would notice it in the printed `gamelog` game.** Correct and cited is not
+  sufficient; the A track grew from nine issues to nineteen on correctness alone.
+- **Every wave summary re-reads each closed issue's plan and Done-when against the current
+  harness output**, not against the PR's claims, and lists any plan item that did not land.
+  Two such items (C10's chip-shot share, C11's net-punt separation) were found this way and
+  are now inputs to the retune.
+
+A wave summary is one comment and carries: what merged, with shas; every harness row that
+moved across the wave, with its mechanism; what changed in the plan and why; what waits on
+the owner; and the re-read above.
 
 ## Dispatching
 
@@ -104,6 +137,26 @@ are unreliable.) **The live backlog is the labels.**
    mattered came from reading a result carefully, not from having more in flight.
 6. **Keep a check-in scheduled while any agent runs**, and delete the triggers when you pause
    so nothing dispatches unattended.
+
+## Review, before you merge
+
+When an implementer reports done and its PR is open, dispatch **one reviewer with a fresh
+context**: it gets the diff, every *Done when* line of every issue the PR closes, `CLAUDE.md`,
+Part 2 of this skill, and the instruction to **run everything itself and trust nothing in the
+implementer's report** — not its harness numbers, not its shingle count, not its mutation
+claim. It returns *pass*, or concrete failures with the command that shows each.
+
+- Before it calls a reference finding pre-existing, it runs `git show origin/main:<path>` and
+  greps; two of eight findings on one branch were mis-classified from reports.
+- A second round is for behaviour, football, or rule 8 to 11 failures only. Prose findings
+  are fixed in the same push and re-read once by the same reviewer.
+- **After two failed rounds the issue stops**, and you say so on it. A narrow third round is
+  allowed only when the second failure was prose the first fix introduced, and it is written
+  on the issue before it runs.
+- The review adds no status: the issue stays `status:in-progress` until the merge.
+
+The reviewer's pass is not your verification. It ran the suites and the harness on the
+head; the section below is what you check yourself, in the tree, before the merge.
 
 ## Verifying before you merge
 
@@ -313,8 +366,8 @@ rows print a different verdict at different seeds **with nothing changed at all*
 whether a row you are about to explain is one of them before explaining it.
 
 **Never retune a calibration constant inside a fix** (rule 9). If a row moves, report it; do
-not chase it. Residuals go to the retune issue as a comment — never close it, never relabel
-it.
+not chase it. Residuals go to the issue the tracker names as the retune (E3 #49 today) as a
+comment — never close it, never relabel it.
 
 ### A new constant is model construction, not a retune, only if all three hold — and you must measure all three
 
