@@ -1907,9 +1907,9 @@ public struct CrudeResolver: PlayResolver {
         let openField = context.effective(.elusiveness, for: personnel[carrier], onOffense: true)
         let loose = Int(random.next(upperBound: 3)) + Int((openField - 68) * 0.04)
         // **The floor is forward progress, not a convenience.** 3-12-1 makes a runner's —
-        // or an airborne receiver's — progress the furthest he got toward the defence's
-        // goal line, and leaves the ball dead there however far an opponent afterwards
-        // drives him back; 7-3-3 settles the airborne catch the same way, at the opponent's
+        // or an airborne receiver's — progress the furthest he got toward his opponent's
+        // goal, and leaves the ball dead there however far an opponent afterwards drives
+        // him back; 7-3-3 settles the airborne catch the same way, at the opponent's
         // first contact once he had control in the air. A receiver therefore cannot be
         // carried behind the point where he took the ball, and this is the term that would
         // carry him there.

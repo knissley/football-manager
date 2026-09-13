@@ -38,8 +38,11 @@ Which rules must be true of a game, and what checks each, is
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
 - **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
-  furthest point he reached toward the defence's goal line, and the ball is dead there
-  however far an opponent afterwards pushes or carries him back the other way. It is the
+  furthest point he reached toward his opponent's goal, and the ball is dead there however
+  far an opponent afterwards pushes or carries him back the other way. (The article says
+  *goal*, which 1-3-1 defines as the plane above the crossbar, not the goal line; for a spot
+  the two read the same direction, and the book's word is kept here so the entry cannot be
+  mistaken for a claim about the goal line.) It is the
   article behind the yards-after-catch floor in `CrudeResolver`: a completion is the depth
   the ball was caught at plus what he did with it afterwards, so flooring the second term at
   zero is what spots a receiver at the catch instead of behind it, and a ball taken behind

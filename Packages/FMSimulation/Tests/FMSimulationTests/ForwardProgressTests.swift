@@ -9,8 +9,8 @@ import Testing
 /// A completion is composed as the depth the ball was caught at plus what happened after
 /// the catch, so "the receiver is spotted where his advance ended" is the claim that the
 /// second term is never negative. Rule **3-12-1** makes a runner's — or an airborne
-/// receiver's — progress the furthest he got toward the defence's goal line, and leaves the
-/// ball dead there however far an opponent afterwards drives him back. **7-3-3** settles the
+/// receiver's — progress the furthest he got toward his opponent's goal, and leaves the ball
+/// dead there however far an opponent afterwards drives him back. **7-3-3** settles the
 /// airborne case the same way: a man who takes the ball in the air in bounds with an
 /// opponent carrying him back is down at once, and his spot is where that opponent first hit
 /// him once he had control aloft. Either way the spot is the catch point and never a yard
