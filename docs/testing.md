@@ -268,9 +268,12 @@ touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the de
 from* — the last three joined when wave 3's D track put a foul on a scoring play where the
 rules put it, gave the free kick its spots, and made `Rules` say which book it is. The
 resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting*, *The dynamic
-kickoff* and *The pocket* — the last four are the resolver's own suites, split out when
-wave 3 gave it the sideline, the aimed punt, the two kickoffs and a pocket with a clock in
-it.
+kickoff*, *The pocket* and *Forward progress* — the last five are the resolver's own suites,
+split out when wave 3 gave it the sideline, the aimed punt, the two kickoffs, a pocket with
+a clock in it and a name for the spot a catch is marked at. *Forward progress* is one
+`.football` test and postdates the census below, so the table's resolver row does not carry
+it; the grouping is named here so the next census counts it rather than losing it to a suite
+nobody listed.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
