@@ -40,16 +40,29 @@ Which rules must be true of a game, and what checks each, is
 - **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
   furthest point he reached toward his opponent's goal, and the ball is dead there however
   far an opponent afterwards pushes or carries him back the other way. (The article says
-  *goal*, which 1-3-1 defines as the plane above the crossbar, not the goal line; for a spot
-  the two read the same direction, and the book's word is kept here so the entry cannot be
+  *goal*, which 1-3-1 defines as the vertical plane reaching up above the crossbar and across
+  between the outer edges of the goal posts — not the goal line. That the two read the same
+  direction is 3-12-2's, not an inference: forward, beyond and in advance of all designate a
+  point nearer the defence's goal line. The book's word is kept here so the entry cannot be
   mistaken for a claim about the goal line.) It is the article behind the yards-after-catch
-  floor in `CrudeResolver`: a completion is the depth the ball was caught at plus what he did
-  with it afterwards, so flooring the second term at zero is what spots a receiver at the
-  catch instead of behind it, and a ball taken behind the line is still spotted behind the
-  line because that is as far as he ever got. One thing the article does not reach, and this
-  is an inference from the wording rather than something it states: the man it protects him
-  from is an *opponent*, so a runner who gives ground of his own accord is outside it and is
-  spotted where he is put down. The engine cannot tell the two apart and does not try. — `test:aReceiverIsSpottedWhereHisAdvanceEnded`
+  floor in `CrudeResolver`, where a completion is the depth the ball was caught at plus what
+  he did with it afterwards and the floor sits on the second term. So a receiver is spotted
+  at the catch and not behind it — `test:aReceiverIsSpottedWhereHisAdvanceEnded`, which
+  asserts that term by itself, the catch point being absent from the record; and a ball taken
+  behind the line is still spotted behind the line, the play itself never being floored —
+  `test:aCompletionBehindTheLineIsSpottedBehindTheLine`, which asserts the composition over
+  whole plays. One thing the article does not reach, and this is an inference from the wording
+  rather than something it states: the man it protects him from is an *opponent*, so a runner
+  who gives ground of his own accord is outside it and is spotted where he is put down. The
+  engine cannot tell the two apart and does not try.
+- **3-12-2** — Forward, beyond and in advance of all designate a point nearer the defence's
+  goal line; backward and behind designate one nearer the offence's own. A pass thrown
+  parallel to a yard line counts as backward, and so does a man on the offence who is moving
+  parallel to a yard line when the ball is snapped. It is the article that gives "behind the
+  line" its meaning, and so the one that makes a completion for a loss an outcome rather than
+  an arithmetic accident — `test:aCompletionBehindTheLineIsSpottedBehindTheLine`; the two
+  backward-by-definition clauses are not modelled, and neither can arise: the engine draws no
+  lateral ball flight and no pre-snap movement.
 - **3-36-3** — Time in: the game clock is running. It is the condition 4-7-1 Item 1 puts
   on the offence's runoff, and a try never meets it (3-40), nor does a down that ran the
   period out (4-8-1). — `test:groundedTryInsideTwoMinutesRunsNothingOff`,
@@ -425,7 +438,12 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   made contact once he had control of the ball in the air. — the measuring convention is not
   modelled, and need not be: the engine spots in whole yards and has no ball to rotate. The
   airborne catch is what the after-catch floor implements, with 3-12-1 —
-  `test:aReceiverIsSpottedWhereHisAdvanceEnded`
+  `test:aReceiverIsSpottedWhereHisAdvanceEnded`. **The interception half of that sentence is
+  not implemented, and nothing is missing because of it**: a pick's return is a non-negative
+  distance added to the catch point — `CrudeResolver` draws nought to thirteen yards, or
+  twenty to eighty-nine when the returner breaks free — so an interception cannot come back
+  behind where it was caught, and there is no negative term for progress to floor. Do not
+  read the floor as covering it.
 - **7-4-2** — False start: five yards, enforced before the snap. —
   `test:falseStartAtTheOwnThreeIsHalfTheDistance`, `test:falseStartOnTheKickMovesItBack`
 - **7-4-3** — Encroachment: five yards, pre-snap, defence. — `test:everyFoulIsCalled`

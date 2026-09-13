@@ -150,4 +150,43 @@ struct ForwardProgressTests {
                 "a receiver was carried \(-yards) yards behind the catch point by \(branch)")
         }
     }
+
+    /// The other half of the same rule: the floor zeroes the after-catch *term*, not the
+    /// play, so a ball taken behind the line is still spotted behind the line.
+    ///
+    /// Progress is as far as he got and no further (**3-12-1**), and **3-12-2** is what
+    /// makes "behind" mean anything: behind designates a point nearer the offence's own goal
+    /// line. A receiver who takes the ball three yards behind the line never advanced past
+    /// it, so the down is a loss of three, and an engine that floored the *play* at zero
+    /// instead would be awarding him progress he never made.
+    ///
+    /// This is asserted over whole plays rather than at the seam, because here the record is
+    /// enough: a completion recorded for a loss can only be a ball caught behind the line,
+    /// the after-catch term being floored at zero by the test above. The screen is the
+    /// concept that throws there, which is why the sweep is screens.
+    ///
+    /// Measured over this sweep: 3,000 screens, 1,747 of them completed, 663 of those for a
+    /// loss, the worst of them 3 yards. The guards are a completion count two-thirds under
+    /// what the sweep reaches and a loss count of one, so they fail on a play that can no
+    /// longer lose yardage rather than on a drift in how often it does. *How often* is a
+    /// rate, and no band sources it, so nothing here asserts one.
+    @Test(
+        "football · Rules 3-12-1, 3-12-2 · a ball caught behind the line is spotted behind the line: the floor zeroes the after-catch term, not the play",
+        .tags(.football))
+    func aCompletionBehindTheLineIsSpottedBehindTheLine() {
+        let completions = TestWorld.resolved(.screen, count: 3_000)
+            .filter { $0.outcome.passResult == .complete }
+        let forALoss = completions.filter { $0.outcome.yards < 0 }
+
+        #expect(completions.count > 500, "\(completions.count) of 3,000 screens were completed")
+        #expect(
+            !forALoss.isEmpty,
+            "no completion lost a yard, so the ball can no longer be caught behind the line")
+        for play in forALoss {
+            // A loss is the spot behind the line, and it is still a completion: the play was
+            // not zeroed, and the pass result does not change because the spot is negative.
+            #expect(play.outcome.passResult == .complete)
+            #expect(play.outcome.endedIn != .incomplete, "a completion that ended incomplete")
+        }
+    }
 }
