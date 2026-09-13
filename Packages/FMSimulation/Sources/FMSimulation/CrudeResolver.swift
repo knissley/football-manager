@@ -1855,7 +1855,15 @@ public struct CrudeResolver: PlayResolver {
         return separation < 110 ? .brokenUp : .dropped
     }
 
-    private func yardsAfterCatch(
+    /// What the catch is worth after the ball is in his hands — and the one place the
+    /// engine states forward progress.
+    ///
+    /// **Internal rather than private so the progress floor below can be asserted.** The
+    /// catch point is not on the record: `PlayRecord` carries what a completion gained and
+    /// not the depth the ball was caught at, so no query over the stream can tell a
+    /// completion spotted at its catch point from one spotted two yards behind it — they
+    /// are the same number. The claim has to be made here or nowhere.
+    func yardsAfterCatch(
         carrier: PlayerSlot, coveredBy: PlayerSlot, personnel: Lineup, context: PlayContext,
         separation: Int, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
