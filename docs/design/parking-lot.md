@@ -1,8 +1,9 @@
 # Parking lot
 
-**Status: built.** Ideas with a home that is not now. Each carries the milestone it would
-belong to, why it waits, and the trigger that would promote it. The designer maintains it;
-nothing here is forgotten and nothing here is scheduled.
+**Status: built.** Two tables. The first is ideas with a home that is not now: each
+carries the milestone it would belong to, why it waits, and the trigger that would promote
+it. The second is ideas ruled beyond the destination. The designer maintains both; nothing
+here is forgotten and nothing here is scheduled.
 
 | Idea | Would belong to | Why not now | What promotes it |
 |---|---|---|---|
@@ -12,3 +13,14 @@ nothing here is forgotten and nothing here is scheduled.
 | The ten-second runoff after a replay reversal or a nullified foul (4-7-1 Article 4) | never, unless replay exists | There is no replay system and no foul is nullified after the fact; pinned as not modelled | A replay and challenge system, which no milestone plans |
 | An emergency kicker who is not a specialist | M3 | Rotation puts the backup specialist in; a position player kicking needs the playing-hurt and roster-emergency rules | #122 and the M3 injury work |
 | Online leagues, iPad and Mac layouts, custom league import, 3D visualisation | after M9 | The roadmap's deferred list | A shipped beta |
+
+## Ruled out
+
+Beyond the destination rather than not yet. A parked idea waits for a trigger; a ruled-out
+one returns only if the vision or a milestone's exit is redrawn, and then as a fresh brief,
+not a resumption. `docs/vision.md`'s *What this is not* holds the top-level rulings; this
+table holds the ones made brief by brief, so a rejected idea is not re-pitched.
+
+| Idea | Ruled out by | Why it is beyond the destination |
+|---|---|---|
+| _none yet_ | | |

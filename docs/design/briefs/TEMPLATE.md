@@ -14,6 +14,11 @@ and why that is worth a milestone's room.
 
 One scene. The down, the screen, the week. "The player will remember the time when..."
 
+## Prototype
+
+If one was made: a link to the asset, what the owner reacted to, and what changed because
+of it. Otherwise "none".
+
 ## The football truth
 
 Which rule, which real rate, which real behaviour of coaches and players this rests on.

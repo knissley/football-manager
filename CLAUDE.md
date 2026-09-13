@@ -219,7 +219,10 @@ issues on it, the branches and the PRs. Ideas are worked through in **grilling s
 (`/design-grill`), one idea each, which produce a brief and edit nothing. An **audit** in
 a fresh session gates every milestone's exit. The owner sits between each pair, and the
 process is written down in [`docs/design/README.md`](docs/design/README.md). Both
-trackers keep their state in the body and their history in comments.
+trackers keep their state in the body and their history in comments. The design tracker
+is **#183**. Which step of the loop you are at, and the prompt for it, is
+[`docs/design/playbook.md`](docs/design/playbook.md); `/next` reads the two trackers and
+answers that question for you.
 
 Three rules keep the two halves from colliding:
 
@@ -399,3 +402,5 @@ regardless. Never describe untested code as working — say plainly that it is u
 - `/game-designer` — the designer: review the state of the design, judge a brief, deepen
   the milestone ahead, open a milestone as a backlog
 - `/design-grill` — work one idea into a brief, in a fresh session; edits nothing
+- `/next` — where the loop stands and what to do now: which session, which skill, the
+  exact prompt. Reads the two trackers; edits nothing

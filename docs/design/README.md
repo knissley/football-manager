@@ -1,7 +1,8 @@
 # Design
 
 **Status: built.** This directory and the skills it names are the process; the briefs
-in it are the depth behind the roadmap.
+in it are the depth behind the roadmap. This page says what the loop is and who owns
+what; [`playbook.md`](playbook.md) says how to run it, step by step, with the prompts.
 
 The project runs in one loop: **design, then orchestrate, then repeat.** The designer
 decides what a milestone is for and what it needs; the orchestrator lands it; an audit at
@@ -15,7 +16,13 @@ from one to the next except through a document or an issue.
    roadmap's own unknowns.
 2. **A grilling session** (`/design-grill`, one idea, a fresh session) works it into a
    brief in the shape of [`briefs/TEMPLATE.md`](briefs/TEMPLATE.md). The session never
-   edits the repository; the brief is text the owner carries.
+   edits the repository; the brief is text the owner carries. A milestone whose unknowns
+   outnumber its decisions gets a **charting session** first (`/design-grill` in chart
+   mode, breadth-first), whose output is a fog list and a question queue rather than a
+   brief. A question about how something should look or behave gets a **prototype** to
+   react to before it gets a brief. Questions the reference or the tree can answer are
+   marked AFK and answered by the designer, by reading; only questions where the owner's
+   answer is the design cost a session.
 3. **The designer** (`/game-designer`) judges the brief against the vision, the roadmap,
    the decisions and the reference: accepted, parked, or rejected. An accepted brief lands
    in `briefs/` and is linked from its milestone in `docs/roadmap.md`; a settled choice
@@ -46,7 +53,7 @@ from one to the next except through a document or an issue.
 | `docs/weekly-loop.md`, `docs/gameplan.md`, `docs/schemes.md`, `docs/traits.md`, `docs/draft-and-scouting.md`, `docs/news-and-narrative.md`, `docs/play-calling.md`: the system designs | the designer, for what is designed | the issue that builds a part of one edits that part and the status line |
 | `docs/reference/`, `docs/invariants.md`, `docs/play-record.md`, `docs/match-engine.md` and the rest | the issue that changes the thing they describe | the designer reads them as truth and files an issue when they are wrong |
 | the implementation tracker and its issues | orchestrator | the designer comments; the owner decides |
-| the design tracker | designer | the owner decides |
+| the design tracker (#183) | designer | the owner decides |
 
 Both trackers keep their **state in the body**, rewritten in place, and their **history in
 comments**. A fresh session reads the body's Current state section, not the thread.
@@ -67,7 +74,10 @@ says. When the two need the same file, the designer waits for the merge.
 - A choice that rejected a real alternative: an ADR.
 - An idea worked through: a brief.
 - An idea not now: the parking lot.
-- A question for the owner: the design tracker.
+- An idea ruled beyond the destination: the parking lot's *Ruled out* table.
+- A question for the owner: the design tracker's grill queue, marked grill or prototype.
+- A question the reference can answer: the designer, by reading; nobody's session.
+- A question not yet sharp enough to ask: the design tracker's *Not yet specified*.
 - Work: an issue in the standard body.
 
 ## Cadence
