@@ -221,6 +221,32 @@ jobs:
         # fails on any difference from the expected list.
         run: ./scripts/test-census.sh --self-test
 
+      - name: Census table in the docs
+        # docs/testing.md carries the per-target census table, and a table kept by hand
+        # goes stale in silence: this one was five waves out of date and read as current.
+        # `--markdown` prints it in the doc's own shape and this diffs the two, the way
+        # the simharness suite keeps the calibration table in docs/match-engine.md equal
+        # to Targets.swift. Costs no toolchain — the census is a text scan.
+        run: |
+          doc="${RUNNER_TEMP:-/tmp}/testing-census-table.md"
+          fresh="${RUNNER_TEMP:-/tmp}/census-markdown.md"
+          awk '/<!-- test-census:begin -->/ { inside = 1; next }
+               /<!-- test-census:end -->/   { inside = 0 }
+               inside' docs/testing.md > "$doc"
+          if [ ! -s "$doc" ]; then
+            echo "::error::docs/testing.md has lost its test-census markers, so the table"
+            echo "::error::below them is checked against nothing."
+            exit 1
+          fi
+          ./scripts/test-census.sh --markdown > "$fresh"
+          if ! diff -u "$doc" "$fresh"; then
+            echo "::error::docs/testing.md's census table is not the tree's census."
+            echo "::error::Regenerate it between the markers with"
+            echo "::error::./scripts/test-census.sh --markdown, and move the sha above it."
+            exit 1
+          fi
+          echo "docs/testing.md carries the census the tree produces."
+
       - name: Harness comparison self-test
         # The before-and-after comparison every fix in the backlog rests on is read by a
         # reviewer, and the row it most needs to see — a verdict that flipped while the
@@ -308,6 +334,32 @@ jobs:
       - name: playsize
         # Also the proof that the FM* modules link standalone, outside a test bundle.
         run: swift run --package-path Tools/playsize
+
+      - name: Footprint in the docs
+        # docs/play-record.md quotes the record's measured footprint and the retention
+        # story rests on it, so a figure that drifts from the type is a design argument
+        # made from a number nothing produces any more. The doc carries playsize's own
+        # output between its markers; this diffs the two. The step above has already
+        # built the tool, so this costs a run and not a build.
+        run: |
+          doc="${RUNNER_TEMP:-/tmp}/play-record-footprint.txt"
+          fresh="${RUNNER_TEMP:-/tmp}/playsize.txt"
+          awk '/<!-- playsize:begin -->/ { inside = 1; next }
+               /<!-- playsize:end -->/   { inside = 0 }
+               inside' docs/play-record.md | sed '/^```/d' > "$doc"
+          if [ ! -s "$doc" ]; then
+            echo "::error::docs/play-record.md has lost its playsize markers, so the"
+            echo "::error::footprint below them is checked against nothing."
+            exit 1
+          fi
+          swift run --skip-build --package-path Tools/playsize > "$fresh"
+          if ! diff -u "$doc" "$fresh"; then
+            echo "::error::docs/play-record.md's footprint is not what the types measure."
+            echo "::error::Regenerate it between the markers with"
+            echo "::error::swift run --package-path Tools/playsize"
+            exit 1
+          fi
+          echo "docs/play-record.md carries the footprint the types measure."
 
       - name: worldgen
         # Nothing else compiles this tool, so without this step it can rot unnoticed.

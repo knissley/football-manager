@@ -115,6 +115,12 @@ swift run --package-path Tools/playsize
 
 Reports the in-memory size of a play record and what it implies at league scale.
 
+Its output is what [play-record.md](play-record.md#sizing--measured-not-estimated) carries
+between its `playsize` markers, verbatim, and the **Footprint in the docs** step of CI
+diffs the two — so the retention argument on that page cannot end up resting on a figure
+no type produces any more. When a type moves, paste the tool's output back between the
+markers in the same commit.
+
 It has a second job: it is a plain executable depending only on the `FM*`
 modules, so it fails to build if one of them picks up a framework dependency.
 That has already caught `Double.rounded()` — which resolves to libm's `round` —
@@ -1196,6 +1202,20 @@ suite is made of without reading it:
 ```bash
 ./scripts/test-census.sh --list | grep FMSimulation | grep football | wc -l
 ```
+
+`--markdown` prints the per-target table alone, in the shape
+[testing.md](testing.md#the-census-as-it-stands) carries it between its `test-census`
+markers:
+
+```bash
+./scripts/test-census.sh --markdown
+```
+
+That page's table used to be copied in by hand and was five waves out of date before
+anything noticed, so the **Census table in the docs** step of CI regenerates it and diffs
+it against the doc. Regenerate it with this mode, between the markers, in the same commit
+as whatever moved the counts, and move the sha above the table with it. The mode prints
+the table and nothing else: a `@Test` with no kind tag fails the plain census, not this.
 
 CI runs the census as a hard-failing step of the `test` job on both architectures and
 writes the table into the job summary, so the shares are in front of whoever opens the
