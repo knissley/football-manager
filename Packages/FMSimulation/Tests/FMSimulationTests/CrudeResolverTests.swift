@@ -98,6 +98,83 @@ struct CrudeResolverTests {
         #expect(sacks > 0, "six games produced no sacks at all")
     }
 
+    /// The contract `DecisionKind.throwDecision` states, held over every throw decision
+    /// the corpus produced: `primary` is the quarterback, `secondary` is the man the
+    /// decision was about — the receiver on a throw, the rusher on a sack or a scramble,
+    /// nobody on a throwaway — and `value` is the millisecond of the moment `tick` names.
+    ///
+    /// The overload is why this exists. One kind carries two different men and only
+    /// `detail` says which, so a target-share or air-yards query that reads `secondary`
+    /// without gating on `detail` credits a pass rusher with a target on every sack and
+    /// every scramble. Nothing about such a record looks wrong: the slot holds a real
+    /// player who really was on the play, the leaderboard sums, and only the name is
+    /// somebody else's. The gate is documented on the enum, and this is what keeps the
+    /// producers on the documented side of it.
+    ///
+    /// It reads the shared forty-game corpus rather than this suite's eight, because it
+    /// promises something about *every* decision in the enum and therefore needs every one
+    /// of them to occur. The thinnest are the scramble, three or four a game
+    /// (`row:scramblesPerGame`), and the sack, on 6 to 7% of dropbacks (`row:sackRate`).
+    @Test("Every throw decision names the man that decision was about", .tags(.contract))
+    func throwDecisionsNameTheManTheDecisionWasAbout() {
+        var seen: Set<ThrowDecision> = []
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                for point in play.decisions where point.kind == .throwDecision {
+                    guard let decision = point.throwDecisionValue else {
+                        Issue.record("a throw decision whose detail byte names no decision")
+                        continue
+                    }
+                    seen.insert(decision)
+                    let at = "\(decision) on play \(play.index) of game \(result.game)"
+                    #expect(
+                        point.primary == SlotLayout.quarterback,
+                        "\(at): primary is slot \(point.primary.rawValue), not the quarterback")
+                    // The moment, at the resolution the record keeps it in: the tick is
+                    // the same instant divided down, so a value in any other unit — or
+                    // left at its filler — separates the two.
+                    #expect(point.value > 0, "\(at): no moment recorded")
+                    #expect(
+                        Int(point.tick) == Int(point.value) / 100,
+                        "\(at): tick \(point.tick) is not millisecond \(point.value)")
+
+                    switch decision {
+                    case .primary, .checkdown:
+                        #expect(
+                            point.secondary.isOffense && point.secondary != SlotLayout.quarterback,
+                            "\(at): threw to slot \(point.secondary.rawValue)")
+                        #expect(
+                            play.decisions.contains {
+                                $0.kind == .ballArrival && $0.primary == point.secondary
+                            },
+                            "\(at): the ball arrived to somebody else")
+                        #expect(
+                            play.outcome.participants.contains {
+                                $0.slot == point.secondary && $0.role == .target
+                            },
+                            "\(at): the man named was not the target")
+                    case .throwaway:
+                        #expect(
+                            point.secondary.isNone,
+                            "\(at): a throwaway named slot \(point.secondary.rawValue)")
+                    case .scramble, .sack:
+                        #expect(
+                            !point.secondary.isNone && !point.secondary.isOffense,
+                            "\(at): the rusher is slot \(point.secondary.rawValue)")
+                        #expect(
+                            play.decisions.contains {
+                                $0.kind == .pressureAllowed && $0.secondary == point.secondary
+                            },
+                            "\(at): the man named never got to the quarterback")
+                    }
+                }
+            }
+        }
+        #expect(
+            seen == Set(ThrowDecision.allCases),
+            "the corpus never produced \(Set(ThrowDecision.allCases).subtracting(seen))")
+    }
+
     /// Every sack belongs to exactly one player. A sack nobody is credited with does
     /// not appear in a stat line, an award race, or a Hall of Fame case.
     @Test("Every sack is attributable to exactly one player", .tags(.contract))
