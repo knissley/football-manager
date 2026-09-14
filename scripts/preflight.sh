@@ -57,7 +57,9 @@
 #           `playsize` — which is also the proof that the FM* modules link standalone.
 #   engine  everything in CLAUDE.md's Commands block, `harness-reach.sh` against the base,
 #           and — when it says `run` — a release build of the harness and 400 games at
-#           seeds 7 and 11, each captured to a file `harness-compare.sh` can read.
+#           seeds 7 and 11, each captured to a file `harness-compare.sh` can read. Plus
+#           CI's determinism check, which runs whatever `harness-reach.sh` says: two
+#           50-game runs of one debug binary at seed 7, compared byte for byte.
 #
 # A change under `Packages/*/Sources` is the engine lane, so a test file and a source file
 # together escalate to it: the union of a `tests` path and an `engine` path is `engine`.
@@ -169,6 +171,36 @@ footprint_matches_doc() {
     printf 'docs/play-record.md carries the footprint the types measure.\n'
 }
 
+# --- the determinism check --------------------------------------------------
+#
+# CI's *Harness determinism* step, in the same shape and for the same reason (#52, #72):
+# the harness's output at a seed is byte-identical between two runs of the same binary,
+# and every before-and-after comparison in the backlog rests on it. `--no-timing` drops
+# the Budget block, which is the one part of the output that is meant to move.
+#
+# It is a `normal` step and not a `harness` one, so `harness-reach` saying `skip` does not
+# skip it: the property it checks belongs to the binary, not to this change's reach.
+
+harness_determinism() {
+    local first="$log_dir/harness-determinism-1.txt"
+    local second="$log_dir/harness-determinism-2.txt"
+    local out
+    swift build --package-path Tools/simharness || return 1
+    for out in "$first" "$second"; do
+        swift run --skip-build --package-path Tools/simharness \
+            simharness --games 50 --no-timing --seed 7 >"$out" || return 1
+    done
+    if ! cmp -s "$first" "$second"; then
+        printf 'simharness printed two different runs at seed 7 — the harness reads\n'
+        printf 'something that is not the seed, and every before-and-after comparison\n'
+        printf 'in the backlog is worthless until it does not.\n'
+        diff "$first" "$second" | head -40 || true
+        return 1
+    fi
+    printf 'Two 50-game runs at seed 7 are identical:\n'
+    grep 'world checksum' "$first"
+}
+
 # --- the plan ---------------------------------------------------------------
 #
 # Four parallel arrays, appended in the order the steps run. `st_kind` is `normal` for a
@@ -268,6 +300,7 @@ plan_engine() {
             "swift run -c release --skip-build --package-path Tools/simharness simharness --games 400 --no-timing --seed $seed" \
             harness
     done
+    add_step "harness determinism" "harness_determinism"
 }
 
 # The self-test a changed script owes. Most are in the docs lane already and dedupe away;
@@ -604,10 +637,11 @@ self_test() {
     docs_steps="$docs_steps;footprint_matches_doc"
     docs_steps="$docs_steps;--filter InvariantsTraceabilityTests"
 
-    # The two steps only the engine lane has. Both are checked as absences elsewhere, so
-    # neither may be a substring of anything another lane lists.
+    # The three steps only the engine lane has. All are checked as absences elsewhere, so
+    # none may be a substring of anything another lane lists.
     engine_steps="swift test -c release --package-path Packages/FMRandom"
     engine_steps="$engine_steps;--games 400 --no-timing --seed 11"
+    engine_steps="$engine_steps;harness determinism"
     no_engine="swift test -c release --package-path Packages/FMRandom;--games 400"
 
     note "preflight: ten scenarios"
