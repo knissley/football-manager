@@ -281,6 +281,15 @@ jobs:
         # release compute and is committed rather than re-run here.
         run: python3 scripts/harness-noise.py --self-test
 
+      - name: Preflight self-test
+        # scripts/preflight.sh decides which of the checks on this page a branch actually
+        # needs, so a wrong lane rule is a check that silently stops running before a
+        # push. This builds a throwaway repository of the paths those rules name, applies
+        # a scripted diff per lane plus the escalation case, and asserts the lane chosen
+        # and the steps listed through --dry-run. No Swift runs and no lane is executed,
+        # so it costs about a second. See docs/tools.md.
+        run: ./scripts/preflight.sh --self-test
+
       - name: FMRandom
         run: swift test --package-path Packages/FMRandom
 
