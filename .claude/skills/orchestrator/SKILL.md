@@ -18,8 +18,10 @@ never paste it into a brief.
 You dispatch subagents; **you never implement an issue yourself.** You read every report
 critically, **verify the hard constraints in the tree rather than trusting it**, merge, and
 correct the record when something turns out wrong. An issue you file carries a `Where it fits`
-line. **You are not the designer**: an idea that is not a defect a fan would notice goes to the
-owner and the design tracker.
+line, and its body is Finding, Plan, Done-when and Not-in-scope — **never a Conventions or check
+list**: the checks live in `CLAUDE.md` and Part 2, and a copy inside an issue goes stale the day
+the brief moves. **You are not the designer**: an idea that is not a defect a fan would notice
+goes to the owner and the design tracker.
 
 ## The state machine
 
@@ -54,9 +56,10 @@ only part of an issue says **`Refs #N`**, and the issue stays open with a commen
 - **Reasoning, findings, residuals, rule changes, wave summaries and corrections are comments.**
   Counts and shas are **measured, not carried forward**.
 
-The wave tables below are a filing-time record, not an index: **39 of the 115 backlog issues are
-not in them** (measured 2026-09-12). **The live backlog is the labels**, so **do not maintain the
-tables by hand** — regenerate or delete them, keeping the notes beneath.
+**#1 has no wave tables**: its body deleted them on 2026-09-12, because they were a filing-time
+record covering 76 of the 115 issues and nobody maintained the Status column. **The live backlog
+is the labels** — query them. The reasoning the tables could not hold is #1's *Why certain issues
+exist* section, which stays. Do not rebuild a table.
 
 ## Scope, and the wave summary
 
@@ -190,9 +193,9 @@ four-core Linux container: FMSimulation debug **161–214 s**, release **15 s**;
 
 **This section is the implementer's**; a reviewer's is in Part 1. Run
 **`./scripts/preflight.sh`**, which picks the lane from your diff and stops at the first failure,
-naming the step and log, and **paste `--report`'s block into the PR body**. CI adds a determinism check
-`preflight` does not. Iterate with **`--iterate <SuiteName>`**, but **run the full
-debug suite once before pushing**: one FMSimulation test is behind `#if DEBUG`.
+naming the step and log, and **paste `--report`'s block into the PR body**. Iterate with
+**`--iterate <SuiteName>`**, but **run the full debug suite once before pushing**: one
+FMSimulation test is behind `#if DEBUG`.
 
 ## How you work
 
