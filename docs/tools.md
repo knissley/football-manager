@@ -1472,13 +1472,16 @@ one reached.
 | `docs` | anything that is not source — docs, scripts, fixtures, the skills | the format lint, `lint-sim` and its self-test, the census, its self-test and the census table in `docs/testing.md`, the footprint in `docs/play-record.md`, `lint-reference` over the tree, its self-test and `--messages`, `harness-compare --self-test`, the two Python self-tests, and `InvariantsTraceabilityTests` by `--filter` |
 | `tests` | `Packages/*/Tests` | the full debug suite of each package whose tests moved |
 | `tools` | `Tools/*/Sources` or `Tools/*/Tests` | the build and suite of each tool that moved, and `playsize` |
-| `engine` | `Packages/*/Sources`, any `Package.swift`, `.github/workflows/`, `Tools/simharness/Sources` | everything in CLAUDE.md's Commands block, [`harness-reach`](#harness-reach--can-this-change-reach-the-harness) against the base, and — when it says `run` — a release build and `--games 400 --no-timing` at seeds 7 and 11, each captured to a file [`harness-compare`](#harness-compare--what-moved-between-two-captures) can read |
+| `engine` | `Packages/*/Sources`, any `Package.swift`, `.github/workflows/`, `Tools/simharness/Sources` | everything in CLAUDE.md's Commands block, [`harness-reach`](#harness-reach--can-this-change-reach-the-harness) against the base, and — when it says `run` — a release build and `--games 400 --no-timing` at seeds 7 and 11, each captured to a file [`harness-compare`](#harness-compare--what-moved-between-two-captures) can read; plus CI's determinism check, which runs whatever `harness-reach` said |
 
 Every lane runs the `docs` lane, so the lints fail first and cheaply. A test file and a
 source file together escalate to `engine`, because the union of a `tests` path and an
 `engine` path is `engine`. `Tools/simharness/Sources` selects `engine` rather than `tools`
 because that tree is on `harness-reach`'s watched list: the harness's own world, bands and
-arithmetic can move a calibration row. A change under `scripts/` adds that script's own
+arithmetic can move a calibration row. The `harness determinism` step is the one engine step
+`harness-reach` does not gate — it compares two 50-game runs of one debug binary at seed 7 byte
+for byte, the shape CI's *Harness determinism* step uses, and the property it checks belongs to
+the binary rather than to this change's reach. A change under `scripts/` adds that script's own
 self-test to whatever lane the rest of the diff picked — most are in the `docs` lane
 already; the two that are not are `harness-reach`'s, which builds a harness per scenario,
 and this script's.
@@ -1490,8 +1493,10 @@ green.
 
 Measured on a four-core Linux container with warm `.build` directories, against `main` at
 `8439ecc`: a `docs`-lane run is **8 seconds** of wall clock over 15 steps, and an
-`engine`-lane run is **4 min 2 s** over 29 steps — 4 min 31 s in the run where the harness
-actually swept, each seed 16 s. Cold, add the debug build of whichever packages the lane
+`engine`-lane run is **4 min 2 s** over the 29 steps it had then — 4 min 31 s in the run
+where the harness actually swept, each seed 16 s. The `harness determinism` step is the
+thirtieth and costs **36 s** on the same machine (measured 2026-09-14 with the harness
+already built: the two 50-game runs are the whole cost). Cold, add the debug build of whichever packages the lane
 touches; FMSimulation's is about 58 s on the same machine. `FMSimulation`'s own suite is
 161–214 s of that engine run across four runs, and is the whole reason `--iterate` exists.
 `harness-reach` costs nothing when engine sources moved — it answers off the file list —
@@ -1537,7 +1542,7 @@ scripted changes whose lanes are known:
 | A line appended to `docs/tools.md` | `docs` | the floor: no suite, no tool, no harness |
 | `Packages/FMCore/Tests/…` | `tests` | that package's suite, and only that one |
 | `Tools/gamelog/Sources/…` | `tools` | that tool's build and suite, plus `playsize` |
-| `Packages/FMSimulation/Sources/…` | `engine` | the Commands block, `harness-reach`, both sweeps |
+| `Packages/FMSimulation/Sources/…` | `engine` | the Commands block, `harness-reach`, both sweeps, the determinism check |
 | A test file **and** a source file | `engine` | the escalation: the union is the higher lane |
 | `Packages/FMCore/Package.swift` | `engine` | a manifest is a build setting, and reaches the output |
 | `.github/workflows/ci.yml` | `engine` | a CI step is too |

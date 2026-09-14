@@ -121,11 +121,12 @@ in this project has been a claim that was true of something narrower than what i
 
 ### Current work — the labels are the live backlog
 
-#1's wave tables are a filing-time record, not an index: **39 of the 115 backlog issues do
-not appear in them at all** (measured 2026-09-12; re-derive by diffing the issue numbers
-in those tables against the `audit-backlog` label query). The tracker body said 38 until
-that count was taken — an off-by-one in the very sentence warning you the tables are
-unreliable, which is the re-quoting trap below in miniature.
+#1's wave tables were a filing-time record, not an index: **39 of the 115 backlog issues
+did not appear in them at all** (measured 2026-09-12 by diffing the issue numbers in those
+tables against the `audit-backlog` label query; the body deleted the tables that day). The
+tracker body said 38 until that count was taken — an off-by-one in the very sentence
+warning you the tables are unreliable, which is the re-quoting trap below in miniature.
+Query the labels; do not rebuild a table.
 
 ### Current work — waves merge, they never rebase
 
@@ -185,6 +186,11 @@ failure the body-is-state convention exists to prevent, and posting one more is 
 comes back.
 
 A count quoted from the previous version of the section is exactly the failure mode below.
+
+**Every open backlog issue carried a pasted copy of the twelve-command checklist**, and
+when the brief changed on 2026-09-14 the orchestrator had to post a superseding comment on
+each. An issue body is its Finding, Plan, Done-when and Not-in-scope; the checks live in
+`CLAUDE.md` and the standing brief, where changing them changes them everywhere.
 
 ### Scope, and the wave summary
 
