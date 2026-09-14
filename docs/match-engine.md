@@ -821,7 +821,9 @@ Four things follow that are worth knowing before reaching for `--games`:
 - **Fifty-five of the 112 rows that carry a pass/fail grade print a different verdict at
   different seeds on an unchanged tree** — 49% of them. (127 rows print a value; the other
   fifteen are marked `stale` or `unsourced`, which says something about the band's provenance
-  and cannot move with the seed.) For those rows an `ok`/`OFF` mark is a fact about the seed.
+  and cannot move with the seed.) These three counts are read off the same sweep as the
+  floors, on the commit that section names, and move with `Targets.swift`; re-read them with
+  `scripts/harness-noise.py --report` rather than from here. For those rows an `ok`/`OFF` mark is a fact about the seed.
   Check the row against the *verdicts seen* column before treating a flip as a finding.
 - **For twenty-one rows most of the spread is the league, not the games**, and the league
   part does not shrink with `--games` at all: a longer run plays more games in the *same*

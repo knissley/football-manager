@@ -10,7 +10,6 @@ import FMCore
 /// are: under *Pass play* in `docs/match-engine.md`, and under *What a test claims about a
 /// game and nothing sources* in `docs/reference/calibration-sources.md`. What it produces
 /// is graded by sourced rows; the table itself is pinned, not asserted as football.
-/// Decided on C27 (#169) and consumed by C3 (#44).
 ///
 /// **The two anchoring rules.** The hold each family had before the table existed is the
 /// last numbered read's break, and earlier reads break earlier; the depth each family had
@@ -72,9 +71,9 @@ struct ReadProgression: Sendable, Hashable {
 
     /// The five families, as authored, and the try, which inherits the quick game's order.
     ///
-    /// The orders are the design; the break times and depths are starting values in the
-    /// sense of C3's parameters, retuned in E3 (#49) and not before. Both anchoring rules
-    /// hold in every row, and `ReadProgressionTests` pins them.
+    /// The orders are the design; the break times and depths are starting values, none of
+    /// them fitted to a harness row, so moving one is a retune and not a fix. Both
+    /// anchoring rules hold in every row, and `ReadProgressionTests` pins them.
     ///
     /// Exhaustive with no `default`, deliberately: a concept that is not a dropback gets an
     /// empty progression rather than another family's, and the next concept added fails to
@@ -143,7 +142,7 @@ struct ReadProgression: Sendable, Hashable {
     // MARK: - What a depth decides
 
     /// The three widths of throw the passer's accuracy is rated in, and the three
-    /// thresholds his perceived window is judged against (C3, #44).
+    /// thresholds his perceived window is judged against (`CrudeResolver.Reads`).
     enum DepthClass: Sendable, Hashable {
         case short, medium, deep
     }

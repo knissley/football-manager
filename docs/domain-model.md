@@ -125,7 +125,9 @@ quarter of every roster was in its first season. It is now about a sixth, which 
 sourced band in
 [`reference/calibration-sources.md`](reference/calibration-sources.md#bands-the-harness-cannot-measure),
 and a generated league's mean age is 26.3 against 26.0–26.3 in the seasons that band came
-from.
+from. Both of those are readings off a generated world rather than facts about the code:
+`worldgen` reprints the first-season share in its roster footer, and the band's own section
+carries the commit its figures were taken at.
 
 **Physical** — height, weight, and the athletic testing numbers a scout would see:
 40-yard dash, vertical, broad jump, three-cone, bench. Generated correlated with

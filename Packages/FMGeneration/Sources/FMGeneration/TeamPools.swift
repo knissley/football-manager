@@ -110,13 +110,13 @@ enum NicknamePools {
 ///
 /// A word here is a word this world invented, on the same rule the curated table is held
 /// to (rule 8,
-/// [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)). "Riverfront"
-/// and "Union" were dropped in
-/// [#82](https://github.com/knissley/football-manager/issues/82): both name real grounds,
-/// and leaving them in the pool left the randomiser able to draw exactly the strings
-/// #69's review had just taken out of the curated table. The pool is otherwise unrefined
-/// until the pre-release revisit of generation ([M8](../../../../docs/roadmap.md)); this
-/// was a mark, not a refinement.
+/// [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)). **The gotcha is
+/// that a pool word is a mark as surely as a table entry is**: "Riverfront" and "Union"
+/// both name real grounds, and while they sat here the randomiser could draw exactly the
+/// strings the curated table had been cleaned of. Check a word added here against real
+/// grounds, not only against the other words in the pool. The pool is otherwise unrefined
+/// until the pre-release revisit of generation ([M8](../../../../docs/roadmap.md)) —
+/// unrefined is allowed, a mark is not.
 enum StadiumPools {
 
     static let kinds: [String] = [
@@ -176,8 +176,7 @@ enum StructurePools {
     /// keeps a real league's own word and swaps the generic one after it, which is the
     /// near-miss that reads as the real thing. No real league's initials. Nothing
     /// claiming to be national, federal or united: this world has no nation for a league
-    /// to be named after. Every line was rewritten to meet it in
-    /// [#82](https://github.com/knissley/football-manager/issues/82).
+    /// to be named after. Every line in the pool below has been checked against it.
     ///
     /// A pool waiting on the pre-release revisit of generation
     /// ([M8](../../../../docs/roadmap.md)) is allowed to be unrefined — thin, repetitive,

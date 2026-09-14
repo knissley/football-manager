@@ -5,11 +5,11 @@ import Testing
 
 /// What the world checksum promises.
 ///
-/// `GoldenWorldTests` pins its *value*; these pin its *coverage*. The number is now read
-/// by `simharness` and compared across branches by `scripts/harness-reach.sh` to decide
-/// that a change cannot reach the calibration run (#72), so a field the engine reads and
-/// the checksum does not is a false "this change is invisible" — the one failure mode
-/// that would make the tool worse than the reviewer's argument it replaces.
+/// `GoldenWorldTests` pins its *value*; these pin its *coverage*. The number is read by
+/// `simharness` and compared across branches by `scripts/harness-reach.sh` to decide that
+/// a change cannot reach the calibration run, so a field the engine reads and the
+/// checksum does not is a false "this change is invisible" — the one failure mode that
+/// makes the tool worse than reasoning about the diff by hand.
 ///
 /// Each perturbation below rebuilds a generated world with exactly one thing different
 /// and expects the number to move.

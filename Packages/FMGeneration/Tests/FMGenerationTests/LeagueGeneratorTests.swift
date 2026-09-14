@@ -10,11 +10,10 @@ import Testing
 /// there was no other kind. Since [decision 215](../../../../docs/design-decisions.md)
 /// there are two paths — the curated thirty-two a career starts from, and the pool
 /// randomiser behind `FranchiseSource.randomised` — and a test has to say which one it
-/// means. The sweeps over eight and twelve seeds are the randomiser's: they are what
-/// [#4](https://github.com/knissley/football-manager/issues/4) left behind, they only
-/// mean anything where a seed still changes the names, and running them on the default
-/// would be the same league checked twelve times. The curated table's own version of
-/// each is in `FranchiseSetTests`.
+/// means. The sweeps over eight and twelve seeds are the randomiser's: they only mean
+/// anything where a seed still changes the names, and running them on the default would
+/// be the same league checked twelve times. The curated table's own version of each is
+/// in `FranchiseSetTests`.
 @Suite("League generation")
 struct LeagueGeneratorTests {
 
@@ -58,15 +57,13 @@ struct LeagueGeneratorTests {
         #expect(first.teams == second.teams)
     }
 
-    /// Rewritten by [#69](https://github.com/knissley/football-manager/issues/69), which
-    /// did not so much break this test as answer it the other way. Two seeds used to
-    /// name two different sets of clubs, and that was the bug: a league that re-rolled
-    /// its identities every seed is why a calibration run could not tell an engine
-    /// change from a re-roll ([decision 215](../../../../docs/design-decisions.md)).
-    /// What two seeds owe each other now is the same thirty-two franchises and a
-    /// different league inside them — here, different schemes; in a world,
-    /// different rosters too. The old assertion is kept where it is still true, on the
-    /// randomiser.
+    /// The obvious assertion — two seeds name two different sets of clubs — is the
+    /// wrong one, and asserting it is how a league came to re-roll its identities every
+    /// seed, which is why a calibration run could not tell an engine change from a
+    /// re-roll ([decision 215](../../../../docs/design-decisions.md)). What two seeds
+    /// owe each other is the same thirty-two franchises and a different league inside
+    /// them — here, different schemes; in a world, different rosters too. The
+    /// divergence assertion lives where it is still true, on the randomiser.
     @Test("Different seeds produce the same franchises playing differently", .tags(.contract))
     func seedsShareFranchisesAndDiverge() {
         guard let a = generate(seed: 1), let b = generate(seed: 2) else {
@@ -87,12 +84,11 @@ struct LeagueGeneratorTests {
         #expect(a.teams.map(\.identity.fullName) != b.teams.map(\.identity.fullName))
     }
 
-    /// The half of [#82](https://github.com/knissley/football-manager/issues/82) that did
-    /// *not* change. The curated source names the league from `FranchiseSet`, because a
-    /// career should open in the same league every time
-    /// ([decision 215](../../../../docs/design-decisions.md)); the randomiser keeps
-    /// drawing the name from `StructurePools`, which stays as unrefined as the rest of
-    /// the pools until the pre-release revisit ([M8](../../../../docs/roadmap.md)).
+    /// The two sources name the league differently on purpose. The curated source takes
+    /// it from `FranchiseSet`, because a career should open in the same league every
+    /// time ([decision 215](../../../../docs/design-decisions.md)); the randomiser draws
+    /// it from `StructurePools`, which stays as unrefined as the rest of the pools until
+    /// the pre-release revisit ([M8](../../../../docs/roadmap.md)).
     ///
     /// Twelve seeds, because the pool is small enough that two of them can honestly draw
     /// the same name: what says the name is still drawn is that every one of them is a
@@ -339,10 +335,10 @@ struct LeagueGeneratorTests {
         StadiumPools.features.first { stadiumName.hasPrefix("\($0) ") }
     }
 
-    /// The ledger checked whole stadium names, so a feature word could name three
-    /// grounds in one league — Lakeside Park, Lakeside Field and Lakeside Arena
-    /// read as one ground written down three times. Decision 154 fixed exactly this for
-    /// city stems and fixed it there only (issue #4).
+    /// A ledger of whole stadium names does not enforce this: a feature word can name
+    /// three grounds in one league — Lakeside Park, Lakeside Field and Lakeside Arena
+    /// read as one ground written down three times. Decision 154 states the rule for
+    /// city stems; the same collision is the *word*, not the string, for grounds.
     ///
     /// Twelve seeds, standard shape: a feature word that appears twice in any of them is
     /// a league that names its grounds after itself.
@@ -369,8 +365,8 @@ struct LeagueGeneratorTests {
     }
 
     /// A nickname that repeats its own city — Coyote Coyotes — is the stutter the city
-    /// stem ledger already refuses between two cities, and the nickname draw never
-    /// checked for (issue #4).
+    /// stem ledger refuses between two cities and the nickname draw does not check for
+    /// on its own.
     ///
     /// The twelve-seed sweep is seeds 1 through 12; 14 and 42 are on the end because they
     /// are where the fault actually shows in the first four dozen worlds, and a sweep

@@ -16,10 +16,15 @@ article is checked by a test, the test is named as `test:<function name>`; where
 does not implement the article yet, the entry says so and names the issue.
 
 **No rulebook text is reproduced.** Terms of art coincide with the book's because they have
-no synonyms worth having. Where a sentence already existed in
-`.claude/skills/football-domain/references/game-rules.md` — the same rules read by area
-rather than by number — it is reused rather than paraphrased a second time, because two
-paraphrases of one rule are two things to keep true.
+no synonyms worth having.
+
+**This is the only place a rule of the book is written out in our words.** The
+football-domain skill's `references/game-rules.md` used to carry a second paraphrase of 74
+of these articles, read by area rather than by number; it is now an index of article
+numbers pointing here, and carries no rule statement of its own. Two paraphrases of one
+rule are two things to keep true, and a branch that fixed 6-2-3 here and shipped its
+opposite there, in one commit set through review, is what that costs. If a rule needs
+saying somewhere else, point at the article instead.
 
 Which rules must be true of a game, and what checks each, is
 [`../invariants.md`](../invariants.md). This file is the index; that file is the promise.
@@ -37,6 +42,18 @@ Which rules must be true of a game, and what checks each, is
   `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
+- **3-8-4** — Which downs count against a series. The article defines a *charged down*
+  with two conditions joined by **or**: a penalty has not wiped the down out, or
+  possession stayed where it was through it. That connective is the book's, and it is
+  left standing here rather than tidied into an *and*. **Inference, not text:** the two
+  work together in practice — a foul taken and walked off from the previous spot has the
+  offence trying again at the same number, and once the ball has changed hands the old
+  series is over — but that pairing is read off the enforcement rules, not off this
+  sentence. Those rules are explicit where this one is not: 14-1-2 Item 1 holds the down
+  number where a walk-off against the offence still leaves it short, Item 8 has a down
+  killed by offsetting fouls played again, and 7-3-1-a and 7-3-1-b award a fresh four
+  whenever the ball gets to the line to gain, however it got there. —
+  `test:runningIntoTheKickerReplaysTheDown`, `test:holdingOnAGain`
 - **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
   furthest point he reached toward his opponent's goal, and the ball is dead there however
   far an opponent afterwards pushes or carries him back the other way. (The article says
@@ -685,7 +702,15 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   an automatic first down, and the article marks it a personal foul. Running into him
   (Item 2) is five from the previous spot with no automatic first down, and the article
   marks it as not one. **That marking is what 14-2-3 turns on, not the section the foul is
-  printed in** — so of these two, only roughing is carried to a succeeding spot. —
+  printed in** — so of these two, only roughing is carried to a succeeding spot. The
+  article says nothing about the down; **14-1-2 Item 5 does**. That Item gives the
+  offence a fresh series after most fouls by the defence, then lists ten it withholds
+  that from, running into the kicker being the seventh: for those the series carries on
+  where it was, unless the walk-off itself takes the ball as far as the line to gain, and
+  then the offence has its new series after all. Nor does 12-2-12 say what becomes of the
+  kick. That is the offended team's own call under 14-1-1, which lets a side turn the
+  penalty down for almost any foul — the article's exception is a rule that forbids it —
+  and keep the down as it was played. —
   `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
   `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`,
   `test:personalFoulsAreNamedByTheBook`

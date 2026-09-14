@@ -8,12 +8,12 @@ import Testing
 ///
 /// `gamelog` prints a drive summary at every change of possession — how many plays, how
 /// many yards, how long the drive had the ball, and how it ended — and a scoreboard at
-/// every period boundary. Both are folds over the `PlayRecord` stream, and both were
-/// written when a game could reach at most one overtime period, of one length. A
-/// postseason game plays as many periods as it takes, each of fifteen minutes, and it
-/// resumes them from where the ball was rather than with a kickoff (2025 rulebook,
-/// 16-1-4-d). #74 taught the period labels to count them; the arithmetic under those
-/// labels did not follow, which is #87.
+/// every period boundary. Both are folds over the `PlayRecord` stream, and the
+/// assumption to watch for in either is that a game reaches at most one overtime
+/// period, of one length. A postseason game plays as many periods as it takes, each of
+/// fifteen minutes, and it resumes them from where the ball was rather than with a
+/// kickoff (2025 rulebook, 16-1-4-d). A period *label* that counts them is not the same
+/// thing as the arithmetic under it doing so, and the two can disagree silently.
 ///
 /// These are `.contract` tests: they assert what the printer promises about the stream —
 /// that a drive's time is the clock it consumed and that a drive summary is printed when

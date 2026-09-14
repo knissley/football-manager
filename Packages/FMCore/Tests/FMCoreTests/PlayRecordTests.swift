@@ -49,8 +49,8 @@ struct SituationTests {
         #expect(situation(quarter: 3, clock: 60).isTwoMinuteDrill(isPostseason: false) == false)
     }
 
-    /// The half boundaries and the threshold come from the rules, so a variant moves
-    /// them (A8, #20).
+    /// The half boundaries and the threshold come from `Rules`, not from hard-coded 2,
+    /// 4 and 120, so a variant rulebook moves them.
     @Test(
         "unit · the two-minute drill follows Rules.quarters and Rules.twoMinuteWarning",
         .tags(.unit))
@@ -123,8 +123,9 @@ struct SituationTests {
         #expect(tooManyTimeouts.isValid == false)
     }
 
-    /// A postseason game plays as many overtime periods as it takes, so a sixth or a
-    /// seventh period is a situation the engine has to be able to describe (A8, #20).
+    /// A postseason game plays as many overtime periods as it takes (16-1-4), so a sixth
+    /// or a seventh period is a situation the engine has to be able to describe: a
+    /// validity rule that stops at five rejects a legal game.
     @Test("unit · a postseason double-overtime situation is valid", .tags(.unit))
     func doubleOvertimeIsValid() {
         #expect(situation(quarter: 6, clock: 900).isValid)

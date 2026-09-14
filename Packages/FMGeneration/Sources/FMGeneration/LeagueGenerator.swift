@@ -148,8 +148,7 @@ public enum LeagueGenerator {
 
         // The league's own name comes from the source that supplied the clubs: curated
         // beside them, so two careers open in one league rather than in two leagues of
-        // identically named clubs, and drawn where the clubs are drawn
-        // ([#82](https://github.com/knissley/football-manager/issues/82)). Nothing draws
+        // identically named clubs, and drawn where the clubs are drawn. Nothing draws
         // from `random` after this, so the curated path skipping the draw moves nothing
         // else in the world.
         let leagueName =

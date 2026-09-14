@@ -9,25 +9,33 @@ The game models modern American professional football. Rules are **data**, not
 hardcoded — the world's `Rules` object carries them so we can test variants — but
 these are the defaults, and the vocabulary here is the vocabulary the code should use.
 
-**The rulebook we model is the 2025 season.** Every rule statement in
-[`references/game-rules.md`](references/game-rules.md) carries a rule, section and article
-number from that book, in our own words, and was read there. A claim about the sport that
-cannot cite one does not go in a doc, a test name or a PR — and a later book, or reporting
-about one, is not evidence about this one.
+**The rulebook we model is the 2025 season.** A claim about the sport that cannot cite a
+rule, section and article number of that book does not go in a doc, a test name or a PR —
+and a later book, or reporting about one, is not evidence about this one.
 
-Deeper references:
-- [`references/game-rules.md`](references/game-rules.md) — clock, scoring, penalties, overtime
+**The rules themselves live in `docs/reference/playing-rules.md`, by article, and nowhere
+else.** That is the only place a rule of the book is written out in our words: every entry
+names the article, and names the test that checks it or says the engine does not implement
+it yet. What must be true of a game is `docs/invariants.md`; what a rate should be, and the
+season it came from, is `docs/reference/calibration-sources.md`.
+
+Deeper references in this skill:
+- [`references/game-rules.md`](references/game-rules.md) — **the index by area**: which
+  articles govern the clock, the try, the kicking game, where a foul is enforced from.
+  Pointers, not paraphrases — follow them into `docs/reference/playing-rules.md` and read
+  the rule there. It also carries the modelling conventions that have no article (the field
+  goal distance formula, live-play duration, accept-or-decline) and the roster and game-day
+  rules, which are bylaws rather than playing rules.
 - [`references/salary-cap.md`](references/salary-cap.md) — contracts, proration, dead money, tags
 
-The sections of the rules reference that other work cites:
+The index's sections: [game length and the clock](references/game-rules.md#game-length-and-the-clock),
 [the ten-second runoff](references/game-rules.md#the-ten-second-runoff),
-[the try](references/game-rules.md#the-try),
-[overtime](references/game-rules.md#overtime),
-[kickoffs](references/game-rules.md#kickoffs),
-[onside kicks](references/game-rules.md#onside-kicks),
-[what changed since 2024](references/game-rules.md#changes-since-2024), and
-[what the code carries today](references/game-rules.md#what-the-code-carries-today) — the
-2024 values and rules gaps still in the tree, each with its issue.
+[scoring, the try, and field goals](references/game-rules.md#scoring-the-try-and-field-goals),
+[free kicks](references/game-rules.md#free-kicks--kickoffs-safety-kicks-onside-kicks),
+[the passing game](references/game-rules.md#the-passing-game),
+[fouls and what they cost](references/game-rules.md#fouls-and-what-they-cost),
+[where a foul is enforced from](references/game-rules.md#where-a-foul-is-enforced-from) and
+[overtime](references/game-rules.md#overtime).
 
 ## Getting the vocabulary right
 

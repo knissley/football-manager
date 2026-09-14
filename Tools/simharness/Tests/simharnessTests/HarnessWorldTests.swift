@@ -61,10 +61,10 @@ struct HarnessWorldTests {
     /// What a two-seed calibration sweep is *for*, since
     /// [decision 215](../../../../docs/design-decisions.md): seeds 7 and 11 play in one
     /// league of thirty-two clubs, in one set of buildings, with two different sets of
-    /// players. Before, a seed re-rolled the roofs, the surfaces and the noise as well as
-    /// the rosters, so a row that moved between the two seeds could not be told from a
-    /// row that moved because the weather mix had changed underneath it — which is why
-    /// #4 moved about sixty rows with no engine change at all.
+    /// players. A seed that re-rolls the roofs, the surfaces and the noise as well as the
+    /// rosters makes the sweep unreadable: a row that moves between the two seeds cannot
+    /// be told from a row that moves because the weather mix changed underneath it, and a
+    /// change with no engine in it at all can move sixty rows that way.
     ///
     /// The stadium especially: it is what the weather is drawn from, and the harness
     /// draws weather per game.
@@ -92,9 +92,9 @@ struct HarnessWorldTests {
         #expect(sameRosters == false)
     }
 
-    /// The case the reach script exists for. Rivalry generation was a hundred lines that
-    /// no calibration row could see (#64), and the reason it could not is here: the
-    /// harness never generates one.
+    /// The case the reach script exists for. A hundred lines of rivalry generation cannot
+    /// move a calibration row, and the reason is here: the harness world never generates
+    /// one. Add either part to this world and that stops being true.
     @Test("contract: the harness world holds no draft pipeline and no rivalries", .tags(.contract))
     func optionalPartsAreAbsent() throws {
         let world = try HarnessWorld.generate(seed: 7).get()

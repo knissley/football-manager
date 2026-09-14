@@ -101,15 +101,13 @@ public enum RosterGenerator {
     /// player usually sits. Again a description of the initial league, not a
     /// constraint on what you do with yours.
     ///
-    /// **The floor is where the distribution starts, not a bin under it.** This used to
-    /// round the draw and then clamp it into `21...38`, so every draw the Gaussian put below
-    /// twenty-one came back as exactly twenty-one: 266 of 1,696 men at seed 7 against 118 at
-    /// twenty-two, and since nobody enters the league younger than twenty-one, every one of
-    /// them was a rookie — a quarter of every roster was in its first season, a floor no
-    /// entry-age distribution could get under
-    /// ([#67](https://github.com/knissley/football-manager/issues/67)). A draw outside the
-    /// range is now *redrawn*, which is the same distribution truncated rather than folded
-    /// onto its own edge.
+    /// **The floor is where the distribution starts, not a bin under it.** Clamping the
+    /// draw into `21...38` instead of redrawing piles every draw the Gaussian puts below
+    /// twenty-one onto exactly twenty-one — 266 of 1,696 men at seed 7 against 118 at
+    /// twenty-two — and since nobody enters the league younger than twenty-one, every one
+    /// of them reads as a rookie: a quarter of every roster in its first season, a floor no
+    /// entry-age distribution can get under. A draw outside the range is *redrawn*, which
+    /// is the same distribution truncated rather than folded onto its own edge.
     ///
     /// Twelve attempts. The rejection rate is at most about one draw in eight for the
     /// youngest centre this produces, so exhausting them needs twelve consecutive draws of

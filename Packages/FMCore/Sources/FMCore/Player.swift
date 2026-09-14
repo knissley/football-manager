@@ -157,11 +157,11 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     /// carrying two facts that can disagree.
     ///
     /// `nil` is a college prospect: nobody has drafted him and nobody has signed him, so
-    /// there is no season in which he first counted against anything. It used to be the
-    /// season he was generated in, which made every prospect a rookie in the season his
-    /// class became eligible — before he had entered the league
-    /// ([#67](https://github.com/knissley/football-manager/issues/67)). He gets one when he
-    /// arrives, which is a decision in `FMSimulation` and not a fact about him.
+    /// there is no season in which he first counted against anything. The gotcha is that
+    /// the season he was *generated* in is not it — filling this from that made every
+    /// prospect a rookie in the season his class became eligible, before he had entered
+    /// the league at all. He gets one when he arrives, which is a decision in
+    /// `FMSimulation` and not a fact about him.
     public let firstSeason: Int?
 
     public let position: Position
@@ -233,11 +233,11 @@ public struct Player: Sendable, Hashable, Codable, Identifiable {
     /// this is `draft.season == season`, since his first season is his draft season.
     ///
     /// **That the undrafted case is true is this repository's choice and nothing else's.**
-    /// No reference behind it: neither the `football-domain` skill nor anything in `docs/`
-    /// defines "rookie" for a player nobody drafted. Issue #6 specified `draft?.season ==
-    /// season`, which would make the undrafted case false in every season — the same
-    /// answer for a first-year signing and a tenth-year one. Changing it back is this one
-    /// line.
+    /// No reference behind it: nothing in `docs/reference/` defines "rookie" for a player
+    /// nobody drafted, so there is no article to cite and this is a convention. The
+    /// alternative is `draft?.season == season`, which answers false for an undrafted
+    /// player in every season — the same answer for a first-year signing and a tenth-year
+    /// one. Changing it is this one line.
     ///
     /// Takes the season, which is the whole point. The property it replaces compared
     /// `draft.season` with `birthSeason + (draft.season - birthSeason)` — an identity —

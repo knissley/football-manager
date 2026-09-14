@@ -7,7 +7,7 @@ import Testing
 /// The read progression table, pinned.
 ///
 /// Nothing in here is a claim about the sport: a read order is coaching design and the
-/// reference has no article for it (C27, #169). What these pin is the table's own
+/// reference has no article for it. What these pin is the table's own
 /// arithmetic and the two anchoring rules the design was written to — so that a break
 /// time drifting past the hold the family had, or a role named twice, fails here rather
 /// than in a harness row three issues later.

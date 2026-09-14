@@ -31,12 +31,12 @@ private func ageHistogram(seed: UInt64) -> [Int: Int] {
 /// been in the league, whether this is his first season. So a mistake in the draw is not a
 /// cosmetic one — it is a mistake about who is on the roster.
 ///
-/// The mistake this suite exists for was a clamp. The age was drawn around a centre four
-/// years under the position group's peak and then *clamped* into 21...38, so every draw the
-/// Gaussian put under twenty-one came back as twenty-one: at seed 7, 266 of 1,696 players
-/// were twenty-one against 118 who were twenty-two, and because nobody can have entered the
-/// league before he was twenty-one, every one of them was a rookie. A quarter of every
-/// roster was in its first season ([#67](https://github.com/knissley/football-manager/issues/67)).
+/// The mistake this suite exists for is a clamp. Drawing the age around a centre four
+/// years under the position group's peak and then *clamping* into 21...38 returns every
+/// draw the Gaussian puts under twenty-one as exactly twenty-one: at seed 7 that was 266
+/// of 1,696 players at twenty-one against 118 at twenty-two, and because nobody can have
+/// entered the league before he was twenty-one, every one of them reads as a rookie — a
+/// quarter of every roster in its first season.
 @Suite("The ages of a generated league")
 struct RosterAgeTests {
 

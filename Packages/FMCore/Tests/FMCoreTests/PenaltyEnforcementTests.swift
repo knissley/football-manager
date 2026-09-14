@@ -228,9 +228,10 @@ struct PenaltyEnforcementTests {
     /// Deep interference is the highest-variance call in the sport because it is
     /// enforced from the spot rather than at a fixed yardage.
     ///
-    /// Rewritten for A6 (#18): the spot used to travel in the `yards` field as a
-    /// walk-off distance; it is the record's `enforcementSpot` now, in the snapping
-    /// team's frame, and `yards` is the distance walked off.
+    /// Two fields, and they are not interchangeable: the spot is the record's
+    /// `enforcementSpot`, in the snapping team's frame, and `yards` is the distance
+    /// walked off. Carrying the spot in `yards` as a walk-off distance gives the right
+    /// ball position and the wrong record.
     @Test(
         "football · Rule 8-5-Penalty, 8-6-1-b · defensive pass interference is a first down at the spot of the foul",
         .tags(.football)
@@ -250,7 +251,7 @@ struct PenaltyEnforcementTests {
         #expect(decision.penalty.yards == 38, "the distance walked off")
     }
 
-    // MARK: - Where a foul is enforced from (A6, #18)
+    // MARK: - Where a foul is enforced from
 
     /// The three families, from the 2025 rulebook's Rule 14 and Rule 8 Section 6:
     /// fouls enforced from the previous spot, fouls enforced from the spot of the foul,

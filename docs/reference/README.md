@@ -53,8 +53,8 @@ own simulator, about our own fictional leagues.
 
 | File | What it is | Who reads it |
 | --- | --- | --- |
-| `reference/playing-rules.md` | the article index: look up a number | anybody checking a citation |
-| `.claude/skills/football-domain/references/game-rules.md` | the same rules read by area, with what the tree carries today | an agent about to write sim logic |
+| `reference/playing-rules.md` | the rules by article, and **the only place one is written out in our words** | anybody checking a citation |
+| `.claude/skills/football-domain/references/game-rules.md` | the index by area: which articles govern a topic, pointing here. No paraphrase of its own | an agent about to write sim logic |
 | [`../invariants.md`](../invariants.md) | what must be true, and the test that checks each | a reviewer, and a rules PR |
 | `reference/calibration-sources.md` | where each band came from | anybody about to move a band |
 | [`../match-engine.md#calibration`](../match-engine.md#calibration) | the bands themselves, generated from `Targets.swift` | anybody reading harness output |

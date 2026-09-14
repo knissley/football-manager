@@ -42,10 +42,10 @@ struct DraftClassGeneratorTests {
     /// not arrived — and a man who has not arrived is not a rookie, however close his class
     /// is to being picked from.
     ///
-    /// He read as one because a player built without a draft board took the season he was
-    /// built in as the season he first counted against a roster, which for a prospect is the
-    /// season his class becomes eligible
-    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
+    /// The trap is `firstSeason`: a player built without a draft board has no season to
+    /// take it from, and filling it with the season he was *built* in makes every
+    /// prospect a rookie in the season his class becomes eligible. It stays `nil` until
+    /// somebody takes him.
     @Test("contract: a prospect has not arrived, so he is not a rookie", .tags(.contract))
     func prospectsHaveNotArrived() {
         for generated in pipeline() {

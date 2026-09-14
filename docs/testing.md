@@ -210,7 +210,9 @@ those two tests live.
 
 ## The first census
 
-Taken on the merge of wave 1, at 717 tests.
+Taken at `84f23bc`, the commit that added the kind tags and the script, on the merge of
+wave 1: 717 tests. **A historical snapshot, kept as one** — it is the baseline the
+shares below are read against, and it is deliberately not regenerated.
 
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -263,10 +265,11 @@ The share that matters is not the tree's. It is the share **in the rules layer a
 resolver**, which is what CLAUDE.md asks to watch between milestones.
 
 The areas are sums over named suites of the census above, so the grouping can be checked
-against `./scripts/test-census.sh` rather than taken on trust. **The counts in this second
-table were taken on the 922-test census and no machine checks them**: the per-target table
-above is regenerated and diffed in CI, this one is still summed by hand, and the sweep that
-gives it a check or retires it is the docs sweep on the throughput proposal. The rules layer is *Down
+against `./scripts/test-census.sh --list` rather than taken on trust: attribute each line
+it prints to the `@Suite` above it and add up the suites named here. **The counts in this
+second table were taken at `76e423d` and no machine checks them** — the per-target table
+above is regenerated and diffed in CI, this one is still summed by hand, so re-take it and
+move the sha with it whenever it is quoted. The rules layer is *Down
 and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
 forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement*, *Tries and
 touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the defaults come
@@ -275,22 +278,20 @@ rules put it, gave the free kick its spots, and made `Rules` say which book it i
 resolver is *Crude resolver*, *Contest curve*, *Out of bounds*, *Punting*, *The dynamic
 kickoff*, *The pocket* and *Forward progress* — the last five are the resolver's own suites,
 split out when wave 3 gave it the sideline, the aimed punt, the two kickoffs, a pocket with
-a clock in it and a name for the spot a catch is marked at. *Forward progress* is one
-`.football` test and postdates the census below, so the table's resolver row does not carry
-it; the grouping is named here so the next census counts it rather than losing it to a suite
-nobody listed.
+a clock in it and a name for the spot a catch is marked at. The grouping is named here so
+that a new suite is counted into an area rather than lost to one nobody listed.
 
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 51 — 44.7% | 6 | 54 | 3 | 114 |
-| Rules conformance — the scripted games (FMSimulation) | 100 — 98.0% | 0 | 0 | 2 | 102 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff and the pocket (FMSimulation) | 8 — 25.0% | 12 | 10 | 2 | 32 |
+| The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 53 — 45.3% | 6 | 54 | 4 | 117 |
+| Rules conformance — the scripted games (FMSimulation) | 114 — 96.6% | 1 | 0 | 3 | 118 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff, the pocket and forward progress (FMSimulation) | 9 — 23.7% | 17 | 10 | 2 | 38 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 
 Three findings come straight off that table, and a fourth off what it cannot show.
 
 **The resolver asserts little football, and what it does assert is shape rather than
-rate.** Eight of its thirty-two tests do, every one of them added by wave 3. Two came with
+rate.** Nine of its thirty-eight tests do, every one of them added by wave 3. Two came with
 the sideline and the aimed punt: where a play ends laterally is a clock decision (4-3-2-a)
 and a punt from plus territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those
 two asserts only what its articles actually say — the *direction* of the sideline lever,
@@ -305,8 +306,8 @@ the *direction* the definition of the statistic implies (`row:pressureRate`, 202
 source S2) and leaves the rate itself to the band.
 
 A second shipped beside it — that pressure rises with how long the quarterback needs — and
-has since been retagged `.contract`, which is why the resolver's row above reads one lower
-on the current tree than in the snapshot it was taken in. It asserted a strict chain of four
+has since been retagged `.contract`, which is one of the reasons the resolver's football
+share is lower than its test count grew. It asserted a strict chain of four
 inequalities across the pass concepts, and nothing sources one of them: the references band
 pressure per dropback pooled and split it by nothing at all, so the chain was football by
 assertion rather than by citation. It was also a single draw on a single roster, and green

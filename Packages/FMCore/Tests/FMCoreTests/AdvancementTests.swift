@@ -139,11 +139,11 @@ struct AdvancementTests {
         #expect(short.ballOn == rules.puntTouchbackSpot)
     }
 
-    /// Rewritten for A3 (#16). This test asserted `possessionChanged`, with a comment
-    /// warning against exactly the outcome that produced: under the engine's convention
-    /// the possessing team kicks, so flipping possession at the safety had the team
-    /// that *scored* free-kicking from its own 20 and the team that conceded receiving.
-    /// The sport: the team scored upon keeps the ball to put it in play with a free kick
+    /// `possessionChanged` is **false** here, and that is the trap: the points went the
+    /// other way, so flipping it reads right. Under the engine's convention the
+    /// possessing team kicks, so flipping it leaves the team that *scored* free-kicking
+    /// from its own 20 and the team that conceded receiving. The sport (11-5-2,
+    /// 6-1-1-b): the team scored upon keeps the ball to put it in play with a free kick
     /// from its own 20, and that kick changes hands like every kickoff does.
     @Test(
         "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety is two points to the defence, and the team scored upon keeps the ball to free-kick from its own 20",

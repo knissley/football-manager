@@ -4,9 +4,9 @@ import FMSimulation
 // The rules-conformance scenarios: the acceptance language for the rules layer, as
 // scripted games.
 //
-// Every scenario in here was written from the 2025 rulebook as the football-domain
-// skill's `references/game-rules.md` gives it — the citation each one carries is that
-// file's — and never from the code. A scenario says what the sport does; whether the
+// Every scenario in here was written from the 2025 rulebook as
+// `docs/reference/playing-rules.md` gives it — the citation each one carries is an article
+// of that book — and never from the code. A scenario says what the sport does; whether the
 // engine does it is what the run reports. Scenarios the engine cannot satisfy today are
 // red on purpose and stay in the tree until the fix that turns them green.
 //

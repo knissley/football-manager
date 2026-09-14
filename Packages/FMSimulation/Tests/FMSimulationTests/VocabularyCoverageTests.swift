@@ -37,7 +37,8 @@ import Testing
 /// *starts* being produced the test fails too, so the register cannot quietly rot into a
 /// list of things that used to be true.
 ///
-/// See `docs/roadmap.md` — "Audit owed at the end of M1".
+/// What the suite is for, and the milestone that owes it a review, is in
+/// `docs/roadmap.md`.
 @Suite("Vocabulary coverage")
 struct VocabularyCoverageTests {
 
@@ -526,12 +527,11 @@ struct VocabularyCoverageTests {
     /// and each test reads both directions: an unregistered case never seen fails, and a
     /// registered case that turns up fails too, so the register cannot rot.
     ///
-    /// Measured with every register empty: the engine reached 3 of 5 throw decisions,
-    /// 2 of 5 tackle results, 2 of 5 block results and 2 of 6 coverage techniques, and
-    /// every catch result and ball placement. The issue that closes each gap is the one
-    /// named beside it, and deleting an entry is how it reports that it landed — the
-    /// checkdown and the throwaway came off the register with C3 (#44), which is where
-    /// the quarterback learned to take one and to throw the other.
+    /// A register entry carries its own reason as a string, beside the case. Deleting an
+    /// entry is how the work that made a case reachable reports that it landed: the test
+    /// fails in the *other* direction the moment a registered case turns up, so a
+    /// register left behind by a landed change goes red rather than quietly staying
+    /// true. An empty register is the end state, not an unfilled one.
     static let unreachableThrowDecisions: [ThrowDecision: String] = [:]
     static let unreachableCatchResults: [CatchResult: String] = [:]
     static let unreachableTackleResults: [TackleResult: String] = [

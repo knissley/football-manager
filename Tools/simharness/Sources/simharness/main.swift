@@ -293,8 +293,8 @@ print(
     "  \(world.teams.count) teams, strength offset "
         + "\(oneDecimal(offsets.min() ?? 0)) to \(oneDecimal(offsets.max() ?? 0))")
 // The world this run was played in, as one number, from the same function GoldenWorldTests
-// pins. It follows from the seed alone, so it is byte-identical between two runs (#52);
-// two *branches* printing the same number generated the same league, which is what
+// pins. It follows from the seed alone, so it is byte-identical between two runs; two
+// *branches* printing the same number generated the same league, which is what
 // scripts/harness-reach.sh needs to know before it says a change cannot reach these rows.
 print(
     "  " + HarnessWorld.checksumLine(for: world)
@@ -673,10 +673,12 @@ print(
     "    " + pad("declined", 28)
         + "\(oneDecimal(Double(flags.count - accepted.count) / Double(max(1, flags.count)) * 100))%   (no target: the source counts accepted fouls only)"
 )
-// The contact family is enforced from the dead-ball spot with the gain counting (A6,
-// #18); measured from the previous spot it was declined against its own play's gain
-// most of the time. No target, for the same reason as the row above: this is a rules
-// check, and a family accepted far more often than declined is what the rule gives.
+// The contact family is enforced from the dead-ball spot with the gain counting
+// (2025 rulebook, 14-3-5-a, 14-3-6). Measured from the *previous* spot instead, it is
+// declined against its own play's gain most of the time, so a decline share that
+// climbs here is the enforcement spot going wrong rather than callers changing their
+// minds. No target, for the same reason as the row above: this is a rules check, and a
+// family accepted far more often than declined is what the rule gives.
 let contactFouls: Set<String> = [
     "facemask", "unnecessaryRoughness", "roughingThePasser", "horseCollarTackle",
     "illegalUseOfHelmet",
@@ -729,7 +731,7 @@ report("timeoutsPerGame", Double(timeoutsSpent) / Double(max(1, results.count)))
 // The same total split by side and by half. No target on any of the four: nothing in
 // docs/reference/calibration-sources.md bands either split, and the play-by-play
 // derivation that would produce one — `timeout_team` against `posteam` for the side,
-// `qtr` for the half — is E2 (#42)'s to run, not a fix's to invent. They are printed
+// `qtr` for the half — belongs to a band derivation, not to a fix. They are printed
 // because the total alone cannot say whether a bench is spending its second-half
 // timeouts or hoarding them past the whistle, which is the thing the row exists to
 // catch. The by-side and by-half figures count the timeouts a bench asked for; the
@@ -763,7 +765,7 @@ print(
 // (2025 rulebook, 4-3-2-a: out of bounds leaves the clock stopped until the snap in those
 // windows and restarts it on the ready signal everywhere else). No target on any of the
 // three: nothing in docs/reference/calibration-sources.md bands where a play ends
-// laterally, and a sourced band would land with E2 (#42).
+// laterally.
 print("")
 print("  Ending on the sideline   (no target: unsourced, a band belongs to #42)")
 func sidelineShare(_ plays: [PlayRecord]) -> String {
@@ -1166,8 +1168,8 @@ report(
 print("")
 print("  The reads")
 // What the quarterback did with the ball, read off the throw decision the record carries
-// on every dropback (C3, #44): a throw to a numbered read, the checkdown, a throwaway, a
-// scramble or a sack. None of the rows has a band, and each says why in Targets.swift.
+// on every dropback: a throw to a numbered read, the checkdown, a throwaway, a scramble
+// or a sack. None of the rows has a band, and each says why in Targets.swift.
 let throwDecisions = dropbacks.compactMap { play in
     play.decisions.first { $0.kind == .throwDecision }?.throwDecisionValue
 }
@@ -1189,7 +1191,7 @@ report(
     throwsToARead.isEmpty
         ? nil : Double(toTheFirstRead.count) / Double(throwsToARead.count) * 100)
 // Who the ball goes to, by the position he plays: the footprint the read order and the
-// checkdown leave, and the one of these rows a source can band (E8 #179).
+// checkdown leave, and the one of these rows a source can band.
 // Over dropbacks, the denominator every read row shares: a two-point try's target is not
 // in it, as its attempt is in none of the passing rows.
 let targets = dropbacks.flatMap { play in play.outcome.participants.filter { $0.role == .target } }
@@ -1271,9 +1273,9 @@ report(
     "twoPointConversion",
     twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
 // How the conversions were attempted. A try may be by pass *or run* (2025 rulebook,
-// 11-3-1) and every one of them used to be a throw. No target: nothing in
-// docs/reference/calibration-sources.md bands the split, and a sourced band belongs to
-// E2 (#42).
+// 11-3-1), and a hundred per cent here means the run branch is unreachable rather than
+// unpopular — which it once was. No target: nothing in
+// docs/reference/calibration-sources.md bands the split.
 print(
     "    \(pad("two-point tries run", 30))"
         + "\(twoPointTries == 0 ? "—" : oneDecimal(Double(twoPointRuns) / Double(twoPointTries) * 100) + "%")"
@@ -1284,7 +1286,7 @@ print(
 // a scrimmage kick that reaches the end zone untouched is a touchback (2025 rulebook,
 // 11-6-2-c) and comes out to the 20 (9-5-1 Note a), while one that stops short of it is
 // the receivers' ball where it stopped (9-4-4). No target on any of these rows: nothing in
-// docs/reference/calibration-sources.md bands them, and a sourced band belongs to E2 (#42).
+// docs/reference/calibration-sources.md bands them.
 // Their net is measured with a touchback spotted at the 20, which is *not* how the
 // `netPunt` row above measures it — that one spots it at the goal line, a harness bug
 // recorded in calibration-sources.md — so the two are not comparable by construction.
@@ -1628,7 +1630,8 @@ print(
 )
 // The one row here that can go negative, now that home and away are not the same team:
 // at 200 games, five seeds in twenty give the road side the edge. `oneDecimal` keeps the
-// sign on a value in (-1, 0) since E1 (#2), so this needs nothing of its own.
+// sign on a value in (-1, 0), so this needs nothing of its own — a formatter that drops
+// it prints a road edge as a home one.
 print(
     "    \(pad("home scoring edge (points)", 30))\(pad(oneDecimal(Double(homePoints - awayPoints) / Double(max(1, results.count))), 9))crowd only, see M3"
 )
@@ -1774,8 +1777,8 @@ for verdict in ["ok", "OFF", "stale", "unsourced", "(ok)", "(OFF)", "n/a"] {
 // MARK: - Budget
 
 // Last, and after everything else, because these are the only numbers in the run that
-// move between two processes. `--no-timing` drops the block, which is how the
-// byte-identical property (#52) is still checked with a plain `md5sum`.
+// move between two processes. `--no-timing` drops the block, which is how the rest of
+// the output's byte-identical property is checked with a plain `md5sum`.
 if timing {
     print("")
     for line in Budget(games: results.count, seconds: simulateSeconds).lines { print(line) }

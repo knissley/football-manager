@@ -367,9 +367,10 @@ struct CalibrationTarget: Sendable {
                 "Both teams, break-ups only: a ball the defender knocked away or fouled away, which is what the stat counts. Interceptions are row:interceptionRate's. Unsourced: the play-by-play does not name the defender on a break-up."
         ),
 
-        // What the quarterback did with the ball once he had worked his reads (C3, #44).
-        // None of these has a band and each says why; the figures C3's plan once carried
-        // for the first two were from memory and were withdrawn under rule 10.
+        // What the quarterback did with the ball once he had worked his reads. None of
+        // these has a band and each says why. Do not fill one in from a figure that
+        // sounds right: the first two carried exactly such a figure, from memory, and it
+        // was withdrawn under CLAUDE.md rule 10.
         CalibrationTarget(
             id: "throwawaysPerDropback", label: "throwaways per dropback", low: nil, high: nil,
             season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",

@@ -20,7 +20,7 @@ import Testing
 /// The checksum itself is `WorldChecksum` in `FMGeneration`, not a private copy in this
 /// file, because `simharness` prints the same number in its header: the goldens pin the
 /// function and the harness reports it, so `scripts/harness-reach.sh` can compare two
-/// branches' worlds and mean by it exactly what this test means (#72). It is FNV-1a and
+/// branches' worlds and mean by it exactly what this test means. It is FNV-1a and
 /// deliberately not `Hasher`, whose per-process seed would make it unable to detect the
 /// drift it exists to detect.
 @Suite("Golden world")
@@ -44,102 +44,36 @@ struct GoldenWorldTests {
     @Test(
         "A seed produces the same world in every process", .tags(.contract),
         arguments: [
-            // All three moved for the last time they can move for this reason in #69,
-            // which took the initial world off the identity pools: the thirty-two clubs,
-            // their cities, colours, markets and grounds are now `FranchiseSet`'s curated
-            // table rather than a draw, and the checksum reads every one of those fields.
-            // Two consequences beyond the names. The league is dealt from the front of
-            // each region rather than popped off the back, so which franchise is which
-            // team identifier changed; and a team no longer draws its identity, so the
-            // league substream reaches the scheme draw in a different place — schemes
-            // moved, and with them the roster each club was built for. From here a seed
-            // moves the rosters, the strengths and the schemes, and nothing moves the
-            // franchises ([decision 215](../../../../docs/design-decisions.md)).
+            // What moves these numbers, and what must not. The checksum covers the whole
+            // world — structure, identity, every roster and its draft history, strengths,
+            // the draft pipeline and the rivalries — so a constant moves both when
+            // generation really changed and when the *coverage* of the checksum widened.
+            // Those are not the same claim: widening leaves `GoldenSeedTests` and the
+            // harness byte-identical, a generation change does not. Say which in the
+            // commit message.
             //
-            // And all three once more in review of #69, which found real marks in eight
-            // cells of that table: six stadium names that were a real arena, two real
-            // bowl games, a demolished venue, an 1860s ballpark and a corporate sponsor,
-            // and two abbreviations that are corporate marks holding real stadium naming
-            // rights (rule 8, [ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)).
-            // Renamed, and nothing else about the identity touched. Every one of the
-            // eight is a string the engine never reads — `GoldenSeedTests` did not move
-            // — but the world checksum covers the identity, so it did.
+            // The traps, all of which have bitten. A draw whose *count* varies — a
+            // rejection loop — moves everything drawn after it, not only its own field. A
+            // stream shared between two stages carries a change across them, while a
+            // substream split on a player identifier does not. And a field the engine
+            // never reads — a club's name, the league's title — still moves this number,
+            // because the identity is checksummed; that is the case where these move and
+            // `GoldenSeedTests` does not.
             //
-            // And all three once more in #82, which finished that identity: the league's
-            // own name was still a per-seed draw from `StructurePools.leagueNames`, so
-            // two careers opened in identically named clubs under differently named
-            // leagues. It is now one line beside the table, `FranchiseSet.leagueName`,
-            // and the checksum mixes `league.name` — so every curated world moved by
-            // exactly that string and nothing else. The randomiser keeps its draw. Like
-            // the renames above, the league's name is a string no snap reads:
-            // `GoldenSeedTests` did not move, and the harness rows below its header are
-            // byte-identical at seeds 7 and 11.
-            //
-            // And all three in #67, which changed how old a generated league is. The age
-            // draw was clamped into 21...38, so every draw under twenty-one came back as
-            // twenty-one; it is now redrawn, which is the same distribution truncated
-            // rather than folded onto its own edge, and the centre for a reserve is floored
-            // two seasons above the entry age instead of landing on it. Ages feed
-            // `currentOverall`, so every rating in every world moved with them, and the
-            // rejection loop draws a variable number of times from the roster stream, so
-            // everything drawn after an age moved too. The checksum also mixes one new
-            // field: whether a man has a first season at all, now that a prospect has none.
-            //
-            // And all three once more when every player came to carry every key. A rating
-            // a position does not train — a tackle's throwing, a kicker's coverage — used
-            // to be absent and is now present and low, drawn from
-            // `PlayerGenerator.untrainedTable` on a substream split on the man's
-            // identifier. The checksum mixes every key of every man, so every world moved,
-            // and nothing else about anybody did: the untrained draws come from a stream
-            // of their own, so every trained rating, build, name and hidden attribute is
-            // byte-identical to what it was, and the league's own-position overall mean
-            // and spread at seed 7 are unchanged to the last digit, which
-            // `CrossPositionTests.ownPositionMomentsAreUnmoved` holds them to.
-            //
-            // And all three once more when a receiver and a tight end came to train ball
-            // security. Carrying and break tackle are among the keys both positions draw
-            // around their own quality now, where they were filled in from the untrained
-            // table's ball-carrying row: the two draws moved from the identifier-split
-            // untrained substream to the trained stream, so both positions' numbers moved
-            // — carrying from 24.6 and 24.9 to 69.5 and 69.4 at seed 7 — and, because the
-            // trained stream is shared with everything a player is built from after his
-            // ratings, so did his build, his combine, his name, his college and every man
-            // drawn after him. The checksum reads all of it, so all three worlds moved.
+            // Regenerating any of them to make a red test pass is forbidden (CLAUDE.md
+            // rule 9). What each past move was is in the git log.
             (UInt64(1), UInt64(10_261_439_880_186_297_053)),
-            // Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
-            // bitter rivalry, and that pair loses the smallest single event that brings it
-            // under the band — its 2026 player poaching, 67.195 to 63.541. Seeds 1 and 7
-            // have no bitter pair in them and did not move, which is the evidence that the
-            // ceiling reaches nothing but the pairs it is aimed at.
+            // Seed 5 is the one world of the three with a bitter rivalry pair in it, so a
+            // change aimed at seeded rivalry heat moves this constant and leaves seeds 1
+            // and 7 where they are. That asymmetry is evidence rather than noise: a
+            // rivalry ceiling that moved all three would be reaching pairs it is not
+            // aimed at.
             //
-            // All three moved again in #72, when the checksum stopped being private to
-            // this file: it now covers what the engine reads and this file did not — the
-            // stadium beyond its name and noise, both schemes in full rather than their
-            // pass lean, secondary positions, the hidden attributes, traits and status —
-            // and terminates each string so two adjacent fields cannot slide.
-            //
-            // And once more in review of #72, which found two ways the checksum still
-            // called two different leagues one league: it read the rosters but not
-            // `world.players`, the map the engine is actually handed, and it concatenated
-            // variable-length groups without their lengths, so a depth chart repartitioned
-            // over the same men was invisible. Both are now covered, both had moved the
-            // harness by hundreds of lines in the reviewer's repro. Wider
-            // coverage, not different generation: no world changed, and the run before
-            // and after is byte-identical.
-            //
-            // And all three once more when `WorldGenerator.strengthSpread` stopped being
-            // eight — a number with no source — and became the width the sport's own
-            // between-club spread of point differential implies. Every club's offset is a
-            // different number, so every roster is built to a different ceiling and every
-            // man drawn after the first is a different man; the checksum reads all of it.
-            // This is generation changing, not coverage widening: the leagues really are
-            // different leagues. The width is neither of the two numbers first computed:
-            // the floor and the slope it is solved from are properties of the engine, and
-            // the engine moved twice underneath it — the run game grew a middle, and the
-            // defence learned to answer two tight ends with a fifth defensive back some of
-            // the time. Each time the same three steps were re-run against the same sourced
-            // target. See the constant's own comment, and the rule in
-            // `calibration-sources.md` for when a re-measurement is worth acting on.
+            // `WorldGenerator.strengthSpread` is the widest lever on these numbers: every
+            // club's offset changes with it, so every roster is built to a different
+            // ceiling and every man drawn after the first is a different man. See the
+            // constant's own comment, and the rule in `calibration-sources.md` for when a
+            // re-measurement is worth acting on.
             (UInt64(5), UInt64(13_874_155_947_617_604_630)),
             (UInt64(7), UInt64(12_647_015_549_021_856_984)),
         ])

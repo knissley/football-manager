@@ -780,7 +780,7 @@ struct EndgameTests {
         #expect(kneels > 0, "ten games and nobody ever took a knee")
     }
 
-    // MARK: - The runoff decisions (A5, #32)
+    // MARK: - The runoff decisions
 
     /// Not a rule: the rulebook gives the offence a timeout instead of the runoff and
     /// the defence the right to decline it (4-7-1 Item 1), and which way each goes is a
