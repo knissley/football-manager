@@ -83,7 +83,28 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// runner whether or not the quarterback ever looked at him — which is what lets a
     /// reader say a man was open and never read, and now why.
     case readProgression = 2
-    /// What the quarterback did with the ball. `detail` is a `ThrowDecision`.
+    /// What the quarterback did with the ball. `primary` is the quarterback, `detail` is
+    /// a `ThrowDecision`, `secondary` is the man that decision was about, and `value` is
+    /// milliseconds from the snap to the moment `tick` names.
+    ///
+    /// **This is the one case where which man `secondary` is depends on `detail`**, because
+    /// the decision itself does: he threw to a receiver, or he never got to, because a
+    /// rusher was on him. He is still the man on the other side of the act `primary`
+    /// records, so the enum's rule holds — but a reader that wants a receiver has to say
+    /// which decisions he means.
+    ///
+    /// | `detail` | `secondary` | the moment `tick` and `value` carry |
+    /// |---|---|---|
+    /// | `.primary`, `.checkdown` | the receiver he threw to | the ball leaving his hand |
+    /// | `.throwaway` | nobody: `PlayerSlot.none` | the ball leaving his hand |
+    /// | `.scramble`, `.sack` | the rusher who got to him | that rusher's arrival |
+    ///
+    /// So target share, air yards and any target leaderboard read `secondary` on
+    /// `.primary` and `.checkdown` and on nothing else. Ungated they credit a pass rusher
+    /// with a target on every sack and every scramble — a sack on 6 to 7% of dropbacks
+    /// (`row:sackRate`) and three or four scrambles a game (`row:scramblesPerGame`) — and
+    /// nothing about the record would look wrong while they did. The `throwDecision`
+    /// factory below is the only intended way to build one.
     case throwDecision = 3
     /// The ball reached the receiver. `value` is separation in centimetres,
     /// `detail` is a `BallPlacement`.
@@ -301,12 +322,19 @@ extension DecisionPoint {
             detail: index, value: separationCentimetres)
     }
 
+    /// The quarterback is `primary` and `oppositeNumber` is the man the decision was
+    /// about — the receiver he threw to, or the rusher who got to him before he could,
+    /// and nobody at all on a throwaway. The parameter is not named `target` because it
+    /// is a target on two of the five decisions and a pass rusher on two others; see
+    /// `DecisionKind.throwDecision` for the table. `atMilliseconds` is the same moment
+    /// `tick` carries, in milliseconds from the snap.
     public static func throwDecision(
-        tick: UInt16, passer: PlayerSlot, target: PlayerSlot = .none, decision: ThrowDecision
+        tick: UInt16, passer: PlayerSlot, oppositeNumber: PlayerSlot = .none,
+        decision: ThrowDecision, atMilliseconds: Int16 = 0
     ) -> DecisionPoint {
         DecisionPoint(
-            tick: tick, kind: .throwDecision, primary: passer, secondary: target,
-            detail: decision.rawValue)
+            tick: tick, kind: .throwDecision, primary: passer, secondary: oppositeNumber,
+            detail: decision.rawValue, value: atMilliseconds)
     }
 
     public static func ballArrival(

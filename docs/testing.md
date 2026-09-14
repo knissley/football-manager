@@ -235,8 +235,8 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `cf885fb`, the head this page's own numbering and footprint checks were cut
-from, plus the one contract test they added: **1006 tests, counted with
+Taken on `18f8613`, the head the throw decision's contract was cut from, plus the one
+contract test it added: **1007 tests, counted with
 `./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
 no commit beside it is a claim about a tree nobody can go back to, which is the way a
 snapshot misleads — it reads as current long after it has stopped being true.
@@ -251,10 +251,10 @@ the same commit as whatever moved it, and move the sha above with it.
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 56 — 14.7% | 34 — 8.9% | 286 — 75.3% | 4 | 380 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 150 — 43.0% | 111 — 31.8% | 69 — 19.8% | 19 | 349 |
+| FMSimulation | 150 — 42.9% | 112 — 32.0% | 69 — 19.7% | 19 | 350 |
 | simharness | 0 — 0.0% | 15 — 46.9% | 17 — 53.1% | 0 | 32 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **207 — 20.6%** | **264 — 26.2%** | **512 — 50.9%** | **23** | **1006** |
+| **all** | **207 — 20.6%** | **265 — 26.3%** | **512 — 50.8%** | **23** | **1007** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.

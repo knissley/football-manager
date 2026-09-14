@@ -226,7 +226,8 @@ struct DecisionPointTests {
     @Test("Typed reads decode the detail byte", .tags(.unit))
     func typedReads() {
         let throwPoint = DecisionPoint.throwDecision(
-            tick: 25, passer: PlayerSlot(0), target: PlayerSlot(7), decision: .checkdown)
+            tick: 25, passer: PlayerSlot(0), oppositeNumber: PlayerSlot(7), decision: .checkdown,
+            atMilliseconds: 2500)
         #expect(throwPoint.throwDecisionValue == .checkdown)
 
         let catchPoint = DecisionPoint.catchAttempt(
@@ -289,7 +290,8 @@ struct DecisionPointTests {
             DecisionPoint.readProgression(
                 tick: 1, passer: actor, receiver: opposite, index: 1, separationCentimetres: 1),
             DecisionPoint.throwDecision(
-                tick: 1, passer: actor, target: opposite, decision: .primary),
+                tick: 1, passer: actor, oppositeNumber: opposite, decision: .primary,
+                atMilliseconds: 100),
             DecisionPoint.ballArrival(
                 tick: 1, receiver: actor, defender: opposite, placement: .onTarget,
                 separationCentimetres: 1),
@@ -598,7 +600,8 @@ struct PlayRecordTests {
             .pressureHeld(
                 tick: 20, blocker: PlayerSlot(3), rusher: PlayerSlot(14), forMilliseconds: 3200),
             .throwDecision(
-                tick: 24, passer: PlayerSlot(0), target: PlayerSlot(7), decision: .checkdown),
+                tick: 24, passer: PlayerSlot(0), oppositeNumber: PlayerSlot(7),
+                decision: .checkdown, atMilliseconds: 2400),
         ]
         #expect(play.decisions(ofKind: .pressureAllowed).count == 1)
         #expect(play.decisions(ofKind: .throwDecision).count == 1)

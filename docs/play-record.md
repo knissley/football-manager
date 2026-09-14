@@ -172,7 +172,8 @@ DecisionPoint
                                           the pocket, once: got there, or did not
 .readProgression(passer, receiver, index, separationCm)
   one per read the quarterback worked, in the order he worked them
-.throwDecision(.primary | .checkdown | .throwaway | .scramble | .sack)
+.throwDecision(passer, the man it was about, .primary | .checkdown | .throwaway
+                                             | .scramble | .sack, msFromSnap)
 .ballArrival(receiver, separationCm, placement)
 .catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
 .blockResult(blocker, defender, result)   .holeQuality(gap, quality)
@@ -187,6 +188,18 @@ and the man he threw to. One rule across the enum, so a query that wants the act
 `primary` without asking which kind it holds. A case that disagrees costs nothing at
 compile time and a wrong name in a stat line at read time — a leaderboard built on
 `primary` crediting a quarterback as a receiver.
+
+**One case names a different man depending on its detail, and only one.** On a
+`.throwDecision` the man opposite the quarterback is whoever the decision was about: the
+receiver on `.primary` and `.checkdown`, the rusher who got to him on `.scramble` and
+`.sack`, and nobody at all on a `.throwaway`. `value` is the millisecond of the moment
+`tick` names — the ball leaving his hand, or that rusher's arrival. The enum's rule still
+holds, since each of those is the man on the other side of the act recorded; what does not
+hold is the assumption a receiving query makes, so **target share, air yards and a target
+leaderboard read `secondary` only after gating on `detail`.** Ungated they credit a pass
+rusher with a target on every sack (`row:sackRate`) and every scramble
+(`row:scramblesPerGame`), and nothing about the record looks wrong while they do:
+`test:throwDecisionsNameTheManTheDecisionWasAbout` holds the producers to the table above.
 
 **What a pass play records, and how much of it.** A dropback's points are fixed by its
 personnel, not by how the play went, so the count is answerable before the snap:
