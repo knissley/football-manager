@@ -2,8 +2,8 @@
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
 `playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/lint-reference.sh`,
-`scripts/fetch-rulebook.sh`, `scripts/harness-reach.sh` and `scripts/test-census.sh`. Nothing
-here is a plan.
+`scripts/fetch-rulebook.sh`, `scripts/harness-reach.sh`, `scripts/test-census.sh` and
+`scripts/preflight.sh`. Nothing here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
 Everything here runs in a Claude Code web session, so it works from a phone: ask
@@ -1319,6 +1319,135 @@ Every test the fixture tree must produce is listed in
 either direction fails: a shape that quietly stops being counted is caught as loudly as
 one counted twice. So a new shape needs a fixture and an expectation line. It runs in
 under a second, and CI runs it as its own hard-failing step.
+
+## preflight — one pre-push command, scoped to the blast radius
+
+```bash
+./scripts/preflight.sh            # pick a lane from the diff and run it
+./scripts/preflight.sh --full     # force the engine lane: everything
+./scripts/preflight.sh --report   # the same run, fenced for a PR body
+```
+
+Reads the diff, picks the smallest set of checks that can still catch what the change
+could have broken, runs them one at a time, and prints one line per step: name, seconds,
+`ok` / `FAILED` / `skipped`, and the log that holds the step's real output. Exits 0 when
+every step passed, 1 when one failed — the last line names the step and its log — and 2
+when it could not set up: no toolchain, no base ref, a `$TMPDIR` inside the checkout.
+
+```text
+preflight  lane=engine  base=origin/main (8439eccb95)  3 file(s) changed
+  logs: /tmp/preflight-20260914-013540-13878
+  Targets.swift sha256  head 5ee1d0f7be8f  base 5ee1d0f7be8f  (unchanged)
+  harness-reach: skip  no engine source moved against origin/main and the world is identical …
+  step                                  secs  result           log / why not
+  format lint                              0  ok               01-format-lint.log
+  …
+  FMSimulation                           161  ok               19-FMSimulation.log
+  harness 400 games, seed 7                0  skipped          harness-reach says skip
+  29 step(s): 25 ok, 4 skipped, 0 failed — 242s total
+```
+
+The full output of every step goes to `${TMPDIR:-/tmp}/preflight-<date>-<pid>/`, one file
+per step, and **never inside the checkout** — a log under the tree is a file the next
+`git status` reports and somebody eventually commits. If `$TMPDIR` resolves inside the
+repository the script refuses to run rather than quietly writing there. Only the summary
+reaches the terminal, which is the point: the mandated list put about 800 lines of green
+checkmarks into an agent's context per `swift test` run, carried in every later turn.
+
+The claim it makes is narrow: **the steps it ran are the ones CI runs over the trees this
+branch touched.** It does not claim the branch is correct, and it replaces neither reading
+a game with [`gamelog`](#gamelog--watch-a-game) nor the before-and-after comparison a
+change to the engine owes.
+
+### The lanes
+
+The blast radius is `git diff --name-only $(git merge-base origin/main HEAD)`, which
+already includes the working tree, plus the files nothing tracks yet. Each path picks a
+lane; the run is the union of what those lanes ask for and the name printed is the highest
+one reached.
+
+| Lane | Selected by | What it adds |
+| --- | --- | --- |
+| `docs` | anything that is not source — docs, scripts, fixtures, the skills | the format lint, `lint-sim` and its self-test, the census, its self-test and the census table in `docs/testing.md`, the footprint in `docs/play-record.md`, `lint-reference` over the tree, its self-test and `--messages`, `harness-compare --self-test`, the two Python self-tests, and `InvariantsTraceabilityTests` by `--filter` |
+| `tests` | `Packages/*/Tests` | the full debug suite of each package whose tests moved |
+| `tools` | `Tools/*/Sources` or `Tools/*/Tests` | the build and suite of each tool that moved, and `playsize` |
+| `engine` | `Packages/*/Sources`, any `Package.swift`, `.github/workflows/`, `Tools/simharness/Sources` | everything in CLAUDE.md's Commands block, [`harness-reach`](#harness-reach--can-this-change-reach-the-harness) against the base, and — when it says `run` — a release build and `--games 400 --no-timing` at seeds 7 and 11, each captured to a file [`harness-compare`](#harness-compare--what-moved-between-two-captures) can read |
+
+Every lane runs the `docs` lane, so the lints fail first and cheaply. A test file and a
+source file together escalate to `engine`, because the union of a `tests` path and an
+`engine` path is `engine`. `Tools/simharness/Sources` selects `engine` rather than `tools`
+because that tree is on `harness-reach`'s watched list: the harness's own world, bands and
+arithmetic can move a calibration row. A change under `scripts/` adds that script's own
+self-test to whatever lane the rest of the diff picked — most are in the `docs` lane
+already; the two that are not are `harness-reach`'s, which builds a harness per scenario,
+and this script's.
+
+It **stops at the first failure**: a failing step is going to be fixed and the run
+repeated, so gathering findings nobody will read is waste. The tail of the failing log
+goes to stderr so the reason is in front of you without the preceding thousand lines of
+green.
+
+Measured on a four-core Linux container with warm `.build` directories, against `main` at
+`8439ecc`: a `docs`-lane run is **8 seconds** of wall clock over 15 steps, and an
+`engine`-lane run is **4 min 2 s** over 29 steps — 4 min 31 s in the run where the harness
+actually swept, each seed 16 s. Cold, add the debug build of whichever packages the lane
+touches; FMSimulation's is about 58 s on the same machine. `FMSimulation`'s own suite is
+161–214 s of that engine run across four runs, and is the whole reason `--iterate` exists.
+`harness-reach` costs nothing when engine sources moved — it answers off the file list —
+and about 29 s when they did not, which is the two harness builds it compares.
+
+### Overrides, and the iteration loop
+
+```bash
+./scripts/preflight.sh --lane docs            # force one lane by name
+./scripts/preflight.sh --base <ref>           # decide against something other than origin/main
+./scripts/preflight.sh --dry-run              # print the plan, run nothing
+./scripts/preflight.sh --iterate ClockTests   # swift test -c release --filter, in the right package
+```
+
+`--iterate` finds the package whose `Tests/` declares the named suite and runs
+`swift test -c release --package-path <that> --filter <suite>`, streaming its output —
+this one is meant to be read. It is the loop to work in: FMSimulation's debug suite spends
+most of its time building the shared game corpus in an unoptimised binary, and the same
+suite under `-c release` is an order of magnitude faster. **Run the full debug suite once
+before the push** — the release binary does not compile the one test behind `#if DEBUG`.
+
+`--report` runs the lane and prints the same block inside a `text` fence, which is what a
+PR body pastes as its evidence: it carries the lane, the base sha, the `harness-reach`
+verdict and the `Targets.swift` checksum at HEAD and at the merge base, so a reviewer can
+see that the bands did not move without taking anybody's word for it.
+
+### Its self-test
+
+```bash
+./scripts/preflight.sh --self-test
+```
+
+The test for the script, in the shape
+[`harness-reach.sh --self-test`](#harness-reach--can-this-change-reach-the-harness) uses.
+A wrong lane rule is a check that silently stops running before a push, so the rules
+are tested rather than read. It builds a throwaway repository under `$TMPDIR` holding
+nothing but the paths the rules name — the lane rules read paths, not contents, so a
+one-word file at each is the whole fixture tree — commits it as a base, and applies ten
+scripted changes whose lanes are known:
+
+| Scripted change | Lane | What it pins |
+| --- | --- | --- |
+| A line appended to `docs/tools.md` | `docs` | the floor: no suite, no tool, no harness |
+| `Packages/FMCore/Tests/…` | `tests` | that package's suite, and only that one |
+| `Tools/gamelog/Sources/…` | `tools` | that tool's build and suite, plus `playsize` |
+| `Packages/FMSimulation/Sources/…` | `engine` | the Commands block, `harness-reach`, both sweeps |
+| A test file **and** a source file | `engine` | the escalation: the union is the higher lane |
+| `Packages/FMCore/Package.swift` | `engine` | a manifest is a build setting, and reaches the output |
+| `.github/workflows/ci.yml` | `engine` | a CI step is too |
+| `Tools/simharness/Sources/…` | `engine` | the harness's own tree, not `tools` |
+| `scripts/harness-reach.sh` | `docs` | a changed script owes its own self-test |
+| An **uncommitted** file in `FMSimulation/Sources` | `engine` | the working-tree arm — `git diff` alone cannot see it |
+
+Each asserts the lane chosen and the steps listed, through `--dry-run`, and names steps
+that must be *absent* as well as present — a lane that quietly ran everything would pass a
+presence-only check. No Swift runs and no lane is executed, so it costs about a second and
+CI runs it as its own hard-failing step beside the other self-tests.
 
 ## Formatting
 
