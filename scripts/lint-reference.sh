@@ -1222,28 +1222,35 @@ render_show() {
     printf '%s\n' "$out" | awk -F'\t' '$1 == "INDEX" && NF == 2 { next } { print }'
 }
 
-# The citations a branch diff ADDS. `--range` is honoured the way it is for
+# The range a branch diff covers. `--range` is honoured the way it is for
 # messages: given one, that is what is diffed; otherwise the branch's own work,
 # from the merge base so the base's own commits are not dragged in.
-diff_cites_for() {
+#
+# Separate from the diff itself because the caller prints the range in the header,
+# and a range worked out inside a command substitution is worked out in a subshell
+# and never reaches the caller — which is how the header first printed "the
+# citations added by , against origin/main".
+resolve_show_range() {
     local repo=$1 base=$2 merge_base status=0
-    show_merge_base=""
     if [ -n "$commit_range" ]; then
         show_range=$commit_range
-    else
-        set +e
-        merge_base=$(git -C "$repo" merge-base "$base" HEAD 2>&1)
-        status=$?
-        set -e
-        if [ "$status" -ne 0 ]; then
-            echo "lint-reference: no merge base between $base and HEAD in $repo." >&2
-            printf '%s\n' "$merge_base" | sed 's/^/  /' >&2
-            exit 2
-        fi
-        show_merge_base=$merge_base
-        show_range="$merge_base..HEAD"
+        return 0
     fi
-    git -C "$repo" diff --no-color --no-ext-diff --unified=0 "$show_range" |
+    set +e
+    merge_base=$(git -C "$repo" merge-base "$base" HEAD 2>&1)
+    status=$?
+    set -e
+    if [ "$status" -ne 0 ]; then
+        echo "lint-reference: no merge base between $base and HEAD in $repo." >&2
+        printf '%s\n' "$merge_base" | sed 's/^/  /' >&2
+        exit 2
+    fi
+    show_range="$merge_base..HEAD"
+}
+
+# The citations that range's diff ADDS.
+diff_cites_for() {
+    git -C "$1" diff --no-color --no-ext-diff --unified=0 "$show_range" |
         awk "$diff_cites"
 }
 
@@ -1470,7 +1477,8 @@ if [ "$mode" = self-test ]; then
     show_order=""
     show_penalties=0
     show_range=""
-    order_citations "$(diff_cites_for "$msgrepo" main)"
+    resolve_show_range "$msgrepo" main
+    order_citations "$(diff_cites_for "$msgrepo")"
     show_out=$(render_show "$corpus" 2 "the fixture branch" "$show_order" "$show_penalties")
     base_ref=""
 
@@ -1675,7 +1683,8 @@ if [ "$mode" = show ] || [ "$mode" = show-article ] || [ "$mode" = show-all ]; t
                 echo "  Pass --show <article> to print one by number, or --show-all <file>."
                 exit 0
             fi
-            order_citations "$(diff_cites_for "$root" "$resolved_base")"
+            resolve_show_range "$root" "$resolved_base"
+            order_citations "$(diff_cites_for "$root")"
             render_show "$corpus" 100 \
                 "the citations added by $show_range, against $resolved_base." \
                 "$show_order" "$show_penalties"
