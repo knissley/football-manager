@@ -1493,8 +1493,10 @@ green.
 
 Measured on a four-core Linux container with warm `.build` directories, against `main` at
 `8439ecc`: a `docs`-lane run is **8 seconds** of wall clock over 15 steps, and an
-`engine`-lane run is **4 min 2 s** over 29 steps — 4 min 31 s in the run where the harness
-actually swept, each seed 16 s. Cold, add the debug build of whichever packages the lane
+`engine`-lane run is **4 min 2 s** over the 29 steps it had then — 4 min 31 s in the run
+where the harness actually swept, each seed 16 s. The `harness determinism` step is the
+thirtieth and costs **36 s** on the same machine (measured 2026-09-14 with the harness
+already built: the two 50-game runs are the whole cost). Cold, add the debug build of whichever packages the lane
 touches; FMSimulation's is about 58 s on the same machine. `FMSimulation`'s own suite is
 161–214 s of that engine run across four runs, and is the whole reason `--iterate` exists.
 `harness-reach` costs nothing when engine sources moved — it answers off the file list —
