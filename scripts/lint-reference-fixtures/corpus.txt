@@ -32,3 +32,10 @@ relative to each other.
 
 The judges keep a written record of every exchange and of every dropped baton, and
 that record is read aloud to the captains before the results are posted.
+
+RULE 11 THE JUDGES
+SECTION 1 THE WRITTEN RECORD
+ARTICLE 1. THE LAST ARTICLE. Nothing whatever follows this article in the fixture
+corpus, which is the entire reason somebody wrote it: an extractor that closes an
+article only when it meets the heading of the next one has to notice the end of the
+file instead, or it prints this one as empty.

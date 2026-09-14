@@ -741,7 +741,9 @@ It **cannot** tell whether a cited article *supports* the claim beside it, and i
 on every run, clean or not. `8-5-4` is a real article, so a citation to it passes check 3;
 it was nonetheless the wrong article in six entries across three documents for weeks. A
 green run means "no uncarried run, and no dangling number" and not "the citations are
-right". That half stays a reading problem.
+right". That half stays a reading problem — [`--show`](#--show-the-article-printed-beside-the-citation)
+puts the article in front of you so the reading takes a moment rather than an afternoon,
+but it is still you doing it.
 
 It also cannot see a reproduction shorter than its run length — nine words or fewer slip
 straight through, and eight-word ones have happened. [The blind spot](#the-blind-spot-nine-words-or-fewer)
@@ -824,6 +826,55 @@ implementation that agreed on every figure. They are the second arm's whole just
 every one is published and unfixable, and a gate that failed over them would have been
 turned off in a week. They are concentrated in eleven messages that quoted article clauses
 while describing a fix; the tree itself is clean at ten.
+
+### --show: the article, printed beside the citation
+
+```bash
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh --show
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh --show 6-1-6
+FM_RULEBOOK_TEXT=/path/to/rulebook.txt ./scripts/lint-reference.sh --show-all docs/invariants.md
+```
+
+The paragraph above about what this script cannot check is the whole reason `--show`
+exists. A wrong citation to a real article passes every check here, and has shipped at
+least five times — twice into a commit message, where nothing but rewriting published
+history corrects it. The only thing that catches one is somebody reading the article, and
+until this existed reading it meant scraping the book and searching a text file by hand,
+once per number.
+
+| form | what it prints |
+| --- | --- |
+| `--show` | every `rule-section-article` citation the **branch diff adds** against its merge base, each article headed by its number and the file and line that cite it |
+| `--show <article>` | that one article, by number |
+| `--show-all <file>` | every article that document cites, in document order |
+
+`--show` resolves its base exactly as [`--messages`](#commit-messages) does — `origin/main`,
+then `main`, with `--base` and `--range` overriding — because a reviewer reading `--show`
+against `main` while the gate ran against `origin/main` is a way to read the wrong diff and
+conclude it is clean. It is a **reading aid, not a gate**: no verdict, no baseline, and no
+exit code but 0, or 2 if the corpus could not be read as a rulebook at all. A citation the
+corpus cannot answer costs **one line saying so** rather than silence a reader would take
+for a blank article; failing on those is check 3's job and it already does it.
+
+**It writes nothing, anywhere.** There is no output path and no flag to give it one.
+`fetch-rulebook.sh` needs an elaborate containment guard because it must put a copy of the
+book on disk and the somewhere must not be a checkout; the cheaper version of that guard is
+to have nowhere to put one, which is this. Rule 8 is about copies that persist — `--show`
+reads the corpus you already have and prints it to your terminal, and redirecting that into
+the tree is you writing the book into the repository, which no script can prevent.
+
+**The four edition-sensitive articles carry a warning line above the text.** 6-1-3, 6-1-5,
+6-1-6 and 19-2 are where the 2025 and 2026 books differ
+([rulebook-acquisition.md](reference/rulebook-acquisition.md) measures it), and printing one
+of them from an unidentified corpus is the one way `--show` can actively mislead. Everywhere
+else the editions are word-identical and the text reads as the season's.
+
+Two things it prints as the corpus has them, on purpose: a table of contents that repeats
+the headings shows up as a stub above the article proper — choosing between two spans would
+be a guess — and whatever your extraction inserts between pages appears mid-article wherever
+the article crosses one. A `X-Y-Penalty` citation is counted and skipped with a line saying
+why: a Penalty is a clause of its section, not an article, so there is no article text to
+print for it.
 
 ### The baseline
 
@@ -908,9 +959,11 @@ Runs against [`scripts/lint-reference-fixtures/`](../scripts/lint-reference-fixt
 needs no corpus: the fixture tree ships its own, **invented for the fixture and not a
 rulebook**, imitating the shape of one — numbered rules, sections and articles, with one
 heading deliberately broken across a line the way a PDF extractor breaks them, so the
-script's repair of that is exercised.
+script's repair of that is exercised, and a final article with nothing whatever behind
+it, so an article printer that closes an article only on the next heading has a case it
+fails.
 
-Six fixture documents, one per direction:
+Seven fixture documents, one per direction:
 
 | fixture | what it pins |
 | --- | --- |
@@ -920,6 +973,7 @@ Six fixture documents, one per direction:
 | `paraphrase.md` | the same rules in our own words yield nothing |
 | `blind-spot.md` | a **nine**-word run is invisible at ten and found at nine |
 | `citations.md` | a number the corpus does not have is reported, and three that it does are not |
+| `show.md` | `--show` prints the articles a branch diff cites, and only those |
 
 Plus `messages/`, four fixture **commit messages** for check 2. The self-test commits them
 into a throwaway git repository — two on `main`, two on a branch cut from it — and points
@@ -947,6 +1001,21 @@ as `path:line: rule-id`, and a difference either way fails. `wrapped.md` is the 
 protecting: rewrite the scanner to look at lines one at a time and both it and the
 runtime control go red, rather than the script printing a comfortable zero. CI runs the
 self-test as a hard-failing step, and the lint proper as a step that skips.
+
+`show.md` is committed onto the same throwaway branch — the two message commits before it
+are empty, so the diff that branch adds is exactly that page — and `--show` is asserted in
+both directions at once. The four articles it cites must come out: an ordinary one, the
+**last article in the corpus** with nothing behind it (a printer that closes an article only
+on the next heading has to reach the end of the file instead, and one that does not goes
+red), `6-1-6` carrying the **edition warning** even though the fixture corpus has no rule 6,
+and a number nothing answers to costing one line. Cited twice, an article prints **once**,
+with both places named. A `Penalty` clause is counted and skipped. And `7-3-2`, which the
+page does not cite, must **not** appear — "that article and nothing else" is half the
+promise, and a printer that dumped the whole section would satisfy the other half on its
+own. `--show <article>` and `--show-all` are asserted beside it, the latter on the fixture
+citations page, whose `7-4-1` is behind the heading the extractor broke across a line: the
+article printer and the citation index have to repair that identically or one of them says
+a resolvable number is absent.
 
 `blind-spot.md` is checked at two run lengths rather than one, and both halves matter: it
 must yield nothing at ten, and at least one hit at nine. Asserting the miss alone would be
