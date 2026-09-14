@@ -1,0 +1,160 @@
+# The process history already in the tree's comments, and why it is carried.
+#
+# Read by scripts/lint-sim.sh, check 3. Three tab-separated fields:
+#
+#     path <TAB> rule id <TAB> the comment text, normalised
+#
+# A hit whose path, rule and text are all here passes. A hit that is not here
+# fails. A line here that matches nothing is reported on every run — not failed —
+# so the file burns down instead of settling.
+#
+# ## Why the text and not the line number
+#
+# A line number moves with every edit above it, so a baseline keyed on one goes
+# stale on any commit that touches an unrelated part of the same file — and a
+# baseline nobody can trust to be accurate is one people regenerate rather than
+# read, which is how a burn-down list becomes a rubber stamp. The text moves only
+# when the comment is rewritten, and that is the moment its line should leave this
+# file. It also makes the file readable: what is being carried is on the line that
+# carries it, and no tool is needed to find out.
+#
+# The normalisation is whatever `scripts/lint-sim.sh` does to a comment before it
+# compares: tabs to spaces, leading slashes and asterisks off, runs of whitespace
+# collapsed, both ends trimmed. Two hits with the same text in one file collapse
+# to one line here. That is deliberate — the same sentence twice is the same
+# judgement twice — and the count the lint prints is of hits, not of lines here.
+#
+# ## Why there is no note column, and why nothing here is a judgement
+#
+# Every line is carried for one reason, so writing it out 109 times would be
+# noise: the comment predates the rule. This is not lint-reference-baseline.txt,
+# where a line is a claim that somebody read the article and judged the run. Here
+# a line is a fact about what was in the tree the day the check landed, and the
+# only right thing to do with one is to delete it — which means rewriting the
+# comment to say why the code is the way it is, with the rule or the data it comes
+# from, and leaving the history in the commit message.
+#
+# The sweep that does that is filed separately and blocked behind the record
+# wave; the check landed first so that no new history joins the list while the
+# sweep waits. That is the whole reason this file exists.
+#
+# ## Adding a line
+#
+# Don't. A new hit is a comment written today that says which piece of work a line
+# came out of, and the fix is the comment. `scripts/lint-sim.sh --baseline` prints
+# what the tree would need, which is how this file was filled the first time and
+# how to read what is left in it; it is not a way to make a red lint green. If a
+# comment genuinely has to name an issue, the two structural exceptions in the
+# script's header are how — the doc comment on a test tagged `.pin`, and a
+# register behind its marker — and neither needs a line here.
+#
+# path	rule	comment text
+Packages/FMCore/Sources/FMCore/Advancement.swift	history-audit	possession here as well had the scoring team kicking — the audit's S11.
+Packages/FMCore/Sources/FMCore/PlayRecord.swift	history-issue	(`ReadProgression` in the crude resolver, decided on #169), a design's own from M6
+Packages/FMCore/Sources/FMCore/Player.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)). He gets one when he
+Packages/FMCore/Sources/FMCore/Player.swift	history-issue	defines "rookie" for a player nobody drafted. Issue #6 specified `draft?.season ==
+Packages/FMCore/Tests/FMCoreTests/AdvancementTests.swift	history-issue	Rewritten for A3 (#16). This test asserted `possessionChanged`, with a comment
+Packages/FMCore/Tests/FMCoreTests/GameClockTests.swift	history-issue	Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
+Packages/FMCore/Tests/FMCoreTests/GameClockTests.swift	history-issue	Rewritten for A11 (#74) from a pin that said postseason overtime timing was not
+Packages/FMCore/Tests/FMCoreTests/GameClockTests.swift	history-issue	Rewritten for A11 (#74): this asserted that the overtime period had no
+Packages/FMCore/Tests/FMCoreTests/GameClockTests.swift	history-issue	Rewritten for A4 (#17). The old test pinned `run` clamping the whole interval —
+Packages/FMCore/Tests/FMCoreTests/GameClockTests.swift	history-issue	Rewritten for A4 (#17): the `.downed` row asserted that a downed punt keeps the
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	history-issue	MARK: - Where a foul is enforced from (A6, #18)
+Packages/FMCore/Tests/FMCoreTests/PenaltyEnforcementTests.swift	history-issue	Rewritten for A6 (#18): the spot used to travel in the `yards` field as a
+Packages/FMCore/Tests/FMCoreTests/PlayRecordTests.swift	history-issue	seventh period is a situation the engine has to be able to describe (A8, #20).
+Packages/FMCore/Tests/FMCoreTests/PlayRecordTests.swift	history-issue	them (A8, #20).
+Packages/FMCore/Tests/FMCoreTests/PlayerTests.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)).
+Packages/FMCore/Tests/FMCoreTests/PlayerTests.swift	history-issue	Issue #6.
+Packages/FMCore/Tests/FMCoreTests/SituationClassTests.swift	history-issue	MARK: - Period numbers come from the rules (A8, #20)
+Packages/FMGeneration/Sources/FMGeneration/FranchiseSet.swift	history-issue	and keeps its draw ([#82](https://github.com/knissley/football-manager/issues/82)).
+Packages/FMGeneration/Sources/FMGeneration/LeagueGenerator.swift	history-issue	([#82](https://github.com/knissley/football-manager/issues/82)). Nothing draws
+Packages/FMGeneration/Sources/FMGeneration/PlayerGenerator.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)).
+Packages/FMGeneration/Sources/FMGeneration/RosterGenerator.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)). A draw outside the
+Packages/FMGeneration/Sources/FMGeneration/TeamGenerator.swift	history-issue	fault [#4](https://github.com/knissley/football-manager/issues/4) found in the
+Packages/FMGeneration/Sources/FMGeneration/TeamGenerator.swift	history-issue	is a uniqueness rule that is not enforced (#65).
+Packages/FMGeneration/Sources/FMGeneration/TeamGenerator.swift	history-issue	is not unique in the league if the east has it too (#65).
+Packages/FMGeneration/Sources/FMGeneration/TeamGenerator.swift	history-issue	it (#65).
+Packages/FMGeneration/Sources/FMGeneration/TeamPools.swift	history-issue	#69's review had just taken out of the curated table. The pool is otherwise unrefined
+Packages/FMGeneration/Sources/FMGeneration/TeamPools.swift	history-issue	[#82](https://github.com/knissley/football-manager/issues/82).
+Packages/FMGeneration/Sources/FMGeneration/TeamPools.swift	history-issue	[#82](https://github.com/knissley/football-manager/issues/82): both name real grounds,
+Packages/FMGeneration/Tests/FMGenerationTests/DraftClassGeneratorTests.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)).
+Packages/FMGeneration/Tests/FMGenerationTests/DraftHistoryTests.swift	history-issue	([#67](https://github.com/knissley/football-manager/issues/67)).
+Packages/FMGeneration/Tests/FMGenerationTests/DraftHistoryTests.swift	history-issue	Issue #6.
+Packages/FMGeneration/Tests/FMGenerationTests/FranchiseSetTests.swift	history-issue	The last resort still has to work. Everything [#4](https://github.com/knissley/football-manager/issues/4)
+Packages/FMGeneration/Tests/FMGenerationTests/FranchiseSetTests.swift	history-issue	[#69](https://github.com/knissley/football-manager/issues/69).
+Packages/FMGeneration/Tests/FMGenerationTests/FranchiseSetTests.swift	history-issue	[#82](https://github.com/knissley/football-manager/issues/82), so two careers in
+Packages/FMGeneration/Tests/FMGenerationTests/FranchiseSetTests.swift	history-issue	the ledger-clean league [#4](https://github.com/knissley/football-manager/issues/4)
+Packages/FMGeneration/Tests/FMGenerationTests/FranchiseSetTests.swift	history-review	so it is a review, and the review is recorded on
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	All three moved again in #72, when the checksum stopped being private to
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	All three moved for the last time they can move for this reason in #69,
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	And all three in #67, which changed how old a generated league is. The age
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	And all three once more in #82, which finished that identity: the league's
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	And all three once more in review of #69, which found real marks in eight
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	And once more in review of #72, which found two ways the checksum still
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	Moved by #64, which caps seeded rivalry heat: seed 5's world opened with a
+Packages/FMGeneration/Tests/FMGenerationTests/GoldenWorldTests.swift	history-issue	branches' worlds and mean by it exactly what this test means (#72). It is FNV-1a and
+Packages/FMGeneration/Tests/FMGenerationTests/LeagueGeneratorTests.swift	history-issue	Rewritten by [#69](https://github.com/knissley/football-manager/issues/69), which
+Packages/FMGeneration/Tests/FMGenerationTests/LeagueGeneratorTests.swift	history-issue	The half of [#82](https://github.com/knissley/football-manager/issues/82) that did
+Packages/FMGeneration/Tests/FMGenerationTests/LeagueGeneratorTests.swift	history-issue	[#4](https://github.com/knissley/football-manager/issues/4) left behind, they only
+Packages/FMGeneration/Tests/FMGenerationTests/LeagueGeneratorTests.swift	history-issue	checked for (issue #4).
+Packages/FMGeneration/Tests/FMGenerationTests/LeagueGeneratorTests.swift	history-issue	city stems and fixed it there only (issue #4).
+Packages/FMGeneration/Tests/FMGenerationTests/RivalryGeneratorTests.swift	history-issue	([#64](https://github.com/knissley/football-manager/issues/64)).
+Packages/FMGeneration/Tests/FMGenerationTests/RosterAgeTests.swift	history-issue	roster was in its first season ([#67](https://github.com/knissley/football-manager/issues/67)).
+Packages/FMGeneration/Tests/FMGenerationTests/WorldChecksumTests.swift	history-issue	that a change cannot reach the calibration run (#72), so a field the engine reads and
+Packages/FMSimulation/Sources/FMSimulation/CrudeResolver.swift	history-issue	How the quarterback works his reads (C3, #44): starting parameters, every one of
+Packages/FMSimulation/Sources/FMSimulation/CrudeResolver.swift	history-issue	`Reads`, and they are C3's (#44):
+Packages/FMSimulation/Sources/FMSimulation/CrudeResolver.swift	history-issue	request that landed this, and where the rates belong is E3's (#49).
+Packages/FMSimulation/Sources/FMSimulation/CrudeResolver.swift	history-issue	them, to be retuned in E3 (#49) and not before.
+Packages/FMSimulation/Sources/FMSimulation/ReadProgression.swift	history-issue	Decided on C27 (#169) and consumed by C3 (#44).
+Packages/FMSimulation/Sources/FMSimulation/ReadProgression.swift	history-issue	sense of C3's parameters, retuned in E3 (#49) and not before. Both anchoring rules
+Packages/FMSimulation/Sources/FMSimulation/ReadProgression.swift	history-issue	thresholds his perceived window is judged against (C3, #44).
+Packages/FMSimulation/Tests/FMSimulationTests/CrudeResolverTests.swift	history-issue	([#170](https://github.com/knissley/football-manager/issues/170)).
+Packages/FMSimulation/Tests/FMSimulationTests/CrudeResolverTests.swift	history-issue	(`ReadProgression`, C3 #44), so the hold is the snap's own and two families' holds
+Packages/FMSimulation/Tests/FMSimulationTests/EndgameTests.swift	history-issue	MARK: - The runoff decisions (A5, #32)
+Packages/FMSimulation/Tests/FMSimulationTests/GameSimulatorTests.swift	history-audit	game ends after four periods, which is the bug the September audit's S9 named:
+Packages/FMSimulation/Tests/FMSimulationTests/GameSimulatorTests.swift	history-issue	30 until D1 (#41) moves it.
+Packages/FMSimulation/Tests/FMSimulationTests/GameSimulatorTests.swift	history-issue	Rewritten for A1 (#15). This test used to assert that a level regular-season
+Packages/FMSimulation/Tests/FMSimulationTests/GameSimulatorTests.swift	history-issue	Rewritten for A3 (#16). This test checked only the points, and the points were
+Packages/FMSimulation/Tests/FMSimulationTests/GoldenSeedTests.swift	history-issue	And moved again by #67, again by the world and not by the engine: nothing in
+Packages/FMSimulation/Tests/FMSimulationTests/GoldenSeedTests.swift	history-issue	And moved by the engine, by the quarterback working his reads (C3 #44, on
+Packages/FMSimulation/Tests/FMSimulationTests/GoldenSeedTests.swift	history-issue	Moved by #69, and by the world rather than by the engine: nothing in
+Packages/FMSimulation/Tests/FMSimulationTests/GoldenSeedTests.swift	history-issue	the order #169 decided). Every dropback now writes a `.readProgression` per
+Packages/FMSimulation/Tests/FMSimulationTests/PenaltyTests.swift	history-issue	(C3, #44), which is fewer sacks to flag. It is here to prove the case was
+Packages/FMSimulation/Tests/FMSimulationTests/QuarterbackReadsTests.swift	history-issue	The quarterback works his reads the way his ratings let him (C3, #44).
+Packages/FMSimulation/Tests/FMSimulationTests/QuarterbackReadsTests.swift	history-issue	into coverage should cost more is the catch model's question (C14 #113, C4 #39) and
+Packages/FMSimulation/Tests/FMSimulationTests/QuarterbackReadsTests.swift	history-issue	the retune's (E3 #49), not the read process's.
+Packages/FMSimulation/Tests/FMSimulationTests/ReadProgressionTests.swift	history-issue	reference has no article for it (C27, #169). What these pin is the table's own
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-audit	The audit's version of this play: three points wiped out and the offence given a
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-audit	The wave-1 review's find, and the last of the audit's scoring-play fouls: the point
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-audit	for the spot; the spot itself — the end of the run — is the sentence the audit's
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	Filed as A10 (#56): the defence jumps before the snap with the clock running and
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	Filed as A7 (#19): a flag before the try moves the try, and it is still a try.
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	Filed as A9 (#55): the return is a touchdown for the receiving side, which then
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	Filed with A4 (#17): the clock starts when the kick is legally touched in the
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	into it. Filed with A10 (#56).
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-issue	signal rather than waiting for the snap. Filed with A5 (#32).
+Packages/FMSimulation/Tests/FMSimulationTests/RulesConformanceTests.swift	history-wave	Rewritten from 4-3-2-e (wave 1 review). This scenario used to run in the fourth
+Packages/FMSimulation/Tests/FMSimulationTests/TryTests.swift	history-issue	MARK: - A flag on the try (A7, #19)
+Packages/FMSimulation/Tests/FMSimulationTests/TryTests.swift	history-issue	Rewritten for A7 (#19). This used to assert that *every* try is snapped from
+Packages/FMSimulation/Tests/FMSimulationTests/VocabularyCoverageTests.swift	history-audit	See `docs/roadmap.md` — "Audit owed at the end of M1".
+Packages/FMSimulation/Tests/FMSimulationTests/VocabularyCoverageTests.swift	history-issue	checkdown and the throwaway came off the register with C3 (#44), which is where
+Tools/gamelog/Sources/gamelog/main.swift	history-audit	rules bug the September audit found is obvious in thirty seconds of play-by-play and
+Tools/gamelog/Tests/gamelogTests/DriveSummaryTests.swift	history-issue	16-1-4-d). #74 taught the period labels to count them; the arithmetic under those
+Tools/gamelog/Tests/gamelogTests/DriveSummaryTests.swift	history-issue	labels did not follow, which is #87.
+Tools/simharness/Sources/simharness/Budget.swift	history-issue	binary at the same seed differs only here (#52 made the rest byte-identical, and
+Tools/simharness/Sources/simharness/Budget.swift	history-issue	it is a rewrite — and until this block existed nothing measured it (H3 #9).
+Tools/simharness/Sources/simharness/HarnessWorld.swift	history-issue	`scripts/harness-reach.sh` believes it (#72).
+Tools/simharness/Sources/simharness/Targets.swift	history-issue	What the quarterback did with the ball once he had worked his reads (C3, #44).
+Tools/simharness/Sources/simharness/main.swift	history-issue	#18); measured from the previous spot it was declined against its own play's gain
+Tools/simharness/Sources/simharness/main.swift	history-issue	E2 (#42).
+Tools/simharness/Sources/simharness/main.swift	history-issue	`qtr` for the half — is E2 (#42)'s to run, not a fix's to invent. They are printed
+Tools/simharness/Sources/simharness/main.swift	history-issue	byte-identical property (#52) is still checked with a plain `md5sum`.
+Tools/simharness/Sources/simharness/main.swift	history-issue	checkdown leave, and the one of these rows a source can band (E8 #179).
+Tools/simharness/Sources/simharness/main.swift	history-issue	docs/reference/calibration-sources.md bands them, and a sourced band belongs to E2 (#42).
+Tools/simharness/Sources/simharness/main.swift	history-issue	laterally, and a sourced band would land with E2 (#42).
+Tools/simharness/Sources/simharness/main.swift	history-issue	on every dropback (C3, #44): a throw to a numbered read, the checkdown, a throwaway, a
+Tools/simharness/Sources/simharness/main.swift	history-issue	pins. It follows from the seed alone, so it is byte-identical between two runs (#52);
+Tools/simharness/Sources/simharness/main.swift	history-issue	sign on a value in (-1, 0) since E1 (#2), so this needs nothing of its own.
+Tools/simharness/Tests/simharnessTests/HarnessWorldTests.swift	history-issue	#4 moved about sixty rows with no engine change at all.
+Tools/simharness/Tests/simharnessTests/HarnessWorldTests.swift	history-issue	no calibration row could see (#64), and the reason it could not is here: the

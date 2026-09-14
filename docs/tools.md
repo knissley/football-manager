@@ -624,12 +624,13 @@ parses back, and that every scenario still runs.
 
 Prints `file:line: what` for every hit and exits 1; exits 0 on a clean tree; exits 2 when
 it would otherwise have passed by scanning nothing — a `Sources/` directory that is gone,
-or that is there and holds no Swift files. It takes two to five seconds depending on what
-else the machine is doing — run it before committing. CI runs it as a hard-failing step,
-on both architectures, in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml),
-next to the self-test below.
+or that is there and holds no Swift files. Measured on a four-core container, three runs:
+9.1s, 10.7s, 9.6s, against 3.5s for the two checks that came before the comment one, which
+reads twice as many files. Machines differ; run it before committing. CI runs it as a
+hard-failing step, on both architectures, in
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml), next to the self-test below.
 
-It enforces two rules that were conventions with nothing behind them:
+It enforces three rules that were conventions with nothing behind them:
 
 - The primitives [ADR-0003](adr/0003-deterministic-seeded-simulation.md) bans in the
   `Sources/` trees of `FMCore`, `FMRandom`, `FMGeneration` and `FMSimulation` —
@@ -645,11 +646,16 @@ It enforces two rules that were conventions with nothing behind them:
   The world golden's checksum now lives in `FMGeneration` as `WorldChecksum`, so that
   `simharness` can print the same number; `Hasher(` is banned there by the rule above,
   which scans every `FM*` `Sources/` tree.
+- Process history in a comment, in any `Sources/` or `Tests/` tree under `Packages/` or
+  `Tools/`: `#\d+`, `wave \d`, `audit`, `the review`, `orchestrator`. See
+  [the next section](#process-history-in-a-comment).
 
-Comments are stripped before matching, so prose *about* the ban — the doc comment on
-`SplittableRandom` naming `Int.random(in:using:)`, the one on each golden `Checksum`
-saying it is deliberately not `Hasher` — does not trip the lint. String literals are
-not stripped: interpolation can hold real code.
+Comments are stripped before matching for the first two, so prose *about* the ban — the
+doc comment on `SplittableRandom` naming `Int.random(in:using:)`, the one on each golden
+`Checksum` saying it is deliberately not `Hasher` — does not trip the lint. String
+literals are not stripped: interpolation can hold real code. The third check reads the
+mirror image of that — the comment text, with code and string literals blanked — out of
+the same parse, so the two views cannot drift apart.
 
 The stripper is not airtight, and a clean run is not proof. It walks a line at a time and
 never rejoins what a comment split, so `Date/* x */()` matches no rule; the script header
@@ -664,6 +670,78 @@ or `FMNarrative` lands, add it to the `packages` array; nothing else will.
 A file that genuinely needs an exemption goes in the `allowlist` array at the top of the
 script as a `"<path> <rule-id>"` pair. It is empty today. Widening it to turn a red lint
 green is the one thing it must not be used for.
+
+### Process history in a comment
+
+A comment that says which issue, wave, audit or review a line came out of stops meaning
+anything the day that work closes, and it never told the reader why the code is the way it
+is. So a comment matching `#\d+`, `wave \d`, `audit`, `the review` or `orchestrator` fails
+the lint. All five match case-insensitively: none of them reads differently in capitals,
+and an issue number has no case at all.
+
+The check reads comment text and nothing else, so a test's display name, a register whose
+entries are strings, and any other literal are out of its reach — only what a reader meets
+as prose is scanned. It covers every `Sources/` and `Tests/` tree under `Packages/` and
+`Tools/`, found by glob rather than by the written-out `packages` array the first check
+uses: that array skips `FMPersistence` because SwiftData belongs there, and a comment
+naming a closed issue is no more use to a reader there than anywhere else.
+
+Write instead what the reader needs: why the code is this way, the gotcha, and the rulebook
+article or the data the claim comes from. The history goes in the commit message, the PR
+body, [`docs/invariants.md`](invariants.md) and the audit doc, which keep their issue links
+by design and are not scanned.
+
+**Two exceptions, both recognised from the shape of the code**, not from anything written
+in the comment:
+
+- **The doc comment on a test tagged `.pin`.** A pin exists to be replaced, and naming the
+  issue that replaces it is the only way a reader knows the pin is not the intended end
+  state. Recognised as: a line holding `@Test`, the attribute list that follows it up to
+  the declaration it decorates, and `.pin` somewhere in that list. The exemption is the run
+  of `///` lines immediately above the attribute — all of them, not only the line touching
+  it — and a `// MARK:` line or a blank line ends the run, so a section header above a
+  pinned test is *not* covered.
+- **A register of cases the engine cannot reach yet**, opened by the marker
+  `lint-sim: unreachable-register` written in a comment. The exemption is the comment block
+  the marker sits in plus the declaration that block introduces, to the bracket that closes
+  it — brackets counted with literals blanked, and `{`, `[` and `(` counted alike, because
+  a register is as often a dictionary literal as a braced declaration. So the per-case
+  comments inside a register are covered without a marker each. Nothing in the tree carries
+  the marker today; `VocabularyCoverageTests` keeps its registers' reasons in string
+  literals, which the check never reads.
+
+### The baseline, and how it burns down
+
+[`scripts/lint-sim-baseline.txt`](../scripts/lint-sim-baseline.txt) carries the hits that
+were already in the tree when the check landed — 109 of them — so the check could land
+before the sweep that clears them, and no new history joins the list while that sweep
+waits. Three tab-separated fields:
+
+```
+path	rule id	the comment text, normalised
+```
+
+A hit whose path, rule and text are all in the file passes. A hit that is not fails. **A
+line in the file that matches nothing is printed on every run and does not fail the lint**,
+so the file burns down rather than settling: a gate that goes red when somebody fixes
+something teaches people to stop fixing things.
+
+The key is the comment's text, not its line number. A line number moves with every edit
+above it, so a baseline keyed on one goes stale on any commit touching an unrelated part of
+the same file, and a baseline nobody can trust is one people regenerate rather than read.
+The text moves only when the comment is rewritten, which is the moment its line should
+leave the file. It also means the file is readable on its own terms: what is carried is on
+the line that carries it. The cost is that two hits with the same text in one file collapse
+to one line; the count the lint prints is of hits, not of lines in the file.
+
+```bash
+./scripts/lint-sim.sh --baseline
+```
+
+prints the file the tree would need. That is how it was filled the first time and how to
+read what is left in it — **not** a way to make a red lint green. A new hit is a comment
+written today that says what the backlog did rather than what the code does, and the fix is
+the comment.
 
 ### The self-test
 
@@ -681,6 +759,17 @@ sit a negative control naming every banned token in comments, the golden `Hasher
 doc-comment case, and the shapes the stripper has to get right: a string literal holding
 `//`, an escaped quote, a multi-line string, and a block comment that opens or closes
 mid-line.
+
+`comments/` does the same for the process-history check, against the fixture baseline in
+`scripts/lint-sim-fixtures/baseline.txt` rather than the real one: a plain hit per pattern
+and all four word patterns at once in capitals; a doc comment on a pinned test beside the
+same sentence on a test that is not and a `// MARK:` line that is not a doc comment; a
+register behind its marker with a hit one line past the bracket that closes it; and a
+carried hit beside an uncarried one, so the self-test fails whether the baseline stops
+being read or the comment scan stops firing. The fixture baseline also carries one key
+nothing produces, and in `--self-test` a stale line is emitted as a hit at line 0 with the
+rule id `baseline-stale` — which is how the burn-down report is pinned like everything
+else.
 
 Every hit the tree must produce is listed in `scripts/lint-sim-fixtures/expected.txt` as
 `path:line: rule-id`, and a difference in either direction fails — a hit that quietly
