@@ -265,8 +265,10 @@ How the backlog is dispatched, verified and merged — and the standing brief ev
 is handed — is the `/orchestrator` skill.
 
 - Integration branch: `main`. Work branches: `fix/<issue>-<slug>`, cut from `main`.
-- Before you push: all four suites green, `swift test -c release` for FMRandom,
-  `swift format lint --strict` clean, `playsize` builds.
+- Before you push: `scripts/preflight.sh` green. It reads your diff, picks the smallest
+  lane that can still catch what the change could have broken, and runs the steps CI runs
+  over those trees; `--report` prints the block the PR body pastes. `--strict` is what makes
+  the format lint fail rather than print and exit 0, and preflight passes it.
 - Goldens regenerated in the same commit as the behaviour change, with the change
   described. Never to make a red test pass.
 - No retuning in a fix. Run `simharness --games 400` at seeds 7 and 11 before and after,
@@ -288,22 +290,23 @@ is handed — is the `/orchestrator` skill.
 
 ```
 # Available now
+./scripts/preflight.sh                                    # the pre-push command: picks a lane
+                                                          # from the diff, runs it. docs/tools.md
 swift build --package-path Packages/FMRandom
 swift test  --package-path Packages/FMRandom
 swift test  -c release --package-path Packages/FMRandom   # integer maths must agree with debug
 swift test  --package-path Packages/FMCore
 swift test  --package-path Packages/FMGeneration
 swift test  --package-path Packages/FMSimulation          # the engine's own suite, and the one
-                                                          # with a budget: under two minutes of
-                                                          # test time on a four-core container.
-                                                          # Measured there: 85-111s over five
-                                                          # runs, against 170-200s before the
-                                                          # samples were shared. Machines differ
-                                                          # by a factor of two, so measure yours
-                                                          # rather than trusting the number.
-                                                          # What keeps it under: one shared game
-                                                          # corpus, and coverage asserted against
-                                                          # a forced draw. See docs/tools.md
+                                                          # with a budget. Measured on a four-core
+                                                          # Linux container: 173s warm, 216s cold,
+                                                          # and 15s under -c release, which is why
+                                                          # preflight --iterate runs release.
+                                                          # Machines differ by a factor of two, so
+                                                          # measure yours rather than trusting the
+                                                          # number. What holds it down: one shared
+                                                          # game corpus, and coverage asserted
+                                                          # against a forced draw. docs/tools.md
 swift run   --package-path Tools/playsize                 # play record footprint; also
                                                           # proves FM* modules link standalone
 cd Tools/worldgen && swift run worldgen --help            # inspect generated content

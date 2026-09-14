@@ -235,29 +235,30 @@ out of date with its own thread.
 
 ## Environment and timings
 
-Swift 6.2. **CLAUDE.md's Commands block is the canonical invocation for every `swift`
-command** — use it verbatim rather than a variant, because predicting CI is the entire point
-of running these before you push, and CI runs exactly what that block says. This section used
-to add a flag that appears nowhere else in the repo and that CI does not pass; anyone who
-finds a build that genuinely needs one should add it *there*, with the reason.
+Swift 6.2. `preflight` runs CLAUDE.md's Commands block verbatim; by hand, use that block's
+form and never a variant.
 
 **Run every check in the foreground**, using the Bash tool's own `timeout` parameter (up to
 600000 ms). An agent that backgrounds a check ends its turn and stalls the pipeline.
 
-Budget your turn against measured figures, not guesses: FMSimulation's suite is roughly two
-minutes of test time and about three minutes of wall clock with the build; a 400-game harness
-run is two to three minutes per seed in release; a cold release build is about five minutes; a
-thirty-seed noise sweep is about eleven minutes if you build release once and run back to back.
+Budget against the seconds `preflight` prints on a four-core Linux container with warm
+`.build`: FMSimulation's debug suite **161–214 s**, 173 s warm on its own, against **15 s**
+under `-c release`; a 400-game harness seed **16 s**; a whole `engine`-lane run **4 min 2 s**
+and a `docs` one **8 s**.
 
 ## Every check, before you push
 
-The four package suites, plus `swift test -c release` for FMRandom (and for FMGeneration when
-its goldens move); `swift format lint --strict` (**without `--strict` it prints its findings
-and still exits 0**, so a script trusting the exit code passes while CI fails);
-`scripts/lint-sim.sh` and its self-test; `scripts/test-census.sh` and its self-test;
-`scripts/lint-reference.sh` over the tree **and** with `--messages`;
-`python3 scripts/calibration-sources.py --self-test`;
-`python3 scripts/harness-noise.py --self-test`; and `playsize` builds.
+Run **`./scripts/preflight.sh`**: it picks the lane from your diff, runs what CI runs over the
+trees you touched, and stops at the first failure naming the step and its log. **Paste
+`--report`'s block into the PR body**: lane, base sha, `harness-reach` verdict,
+`Targets.swift` checksum. Its format step passes `--strict`, which is what makes a finding
+fail: without it the linter prints its findings and exits 0. CI additionally compares two
+50-game harness runs at seed 7 for determinism; `preflight` does not.
+
+Iterate with **`--iterate <SuiteName>`**: `swift test -c release --filter` in the package
+declaring it, since a debug suite spends its time building the game corpus unoptimised. **Run
+the full debug suite once before you push:** one FMSimulation test, in `FormAndFitTests`, is
+behind `#if DEBUG`, which release does not compile.
 
 ## How you work
 
@@ -317,36 +318,33 @@ anywhere.
 
 An entry that misstates its article **blocks a merge**, even though it is prose.
 
-1. Read the article and write the entry from it — not from the surrounding entries, not from
+1. Read the article as printed: `./scripts/lint-reference.sh --show` prints every article the
+   branch diff cites. Write the entry from it, not from the surrounding entries and not from
    memory.
 2. State only what the article states. If you are adding an inference, say in the entry that
    it is one.
 3. Watch the terms of art. Entries have shipped wrong by swapping one: "the free *kick* ends"
    is not "the free-kick *down* is over", and "outside the inbounds lines" (the hash marks) is
    not "at the sideline".
-4. Run the shingle over your diff and report the count.
 
-**Note the lint's limit:** `scripts/lint-reference.sh` validates that a cited article
-*exists*, not that it says what the citation claims. Citations have been wrong in exactly that
-way and passed. The check is reading the article, not the lint.
+**Note the lint's limit:** it validates that a cited article *exists*, not that it says what
+the citation claims. Reading the article is the check, and `--show` is how.
 
-**Reviewers** report each reference finding with (a) the article as printed, (b) what the
-entry claims, (c) whether it is **behaviour-bearing** — would an implementer derive engine
-behaviour from it, or is it descriptive — and (d) whether any open issue cites that article.
+**Reviewers run `--show` before judging an entry**, quote the article header it prints, and
+report each finding with (a) the article as printed, (b) what the entry claims, (c) whether it
+is **behaviour-bearing** — would an implementer derive engine behaviour from it, or is it
+descriptive — and (d) whether any open issue cites that article.
 Those two classifications decide whether it blocks, so state them rather than leaving the call
 implicit.
 
-## Shingling is untrusted — verify your own
+## The shingle is the lint's job — do not write your own
 
-Agents have reported a false clean three ways: using a shared script that had been silently
-replaced by a per-line-only version; shingling a sub-diff and reporting it as the branch's;
-and using a control phrase that was not in the book, so the control returned 0 and the zero
-meant nothing.
-
-**Quote a firing positive control beside your count. A count without one is not a
-measurement.** Scan the **branch** diff and the **commit messages** — not a sub-diff — **per
-line and with the added text joined** (a match across a wrapped comment hides from a per-line
-scan), at **n = 8 as well as n = 10**.
+`scripts/lint-reference.sh` scans whole files and whole commit messages — never a sub-diff —
+per line **and** joined, with its controls cut from the corpus at runtime: unless they come
+out 1, 1, 0 it prints no count and exits 2. **Quote that control line beside your count.**
+`preflight` runs the tree scan and `--messages`; **`--n 8`** it does not, and that is worth a
+run on a branch that added football prose — expect `docs/tools.md`'s table, not a zero. Run
+`--messages` immediately before you push: afterwards a message takes rewriting history.
 
 ## The harness
 
@@ -397,8 +395,9 @@ green.
 
 ## Finishing
 
-Push, and **open the pull request yourself** — body per CLAUDE.md: the issue it closes,
-measured versus assumed, harness rows before and after. **Do not merge it and do not enable
+**Open the pull request yourself, as a draft, with your first push:** a bare branch gets no CI
+run now that CI fires on `push` only for `main`. Mark it ready when done, with the body
+CLAUDE.md specifies and the `--report` block in it. **Do not merge it and do not enable
 auto-merge.** Wait for CI and report each check conclusion by name. A red check is yours to
 fix before you report done.
 
