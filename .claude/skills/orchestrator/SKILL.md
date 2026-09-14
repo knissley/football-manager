@@ -78,6 +78,13 @@ yourself; GitHub does not.** A PR that satisfies only part of an issue says **`R
   when `main` moves, when an issue lands, when something becomes owner-gated, or when the
   queue changes.
   **Never append current state as a comment.**
+- **Cap it at 400 words**, and keep it to five things: the `main` sha; the counts; what is in
+  flight, one entry per branch carrying the handoff below; what waits on the owner, with the
+  question; and the queue. It reached about 2,000 words and was rewritten at that length on
+  every merge, which is both the cost and the reason it goes stale — a section nobody can
+  re-read in a minute is one nobody re-derives. **Reasoning, findings and anything that
+  explains *why* go to a comment**, which is where this skill already puts history, and the
+  section links it.
 - **An in-flight branch's entry is the handoff.** Per branch: its name, head sha, the issues
   it closes, what has been verified on that head (which checks, which harness seeds, which
   review round and its result), and the exact next action. A session that pauses rewrites
@@ -142,22 +149,88 @@ the owner; and the re-read above.
 ## Review, before you merge
 
 When an implementer reports done and its PR is open, dispatch **one reviewer with a fresh
-context**: it gets the diff, every *Done when* line of every issue the PR closes, `CLAUDE.md`,
-Part 2 of this skill, and the instruction to **run everything itself and trust nothing in the
-implementer's report** — not its harness numbers, not its shingle count, not its mutation
-claim. It returns *pass*, or concrete failures with the command that shows each.
+context**: it gets the PR body — which is the implementer's report — the diff, every *Done
+when* line of every issue the PR closes, `CLAUDE.md`, and Part 2 of this skill.
+
+**The reviewer does not re-run the suites.** The implementer's `preflight` run is the first
+pass over them; CI is the second and third, running on every push to the PR on two
+architectures (`ubuntu-24.04` and `ubuntu-24.04-arm`). A reviewer's run would be the fourth
+agreeing green of the same trees, and it buys nothing the CI conclusions do not already say.
+What the reviewer adds is reading, not repetition.
+
+**What it reads:**
+
+- **The diff**, against the merge base it resolves itself — `git merge-base origin/main
+  HEAD`. A two-dot `git diff origin/main..branch` lies once `main` has moved.
+- **Every article the branch cites.** `./scripts/lint-reference.sh --show` prints them; the
+  reviewer reads the article as printed before judging the entry beside it, and quotes the
+  header it printed. The lint validates that an article *exists*, not that it says what the
+  citation claims, so this is the only check there is.
+- **The `preflight --report` block in the body, against the tree**: the `Targets.swift`
+  checksum at the merge base, the `harness-reach` verdict against the files the branch
+  actually moved, and which steps the block says ran. A lane that does not match the diff, or
+  a checksum that does not reproduce, is a finding.
+- **Each *Done when* line against the evidence the body gives for it**, and the Assumed and
+  Not-checked lists for anything that should have been measured.
+
+**What it runs itself** — and nothing else, unless a claim in the body cannot be judged any
+other way, in which case it says which claim:
+
+- `./scripts/lint-reference.sh --show` on the branch's citations.
+- `./scripts/preflight.sh --lane docs` — seconds, and it catches the lints, the census and
+  `--messages` on the head as pushed.
+- **Any mutation the implementer claims.** A `.football` test that cannot fail when its own
+  football is broken is a `.pin`; re-break the rule and confirm red, rather than believing the
+  sentence that says it was done.
+
+**It returns `pass`, or concrete failures, each with the command that shows it.** A finding
+with no reproducing command is an opinion, and goes where the cost rules below send it.
 
 - Before it calls a reference finding pre-existing, it runs `git show origin/main:<path>` and
   greps; two of eight findings on one branch were mis-classified from reports.
-- A second round is for behaviour, football, or rule 8 to 11 failures only. Prose findings
-  are fixed in the same push and re-read once by the same reviewer.
+- A second round is for behaviour, football, or rule 8 to 11 failures only. Prose findings go
+  where the cost rules below send them.
 - **After two failed rounds the issue stops**, and you say so on it. A narrow third round is
   allowed only when the second failure was prose the first fix introduced, and it is written
   on the issue before it runs.
 - The review adds no status: the issue stays `status:in-progress` until the merge.
 
-The reviewer's pass is not your verification. It ran the suites and the harness on the
-head; the section below is what you check yourself, in the tree, before the merge.
+The reviewer's pass is not your verification. It read the head; the section below is what you
+check yourself, in the tree, before the merge.
+
+## Cost discipline for a dispatch round
+
+Agreed with the owner 2026-09-13, after PR #185 took about two and a half hours and a large
+share of a session's budget to land 309 added lines of which one was an engine change. Rounds
+two and three were roughly 1.5 of those hours, touched no engine source, and ran the full
+pre-push checklist each time over wording. **The four rules are the owner's, verbatim:**
+
+1. **Merge on a reviewer's PASS.** A PASS with non-blocking findings is a merge, not a fix
+   round.
+2. **Route non-blocking prose findings to #93**, which exists for exactly this and whose own
+   taxonomy says doc-duplication, process-history and snapshot findings "batch without
+   loss". The **one** exception is #93's kind 1 — a doc whose own numbers contradict it —
+   which stays in the PR that introduced it. Of the four findings that triggered #185's
+   round 2, only one plausibly met that bar; the other three should have been filed.
+3. **Scope the checklist to the blast radius.** When `harness-reach.sh` says `skip`, the
+   release build and the harness runs are theatre. A docs-and-tests round needs the suites, the
+   lints, the census and `--messages` — not a fifth agreeing harness measurement.
+4. **One reviewer round.** A round plus a re-read plus a narrow third pass is three; the skill
+   permits the third only for prose the second round introduced, and the cheapest way to never
+   need it is rule 1.
+
+And one addition, which is how rules 1 and 2 meet a PASS that still found something:
+
+5. **A PASS with prose findings gets a follow-up commit from the same implementer, with no
+   second review** — and only when a document contradicts its own numbers (#93's kind 1).
+   Every other prose finding is filed on **#93** or whatever issue succeeds it, named in the
+   merge comment. Do not send a PASS back to a reviewer to confirm a paragraph.
+
+**What this does not change: nothing about the football.** Articles are still read as printed
+rather than trusted from a lint, `.football` tests are still mutation-verified, `Targets.swift`
+is still checked numerically against the base, and a report's numbers are still re-derived
+rather than re-quoted. Those checks are cheap relative to what they prevent. The expensive part
+was never rigour; it was re-running a full checklist three times over wording.
 
 ## Verifying before you merge
 
@@ -247,6 +320,10 @@ under `-c release`; a 400-game harness seed **16 s**; a whole `engine`-lane run 
 and a `docs` one **8 s**.
 
 ## Every check, before you push
+
+**This section is the implementer's.** A reviewer does not re-run the suites — CI runs them
+on every push, on two architectures — and what a reviewer does run is in Part 1, under
+*Review, before you merge*.
 
 Run **`./scripts/preflight.sh`**: it picks the lane from your diff, runs what CI runs over the
 trees you touched, and stops at the first failure naming the step and its log. **Paste
@@ -397,21 +474,40 @@ green.
 
 **Open the pull request yourself, as a draft, with your first push:** a bare branch gets no CI
 run now that CI fires on `push` only for `main`. Mark it ready when done, with the body
-CLAUDE.md specifies and the `--report` block in it. **Do not merge it and do not enable
-auto-merge.** Wait for CI and report each check conclusion by name. A red check is yours to
-fix before you report done.
+`.github/pull_request_template.md` gives you and the `--report` block in it. **Do not merge
+it and do not enable auto-merge.** Wait for CI and report each check conclusion by name. A
+red check is yours to fix before you report done.
 
-## Your report must contain, in so many words
+## Your report is the PR body
 
-1. The commit shas, by stage.
-2. Every *Done when* item from every issue you closed, each with its evidence.
-3. **What you MEASURED versus what you ASSUMED**, as two explicit lists.
-4. **A "not checked" list** — everything you did not verify, stated plainly.
-5. Harness figures before and after, and every moved row with its mechanism.
-6. Every place the issue's plan was silent and you filled a gap — enumerated, with what you
-   filled each with.
+**There is no second report.** The PR body is what you hand back, and the reviewer and the
+orchestrator read it as the report — a message that restates it is waste, and a fact that
+lives only in that message is lost the moment your session ends.
 
-**A report missing (3) or (4) goes back before it is reviewed.**
+GitHub prefills the body from **`.github/pull_request_template.md`**. Fill every heading it
+gives you and delete the ones that do not apply rather than writing "n/a" beneath them:
+
+1. `Closes #N` — or `Refs #N` when the PR satisfies only part of an issue.
+2. One paragraph on what changed, naming the **mechanism**.
+3. **Every *Done when* line of every issue you closed, each with one line of evidence.**
+4. **Measured**, **Assumed** and **Not checked**, as three bullet lists. A place where the
+   issue's plan was silent and you filled the gap by judgment is an **Assumed** line, and it
+   names what you filled it with.
+5. The `./scripts/preflight.sh --report` block, pasted whole — it prints its own fence.
+6. Every harness row that moved, with **one mechanism each**, or `none moved` with the
+   `harness-reach.sh origin/main` verdict that shows the change could not reach the harness.
+
+**Cap: 500 words outside the report block.** The last twelve merged bodies averaged about
+2,200, one of them for a single visibility change. Evidence is a line, not a narrative: the
+command and what it printed, not the story of running it.
+
+**A body missing Assumed or Not checked goes back before it is reviewed.** Those two lists are
+where the real findings have come from; a body without them reads as certainty nobody has.
+
+**Commit messages: one paragraph, and the mechanism.** Cite the rulebook by article number and
+season; **never rulebook text** — a pushed message cannot be corrected after a merge, and
+branches have already put verbatim text in messages that are now unfixable. No model
+identifiers beyond the attribution trailer this session's tooling specifies.
 
 ## Housekeeping
 
