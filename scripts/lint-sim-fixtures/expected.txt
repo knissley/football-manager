@@ -13,7 +13,9 @@
 # real lint — they hold banned tokens on purpose. sources/ stands in for a
 # package's Sources/ tree and gets every rule; goldens/ stands in for a
 # *Golden*Tests.swift and gets only the Hasher check, which is where the real
-# tree's golden tests live too.
+# tree's golden tests live too; comments/ stands in for any Sources/ or Tests/
+# tree under Packages/ or Tools/ and gets only the process-history check, which
+# reads comment text where the other two read code.
 #
 # Every expected line below is also marked in the fixture itself with a trailing
 # `// EXPECT: <rule-id>` (or `// EXPECT-NEXT:` where the hit has to end the
@@ -145,3 +147,53 @@ scripts/lint-sim-fixtures/sources/negative-control.swift:45: date
 # `Hasher`; saying so must not fire, so only the use on line 14 is here.
 
 scripts/lint-sim-fixtures/goldens/FixtureGoldenSeedTests.swift:14: golden-hasher
+
+# --- process history in a comment --------------------------------------------
+#
+# comments/ is scanned only by check 3, which reads the mirror image of what the
+# other two read: the comment text, with code and string literals blanked. The
+# four files there cover a plain hit per pattern, the two structural exceptions,
+# and the baseline.
+#
+# history-hit.swift. One hit per pattern on a line of its own, then all four word
+# patterns at once in capitals, which is what pins the case-insensitive match.
+# Line 29 is the negative control and is absent below: it holds all five tokens
+# in string literals, which the comment view blanks the way the code view keeps
+# them.
+
+scripts/lint-sim-fixtures/comments/history-hit.swift:8: history-issue
+scripts/lint-sim-fixtures/comments/history-hit.swift:11: history-wave
+scripts/lint-sim-fixtures/comments/history-hit.swift:14: history-audit
+scripts/lint-sim-fixtures/comments/history-hit.swift:17: history-review
+scripts/lint-sim-fixtures/comments/history-hit.swift:20: history-orchestrator
+scripts/lint-sim-fixtures/comments/history-hit.swift:23: history-audit
+scripts/lint-sim-fixtures/comments/history-hit.swift:23: history-orchestrator
+scripts/lint-sim-fixtures/comments/history-hit.swift:23: history-review
+scripts/lint-sim-fixtures/comments/history-hit.swift:23: history-wave
+
+# history-pin.swift. The exemption is the doc comment on a test whose `@Test`
+# attribute carries `.pin`, and nothing else:
+#
+#   7-8    exempt — a two-line doc comment on a pinned test, both lines
+#   15     fires — the same sentence on a test tagged .football
+#   19     fires — a `// MARK:` line above a pinned test is not a doc comment
+#   21-22  exempt — the whole doc comment, not only the line touching @Test
+
+scripts/lint-sim-fixtures/comments/history-pin.swift:15: history-issue
+scripts/lint-sim-fixtures/comments/history-pin.swift:19: history-issue
+
+# history-register.swift. The marker `lint-sim: unreachable-register` exempts the
+# comment block it is written in (5-8) and the declaration that block introduces,
+# to the bracket that closes it (9-14) — so the per-entry doc comments on 10 and
+# 12 are exempt too. Line 16, one line past the closing bracket, fires.
+
+scripts/lint-sim-fixtures/comments/history-register.swift:16: history-issue
+
+# history-baselined.swift. Line 6's key is carried in
+# scripts/lint-sim-fixtures/baseline.txt and is absent here because it passes;
+# line 10's is not carried and fires. The baseline's second line names a key
+# nothing produces, and the stale report is emitted in --self-test as a hit at
+# line 0 so it can be named here.
+
+scripts/lint-sim-fixtures/comments/history-baselined.swift:10: history-issue
+scripts/lint-sim-fixtures/comments/history-baselined.swift:0: baseline-stale

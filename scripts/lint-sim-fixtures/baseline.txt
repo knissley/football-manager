@@ -1,0 +1,23 @@
+# The fixture baseline — what `scripts/lint-sim.sh --self-test` reads in place of
+# scripts/lint-sim-baseline.txt.
+#
+# Same three tab-separated fields as the real one:
+#
+#     path <TAB> rule id <TAB> the comment text, normalised
+#
+# Two lines, and each pins a direction the real baseline has to get right:
+#
+#   - the first carries a hit the fixture tree really produces, so a rewrite that
+#     stopped honouring the baseline turns it into an unexpected hit and fails;
+#   - the second carries a key nothing in the fixture tree produces, so the stale
+#     report is pinned too. A stale line does not fail the lint — it is reported
+#     so the file burns down — but in --self-test it is emitted as a hit at line
+#     0 with the rule id `baseline-stale`, which is how expected.txt can name it.
+#
+# The file the fixture baseline covers also carries an uncarried hit two lines
+# further down, so the self-test fails whether the baseline stops being read or
+# the comment scan stops firing.
+#
+# path	rule	comment text
+scripts/lint-sim-fixtures/comments/history-baselined.swift	history-issue	line's key, so it passes (#18).
+scripts/lint-sim-fixtures/comments/history-baselined.swift	history-issue	a key nothing in the fixture tree produces (#18).
