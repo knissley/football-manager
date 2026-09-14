@@ -1,6 +1,6 @@
 # Agent throughput: the proposal
 
-**Status: proposed, not dispatched.** Nothing below is built. Measured on `main` at
+**Status: approved 2026-09-14, in dispatch.** Items land as issues and PRs; nothing below is built until its item merges. Measured on `main` at
 `cf885fb`, 2026-09-14, on a four-core Linux container with Swift 6.2, unless a line says
 *assumed*. The owner reviews this page, then the orchestrator files each item as an issue
 in the standard body and dispatches in the order in section 4.
