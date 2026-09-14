@@ -42,10 +42,17 @@ Which rules must be true of a game, and what checks each, is
   `test:groundingOnFourthDownInsideTwoMinutesTurnsItOverAndRestartsOnTheReady`
 - **3-8-3** — The line to gain sits ten yards downfield of wherever the series began, or on
   the goal line when that is closer, which is what first and goal is. — `test:firstAndGoal`
-- **3-8-4** — A charged down is a scrimmage down that a penalty does not nullify and in
-  which possession does not change; it counts as a down in the series. It is why a
-  five-yard foul that leaves the ball short of the line to gain replays the down rather
-  than granting one — reaching the line under 7-3-1-b is a new series like any other. —
+- **3-8-4** — Which downs count against a series. The article defines a *charged down*
+  with two conditions joined by **or**: a penalty has not wiped the down out, or
+  possession stayed where it was through it. That connective is the book's, and it is
+  left standing here rather than tidied into an *and*. **Inference, not text:** the two
+  work together in practice — a foul taken and walked off from the previous spot has the
+  offence trying again at the same number, and once the ball has changed hands the old
+  series is over — but that pairing is read off the enforcement rules, not off this
+  sentence. Those rules are explicit where this one is not: 14-1-2 Item 1 holds the down
+  number where a walk-off against the offence still leaves it short, Item 8 has a down
+  killed by offsetting fouls played again, and 7-3-1-a and 7-3-1-b award a fresh four
+  whenever the ball gets to the line to gain, however it got there. —
   `test:runningIntoTheKickerReplaysTheDown`, `test:holdingOnAGain`
 - **3-12-1** — Forward progress: a runner's — or an airborne receiver's — progress is the
   furthest point he reached toward his opponent's goal, and the ball is dead there however
@@ -696,11 +703,14 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   (Item 2) is five from the previous spot with no automatic first down, and the article
   marks it as not one. **That marking is what 14-2-3 turns on, not the section the foul is
   printed in** — so of these two, only roughing is carried to a succeeding spot. The
-  article says nothing about the down: running into the kicker replays it only where the
-  five yards leave the ball short of the line to gain, because reaching the line is a new
-  series like any other (7-3-1-b, 3-8-4). Neither foul wipes a kick that was already away:
-  the rush is over before the ball comes down, so the offended team weighs the flag against
-  what the kick did. —
+  article says nothing about the down; **14-1-2 Item 5 does**. That Item gives the
+  offence a fresh series after most fouls by the defence, then lists ten it withholds
+  that from, running into the kicker being the seventh: for those the series carries on
+  where it was, unless the walk-off itself takes the ball as far as the line to gain, and
+  then the offence has its new series after all. Nor does 12-2-12 say what becomes of the
+  kick. That is the offended team's own call under 14-1-1, which lets a side turn the
+  penalty down for almost any foul — the article's exception is a rule that forbids it —
+  and keep the down as it was played. —
   `test:roughingOnAMissedFieldGoalIsAFirstDown`, `test:runningIntoTheKickerReplaysTheDown`,
   `test:runningIntoTheKickerOnAMadeFieldGoalIsDeclined`,
   `test:personalFoulsAreNamedByTheBook`
