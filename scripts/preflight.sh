@@ -33,6 +33,12 @@
 # its log path — and 2 when it could not set up: no toolchain, no base ref, a `$TMPDIR`
 # inside the checkout.
 #
+# **Bash 3.2, deliberately.** macOS still ships `/bin/bash` 3.2, and four scripts in this
+# directory already accommodate it; the owner runs these on a Mac. So: no `local -n`
+# namerefs, no `declare -A`, no `mapfile`, no `${var,,}` — `remember` below reaches an
+# array through `eval` on its name for exactly this reason, and a bash-4-only construct
+# added here would die at its first call on a machine no CI leg covers.
+#
 # ## The lanes
 #
 # The blast radius is `git diff --name-only $(git merge-base <base> HEAD)`, which already
@@ -745,15 +751,18 @@ tests_packages=()
 tools_tools=()
 scripts_changed=()
 
+# Append to the named array unless it already holds the value. The array is reached
+# through `eval` on its name rather than a `local -n` nameref, because namerefs are bash
+# 4.3 and this script has to run under 3.2 — see the header.
 remember() {
-    local -n arr=$1
-    local value=$2 existing
-    for existing in ${arr[@]+"${arr[@]}"}; do
+    local array=$1 value=$2 existing
+    eval "set -- \${${array}[@]+\"\${${array}[@]}\"}"
+    for existing in ${1+"$@"}; do
         if [ "$existing" = "$value" ]; then
             return 0
         fi
     done
-    arr+=("$value")
+    eval "${array}+=(\"\$value\")"
 }
 
 while IFS= read -r file; do
