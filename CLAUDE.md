@@ -279,9 +279,14 @@ is handed — is the `/orchestrator` skill.
   — and say which floor you used: a before-and-after at one seed and a comparison across
   two seeds have different ones, and fifty-five rows print a different verdict at different
   seeds with nothing changed at all.
-- The PR body names the issue it closes, what was measured versus assumed, and the
-  harness rows before and after. No model identifiers in commit or PR text beyond the
-  attribution trailer the tooling appends.
+- The PR body is the report, in the shape of
+  [`.github/pull_request_template.md`](.github/pull_request_template.md), which GitHub
+  prefills: the issue it closes, every *Done when* line with one line of evidence, measured
+  / assumed / not checked as three lists, the `preflight --report` block, and the harness
+  rows that moved with a mechanism each. **Capped at 500 words outside that block** — the
+  template says so, and the reviewer and the orchestrator read the body instead of a
+  separate report. No model identifiers in commit or PR text beyond the attribution trailer
+  the tooling appends.
 - A test that encodes a bug is rewritten, not deleted, and the PR says so.
 - If the issue's plan is wrong or something is unknown, stop and report on the issue.
   Do not guess.
