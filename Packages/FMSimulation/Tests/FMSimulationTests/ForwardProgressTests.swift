@@ -96,10 +96,10 @@ struct ForwardProgressTests {
                 separation: Self.tightWindow, sideline: 0.12,
                 decisions: &decisions, participants: &participants, startTick: 20,
                 random: &random)
-            // The blown-coverage branch writes a hole-quality point of its own and the
+            // The blown-coverage branch writes a catch-in-space point of its own and the
             // ordinary one does not, so the record says which arithmetic produced the
             // number.
-            let wideOpen = decisions.contains { $0.kind == .holeQuality && $0.detail == 3 }
+            let wideOpen = decisions.contains { $0.kind == .catchInSpace }
             swept.append((result.yards, wideOpen))
         }
         return swept

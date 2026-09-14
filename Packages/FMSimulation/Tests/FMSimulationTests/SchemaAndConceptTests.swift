@@ -27,12 +27,13 @@ struct SchemaAndConceptTests {
     private static let sample: [GameResult] = TestWorld.corpus
 
     /// The literal is here so the version cannot move by accident: a bump is a deliberate
-    /// act and this is what makes it one. It reads 2 since a coverage assignment began
-    /// carrying the separation the matchup produced, which in a version-1 record is zero
-    /// on every one of them.
+    /// act and this is what makes it one. It reads 3 since the unit of a decision point's
+    /// `value` began following from its `kind` alone: in a version-2 record a kick
+    /// return's yards and a catch's separation in centimetres are both written as
+    /// `holeQuality`, the kind documented as carrying a carry's quality score.
     @Test("Every record carries the current schema version", .tags(.contract))
     func everyRecordIsVersioned() {
-        #expect(PlayRecord.currentSchemaVersion == 2)
+        #expect(PlayRecord.currentSchemaVersion == 3)
         for result in Self.sample {
             for play in result.plays {
                 #expect(

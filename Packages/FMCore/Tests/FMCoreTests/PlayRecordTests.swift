@@ -512,7 +512,7 @@ struct PlayRecordTests {
     /// literal here is what makes moving it a deliberate act rather than a side effect.
     @Test("A record carries the schema version it was written under", .tags(.contract))
     func recordIsVersioned() {
-        #expect(PlayRecord.currentSchemaVersion == 2)
+        #expect(PlayRecord.currentSchemaVersion == 3)
         #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
     }
 
