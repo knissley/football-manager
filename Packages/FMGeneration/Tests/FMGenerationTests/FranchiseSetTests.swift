@@ -11,15 +11,13 @@ import Testing
 /// the initial world starts from one curated set of franchises, rosters are still
 /// generated, and the pool randomiser is a last resort behind an explicit option. So the
 /// contracts are: the set is a league (thirty-two clubs nothing about which collides),
-/// two seeds are two leagues in the same buildings, and the randomiser still produces
-/// the ledger-clean league [#4](https://github.com/knissley/football-manager/issues/4)
-/// made it produce.
+/// two seeds are two leagues in the same buildings, and the randomiser still produces a
+/// ledger-clean league.
 ///
 /// One thing here is *not* mechanical and cannot be: that no line is a real club's city
 /// and nickname. Checking that needs the list of real franchises, which cannot be in
 /// this repository ([ADR-0005](../../../../docs/adr/0005-generated-fictional-content.md)),
-/// so it is a review, and the review is recorded on
-/// [#69](https://github.com/knissley/football-manager/issues/69).
+/// so it is a reading by a person and no green suite here stands in for one.
 @Suite("Curated franchises")
 struct FranchiseSetTests {
 
@@ -259,17 +257,16 @@ struct FranchiseSetTests {
 
     /// The league's own name is part of the same curated identity as the clubs in it
     /// ([decision 215](../../../../docs/design-decisions.md)): two careers open in the
-    /// same league, not merely in the same buildings. It was a per-seed draw from
-    /// `StructurePools.leagueNames` until
-    /// [#82](https://github.com/knissley/football-manager/issues/82), so two careers in
-    /// identically named clubs ran under differently named leagues.
+    /// same league, not merely in the same buildings. A per-seed draw from
+    /// `StructurePools.leagueNames` puts identically named clubs under differently named
+    /// leagues, which is the failure this is written against.
     ///
     /// Twelve seeds rather than two, because the pool holds a handful of names and two
-    /// seeds landing on one of them proves nothing — on `main` at `19bffa6`, seeds 7 and
+    /// seeds landing on one of them proves nothing — measured at `19bffa6`, seeds 7 and
     /// 11, the two the backlog's harness rule names, drew the same one of the five, so a
-    /// two-seed test would have passed while the bug was there. The second assertion is
-    /// what says the name is written rather than drawn: nothing the curated source
-    /// produces may be a line of the pool.
+    /// two-seed test passes with the draw still in place. The second assertion is what
+    /// says the name is written rather than drawn: nothing the curated source produces
+    /// may be a line of the pool.
     ///
     /// The randomiser keeps its draw, asserted in `LeagueGeneratorTests`.
     @Test("contract: every seed opens in the same curated league, by name", .tags(.contract))
@@ -295,9 +292,10 @@ struct FranchiseSetTests {
 
     // MARK: - The randomiser, still behind its option
 
-    /// The last resort still has to work. Everything [#4](https://github.com/knissley/football-manager/issues/4)
-    /// fixed is asserted here rather than only on the default path, because the default
-    /// path no longer exercises any of it.
+    /// The last resort still has to work. The ledger's rules — unique cities, unique
+    /// nickname stems, unique abbreviations, no stutter — are asserted here rather than
+    /// only on the default path, because the default path is a written table and no
+    /// longer exercises any of them.
     @Test(
         "contract: the randomiser still produces a ledger-clean league",
         .tags(.contract),

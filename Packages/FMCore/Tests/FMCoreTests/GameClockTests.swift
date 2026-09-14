@@ -181,9 +181,9 @@ struct ClockStoppageTests {
 
     /// The ball stayed live, so the clock did too.
     ///
-    /// Rewritten for A4 (#17): the `.downed` row asserted that a downed punt keeps the
-    /// clock running. A downed kick has changed hands, and a change of possession stops
-    /// the clock until the snap.
+    /// The `.downed` row is the one that reads wrong: a downed punt looks like a play
+    /// that never stopped, but the kick has changed hands, and a change of possession
+    /// stops the clock until the snap (4-4-i).
     @Test(
         "football · Rule 4-4, 4-4-i · a tackle in bounds and a fumble the offence falls on keep the clock running; a downed kick has changed hands and stops it",
         .tags(.football)
@@ -452,11 +452,11 @@ struct TenSecondRunoffTests {
             "with a second still on it, the ten come off")
     }
 
-    /// Rewritten for A11 (#74) from a pin that said postseason overtime timing was not
-    /// modelled. It is: 16-1-4-h pairs postseason overtime periods into halves, a second
-    /// period ending as the first half does and a fourth as the fourth period does, so
-    /// the warning of either half (4-7-1) is in the second and the fourth and the runoff
-    /// follows it there; a first or a third period has neither.
+    /// 16-1-4-h pairs postseason overtime periods into halves: a second period ends as
+    /// the first half does and a fourth as the fourth period does, so the warning of
+    /// either half (4-7-1) is in the second and the fourth and the runoff follows it
+    /// there. A first or a third period has neither, which is the half of the rule that
+    /// reads as an omission and is not one.
     @Test(
         "football · Rule 16-1-4-h, 4-7-1 Item 1 · in postseason overtime the runoff applies inside two minutes of a second and of a fourth overtime period, and never in a first or a third",
         .tags(.football)
@@ -647,11 +647,11 @@ struct GameClockTests {
         #expect(clock.isExpired)
     }
 
-    /// Rewritten for A4 (#17). The old test pinned `run` clamping the whole interval —
-    /// huddle and play together — at 2:00, which swallowed a play snapped just before
-    /// the warning and truncated a down under way at 2:00. The warning is a stoppage
-    /// between downs: when the clock reaches 2:00 in the huddle it stops there, the snap
-    /// restarts it, and the play then runs from 2:00.
+    /// The warning is a stoppage *between downs*, not a clamp on the clock. Clamping the
+    /// whole interval — huddle and play together — at 2:00 swallows a play snapped just
+    /// before the warning and truncates a down under way at 2:00. When the clock reaches
+    /// 2:00 in the huddle it stops there, the snap restarts it, and the play then runs
+    /// from 2:00.
     @Test(
         "football · Rule 3-41, 4-4-h · the warning stops a running clock at 2:00 between downs, and the play then runs from there",
         .tags(.football)
@@ -682,9 +682,10 @@ struct GameClockTests {
         #expect(clock.twoMinuteWarningTaken)
     }
 
-    /// Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
-    /// (16-1-3-e), so the warning (3-41) is in it: at 2:00 between downs the clock
-    /// stops, and a down under way finishes.
+    /// Regular-season overtime is timed as the fourth quarter (16-1-3-e), so the warning
+    /// (3-41) is in it: at 2:00 between downs the clock stops, and a down under way
+    /// finishes. An overtime period with no warning is the easy thing to assume and is
+    /// not the rule.
     @Test(
         "football · Rule 3-41, 16-1-3-e · a regular-season overtime period has a two-minute warning: the clock stops at 2:00 between downs, and a down under way when it passes 2:00 finishes",
         .tags(.football)
@@ -786,10 +787,8 @@ struct GameClockTests {
                 == true)
     }
 
-    /// Rewritten for A11 (#74): this asserted that the overtime period had no
-    /// two-minute warning, which is wrong football — fourth-period timing rules apply in
-    /// regular-season overtime (16-1-3-e), the warning among them (3-41). The period
-    /// opens with the warning fresh, as a half does.
+    /// A regular-season overtime period opens with the warning *fresh*, as a half does:
+    /// fourth-period timing rules apply in it (16-1-3-e), the warning among them (3-41).
     @Test("Periods advance to a full quarter, then to overtime", .tags(.unit))
     func periods() {
         let first = GameClock(quarter: 1, secondsRemaining: 0)

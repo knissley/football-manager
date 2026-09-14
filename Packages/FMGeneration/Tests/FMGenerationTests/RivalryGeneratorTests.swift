@@ -233,8 +233,7 @@ struct RivalryGeneratorTests {
     /// single seed passed because seed 13 landed on the right side of the draw and said
     /// nothing about whether the design's claim held: over these sixty worlds, nine opened
     /// with a bitter rivalry — seeds 5, 15, 27, 31, 34, 36, 37, 48 and 51, one bitter pair
-    /// each, peaking at 76.0 intensity against a `bitter` floor of 65
-    /// ([#64](https://github.com/knissley/football-manager/issues/64)).
+    /// each, peaking at 76.0 intensity against a `bitter` floor of 65.
     ///
     /// The heated half of the assertion is the other side of the cap. Stopping one band
     /// short of bitter is not the same as flattening the league, and all sixty of these

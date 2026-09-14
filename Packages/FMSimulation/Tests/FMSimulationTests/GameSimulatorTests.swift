@@ -304,12 +304,12 @@ struct GameSimulatorTests {
         #expect(kinds.contains(.extraPoint), "a try should follow the touchdown")
     }
 
-    /// Rewritten for A3 (#16). This test checked only the points, and the points were
-    /// right while the wrong team kicked off. A safety pays the defence, the team scored
-    /// upon then puts the ball in play with a free kick from its own 20, and the team
-    /// that scored takes the kick and the ball — at the touchback spot here, because the
-    /// scripted kick is a touchback; that spot is `Rules.kickoffTouchbackOwnYard`, the
-    /// 30 until D1 (#41) moves it.
+    /// **Checking the points is not enough**: two are awarded either way, so a test that
+    /// stops there is green while the wrong team kicks off. A safety pays the defence,
+    /// the team scored upon then puts the ball in play with a free kick from its own 20
+    /// (11-5-2, 6-1-1-b), and the team that scored takes the kick and the ball — at the
+    /// touchback spot here, because the scripted kick is a touchback, and that spot is
+    /// `Rules.kickoffTouchbackOwnYard` rather than a number written into the test.
     @Test(
         "football · Rule 11-1-2-c, 11-5-2, 6-1-1-b · a safety pays the defence, the team scored upon free-kicks from its own 20, and the team that scored takes over",
         .tags(.football)
@@ -537,12 +537,12 @@ struct GameSimulatorTests {
 
     // MARK: - Overtime
 
-    /// Rewritten for A1 (#15). This test used to assert that a level regular-season
-    /// game ends after four periods, which is the bug the September audit's S9 named:
-    /// the sport plays one ten-minute overtime period first, and only a game still
-    /// level at the end of *that* is a tie. The postseason half of the old test is the
+    /// A level regular-season game does **not** end after four periods: it plays one
+    /// ten-minute overtime period first (4-1-1, 16-1-3), and only a game still level at
+    /// the end of *that* is a tie. The postseason case cannot be asserted here — a
+    /// resolver that never scores cannot end a postseason game at all — and lives in the
     /// rules-conformance scenario "a postseason game level after the fifth period plays
-    /// a sixth"; a resolver that never scores cannot end a postseason game at all.
+    /// a sixth".
     @Test(
         "football · Rule 4-1-1, 16-1-3, 16-1-3-d · a regular-season game level after four periods plays one ten-minute overtime period, and level at the end of it is a tie",
         .tags(.football)

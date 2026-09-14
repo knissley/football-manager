@@ -477,8 +477,7 @@ public struct CrudeResolver: PlayResolver {
         //    at the deadline with the pocket clean, and after it the ball is thrown away.
         //    Locked on means he holds on that read: he neither moves on nor forces it, so
         //    a throw into coverage is only ever a window he misjudged. The parameters are
-        //    `Reads`, and they are C3's (#44):
-        //    starting values, retuned in E3 and not before.
+        //    `Reads`: starting values, none of them fitted to a harness row.
         //
         // A try is read here like any other dropback, and it used to be exempt by
         // accident: its throw is out in 1,500 ms, the earliest a rusher could get home
@@ -1709,8 +1708,8 @@ public struct CrudeResolver: PlayResolver {
         let accuracyKey: RatingKey
     }
 
-    /// How the quarterback works his reads (C3, #44): starting parameters, every one of
-    /// them, to be retuned in E3 (#49) and not before.
+    /// How the quarterback works his reads: starting parameters, every one of them. None
+    /// was fitted to a harness row, so moving one is a retune and not a fix.
     ///
     /// **The threshold does not vary by passer.** What makes a poor passer throw into
     /// coverage is that he misjudged the window — his error is the noise on the perceived
@@ -1726,17 +1725,18 @@ public struct CrudeResolver: PlayResolver {
 
         /// The perceived window a throw needs, in centimetres, by the depth of the read.
         ///
-        /// C3's plan put these at 70, 90 and 110, and at those the first read cleared on
-        /// 98% of dropbacks and the second was worked on under 3%: a threshold under the
+        /// The obvious values — 70, 90 and 110 — are wrong, and wrong invisibly: at those
+        /// the first read cleared on 98% of dropbacks and the second was worked on under
+        /// 3%, so the progression ran but decided nothing. A threshold under the
         /// whole of what the coverage loop draws is not a window, it is a label. Measured
         /// across seven generated leagues, four matchups in each, three coverages, a wide
         /// receiver's separation runs 75 cm at the tenth percentile to 177 at the
         /// ninetieth, median 128, and a tight end's the same to a few centimetres; a
         /// back's runs 42 to 92, median 68. These sit inside that: a short read clears on
         /// about seven dropbacks in ten, a medium on six and a deep on five, and a deeper
-        /// ball needs more room to be worth the throw. Set against the distribution and
-        /// not against a harness row — the rows that moved with them are in the pull
-        /// request that landed this, and where the rates belong is E3's (#49).
+        /// ball needs more room to be worth the throw. **Set against the separation
+        /// distribution and not against a harness row**, so moving one to chase a rate is
+        /// a retune and belongs in the retune, not in a fix.
         ///
         /// A read at or behind the line of scrimmage is the screen's back, and a screen is
         /// not a window the passer waits for: the ball is thrown behind the line to a man

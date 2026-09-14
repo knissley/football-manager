@@ -139,7 +139,7 @@ public enum FranchiseSource: Sendable, Hashable {
     /// per-seed identity [decision 215](../../../../docs/design-decisions.md) exists to
     /// take out — a caller with its own clubs and its own name renames `League.name`,
     /// which is editable like every other name in the world. `.randomised` answers `nil`
-    /// and keeps its draw ([#82](https://github.com/knissley/football-manager/issues/82)).
+    /// and keeps its draw.
     var leagueName: String? {
         switch self {
         case .curated, .set: return FranchiseSet.leagueName

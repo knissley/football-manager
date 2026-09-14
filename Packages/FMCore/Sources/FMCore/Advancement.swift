@@ -188,8 +188,10 @@ extension Rules {
         case .safety:
             // The defence scores, and then *receives* the free kick: the team scored
             // upon keeps the ball to put it in play from its own twenty (11-5-2,
-            // 6-1-1-b), and that kick changes hands like every kickoff does. Flipping
-            // possession here as well had the scoring team kicking — the audit's S11.
+            // 6-1-1-b), and that kick changes hands like every kickoff does. So
+            // `possessionChanged` is false here even though the *points* went the other
+            // way — flipping it as well leaves the scoring team kicking off, which is
+            // the opposite of the rule and reads plausibly on a scoreboard.
             return Advancement(
                 ballOn: ballOnFromOwnYard(safetyKickoffOwnYard), down: .first,
                 distance: yardsToGain, possessionChanged: false, scoring: .safety,

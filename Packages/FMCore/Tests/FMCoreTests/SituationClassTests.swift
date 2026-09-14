@@ -341,7 +341,7 @@ struct SituationClassTests {
         #expect(seen.count == DownAndDistanceClass.allCases.count)
     }
 
-    // MARK: - Period numbers come from the rules (A8, #20)
+    // MARK: - Period numbers come from the rules
 
     /// `Rules.quarters` is data, and the classification has to follow it rather than
     /// hard-code 2, 4 and 5. Under a two-period variant the first period is the end of the

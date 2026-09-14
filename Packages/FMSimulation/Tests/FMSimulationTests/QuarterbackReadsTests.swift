@@ -4,7 +4,7 @@ import Testing
 
 @testable import FMSimulation
 
-/// The quarterback works his reads the way his ratings let him (C3, #44).
+/// The quarterback works his reads the way his ratings let him.
 ///
 /// Two promises the engine makes about itself, and neither is a football test: nothing in
 /// the reference bands how often a passer reaches his second read or how a poor one's
@@ -121,8 +121,8 @@ struct QuarterbackReadsTests {
     /// than forcing it — he neither moves on nor throws it — so the only throw into
     /// coverage the process produces is a window he misjudged; whether a locked-on passer
     /// should force the ball is a design question left open with the rest. Whether a throw
-    /// into coverage should cost more is the catch model's question (C14 #113, C4 #39) and
-    /// the retune's (E3 #49), not the read process's.
+    /// into coverage should cost more is the catch model's question and the retune's, not
+    /// the read process's — do not answer it by moving a read parameter.
     @Test(
         "A poor passer throws into coverage a good one comes off, on identical reads",
         .tags(.contract))

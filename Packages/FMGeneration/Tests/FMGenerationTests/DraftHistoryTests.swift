@@ -24,10 +24,10 @@ private func mean(_ values: [Int]) -> Double {
 
 /// The league you inherit has a past.
 ///
-/// No generated player carried a `DraftInfo` at all, so the initial league had no draft
-/// history: nobody had been picked by anybody, every accrued season was guessed from a
-/// birthday, and the first draft you ran was the first draft that had ever happened.
-/// Issue #6.
+/// A generated player with no `DraftInfo` leaves the initial league with no draft
+/// history: nobody has been picked by anybody, every accrued season is guessed from a
+/// birthday, and the first draft you run is the first draft that has ever happened. The
+/// shares below are what says the past is there.
 @Suite("Draft history in a generated world")
 struct DraftHistoryTests {
 
@@ -186,10 +186,9 @@ struct DraftHistoryTests {
     /// over sixteen seeds — so a per-seed bound would be a claim about the seed rather than
     /// about generation. Eight leagues is 13,568 men.
     ///
-    /// **This replaces a fence.** The test here before asserted `share < 0.30`, a bound
-    /// picked knowing the output, and it was green while a quarter of every roster was a
-    /// rookie because `RosterGenerator.age` clamped at twenty-one
-    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
+    /// **A band, not a fence.** A one-sided bound picked knowing the output — `share <
+    /// 0.30` — stays green while a quarter of every roster is a rookie, which is what a
+    /// clamped age draw produces. The lower edge is the half that catches it.
     @Test(
         "football: about a sixth of a roster is in its first season, 0.145 to 0.171 (2023-2025 week 1 rosters, nflverse weekly roster data)",
         .tags(.football))

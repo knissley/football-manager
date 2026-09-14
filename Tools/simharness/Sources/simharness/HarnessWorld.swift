@@ -8,7 +8,8 @@ import FMGeneration
 /// in the header is taken over *this* world, the one the games were played in, rather
 /// than a second world generated in order to be checksummed. A checksum of a world
 /// nobody played would be worse than no checksum at all, because
-/// `scripts/harness-reach.sh` believes it (#72).
+/// `scripts/harness-reach.sh` believes it: it skips a harness run when this number is
+/// unchanged, so a checksum taken over the wrong world skips a run that should happen.
 enum HarnessWorld {
 
     /// No draft pipeline and no rivalries: neither reaches a snap, and generating them

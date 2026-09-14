@@ -30,11 +30,11 @@ struct TryTests {
 
     private static var plays: [PlayRecord] { sample.flatMap(\.plays) }
 
-    /// Rewritten for A7 (#19). This used to assert that *every* try is snapped from
-    /// the standard spot, which is wrong football: a flag on the try moves it (2025
-    /// rulebook, 11-3-3), and asserting the standard spot regardless is exactly how a
-    /// flag that was recorded and never applied stayed invisible. A try that no flag
-    /// preceded is snapped from its own yard line; one a flag preceded is not.
+    /// **"Every try is snapped from the standard spot" is wrong football**, and asserting
+    /// it is how a flag that was recorded and never applied stays invisible: a flag on
+    /// the try moves it (2025 rulebook, 11-3-3). A try that no flag preceded is snapped
+    /// from its own yard line; one a flag preceded is not, so the assertion has to split
+    /// on that.
     ///
     /// Rewritten again, and its own note says why. A foul during the touchdown is
     /// enforced on the try (14-2-3) and moves it by **yards**, which flags before the
@@ -123,7 +123,7 @@ struct TryTests {
         #expect(moved > 0, "forty games and no flag on a try; the second half of this is unarmed")
     }
 
-    // MARK: - A flag on the try (A7, #19)
+    // MARK: - A flag on the try
 
     /// A false start on the kick: the try is replayed from five yards further out, and
     /// the kick is that much longer. Fifteen plus five is the 20, and a kick from the 20

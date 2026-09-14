@@ -3,7 +3,8 @@
 // docs/match-engine.md#performance-budget derives the budget from one constraint: a
 // season simulates in about 60 seconds. A regular season is 272 games, so that is
 // 60_000 ms / 272 ≈ 220 ms a game. ADR-0006 calls the budget architectural — retrofitting
-// it is a rewrite — and until this block existed nothing measured it (H3 #9).
+// it is a rewrite — which is why it is measured on every harness run rather than
+// checked once at the end.
 //
 // Reporting only. There is no gate here and no `CalibrationTarget` row: a wall-clock
 // reading is a property of the machine that took it, not of the football, and a band
@@ -66,9 +67,9 @@ struct Budget {
     }
 
     /// The block, printed after everything else so that a diff of two runs of the same
-    /// binary at the same seed differs only here (#52 made the rest byte-identical, and
-    /// `--no-timing` drops this so that property can still be checked with a plain
-    /// `md5sum`).
+    /// binary at the same seed differs only here: the rest of the output is
+    /// byte-identical between runs, and `--no-timing` drops this block so that property
+    /// can be checked with a plain `md5sum`.
     var lines: [String] {
         [
             "  Budget",

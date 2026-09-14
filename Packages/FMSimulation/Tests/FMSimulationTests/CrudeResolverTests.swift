@@ -214,13 +214,10 @@ struct CrudeResolverTests {
     /// nothing else. `DecisionKind` says its `detail` is the place in the play's own read
     /// order counting from one and its `tick` the moment he judged it; the order is the
     /// family's (`ReadProgression`) resolved against the men on the field, so both are
-    /// checkable against the table rather than against the loop that wrote them — which
-    /// is the difference between a read and the loop index this point used to carry
-    /// ([#170](https://github.com/knissley/football-manager/issues/170)).
-    ///
-    /// Rewritten, not deleted: this test used to assert that no read point was ever
-    /// written, because no order existed to index into. One exists now, and the claim is
-    /// the contract it carries.
+    /// checkable against the table rather than against the loop that wrote them. That is
+    /// the distinction to hold on to: a *read* is a place in the family's order, not the
+    /// index of whatever loop happened to produce it, and the two coincide only while
+    /// nobody is left behind.
     @Test(
         "Every read point is a read the quarterback made, in the play's own order", .tags(.contract)
     )
@@ -1142,7 +1139,7 @@ struct PocketTests {
     /// and nothing sources*. The second claim was that a longer hold is never pressured
     /// less often than a shorter one, off the same rush — true while a family had one
     /// hold. It no longer does: the ball comes out at the break of the read it went to
-    /// (`ReadProgression`, C3 #44), so the hold is the snap's own and two families' holds
+    /// (`ReadProgression`), so the hold is the snap's own and two families' holds
     /// overlap. What survives, and what this asserts, is the definition underneath both:
     /// a dropback is pressured exactly when the first rep lost came home before the
     /// record's own ball-out moment, and a sack or a scramble is pressured by

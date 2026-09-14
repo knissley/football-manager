@@ -2,11 +2,11 @@
 //
 //   cd Tools/gamelog && swift run gamelog --seed 7 --home 3 --away 11
 //
-// The only view anyone had of a simulated game was aggregate harness rows, and every
-// rules bug the September audit found is obvious in thirty seconds of play-by-play and
-// invisible in a table of means: the scoring team kicking off after a safety, a tie
-// declared at the end of the fourth quarter, a touchdown at 0:00 with no try. Read one
-// game end to end before and after any engine change — see docs/tools.md.
+// Aggregate harness rows hide rules bugs, and this is the tool that does not. The
+// scoring team kicking off after a safety, a tie declared at the end of the fourth
+// quarter, a touchdown at 0:00 with no try — each is obvious in thirty seconds of
+// play-by-play and invisible in a table of means, and each shipped green for weeks.
+// Read one game end to end before and after any engine change — see docs/tools.md.
 //
 // **Everything printed here is a query over the `PlayRecord` stream**
 // ([ADR-0007](../../../../docs/adr/0007-event-stream-contract.md)). The score, the drive

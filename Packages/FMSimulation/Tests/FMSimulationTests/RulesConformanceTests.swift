@@ -6,9 +6,9 @@ import Testing
 
 // The rules-conformance suite: the acceptance language for the rules layer.
 //
-// Every scenario these tests run was written from the 2025 rulebook as the
-// football-domain skill's `references/game-rules.md` gives it — the citation in each
-// test's name is that file's — and never from the code. A scenario says what the sport
+// Every scenario these tests run was written from the 2025 rulebook as
+// `docs/reference/playing-rules.md` gives it — the citation in each test's name is an
+// article of that book — and never from the code. A scenario says what the sport
 // does; whether the engine does it is what the run reports. Scenarios the engine cannot
 // satisfy today are red on purpose and stay in the tree until the fix that turns them
 // green.
@@ -215,8 +215,8 @@ struct RulesConformanceTests {
             "and the side scored upon receives")
     }
 
-    /// Filed as A9 (#55): the return is a touchdown for the receiving side, which then
-    /// tries and then kicks off, like any other score.
+    /// The return is a touchdown for the receiving side, which then tries and then kicks
+    /// off, like any other score — a kickoff return is not an exception to either.
     @Test(
         "football · Rule 11-3-1, 11-3-4 · a kickoff returned for a touchdown gets its try, and the returning team then kicks off",
         .tags(.football)
@@ -909,9 +909,10 @@ struct RulesConformanceTests {
             "the new offence's huddle cost it nothing: it snapped on the clock the fumble left")
     }
 
-    /// Filed with A4 (#17): the clock starts when the kick is legally touched in the
-    /// field of play, so a return costs the returning side the seconds it ran; the
-    /// return is a change of possession, so the clock then waits for the snap.
+    /// The clock starts when the kick is legally touched in the field of play, so a
+    /// return costs the returning side the seconds it ran; the return is a change of
+    /// possession, so the clock then waits for the snap. Two rules, and a kickoff is the
+    /// down where both bite at once.
     @Test(
         "football · Rule 4-4-a, 4-3-1, 4-4-i · a returned kickoff advances the game clock by the return, and no more",
         .tags(.football)
@@ -1034,9 +1035,9 @@ struct RulesConformanceTests {
             "that snap cost nothing, and only the down after it came off the clock")
     }
 
-    /// Filed as A11 (#74). Regular-season overtime is timed as the fourth quarter
-    /// (16-1-3-e), and the warning is the first of the fourth quarter's timing rules
-    /// (3-41): until this landed the overtime clock ran through 2:00.
+    /// Regular-season overtime is timed as the fourth quarter (16-1-3-e), and the warning
+    /// is the first of the fourth quarter's timing rules (3-41). An overtime clock that
+    /// runs straight through 2:00 is the failure this is written against.
     @Test(
         "football · Rule 3-41, 16-1-3-e · the two-minute warning stops a running clock at exactly 2:00 of a regular-season overtime period, and the snap restarts it",
         .tags(.football)
@@ -1363,7 +1364,7 @@ struct RulesConformanceTests {
 
     /// Inside two minutes with the clock running, a false start costs the offence ten
     /// seconds on top of the five yards, and the clock then starts on the ready-for-play
-    /// signal rather than waiting for the snap. Filed with A5 (#32).
+    /// signal rather than waiting for the snap.
     @Test(
         "football · Rule 4-7-1 Item 1 · inside two minutes a false start with the clock running costs ten seconds, and the clock restarts on the ready",
         .tags(.football)
@@ -1617,12 +1618,11 @@ struct RulesConformanceTests {
         )
     }
 
-    /// Rewritten from 4-3-2-e (wave 1 review). This scenario used to run in the fourth
-    /// quarter and assert that the clock restarts on the ready-for-play signal after
-    /// the flag, which is wrong football there: an offensive foul during the fourth
-    /// period that stops the clock before a snap has the clock start on the snap
-    /// (4-3-2-e-3). The as-if-never-flown restart holds outside the late-game cases, so
-    /// this case moves to the third quarter, and the fourth-quarter case follows it.
+    /// **The period is the point.** The as-if-never-flown restart of 4-3-2-e holds
+    /// outside the late-game cases, which is why this scenario is a *third*-quarter one.
+    /// The same false start in the fourth period, stopping the clock before a snap, has
+    /// the clock start on the snap instead (4-3-2-e-3) — asserting the ready-for-play
+    /// restart there is wrong football, and the fourth-quarter case is its own test.
     @Test(
         "football · Rule 4-7-1, 4-4-e, 4-3-2-e · outside the late-game windows a false start with the clock running carries no runoff, and the clock restarts as if the foul had not occurred",
         .tags(.football)
@@ -1859,10 +1859,11 @@ struct RulesConformanceTests {
 
     // MARK: Fouls before the snap
 
-    /// Filed as A10 (#56): the defence jumps before the snap with the clock running and
-    /// the offence trailing inside two minutes. No play happened, so no play time is
-    /// charged; there is no runoff against the defence; and the offence, which wants
-    /// the snap, has the clock wait for it.
+    /// The defence jumps before the snap with the clock running and the offence trailing
+    /// inside two minutes. Three things follow and each is easy to get wrong on its own:
+    /// no play happened, so no play time is charged; there is no runoff against the
+    /// defence (4-7-1 Item 2); and the offence, which wants the snap, has the clock wait
+    /// for it.
     @Test(
         "football · Rule 4-7-1 Item 2, 4-4-e, 4-3-2-e · a defensive foul before the snap charges no time and the clock waits for the snap",
         .tags(.football)
@@ -1888,7 +1889,7 @@ struct RulesConformanceTests {
     }
 
     /// The spike the baseline caller makes inside two minutes, with the clock running
-    /// into it. Filed with A10 (#56).
+    /// into it.
     private func spike(in trace: Trace) -> (index: Int, play: PlayRecord)? {
         guard
             let spike = trace.first(where: {
@@ -2874,7 +2875,8 @@ struct RulesConformanceTests {
 
     // MARK: Tries and kicks
 
-    /// Filed as A7 (#19): a flag before the try moves the try, and it is still a try.
+    /// A flag before the try moves the try, and it is still a try — a penalty does not
+    /// turn the down into an ordinary scrimmage down.
     @Test(
         "football · Rule 11-3-1, 7-4-2 · a false start on a try moves the try back five yards",
         .tags(.football))
@@ -3060,8 +3062,9 @@ struct RulesConformanceTests {
     }
 
     /// The reference gives the yardage and the automatic first down and names Rule 14-4
-    /// for the spot; the spot itself — the end of the run — is the sentence the audit's
-    /// S13 recorded. Fifteen yards from the end of a twenty-yard run is thirty-five.
+    /// for the spot; the spot itself is the end of the run, which is the basic spot for a
+    /// foul during a run with no change of possession (14-3-5-a). Fifteen yards from the
+    /// end of a twenty-yard run is thirty-five, not fifteen.
     @Test(
         "football · Rule 12-2-15, 14-4 (closest section) · a facemask at the end of a 20-yard run is 15 more from the end of the run, and a first down",
         .tags(.football)
@@ -3138,10 +3141,10 @@ struct RulesConformanceTests {
 
     // MARK: A foul on a play that scored
 
-    /// The audit's version of this play: three points wiped out and the offence given a
-    /// first down for having its kicker run over. 14-2-3 leaves the points alone and
-    /// carries the fifteen to the free kick instead, which is the only place a foul on a
-    /// scoring play can be walked off to.
+    /// The plausible wrong answer is three points wiped out and the offence given a first
+    /// down for having its kicker run over. 14-2-3 leaves the points alone and carries
+    /// the fifteen to the free kick instead, which is the only place a foul on a scoring
+    /// play can be walked off to.
     @Test(
         "football · Rule 14-2-3, 12-2-12 · roughing the kicker on a made field goal scores the three and moves the free kick fifteen yards",
         .tags(.football)
@@ -3253,9 +3256,9 @@ struct RulesConformanceTests {
             "the same down again, five yards on from the 20")
     }
 
-    /// The wave-1 review's find, and the last of the audit's scoring-play fouls: the point
-    /// came off *and* the try was skipped, so a hold on a made extra point cost a point
-    /// and the chance to kick it again. The book repeats the try.
+    /// The wrong answer here takes the point off *and* skips the try, so a hold on a made
+    /// extra point costs a point and the chance to kick it again. The book repeats the
+    /// try instead (11-3-3 Item 3-a), from the enforced spot.
     @Test(
         "football · Rule 11-3-3 Item 3-a · an offensive foul on a successful try repeats the try rather than ending it",
         .tags(.football)

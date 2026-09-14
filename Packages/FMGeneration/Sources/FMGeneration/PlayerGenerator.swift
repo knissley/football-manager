@@ -376,9 +376,9 @@ public enum PlayerGenerator {
         } else {
             // Nobody drafted him and no board says otherwise, so he has not arrived: a
             // prospect in a class that has not been picked from, or a fixture in a test.
-            // He used to take the season he was built in, which made every prospect a
-            // rookie in the season his class became eligible
-            // ([#67](https://github.com/knissley/football-manager/issues/67)).
+            // The gotcha is the season he was *built* in: filling `firstSeason` from it
+            // makes every prospect a rookie in the season his class became eligible,
+            // before anybody has signed him.
             arrival = (nil, nil)
         }
 

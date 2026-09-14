@@ -34,7 +34,7 @@ public enum TeamGenerator {
         ///
         /// There is deliberately no set of whole stadium names beside it. One existed,
         /// was written on every draw and read by nothing, and a ledger nobody consults
-        /// is a uniqueness rule that is not enforced (#65).
+        /// is a uniqueness rule that is not enforced.
         public var stadiumFeatures: Set<String> = []
         public var abbreviations: Set<String> = []
         /// Whole city names, so "cities are unique in a world" is a property of the
@@ -149,7 +149,7 @@ public enum TeamGenerator {
         for _ in 0..<count {
             // Against the world's ledger rather than this batch's own set: the caller
             // asks region by region, and a name that is unique among the north's eight
-            // is not unique in the league if the east has it too (#65).
+            // is not unique in the league if the east has it too.
             //
             // Bounded attempts: the name space is finite, and a duplicate city name is
             // a better outcome than a generator that fails.
@@ -273,9 +273,8 @@ public enum TeamGenerator {
     /// The other two sources draw at every size — `.randomised` draws all of them, and a
     /// short `.set` has the rest of its league drawn around its own lines, seven of eight
     /// in the tests' minimal world. None of those ships. The stutter is the same class of
-    /// fault [#4](https://github.com/knissley/football-manager/issues/4) found in the
-    /// randomiser, deferred with it to the pre-release revisit of generation
-    /// ([M8](../../../../docs/roadmap.md)).
+    /// fault as the randomiser's repeated city stems, and is deferred with it to the
+    /// pre-release revisit of generation ([M8](../../../../docs/roadmap.md)).
     static func stem(ofCity city: String) -> String {
         let words = city.split(separator: " ").map(String.init)
         guard words.count > 1, let last = words.last, CityPools.suffixes.contains(last) else {
@@ -316,7 +315,7 @@ public enum TeamGenerator {
         // world too, in the same ledger, and no city is named for a feature, so it
         // cannot collide with anything. The one exception is the exhausted pool, where
         // `cities(in:count:)` repeats a name rather than failing and this repeats with
-        // it (#65).
+        // it.
         var name = "\(city.name) \(kind)"
         if random.nextBool(probability: 0.55) {
             for _ in 0..<5 {

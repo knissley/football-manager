@@ -4,11 +4,11 @@ import Testing
 
 /// What a player's arrival in the league means.
 ///
-/// `isRookie` used to be a tautology — it compared `draft.season` with
-/// `birthSeason + (draft.season - birthSeason)`, which is `draft.season` written the long
-/// way round, so every drafted player was a rookie forever. It could not be wrong about
-/// one player without being wrong about all of them, and nothing asked it anything.
-/// Issue #6.
+/// The shape to watch for is a tautology: comparing `draft.season` with
+/// `birthSeason + (draft.season - birthSeason)` is comparing `draft.season` with itself
+/// written the long way round, and it makes every drafted player a rookie forever. A
+/// predicate like that cannot be wrong about one player without being wrong about all of
+/// them, which is why these tests ask it about several seasons rather than one.
 @Suite("A player's arrival in the league")
 struct PlayerArrivalTests {
 
@@ -92,8 +92,8 @@ struct PlayerArrivalTests {
 
     /// A man with no first season has not arrived — a college prospect, whom nobody has
     /// drafted and nobody has signed. He is not a rookie in any season, and he has accrued
-    /// nothing, until somebody gives him a first season by taking him
-    /// ([#67](https://github.com/knissley/football-manager/issues/67)).
+    /// nothing, until somebody gives him a first season by taking him. `nil` is the
+    /// answer, not the season he was generated in.
     @Test("unit: a player who has not arrived is not a rookie in any season", .tags(.unit))
     func hasNotArrived() {
         let prospect = player(birthSeason: 2008, firstSeason: nil)
