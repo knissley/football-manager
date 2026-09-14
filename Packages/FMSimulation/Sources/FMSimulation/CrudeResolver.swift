@@ -1056,9 +1056,9 @@ public struct CrudeResolver: PlayResolver {
             Int16(blockScore * 12) + Int16(random.next(upperBound: 30)) - 15
             - Int16(unblocked * 12) + Int16(spare * 6)
         decisions.append(
-            .init(
-                tick: 10, kind: .holeQuality, primary: SlotLayout.back,
-                detail: concept == .insideRun ? 0 : 1, value: quality))
+            .holeQuality(
+                tick: 10, back: SlotLayout.back, insideRun: concept == .insideRun,
+                quality: quality))
 
         // What the carry turns into is three different things, not three points on one
         // line. A single ramp from the hole quality to the yards makes a carry a
@@ -1421,9 +1421,7 @@ public struct CrudeResolver: PlayResolver {
 
         var gained = average + Int((burst - 68) * 0.22) + Int(random.next(upperBound: 15)) - 7
         decisions.append(
-            .init(
-                tick: 20, kind: .holeQuality, primary: returner, detail: 2,
-                value: Int16(clamping: gained)))
+            .returnLane(tick: 20, returner: returner, yards: Int16(clamping: gained)))
 
         // He beats the first wave, and then it is a footrace. This is where a return
         // touchdown comes from, and it has to be rare: a house call on one kick in
@@ -1877,9 +1875,9 @@ public struct CrudeResolver: PlayResolver {
         if random.nextBool(probability: min(0.10, gone)) {
             credit(coveredBy, .other, personnel, into: &participants)
             decisions.append(
-                .init(
-                    tick: startTick, kind: .holeQuality, primary: carrier, detail: 3,
-                    value: Int16(separation)))
+                .catchInSpace(
+                    tick: startTick, receiver: carrier,
+                    separationCentimetres: Int16(separation)))
             let burst = 14 + Int((speed - 55) * 0.45) + Int(random.next(upperBound: 38))
             // Forward progress again, for the same reason as the floor at the end of this
             // function: a receiver slow enough draws a burst below zero, and 3-12-1 leaves

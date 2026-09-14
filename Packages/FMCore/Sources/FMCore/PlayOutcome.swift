@@ -596,7 +596,16 @@ public struct PlayRecord: Sendable, Hashable, Codable, Identifiable {
     /// was blanketed; and a version-1 record carries a read progression whose index is the
     /// resolver's own iteration order rather than a place in a read order, so a tendency
     /// query over one would describe a progression that was never worked.
-    public static let currentSchemaVersion: UInt8 = 2
+    ///
+    /// Version 3 is where the unit of a decision point's `value` began following from its
+    /// `kind` alone. Before it, `DecisionKind.holeQuality` was written by three producers
+    /// in three units — a carry's quality score, a kick return's yards, a catch's
+    /// separation in centimetres — sorted only by a `detail` byte of 0 or 1, 2, and 3,
+    /// so a fold that read the kind as the carry it is documented as summed all three.
+    /// From version 3 the return is `returnLane` and the catch is `catchInSpace`; in an
+    /// older record both are still `holeQuality`, and a reader that does not check here
+    /// will average a centimetre count into a score.
+    public static let currentSchemaVersion: UInt8 = 3
 
     /// The index of a slot nobody stood in.
     public static let vacant: UInt8 = 255

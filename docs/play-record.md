@@ -54,7 +54,7 @@ instrumentation on. Debuggable without being visible.
 PlayRecord
   game          GameID
   index         UInt16          monotonic within the game; also the seed-split label
-  schemaVersion UInt8           the shape this record was written under; 2 today
+  schemaVersion UInt8           the shape this record was written under; 3 today
 
   situation     Situation       the state at the snap: the clock reads what it read
                                 when the ball was snapped, not at the whistle before
@@ -176,8 +176,10 @@ DecisionPoint
                                              | .scramble | .sack, msFromSnap)
 .ballArrival(receiver, separationCm, placement)
 .catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
-.blockResult(blocker, defender, result)   .holeQuality(gap, quality)
-  one per rep, run or pass, with `value` the milliseconds it lasted
+.blockResult(blocker, defender, result)   one per rep, run or pass, with `value`
+                                          the milliseconds it lasted
+.holeQuality(back, inside | outside, quality score)
+.returnLane(returner, yards)              .catchInSpace(receiver, separationCm)
 .coverageAssignment(defender, receiver, technique, separationCm)
 ```
 
@@ -200,6 +202,25 @@ leaderboard read `secondary` only after gating on `detail`.** Ungated they credi
 rusher with a target on every sack (`row:sackRate`) and every scramble
 (`row:scramblesPerGame`), and nothing about the record looks wrong while they do:
 `test:throwDecisionsNameTheManTheDecisionWasAbout` holds the producers to the table above.
+
+**A `value`'s unit follows from its `kind`, and from nothing else.** A point carries
+milliseconds, centimetres, yards or a unitless score, and which one is a fact about the
+case: `.holeQuality` is a carry's quality score on a scale that pays twelve a block,
+`.returnLane` is the yards a kick return was worth as the returner cleared the first
+wave, `.catchInSpace` is the centimetres of separation a catch was made with — the same
+number that catch's `.ballArrival` carries. All three were one case until the record
+reached version 3, sorted by a `detail` byte nothing stated, so `holeQuality.value` held
+a score, a yardage and a centimetre count at once and any fold over the kind added all
+three and returned a plausible number. That is the shape of defect the split exists to
+make impossible: a query reads `kind`, and the unit is settled. The three are held to it
+by `test:holesAreCarriesAndScoredInQualityPoints`,
+`test:returnLanesAreYards` and `test:catchesInSpaceRecordTheirSeparation`.
+
+**Three cases name one man, not two.** A hole, a return lane and a catch in space record
+space rather than a matchup, so `primary` is the man who was given it — the back, the
+returner, the receiver — and `secondary` is empty. Who he beat is on the same play's
+`.blockResult` and `.coverageAssignment`, which is where a query asking who gave the
+space up should read.
 
 **What a pass play records, and how much of it.** A dropback's points are fixed by its
 personnel, not by how the play went, so the count is answerable before the snap:
@@ -514,9 +535,14 @@ exactly the thing the next snap's causal chain begins with.
   no bump, because a record without it is a record where it did not happen; a field that
   starts carrying a quantity where it carried a filler does, because the same byte
   answers a different question either side and nothing but the version can say which.
-  It is 2. Version 1 arrived late — every record written before it is a version-0 record
-  that nothing needs to read — and 2 is where a coverage assignment began carrying the
-  separation the matchup produced, which in version 1 is zero on every one of them.
+  It is 3. Version 1 arrived late — every record written before it is a version-0 record
+  that nothing needs to read — 2 is where a coverage assignment began carrying the
+  separation the matchup produced, which in version 1 is zero on every one of them, and 3
+  is where the unit of a decision point's `value` began following from its `kind` alone:
+  in a version-2 record a return's yardage and a catch's separation in centimetres are
+  both written as `holeQuality`, the kind documented as carrying a carry's quality score.
+  The two new kinds would need no bump by themselves; what needs one is the meaning
+  `holeQuality` lost.
 - **Derived values are not stored.** Win probability, leverage and grades are computed by
   `FMAnalysis`, not written into the record, so improving those models improves history
   retroactively.

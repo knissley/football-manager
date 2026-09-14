@@ -241,6 +241,46 @@ struct DecisionPointTests {
         let blockPoint = DecisionPoint.blockResult(
             tick: 8, blocker: PlayerSlot(3), defender: PlayerSlot(14), result: .pancake)
         #expect(blockPoint.blockResultValue == .pancake)
+
+        let inside = DecisionPoint.holeQuality(
+            tick: 10, back: PlayerSlot(4), insideRun: true, quality: 18)
+        #expect(inside.holeWasInsideRun == true)
+        let outside = DecisionPoint.holeQuality(
+            tick: 10, back: PlayerSlot(4), insideRun: false, quality: -6)
+        #expect(outside.holeWasInsideRun == false)
+    }
+
+    /// The three cases that record space each carry one unit in `value`, and the factory
+    /// is the only place that is written down. They name one man and leave `secondary`
+    /// empty, which is the fact a query asking who gave the space up has to know before
+    /// it goes looking on the wrong point.
+    @Test("Each lane point names one man and carries its own unit", .tags(.unit))
+    func lanePointsCarryOneUnitEach() {
+        let hole = DecisionPoint.holeQuality(
+            tick: 10, back: PlayerSlot(4), insideRun: true, quality: -6)
+        #expect(hole.kind == .holeQuality)
+        #expect(hole.primary == PlayerSlot(4))
+        #expect(hole.secondary.isNone)
+        #expect(hole.value == -6)
+
+        let lane = DecisionPoint.returnLane(tick: 20, returner: PlayerSlot(21), yards: 24)
+        #expect(lane.kind == .returnLane)
+        #expect(lane.primary == PlayerSlot(21))
+        #expect(lane.secondary.isNone)
+        #expect(lane.value == 24)
+
+        let space = DecisionPoint.catchInSpace(
+            tick: 31, receiver: PlayerSlot(7), separationCentimetres: 340)
+        #expect(space.kind == .catchInSpace)
+        #expect(space.primary == PlayerSlot(7))
+        #expect(space.secondary.isNone)
+        #expect(space.value == 340)
+
+        // A kind's own byte, and nobody else's: the run concept is readable off a hole
+        // and off nothing else, which is what keeps the split from being undone by a
+        // reader decoding the byte by hand.
+        #expect(lane.holeWasInsideRun == nil)
+        #expect(space.holeWasInsideRun == nil)
     }
 
     /// A mis-typed query must not silently reinterpret a byte belonging to
@@ -512,7 +552,7 @@ struct PlayRecordTests {
     /// literal here is what makes moving it a deliberate act rather than a side effect.
     @Test("A record carries the schema version it was written under", .tags(.contract))
     func recordIsVersioned() {
-        #expect(PlayRecord.currentSchemaVersion == 2)
+        #expect(PlayRecord.currentSchemaVersion == 3)
         #expect(record().schemaVersion == PlayRecord.currentSchemaVersion)
     }
 

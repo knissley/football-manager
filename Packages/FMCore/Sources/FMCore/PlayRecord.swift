@@ -117,8 +117,20 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// pass-rush rep and `value` is milliseconds from the snap: how long the blocker
     /// sustained, or when the rusher he lost to arrived.
     case blockResult = 7
-    /// A running lane opened or did not. `detail` is the gap, `value` is a
-    /// quality score.
+    /// The lane a carry was given, scored at the handoff. `primary` is the back,
+    /// `detail` is the concept it was run on — `0` an inside run, `1` an outside run —
+    /// and `value` is a **quality score** on the scale the resolver builds it on: twelve
+    /// a block won or lost at the point of attack, twelve for a defender the offence had
+    /// no blocker for, six for a blocker with nobody left to take. A score, not a
+    /// distance: nothing converts it to yards, and a bin of it is a block wide.
+    ///
+    /// **Only a carry writes one, and that is the whole of this case.** A kick return's
+    /// yardage and a catch made in space were written here too, each telling itself apart
+    /// by a `detail` byte nothing stated, so `value` under one kind name held a score, a
+    /// yardage and a centimetre count at once — and a fold that averaged the kind added
+    /// all three and returned a plausible number. They are `returnLane` and
+    /// `catchInSpace` below. The rule the split writes down is that the unit of `value`
+    /// follows from `kind` alone, which is the only form of it a query can honour.
     case holeQuality = 8
     /// A defender's assignment, and what it was worth. `primary` is the defender,
     /// `secondary` the receiver he was on, `detail` is a `CoverageTechnique` and `value`
@@ -151,6 +163,29 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// down snapped before 2:00, so it sits on the first snap taken with two minutes or
     /// less to play. The rules layer's.
     case twoMinuteWarning = 13
+    /// The lane a kick returner was given. `primary` is the man who fielded it — the deep
+    /// returner, or the second returner where there was no deep man — and `value` is
+    /// **yards**: what the return was worth as he cleared the first wave, before whoever
+    /// caught him took the last yard or two off it. So it is the return `Outcome`'s own
+    /// `fieldedAt` and `finalSpot` bracket, to within that pursuit, and not a second copy
+    /// of it.
+    ///
+    /// One per return, on a punt and a kickoff alike, because the two are the same
+    /// problem: a man with the ball in space and the coverage running at him. A fair
+    /// catch, a touchback and a kick nobody fielded write none — there was no lane.
+    case returnLane = 14
+    /// The ball arrived with nobody in reach of the receiver, so what he does next is a
+    /// footrace and not a tackle to break. `primary` is the receiver and `value` is
+    /// **centimetres**: the separation he caught it with, which is the same quantity, in
+    /// the same unit, that `ballArrival` carries for the same catch — the two agree on
+    /// every play that has both.
+    ///
+    /// Written only where the catch was made in space, which is what makes it worth
+    /// keeping: a long completion has two arithmetics behind it — a coverage beaten
+    /// before the ball arrived, or tackles broken one at a time afterwards — and without
+    /// this point the record cannot say which one produced the yards. A completion into
+    /// coverage writes none.
+    case catchInSpace = 15
 }
 
 /// A choice the rules put to one side about the clock between downs (2025 rulebook,
@@ -379,6 +414,39 @@ extension DecisionPoint {
             detail: technique.rawValue, value: separationCentimetres)
     }
 
+    /// The lane a carry was given: the back who ran it, the concept it was run on, and
+    /// the resolver's score for the hole. `quality` is a score and nothing else — see
+    /// `DecisionKind.holeQuality` for the scale, and for why a return's yardage and a
+    /// catch made in space, which were once written as this kind in units of their own,
+    /// are kinds of their own instead.
+    public static func holeQuality(
+        tick: UInt16, back: PlayerSlot, insideRun: Bool, quality: Int16
+    ) -> DecisionPoint {
+        DecisionPoint(
+            tick: tick, kind: .holeQuality, primary: back, detail: insideRun ? 0 : 1,
+            value: quality)
+    }
+
+    /// The lane a kick returner was given, in yards, as he cleared the first wave. There
+    /// is no man opposite: the coverage unit is on the play's tackle attempts, and who
+    /// eventually got him is a different fact from the lane he was running in.
+    public static func returnLane(
+        tick: UInt16, returner: PlayerSlot, yards: Int16
+    ) -> DecisionPoint {
+        DecisionPoint(tick: tick, kind: .returnLane, primary: returner, value: yards)
+    }
+
+    /// A catch made with nobody in reach, and the separation in centimetres it was made
+    /// with — the same number `ballArrival` carries for the same catch. The man who was
+    /// beaten is on that play's `coverageAssignment` and its `ballArrival`, which is
+    /// where a query asking who gave the space up should read him.
+    public static func catchInSpace(
+        tick: UInt16, receiver: PlayerSlot, separationCentimetres: Int16
+    ) -> DecisionPoint {
+        DecisionPoint(
+            tick: tick, kind: .catchInSpace, primary: receiver, value: separationCentimetres)
+    }
+
     /// The play clock this snap was taken against, and what it read at the snap — zero
     /// when it expired with the ball not snapped. Written by the rules layer on every
     /// play; there is no player to name, so the slots are empty.
@@ -402,6 +470,13 @@ extension DecisionPoint {
     }
     public var clockElectionValue: ClockElection? {
         kind == .clockElection ? ClockElection(rawValue: detail) : nil
+    }
+
+    /// Whether the lane a `.holeQuality` point scored was run inside, for a point of that
+    /// kind. The byte is the only thing that says so, and a reader that decodes it by
+    /// hand is a reader that can decode another kind's byte by the same mistake.
+    public var holeWasInsideRun: Bool? {
+        kind == .holeQuality ? detail == 0 : nil
     }
 
     /// A charged team timeout before the snap, by the side in possession or the other.
