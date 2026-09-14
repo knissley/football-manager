@@ -40,6 +40,55 @@
 # citations are right. That stays a reading problem, and the script prints the
 # sentence above so a clean run cannot be mistaken for the stronger claim.
 #
+# ## --show: the article, printed beside the citation
+#
+# The paragraph above is the whole reason `--show` exists. A wrong citation to a
+# real article passes every check here and has shipped at least five times, twice
+# into a commit message where it can no longer be corrected. The only thing that
+# catches one is somebody reading the article — and until this existed, reading it
+# meant scraping the book and searching a text file by hand, once per number.
+#
+# So: `--show` prints the article's own text, from the corpus, headed by the number
+# and by the file and line that cite it. Three forms:
+#
+#   --show              every rule-section-article citation the BRANCH DIFF adds
+#                       against its merge base — the same base resolution `--messages`
+#                       uses. This is the one to run while reviewing your own diff.
+#   --show <article>    one article, asked for by number.
+#   --show-all <file>   every article one document cites, in document order.
+#
+# It is a reading aid and not a gate. It has no verdict, no baseline and no exit
+# code beyond 0 (printed) and 2 (could not read the corpus at all), and a citation
+# it cannot resolve costs one line saying so rather than a failure — the citation
+# check is what fails on those, and it already does.
+#
+# IT WRITES NOTHING, ANYWHERE. There is no output path, no `-o`, and no code here
+# that opens a file for writing; the article text goes to stdout and nowhere else.
+# `fetch-rulebook.sh` needs an elaborate guard because it must put a copy of the
+# book on disk somewhere and the somewhere must not be a checkout. The cheaper
+# version of that guard is to have nowhere to put one, which is this. Rule 8 is
+# about copies that persist: `--show` reads the corpus you already have and prints
+# it to your terminal, and if you redirect that into the tree you have written the
+# book into the repository yourself and no script can stop you.
+#
+# THE EDITION WARNING. The readily available edition is 2026; this project targets
+# 2025, and `docs/reference/rulebook-acquisition.md` measures the difference as
+# exactly four articles — 6-1-3, 6-1-5, 6-1-6 and 19-2. Printing one of those four
+# from an unidentified corpus is the one way `--show` can actively mislead, so
+# those four carry a warning line above the text. Everywhere else the editions are
+# word-identical and the text can be read as the season's.
+#
+# TWO KNOWN LIMITS, both of them "it prints the corpus as the corpus is".
+#
+#   * The extractor takes every span the corpus labels with the number, so a table
+#     of contents that repeats the headings prints as a stub above the article
+#     proper rather than being suppressed. Suppressing it would mean guessing which
+#     span is the real one, and guessing is what this script is against.
+#   * Whatever your extraction inserts between pages — `fetch-rulebook.sh` writes a
+#     page marker — appears mid-article wherever the article crosses a page. Not
+#     stripped, because stripping it means knowing one extractor's output format and
+#     silently mangling another's.
+#
 # ## Why a sibling script and not a rule inside lint-sim.sh
 #
 # `lint-sim.sh` scans the FM* `Sources/` trees for banned primitives and
@@ -208,6 +257,14 @@
 #   scripts/lint-reference.sh --messages   the commit messages only — what to run
 #                                          immediately before a push, which is
 #                                          the last moment a message can be fixed
+#   scripts/lint-reference.sh --show       print the article behind every citation
+#                                          the branch diff adds — what to run while
+#                                          reading your own diff, and what a
+#                                          reviewer runs against yours
+#   scripts/lint-reference.sh --show 6-1-6 print one article, by number
+#   scripts/lint-reference.sh --show-all <file>
+#                                          print every article that document cites,
+#                                          in document order
 #   scripts/lint-reference.sh --list       print a baseline line per run found
 #                                          in the tree (messages are not
 #                                          baselineable — see above)
@@ -227,10 +284,13 @@
 #                                          both the default range and which hits
 #                                          are published and therefore advisory.
 #   --range <a>..<b>                       scan these commit messages instead of
-#                                          the branch's own. Reach for it to
-#                                          audit history, not to lint a branch.
+#                                          the branch's own — and, under --show,
+#                                          diff that range instead of the branch's
+#                                          own. Reach for it to audit history, not
+#                                          to lint a branch.
 #
 # Exit codes: 0 clean or skipped, 1 violations, 2 the lint could not measure.
+# `--show` has no verdict: 0 unless the corpus itself could not be read.
 
 set -euo pipefail
 
@@ -241,9 +301,11 @@ mode=lint
 n=10
 base_ref=""
 commit_range=""
+show_article=""
+show_file=""
 
-usage="usage: scripts/lint-reference.sh [--self-test | --list | --messages]"
-usage="$usage [--n N] [--base REF] [--range A..B]"
+usage="usage: scripts/lint-reference.sh [--self-test | --list | --messages"
+usage="$usage | --show [ARTICLE] | --show-all FILE] [--n N] [--base REF] [--range A..B]"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -258,6 +320,42 @@ while [ $# -gt 0 ]; do
         --messages)
             mode=messages
             shift
+            ;;
+        # `--show` takes an optional argument, which no other flag here does, so it
+        # has to decide for itself whether the next word is one. An article number
+        # has a shape; anything else that is not another flag is a mistake worth
+        # stopping for rather than silently reading as "--show with no argument"
+        # and printing the branch diff somebody did not ask for.
+        --show)
+            mode=show
+            case "${2-}" in
+                '' | -*) ;;
+                *)
+                    if printf '%s' "$2" |
+                        grep -Eq '^[0-9]{1,2}-[0-9]{1,2}-([0-9]{1,2}|Penalty)$'; then
+                        mode=show-article
+                        show_article=$2
+                        shift
+                    else
+                        echo "lint-reference: --show takes an article number like 6-1-6," \
+                            "or nothing at all." >&2
+                        echo "  '$2' is neither. To print every article a document cites," \
+                            "use --show-all <file>." >&2
+                        exit 2
+                    fi
+                    ;;
+            esac
+            shift
+            ;;
+        --show-all)
+            mode=show-all
+            show_file=${2-}
+            if [ -z "$show_file" ]; then
+                echo "lint-reference: --show-all wants a file to read citations from." >&2
+                echo "  $usage" >&2
+                exit 2
+            fi
+            shift 2
             ;;
         --n)
             n=${2-}
@@ -475,10 +573,46 @@ AWK
 )
 
 # ---------------------------------------------------------------------------
+# What a citation looks like, in one place.
+#
+# Three readers need it now — the citation index, the branch diff `--show` reads,
+# and a document `--show-all` reads — and a matcher that drifts between them would
+# have `--show` quietly printing a different set of numbers than the check that
+# passes or fails on them. So it is a function, concatenated into each program,
+# rather than a regex written out three times.
+#
+# Fills CITE[1..CITEN] with the citations on `line`, in the order they appear.
+# ---------------------------------------------------------------------------
+
+citation_matcher=$(
+    cat <<'AWK'
+function scan_citations(line,   rest, start, len, cite, before, after) {
+    CITEN = 0
+    rest = line
+    while (match(rest, /[0-9][0-9]?-[0-9][0-9]?-([0-9][0-9]?|Penalty)/)) {
+        start = RSTART
+        len = RLENGTH
+        cite = substr(rest, start, len)
+        before = (start == 1) ? "" : substr(rest, start - 1, 1)
+        after = substr(rest, start + len, 1)
+        rest = substr(rest, start + len)
+        # A citation is bounded: a digit or a letter on the left means this is
+        # the tail of a longer number (a date, a checksum), and a digit on the
+        # right means the same on the other side. A hyphen on the right is the
+        # clause letter of a real citation — 8-6-1-b — and is allowed.
+        if (before ~ /[0-9A-Za-z.]/) continue
+        if (after ~ /[0-9]/) continue
+        CITE[++CITEN] = cite
+    }
+}
+AWK
+)
+
+# ---------------------------------------------------------------------------
 # The citation index. Same shape: the corpus first, the documents after.
 # ---------------------------------------------------------------------------
 
-citations=$(
+citations=$citation_matcher$'\n'$(
     cat <<'AWK'
 BEGIN {
     # The extractor breaks a heading word across a line now and then — a line
@@ -543,22 +677,9 @@ FILENAME == CORPUS {
             exit 2
         }
     }
-    rest = $0
-    offset = 0
-    while (match(rest, /[0-9][0-9]?-[0-9][0-9]?-([0-9][0-9]?|Penalty)/)) {
-        start = RSTART
-        len = RLENGTH
-        cite = substr(rest, start, len)
-        before = (start == 1) ? "" : substr(rest, start - 1, 1)
-        after = substr(rest, start + len, 1)
-        rest = substr(rest, start + len)
-        offset += start + len - 1
-        # A citation is bounded: a digit or a letter on the left means this is
-        # the tail of a longer number (a date, a checksum), and a digit on the
-        # right means the same on the other side. A hyphen on the right is the
-        # clause letter of a real citation — 8-6-1-b — and is allowed.
-        if (before ~ /[0-9A-Za-z.]/) continue
-        if (after ~ /[0-9]/) continue
+    scan_citations($0)
+    for (c = 1; c <= CITEN; c++) {
+        cite = CITE[c]
         seen++
         split(cite, part, "-")
         if (part[3] == "Penalty") {
@@ -583,6 +704,177 @@ END {
         exit 2
     }
     print "SEEN\t" seen "\t" unresolved
+}
+AWK
+)
+
+# ---------------------------------------------------------------------------
+# The article extractor — what `--show` prints.
+#
+# Reads the corpus and nothing else, and never writes: it is handed an ordered
+# list of `article <TAB> where-it-was-cited` rows in ORDER and prints one block
+# per row, in that order, each headed by the number and the citing places.
+#
+# An article runs from its own ARTICLE heading to the next heading of any of the
+# three kinds, OR TO THE END OF THE FILE. The second half is not a detail: the
+# last article in a corpus has no heading after it, and an extractor that waits
+# for one prints nothing for the article most likely to be the one a late
+# citation points at. `--self-test` cites the fixture corpus's last article for
+# exactly that reason.
+#
+# Heading detection — including the repair for a heading word the extractor broke
+# across a line — is the citation index's, kept deliberately identical: an article
+# the index says exists and the extractor cannot find would be the worst possible
+# output, since it reads as "your citation is wrong" when it is the reader that is.
+# ---------------------------------------------------------------------------
+
+article_text=$(
+    cat <<'AWK'
+BEGIN {
+    split("RULE SECTION ARTICLE", keywords, " ")
+    for (k = 1; k <= 3; k++) {
+        word = keywords[k]
+        for (i = 1; i < length(word); i++) prefix[substr(word, 1, i)] = 1
+    }
+    # The four articles the 2025 and 2026 editions differ in, measured in
+    # docs/reference/rulebook-acquisition.md. Printing one of these from a corpus
+    # nobody has identified is the one way this can actively mislead.
+    split("6-1-3 6-1-5 6-1-6 19-2", differing, " ")
+    for (i in differing) edition[differing[i]] = 1
+
+    rows = split(ORDER, orow, "\n")
+    for (i = 1; i <= rows; i++) {
+        if (orow[i] == "") continue
+        split(orow[i], f, "\t")
+        wanted[f[1]] = 1
+        where[f[1]] = f[2]
+        seq[++wantn] = f[1]
+    }
+    carry = ""
+    rule = ""
+    section = ""
+    current = ""
+}
+
+{
+    line = carry $0
+    carry = ""
+    raw = line
+    sub(/\r$/, "", raw)
+    sub(/[ \t]+$/, "", raw)
+    trimmed = raw
+    sub(/^[ \t]+/, "", trimmed)
+    if (trimmed in prefix) {
+        carry = trimmed
+        next
+    }
+    if (match(trimmed, /^(RULE|SECTION|ARTICLE)[ \t]+[0-9]+/)) {
+        split(trimmed, parts, /[ \t]+/)
+        kind = parts[1]
+        num = parts[2]
+        sub(/[^0-9].*$/, "", num)
+        current = ""
+        if (kind == "RULE") {
+            rule = num
+            section = ""
+        } else if (kind == "SECTION") {
+            if (rule != "") section = num
+        } else if (rule != "" && section != "") {
+            current = rule "-" section "-" num
+            found[current] = 1
+            if (current in wanted) {
+                # Concatenated rather than replaced: a table of contents repeats
+                # the headings, and choosing between two spans would be a guess.
+                body[current] = (current in have) ? body[current] "\n\n" trimmed : trimmed
+                have[current] = 1
+            }
+        }
+        next
+    }
+    if (current != "" && (current in wanted)) body[current] = body[current] "\n" raw
+}
+
+END {
+    distinct = 0
+    for (a in found) distinct++
+    print "INDEX\t" distinct
+    if (distinct < MINARTICLES) {
+        print "INDEX\tthe corpus yielded " distinct " articles, fewer than " \
+            MINARTICLES "; it is not a rulebook or the extraction lost its headings" \
+            > "/dev/stderr"
+        exit 2
+    }
+    for (i = 1; i <= wantn; i++) {
+        a = seq[i]
+        print ""
+        print "--- " a " --- cited at " where[a]
+        if (a in edition) {
+            print "    !! EDITION: " a " is one of the four articles the 2025 and 2026 books"
+            print "       differ in (6-1-3, 6-1-5, 6-1-6, 19-2). This project targets 2025."
+            print "       Check which edition this corpus is before you rely on the text"
+            print "       below — docs/reference/rulebook-acquisition.md says how."
+        }
+        # One line, not silence. A citation the corpus cannot answer is the case a
+        # reader most needs told about, and printing nothing reads as "no text".
+        if (a in have) print body[a]
+        else print "    " a " is not in this corpus."
+    }
+}
+AWK
+)
+
+# ---------------------------------------------------------------------------
+# Where `--show` gets its citations from. Both emit `path <TAB> line <TAB> cite`.
+#
+# `diff_cites` reads a unified diff with no context and reports the citations on
+# ADDED lines only, at their line number in the new file. A diff is the one thing
+# the shingle refuses to read — it scans whole files, because an agent once
+# shingled a sub-diff and reported the count as the branch's — and the reason the
+# refusal does not apply here is that `--show` is not counting anything. It is
+# answering "which numbers did I just write down", and the diff is precisely that
+# question. It has no verdict to be wrong about.
+# ---------------------------------------------------------------------------
+
+diff_cites=$citation_matcher$'\n'$(
+    cat <<'AWK'
+BEGIN {
+    path = ""
+    newline = 0
+    inhunk = 0
+}
+/^diff --git / {
+    inhunk = 0
+    path = ""
+    next
+}
+# Only outside a hunk: an ADDED line whose own content begins "++ " arrives here
+# as "+++ " and would otherwise be read as a file header.
+inhunk == 0 && /^\+\+\+ / {
+    path = substr($0, 5)
+    sub(/^b\//, "", path)
+    next
+}
+/^@@/ {
+    inhunk = 1
+    if (match($0, /\+[0-9]+/)) newline = substr($0, RSTART + 1, RLENGTH - 1) + 0
+    next
+}
+inhunk == 1 && /^\+/ {
+    if (path != "" && path != "/dev/null") {
+        scan_citations(substr($0, 2))
+        for (i = 1; i <= CITEN; i++) print path "\t" newline "\t" CITE[i]
+    }
+    newline++
+    next
+}
+AWK
+)
+
+file_cites=$citation_matcher$'\n'$(
+    cat <<'AWK'
+{
+    scan_citations($0)
+    for (i = 1; i <= CITEN; i++) print FILENAME "\t" FNR "\t" CITE[i]
 }
 AWK
 )
@@ -632,6 +924,25 @@ run_citations() {
     printf '%s\n' "$out"
 }
 
+# The article extractor, with the same refusal to guess: a corpus that yields
+# fewer articles than the minimum is a truncated download or a lost set of
+# headings, and printing "not in this corpus" for every number in that state would
+# read as a page of wrong citations rather than as a broken corpus.
+run_articles() {
+    local corpus=$1 minimum=$2 order=$3 status=0 out
+    set +e
+    out=$(awk -v MINARTICLES="$minimum" -v ORDER="$order" "$article_text" "$corpus" 2>&1)
+    status=$?
+    set -e
+    if [ "$status" -ne 0 ]; then
+        echo "lint-reference: the corpus could not be read as articles, so nothing" \
+            "was printed." >&2
+        printf '%s\n' "$out" | sed 's/^/  /' >&2
+        exit 2
+    fi
+    printf '%s\n' "$out"
+}
+
 # The `path <TAB> key` pairs a baseline file carries, comments and blank lines
 # dropped.
 #
@@ -671,9 +982,48 @@ baseline_keys() {
 #   msg_advisories  report lines for commits already on it — these do not
 # ---------------------------------------------------------------------------
 
+# The base a branch is measured against, resolved once and shared. `--messages`
+# and `--show` both mean "what this branch adds", and two resolutions of that
+# could disagree — a reviewer reading `--show` against `main` while the gate ran
+# against `origin/main` is a way to read the wrong diff and conclude it is clean.
+#
+# Sets resolved_base, or resolve_why and a non-zero return when it cannot.
+resolve_base() {
+    local repo=$1 candidate
+    resolved_base=""
+    resolve_why=""
+
+    if ! git -C "$repo" rev-parse --git-dir > /dev/null 2>&1; then
+        resolve_why="$repo is not a git repository, so there is no branch to read"
+        return 1
+    fi
+
+    # An explicit --base that names nothing is a mistake worth stopping for. A
+    # missing default is not: a shallow clone has no origin/main and that is a
+    # reason to say the check did not run, not to fail a build over it.
+    if [ -n "$base_ref" ]; then
+        if ! git -C "$repo" rev-parse --verify --quiet "${base_ref}^{commit}" > /dev/null; then
+            echo "lint-reference: --base $base_ref names no commit in $repo." >&2
+            exit 2
+        fi
+        resolved_base=$base_ref
+        return 0
+    fi
+
+    for candidate in origin/main main; do
+        if git -C "$repo" rev-parse --verify --quiet "${candidate}^{commit}" > /dev/null; then
+            resolved_base=$candidate
+            return 0
+        fi
+    done
+    resolve_why="no origin/main and no main in $repo — pass --base, or --range to read a"
+    resolve_why="$resolve_why particular set of commits"
+    return 1
+}
+
 scan_messages() {
     local repo=$1 corpus=$2
-    local base="" candidate range revs status=0 sha short subject state
+    local base="" range revs status=0 sha short subject state
     local dir info="" out hits
     local -a files=()
 
@@ -687,33 +1037,11 @@ scan_messages() {
     msg_violations=""
     msg_advisories=""
 
-    if ! git -C "$repo" rev-parse --git-dir > /dev/null 2>&1; then
-        msg_why="$repo is not a git repository, so there is no branch to read"
+    if ! resolve_base "$repo"; then
+        msg_why=$resolve_why
         return 0
     fi
-
-    # An explicit --base that names nothing is a mistake worth stopping for. A
-    # missing default is not: a shallow clone has no origin/main and that is a
-    # reason to say the check did not run, not to fail a build over it.
-    if [ -n "$base_ref" ]; then
-        if ! git -C "$repo" rev-parse --verify --quiet "${base_ref}^{commit}" > /dev/null; then
-            echo "lint-reference: --base $base_ref names no commit in $repo." >&2
-            exit 2
-        fi
-        base=$base_ref
-    else
-        for candidate in origin/main main; do
-            if git -C "$repo" rev-parse --verify --quiet "${candidate}^{commit}" > /dev/null; then
-                base=$candidate
-                break
-            fi
-        done
-        if [ -z "$base" ]; then
-            msg_why="no origin/main and no main in $repo — pass --base, or --range to read a"
-            msg_why="$msg_why particular set of messages"
-            return 0
-        fi
-    fi
+    base=$resolved_base
     msg_base=$base
 
     # The commits the branch ADDS. `<base>...HEAD` would be the symmetric
@@ -824,6 +1152,99 @@ report_messages() {
         echo "  The range is empty: HEAD adds nothing to $msg_base. Nothing was scanned," \
             "and that is why the count above is zero."
     fi
+}
+
+# ---------------------------------------------------------------------------
+# --show — the article beside the citation
+#
+# One article per citation would reprint a long article once per mention, so the
+# blocks are per DISTINCT article and the header of each names every place that
+# cites it. Order is first appearance, which in a diff is file order then line
+# order and in a document is document order — the order the reader met them in.
+# ---------------------------------------------------------------------------
+
+# `path <TAB> line <TAB> cite` rows in, `cite <TAB> where, where` rows out, first
+# appearance first. Sets show_order and show_penalties.
+order_citations() {
+    local pairs=$1 folded
+    folded=$(printf '%s\n' "$pairs" | sed '/^$/d' | awk -F'\t' '
+        # A Penalty is a clause of a section, not an article, so there is no
+        # article text to print for one. Counted rather than dropped in silence:
+        # a reader who cited one and saw nothing would reasonably conclude the
+        # citation was bad, and it is not.
+        $3 ~ /-Penalty$/ { penalties++; next }
+        {
+            loc = $1 ":" $2
+            if (!($3 in where)) {
+                seq[++n] = $3
+                where[$3] = loc
+                next
+            }
+            where[$3] = where[$3] ", " loc
+        }
+        END {
+            print "PENALTY\t" penalties + 0
+            for (i = 1; i <= n; i++) print "CITE\t" seq[i] "\t" where[seq[i]]
+        }')
+    show_penalties=$(printf '%s\n' "$folded" | awk -F'\t' '$1 == "PENALTY" { print $2 }')
+    show_order=$(printf '%s\n' "$folded" |
+        awk -F'\t' '$1 == "CITE" { print $2 "\t" $3 }')
+}
+
+# Prints the header and then the articles. `source_line` says what was read, which
+# is the one thing a reader cannot check from the output itself.
+render_show() {
+    local corpus=$1 minimum=$2 source_line=$3 order=$4 penalties=$5
+    local count out index
+
+    count=$(printf '%s\n' "$order" | sed '/^$/d' | wc -l | tr -d ' ')
+
+    echo "lint-reference --show: $source_line"
+    echo "  $count distinct article(s) to print, from $corpus."
+    if [ "${penalties:-0}" -gt 0 ]; then
+        echo "  $penalties citation(s) name a section's Penalty clause rather than an" \
+            "article. A Penalty is part of its section, so there is no article text to" \
+            "print for one; read the section."
+    fi
+    echo "  Nothing is written anywhere: --show has no output path and never creates one."
+    echo "  It still cannot tell whether an article supports the claim beside it. Only" \
+        "reading it can, which is what this is for."
+
+    if [ "$count" -eq 0 ]; then
+        echo
+        echo "  No article citation to print."
+        return 0
+    fi
+
+    out=$(run_articles "$corpus" "$minimum" "$order")
+    index=$(printf '%s\n' "$out" | awk -F'\t' '$1 == "INDEX" && NF == 2 { print $2 }')
+    echo "  The corpus indexes ${index:-0} article(s)."
+    printf '%s\n' "$out" | awk -F'\t' '$1 == "INDEX" && NF == 2 { next } { print }'
+}
+
+# The citations a branch diff ADDS. `--range` is honoured the way it is for
+# messages: given one, that is what is diffed; otherwise the branch's own work,
+# from the merge base so the base's own commits are not dragged in.
+diff_cites_for() {
+    local repo=$1 base=$2 merge_base status=0
+    show_merge_base=""
+    if [ -n "$commit_range" ]; then
+        show_range=$commit_range
+    else
+        set +e
+        merge_base=$(git -C "$repo" merge-base "$base" HEAD 2>&1)
+        status=$?
+        set -e
+        if [ "$status" -ne 0 ]; then
+            echo "lint-reference: no merge base between $base and HEAD in $repo." >&2
+            printf '%s\n' "$merge_base" | sed 's/^/  /' >&2
+            exit 2
+        fi
+        show_merge_base=$merge_base
+        show_range="$merge_base..HEAD"
+    fi
+    git -C "$repo" diff --no-color --no-ext-diff --unified=0 "$show_range" |
+        awk "$diff_cites"
 }
 
 note_on_what_is_unchecked() {
@@ -1021,6 +1442,107 @@ if [ "$mode" = self-test ]; then
         exit 1
     fi
 
+    # ------------------------------------------------------------------
+    # --show, on the same throwaway repository.
+    #
+    # A third commit, this one adding a file: the two before it are empty, so the
+    # diff the branch adds against `main` is exactly `docs/show.md` and the
+    # citations it names. That is the shape `--show` is for — "which numbers did I
+    # just write down" — and it is asserted in both directions: every article the
+    # page cites comes out, and one it does not cite must NOT.
+    #
+    # Added after the message assertions above, which count the branch's commits
+    # and would read this one as a third message.
+    # ------------------------------------------------------------------
+    show_fixture="$fixtures/docs/show.md"
+    if [ ! -f "$show_fixture" ]; then
+        echo "lint-reference: $show_fixture is missing — --show is unpinned" >&2
+        exit 2
+    fi
+
+    mkdir -p "$msgrepo/docs"
+    cp "$root/$show_fixture" "$msgrepo/docs/show.md"
+    fixture_git add docs/show.md
+    fixture_git commit -q -m "Add the page whose citations --show is asked to find"
+
+    base_ref=main
+    commit_range=""
+    show_order=""
+    show_penalties=0
+    show_range=""
+    order_citations "$(diff_cites_for "$msgrepo" main)"
+    show_out=$(render_show "$corpus" 2 "the fixture branch" "$show_order" "$show_penalties")
+    base_ref=""
+
+    show_blocks=$(printf '%s\n' "$show_out" | grep -c '^--- ' || true)
+    show_7_3_1=$(printf '%s\n' "$show_out" | grep -c '^--- 7-3-1 --- ' || true)
+    show_absent=$(printf '%s\n' "$show_out" | grep -c 'is not in this corpus\.$' || true)
+
+    # Four distinct articles from six citations: 7-3-1 twice folded into one block,
+    # and 7-3-Penalty counted out as a clause rather than an article.
+    #
+    # `painted exchange box` is 7-3-1's own text and `notice the end of the file` is
+    # the last article's; `END OF THE RELAY` is 7-3-2, which the page does not cite
+    # and which must therefore not be printed — "that article and nothing else" is
+    # half the promise, and a printer that dumped the section would pass the other
+    # half on its own.
+    if [ "$show_blocks" -ne 4 ] ||
+        [ "$show_7_3_1" -ne 1 ] ||
+        [ "$show_absent" -ne 2 ] ||
+        [ "${show_penalties:-0}" -ne 1 ] ||
+        ! printf '%s\n' "$show_out" | grep -q 'painted exchange box' ||
+        ! printf '%s\n' "$show_out" | grep -q '^--- 11-1-1 --- ' ||
+        ! printf '%s\n' "$show_out" | grep -q 'notice the end of the' ||
+        ! printf '%s\n' "$show_out" | grep -q '!! EDITION: 6-1-6 ' ||
+        ! printf '%s\n' "$show_out" | grep -q '^    7-3-9 is not in this corpus\.$' ||
+        printf '%s\n' "$show_out" | grep -q 'END OF THE RELAY'; then
+        echo "lint-reference: SELF-TEST FAILED — --show does not print what the header" \
+            "says it prints." >&2
+        echo "  Expected 4 article blocks from the branch diff (7-3-1 once though it is" >&2
+        echo "  cited twice, 11-1-1 read to the end of the corpus, 6-1-6 with the edition" >&2
+        echo "  warning, and 7-3-9), two of them absent from this corpus and saying so on" >&2
+        echo "  one line each, 1 Penalty clause counted and skipped, and no trace of" >&2
+        echo "  7-3-2, which nothing cites." >&2
+        echo "  Got: $show_blocks block(s), 7-3-1 in $show_7_3_1, $show_absent absent," \
+            "${show_penalties:-0} Penalty clause(s)." >&2
+        printf '%s\n' "$show_out" | sed 's/^/    /' >&2
+        exit 1
+    fi
+
+    # One article by number, with no diff and no document in it at all.
+    show_order=$(printf '11-1-1\tthe command line\n')
+    one_out=$(render_show "$corpus" 2 "11-1-1, asked for by number." "$show_order" 0)
+    if ! printf '%s\n' "$one_out" | grep -q '^--- 11-1-1 --- cited at the command line$' ||
+        ! printf '%s\n' "$one_out" | grep -q 'notice the end of the' ||
+        [ "$(printf '%s\n' "$one_out" | grep -c '^--- ')" -ne 1 ]; then
+        echo "lint-reference: SELF-TEST FAILED — --show <article> does not print the one" \
+            "article it was asked for." >&2
+        printf '%s\n' "$one_out" | sed 's/^/    /' >&2
+        exit 1
+    fi
+
+    # Every article a document cites, in document order. The fixture citations page
+    # names 7-3-1, 7-3-2, 7-4-1, 7-3-Penalty and 7-3-9, so `--show-all` must yield
+    # four blocks in that order with the Penalty counted out — and 7-4-1 proves the
+    # repaired heading ("SEC" / "TION 4") reaches the extractor and not only the
+    # index, which is the one thing that could differ between the two.
+    order_citations "$(awk "$file_cites" "$fixtures/docs/citations.md")"
+    all_out=$(render_show "$corpus" 2 "every article the fixture citations page cites." \
+        "$show_order" "$show_penalties")
+    all_order=$(printf '%s\n' "$all_out" | sed -n 's/^--- \([^ ]*\) --- .*/\1/p' | tr '\n' ' ')
+    if [ "$all_order" != "7-3-1 7-3-2 7-4-1 7-3-9 " ] ||
+        [ "${show_penalties:-0}" -ne 1 ] ||
+        ! printf '%s\n' "$all_out" | grep -q 'DROPPED BATON'; then
+        echo "lint-reference: SELF-TEST FAILED — --show-all does not print a document's" \
+            "citations in document order." >&2
+        echo "  Expected '7-3-1 7-3-2 7-4-1 7-3-9 ' and one Penalty clause counted out;" \
+            "got '$all_order' and ${show_penalties:-0}." >&2
+        printf '%s\n' "$all_out" | sed 's/^/    /' >&2
+        exit 1
+    fi
+
+    commit_range=""
+
     # A baseline that holds only its own explanation must read as no keys and must
     # not end the run. It did end the run, once, because `grep -v` exits 1 when it
     # selects nothing and `pipefail` passed that on — on the day the real baseline
@@ -1068,6 +1590,10 @@ if [ "$mode" = self-test ]; then
         "the branch adds were read, the planted wrapped run in $planted was found and" \
         "counted as a violation, the one behind the merge base was not read, and the same" \
         "run judged against a base that holds it came back advisory."
+    echo "lint-reference: self-test --show — the 4 articles the fixture branch's diff" \
+        "cites were printed and 7-3-2, which it does not cite, was not; the last article" \
+        "in the corpus was read to the end of the file, the absent number cost one line," \
+        "6-1-6 carried the edition warning, and the Penalty clause was counted out."
 
     if [ "$actual" = "$want" ]; then
         count=$(printf '%s\n' "$actual" | sed '/^$/d' | wc -l | tr -d ' ')
@@ -1099,6 +1625,62 @@ if [ -z "$corpus" ] || [ ! -f "$corpus" ]; then
     echo "  The corpus is not in the repository and will not be: it is the copyrighted"
     echo "  document CLAUDE.md rule 8 is about."
     echo "  The self-test ships its own fixture corpus and runs without this one."
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# --show, --show <article>, --show-all <file>
+#
+# After the corpus block above, so all three skip with the lint's own sentence and
+# exit 0 when there is no book to read — CI has none, and a reading aid that cannot
+# read is not a red build.
+#
+# 100 is the citation check's own minimum and is used here for the same reason: a
+# corpus holding fewer articles than that is truncated or has lost its headings,
+# and the honest output in that state is a refusal rather than a page of numbers
+# reported as absent.
+# ---------------------------------------------------------------------------
+
+if [ "$mode" = show ] || [ "$mode" = show-article ] || [ "$mode" = show-all ]; then
+    show_order=""
+    show_penalties=0
+    show_merge_base=""
+    show_range=""
+
+    case "$mode" in
+        show-article)
+            if [ "${show_article##*-}" = "Penalty" ]; then
+                echo "lint-reference --show: $show_article names a section's Penalty" \
+                    "clause, not an article."
+                echo "  A Penalty is part of its section and has no article text of its" \
+                    "own. Read the section."
+                exit 0
+            fi
+            show_order=$(printf '%s\tthe command line\n' "$show_article")
+            render_show "$corpus" 100 "$show_article, asked for by number." \
+                "$show_order" 0
+            ;;
+        show-all)
+            if [ ! -f "$show_file" ]; then
+                echo "lint-reference: $show_file is not a file I can read." >&2
+                exit 2
+            fi
+            order_citations "$(awk "$file_cites" "$show_file")"
+            render_show "$corpus" 100 "every article $show_file cites, in document order." \
+                "$show_order" "$show_penalties"
+            ;;
+        show)
+            if ! resolve_base "$root"; then
+                echo "lint-reference --show: nothing to diff — $resolve_why."
+                echo "  Pass --show <article> to print one by number, or --show-all <file>."
+                exit 0
+            fi
+            order_citations "$(diff_cites_for "$root" "$resolved_base")"
+            render_show "$corpus" 100 \
+                "the citations added by $show_range, against $resolved_base." \
+                "$show_order" "$show_penalties"
+            ;;
+    esac
     exit 0
 fi
 
