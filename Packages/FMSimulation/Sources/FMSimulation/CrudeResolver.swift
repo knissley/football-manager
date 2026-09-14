@@ -597,10 +597,10 @@ public struct CrudeResolver: PlayResolver {
                         + rating(.elusiveness, quarterback, personnel, context)) / 2
                 if random.nextBool(probability: min(0.8, max(0.16, (mobility - 42) * 0.013))) {
                     decisions.append(
-                        .init(
-                            tick: UInt16(at / 100), kind: .throwDecision,
-                            primary: quarterback, secondary: pressureBy,
-                            detail: ThrowDecision.scramble.rawValue, value: Int16(at)))
+                        .throwDecision(
+                            tick: UInt16(at / 100), passer: quarterback,
+                            oppositeNumber: pressureBy, decision: .scramble,
+                            atMilliseconds: Int16(at)))
 
                     // He is out of the pocket with the ball, which is the moment 8-4-7 takes
                     // illegal contact off this down and leaves defensive holding on it. The
@@ -647,10 +647,9 @@ public struct CrudeResolver: PlayResolver {
             if random.nextBool(probability: 0.155) {
                 // Sacked, by the rusher who actually got there. Nothing else can be credited.
                 decisions.append(
-                    .init(
-                        tick: UInt16(at / 100), kind: .throwDecision,
-                        primary: quarterback, secondary: pressureBy,
-                        detail: ThrowDecision.sack.rawValue, value: Int16(at)))
+                    .throwDecision(
+                        tick: UInt16(at / 100), passer: quarterback, oppositeNumber: pressureBy,
+                        decision: .sack, atMilliseconds: Int16(at)))
                 credit(pressureBy, .tackler)
                 if penalty == nil {
                     penalty = Penalties.onContact(
@@ -735,10 +734,9 @@ public struct CrudeResolver: PlayResolver {
                         value: Int16(now)))
             }
             decisions.append(
-                .init(
-                    tick: UInt16(now / 100), kind: .throwDecision, primary: quarterback,
-                    secondary: .none, detail: ThrowDecision.throwaway.rawValue,
-                    value: Int16(now)))
+                .throwDecision(
+                    tick: UInt16(now / 100), passer: quarterback, decision: .throwaway,
+                    atMilliseconds: Int16(now)))
             if pressureVerdictWritten, penalty == nil {
                 penalty = Penalties.whenThrowingItAway(
                     passer: quarterback, personnel: personnel, context: context,
@@ -818,10 +816,9 @@ public struct CrudeResolver: PlayResolver {
         let throwTick = UInt16(ballOut / 100)
         let arrivalTick = throwTick + UInt16(depth.flightTicks)
         decisions.append(
-            .init(
-                tick: throwTick, kind: .throwDecision,
-                primary: quarterback, secondary: target.receiver,
-                detail: thrown.decision.rawValue, value: Int16(ballOut)))
+            .throwDecision(
+                tick: throwTick, passer: quarterback, oppositeNumber: target.receiver,
+                decision: thrown.decision, atMilliseconds: Int16(ballOut)))
         decisions.append(
             .init(
                 tick: arrivalTick, kind: .ballArrival,
