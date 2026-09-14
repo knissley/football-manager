@@ -40,15 +40,20 @@
 #
 # ## Cost note
 #
-# `push` is deliberately unfiltered, so a branch is checked before a PR exists. While a
-# PR is open its branch is therefore built twice per push (once for `push`, once for
-# `pull_request`). That is the price of getting a signal on a bare branch; narrow the
-# `push` trigger to `main` if the minutes ever start to matter.
+# `push` is filtered to `main`, so one push produces one run. A branch is checked through
+# its pull request, and agents open a draft PR with their first push so that the signal
+# starts there — a branch with no PR open gets no run at all, which is the deliberate
+# trade. Before the filter an open PR's branch was built twice per push, once for `push`
+# and once for `pull_request`: eight jobs per push across two triggers, two architectures
+# and the test and harness legs, at about six minutes a run, and the second run was often
+# still queued when the next push cancelled it. A push to `main` itself still runs, so
+# the merge result is checked and not only the branch that produced it.
 
 name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
