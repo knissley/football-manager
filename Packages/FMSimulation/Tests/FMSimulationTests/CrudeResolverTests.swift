@@ -175,6 +175,134 @@ struct CrudeResolverTests {
             "the corpus never produced \(Set(ThrowDecision.allCases).subtracting(seen))")
     }
 
+    /// The contract `DecisionKind.holeQuality` states, held over every hole the corpus
+    /// scored: a carry wrote it, the back is `primary`, `detail` is the concept it was
+    /// run on, and `value` is the quality score and nothing else.
+    ///
+    /// The unit is what this is for. The same kind used to be written by the kick return
+    /// and by a catch made in space as well, in yards and in centimetres, each marked
+    /// only by a `detail` byte no reader was told about — so `holeQuality.value` was
+    /// three units at once and any fold over the kind mixed them. The gate that keeps
+    /// that from coming back is the one below: a point of this kind sits on a carry, or
+    /// it is not this kind.
+    @Test("Every hole scored is a carry's, and its value is the quality score", .tags(.contract))
+    func holesAreCarriesAndScoredInQualityPoints() {
+        var carries = 0
+        var negative = 0
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                let holes = play.decisions.filter { $0.kind == .holeQuality }
+                let concept = play.calls.offense.concept
+                let isCarry =
+                    concept == .insideRun || concept == .outsideRun || concept == .twoPointRun
+                guard let hole = holes.first else {
+                    #expect(
+                        !isCarry || play.outcome.kind == .penaltyOnly,
+                        "a carry on play \(play.index) of game \(result.game) scored no hole")
+                    continue
+                }
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(holes.count == 1, "\(at): \(holes.count) holes on one play")
+                #expect(isCarry, "\(at): a hole on a \(concept), which is not a carry")
+                #expect(
+                    hole.primary == SlotLayout.back,
+                    "\(at): the hole is slot \(hole.primary.rawValue)'s, not the back's")
+                // The two-point run is called as its own concept and run inside.
+                #expect(
+                    hole.holeWasInsideRun == (concept != .outsideRun),
+                    "\(at): a \(concept) scored a hole marked \(hole.detail)")
+                // The scale pays twelve a block and both signs happen: a hole nobody
+                // opened is a negative score, which no yardage and no separation this
+                // kind once carried could be.
+                #expect(
+                    hole.value > -200 && hole.value < 200,
+                    "\(at): a hole scored \(hole.value), which is off the twelve-a-block scale")
+                carries += 1
+                if hole.value < 0 { negative += 1 }
+            }
+        }
+        #expect(carries > 500, "only \(carries) carries in the corpus to read")
+        #expect(negative > 0, "no carry in the corpus met a hole worse than an even fight")
+    }
+
+    /// The contract `DecisionKind.returnLane` states: one point per kick actually
+    /// returned, the returner is `primary`, and `value` is **yards** — the return he was
+    /// on for as he cleared the first wave.
+    ///
+    /// Read against the record's own return, `finalSpot` less `fieldedAt`, because that
+    /// is the only check that can tell a yardage from the centimetre count and the
+    /// unitless score this field used to hold under the same kind name. The two differ by
+    /// the pursuit of whoever caught him, which the resolver applies after this point is
+    /// written and which no rating can push past a few yards, so the tolerance is six and
+    /// the comparison is skipped where a clamp at the goal line or at zero would swallow
+    /// it.
+    @Test("Every kick returned records its lane in yards", .tags(.contract))
+    func returnLanesAreYards() {
+        var returns = 0
+        var compared = 0
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                let lanes = play.decisions.filter { $0.kind == .returnLane }
+                let at = "play \(play.index) of game \(result.game)"
+                guard let lane = lanes.first else { continue }
+                #expect(lanes.count == 1, "\(at): \(lanes.count) lanes on one return")
+                #expect(
+                    play.outcome.kind == .kickoff || play.outcome.kind == .punt,
+                    "\(at): a return lane on a \(play.outcome.kind)")
+                #expect(
+                    lane.primary == SlotLayout.returner
+                        || lane.primary == SlotLayout.secondReturner,
+                    "\(at): the lane is slot \(lane.primary.rawValue)'s, not a returner's")
+                returns += 1
+                guard
+                    play.outcome.endedIn == .tackled,
+                    let spot = play.outcome.finalSpot, let fielded = play.outcome.fieldedAt,
+                    lane.value >= 6, Int(fielded) + Int(lane.value) <= 95
+                else { continue }
+                let ran = Int(spot) - Int(fielded)
+                #expect(
+                    abs(ran - Int(lane.value)) <= 6,
+                    "\(at): a lane of \(lane.value) on a return of \(ran) yards")
+                compared += 1
+            }
+        }
+        #expect(returns > 200, "only \(returns) returns in the corpus to read")
+        #expect(compared > 100, "only \(compared) returns could be read against their yardage")
+    }
+
+    /// The contract `DecisionKind.catchInSpace` states: the receiver is `primary` and
+    /// `value` is the separation in **centimetres** he caught it with — the same number
+    /// the same play's `ballArrival` carries.
+    ///
+    /// That equality is the assertion, because it is the one a wrong unit cannot survive:
+    /// the point was written as a `holeQuality` beside a run's unitless score and a
+    /// return's yardage, and a centimetre count is within a factor of a hundred of
+    /// neither.
+    @Test("A catch made in space records the separation the ball arrived with", .tags(.contract))
+    func catchesInSpaceRecordTheirSeparation() {
+        var caught = 0
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                let points = play.decisions.filter { $0.kind == .catchInSpace }
+                guard let space = points.first else { continue }
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(points.count == 1, "\(at): \(points.count) catches in space on one play")
+                guard let arrival = play.decisions.first(where: { $0.kind == .ballArrival }) else {
+                    Issue.record("\(at): a catch in space on a play where no ball arrived")
+                    continue
+                }
+                #expect(
+                    space.primary == arrival.primary,
+                    "\(at): slot \(space.primary.rawValue) in space, ball to \(arrival.primary)")
+                #expect(
+                    space.value == arrival.value,
+                    "\(at): caught in space at \(space.value), arrived at \(arrival.value)")
+                caught += 1
+            }
+        }
+        #expect(caught > 50, "only \(caught) catches in space in the corpus to read")
+    }
+
     /// Every sack belongs to exactly one player. A sack nobody is credited with does
     /// not appear in a stat line, an award race, or a Hall of Fame case.
     @Test("Every sack is attributable to exactly one player", .tags(.contract))
