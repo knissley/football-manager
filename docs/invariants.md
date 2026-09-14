@@ -36,7 +36,7 @@ so, then what checks it:
   sport. The rule is still the rule; the note says what we do instead.
 
 A rule is not a rate. Entries 1 to 101 are rules, and a scenario is what checks one — except
-100, which is a promise the record makes about itself and says so on its own line. Entries 103
+100, which is a promise the record makes about itself and says so on its own line. Entries 102
 to 130 are what a league of games has to *look* like, and a harness band over a sourced season
 is what checks one. A band is evidence about a rate and never about a rule.
 
@@ -876,7 +876,7 @@ what every one of them was derived from is in
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail, and the
      rates themselves are
      [#49](https://github.com/knissley/football-manager/issues/49)'s
-129. A defensive interference flag on a pass that was then completed is the engine
+130. A defensive interference flag on a pass that was then completed is the engine
      contradicting itself rather than a rate to be sourced, so `row:interferenceOnCompletions`
      carries a band of zero that no season stands behind and is graded by
      `test:interferenceMeansNoCatch` instead. `[2025 · 8-5-1]` —
