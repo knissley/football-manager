@@ -42,7 +42,9 @@
 #
 #   docs    everything that is not source: docs, scripts, fixtures, the skills. The lints,
 #           the census, the reference lint over the tree and over the branch's commit
-#           messages, the two Python self-tests, and the traceability suite by `--filter`,
+#           messages, the two Python self-tests, the two documents that are diffed against
+#           a command's output — `docs/testing.md`'s census table and
+#           `docs/play-record.md`'s footprint — and the traceability suite by `--filter`,
 #           which is the one test that reads the reference documents.
 #   tests   the docs lane, plus the full debug suite of each package whose `Tests/` moved.
 #   tools   the docs lane, plus the build and suite of each tool whose sources moved, and
@@ -116,6 +118,51 @@ usage: scripts/preflight.sh [--lane docs|tests|tools|engine | --full]
 USAGE
 }
 
+# --- the two documents that are diffed against a command's output ------------
+#
+# Both are steps CI runs as inline shell. They are functions here rather than one-liners
+# because a step command is `eval`ed in this shell, so a function name is a step; and
+# because the awk that pulls the marked block out of the document is the part that goes
+# wrong quietly, and it should read the same here as it does in the workflow.
+
+census_table_matches_doc() {
+    local doc="$log_dir/census-table-doc.md" fresh="$log_dir/census-table-fresh.md"
+    awk '/<!-- test-census:begin -->/ { inside = 1; next }
+         /<!-- test-census:end -->/   { inside = 0 }
+         inside' docs/testing.md >"$doc"
+    if [ ! -s "$doc" ]; then
+        printf 'docs/testing.md has lost its test-census markers, so the table below\n'
+        printf 'them is checked against nothing.\n'
+        return 1
+    fi
+    ./scripts/test-census.sh --markdown >"$fresh" || return 1
+    if ! diff -u "$doc" "$fresh"; then
+        printf '\ndocs/testing.md'"'"'s census table is not the tree'"'"'s census.\n'
+        printf 'Regenerate it between the markers with ./scripts/test-census.sh --markdown\n'
+        return 1
+    fi
+    printf 'docs/testing.md carries the census the tree produces.\n'
+}
+
+footprint_matches_doc() {
+    local doc="$log_dir/footprint-doc.txt" fresh="$log_dir/footprint-fresh.txt"
+    awk '/<!-- playsize:begin -->/ { inside = 1; next }
+         /<!-- playsize:end -->/   { inside = 0 }
+         inside' docs/play-record.md | sed '/^```/d' >"$doc"
+    if [ ! -s "$doc" ]; then
+        printf 'docs/play-record.md has lost its playsize markers, so the footprint\n'
+        printf 'below them is checked against nothing.\n'
+        return 1
+    fi
+    swift run --package-path Tools/playsize >"$fresh" || return 1
+    if ! diff -u "$doc" "$fresh"; then
+        printf '\ndocs/play-record.md'"'"'s footprint is not what the types measure.\n'
+        printf 'Regenerate it between the markers with swift run --package-path Tools/playsize\n'
+        return 1
+    fi
+    printf 'docs/play-record.md carries the footprint the types measure.\n'
+}
+
 # --- the plan ---------------------------------------------------------------
 #
 # Four parallel arrays, appended in the order the steps run. `st_kind` is `normal` for a
@@ -150,6 +197,8 @@ plan_docs() {
     add_step "lint-sim self-test" "./scripts/lint-sim.sh --self-test"
     add_step "test census" "./scripts/test-census.sh"
     add_step "test census self-test" "./scripts/test-census.sh --self-test"
+    add_step "census table in docs/testing.md" "census_table_matches_doc"
+    add_step "footprint in docs/play-record.md" "footprint_matches_doc"
     add_step "lint-reference (tree)" "./scripts/lint-reference.sh"
     add_step "lint-reference self-test" "./scripts/lint-reference.sh --self-test"
     add_step "lint-reference (messages)" "./scripts/lint-reference.sh --messages"
@@ -545,6 +594,8 @@ self_test() {
     docs_steps="$docs_steps;./scripts/lint-sim.sh --self-test"
     docs_steps="$docs_steps;./scripts/lint-reference.sh --messages"
     docs_steps="$docs_steps;python3 scripts/harness-noise.py --self-test"
+    docs_steps="$docs_steps;census_table_matches_doc"
+    docs_steps="$docs_steps;footprint_matches_doc"
     docs_steps="$docs_steps;--filter InvariantsTraceabilityTests"
 
     # The two steps only the engine lane has. Both are checked as absences elsewhere, so
