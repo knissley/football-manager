@@ -155,6 +155,30 @@ private enum Scan {
         return entries.map { ($0.0, $0.1) }
     }
 
+    /// The entry ranges the header states in prose: every "Entries 1 to 101" in the
+    /// document, in the order they are written.
+    ///
+    /// Read from the sentence rather than declared beside it, so that moving one of the
+    /// two without the other is what fails. The sentence is wrapped prose and a range can
+    /// straddle the break — "Entries 102" ending one line and "to 130" opening the next —
+    /// so the whitespace is collapsed first; scanning line by line sees two halves of a
+    /// range and neither is one.
+    static func statedRanges(in document: String) -> [(low: Int, high: Int)] {
+        let prose = joined(document.components(separatedBy: "\n"))
+        var ranges: [(low: Int, high: Int)] = []
+        var rest = Substring(prose)
+        while let opening = rest.range(of: "Entries ") {
+            rest = rest[opening.upperBound...]
+            let low = rest.prefix(while: { $0.isNumber })
+            rest = rest[low.endIndex...]
+            guard !low.isEmpty, rest.hasPrefix(" to ") else { continue }
+            let high = rest.dropFirst(4).prefix(while: { $0.isNumber })
+            guard let lowValue = Int(low), let highValue = Int(high) else { continue }
+            ranges.append((lowValue, highValue))
+        }
+        return ranges
+    }
+
     /// The article entries of `playing-rules.md`, each as its article and its whole text.
     ///
     /// An entry is a bullet that opens with a bold article number — `- **4-3-2-a-1** —` —
@@ -316,6 +340,63 @@ struct InvariantsTraceabilityTests {
                 + " that will nor the absence of one"
             #expect(accounted, "\(unaccounted)")
         }
+    }
+
+    /// The numbering is maintained by hand and the header describes it in prose, so a
+    /// renumber can leave a gap, a repeat, or a sentence that describes the list as it
+    /// was. One that moved twenty-nine entries did exactly that and nothing failed,
+    /// because the only check on the numbering was that there were more than a hundred
+    /// of them.
+    @Test(
+        "contract: the invariants are numbered 1 upward with no gap, and the header's ranges are the list",
+        .tags(.contract))
+    func theInvariantsAreNumberedContiguously() throws {
+        let document = try Tree.read(Tree.invariants)
+        let entries = Scan.numberedEntries(in: document)
+        let listThem = "list them with `grep -nE '^[0-9]+[.] ' docs/invariants.md`"
+        #expect(entries.count > 100, "found \(entries.count) invariants; expected the list")
+
+        // The first one only: a number that is one out shifts every number after it, and
+        // one finding is what a reader can act on.
+        var misnumbered: String?
+        for (offset, entry) in entries.enumerated() where misnumbered == nil {
+            guard Int(entry.number) != offset + 1 else { continue }
+            misnumbered =
+                "the entry in position \(offset + 1) is written `\(entry.number).`"
+                + " — \(entry.text.prefix(60))"
+        }
+        let outOfOrder =
+            "docs/invariants.md does not run 1 upward with no gap and no repeat:"
+            + " \(misnumbered ?? "") — \(listThem)"
+        #expect(misnumbered == nil, "\(outOfOrder)")
+
+        let ranges = Scan.statedRanges(in: document)
+        let sentence =
+            "the header's ranges — the `Entries N to M` sentences under How to read an"
+            + " entry — and the numbered entries have to move together; \(listThem)"
+        let unstated =
+            "docs/invariants.md's header states \(ranges.count) entry range(s); \(sentence)"
+        #expect(ranges.count >= 2, "\(unstated)")
+        guard ranges.count >= 2, let last = entries.last.flatMap({ Int($0.number) }) else { return }
+
+        let firstRange =
+            "the header's first range opens at \(ranges[0].low) and the list opens at 1;"
+            + " \(sentence)"
+        #expect(ranges[0].low == 1, "\(firstRange)")
+        for (earlier, later) in zip(ranges, ranges.dropFirst()) {
+            let backwards =
+                "the header states the range \(earlier.low) to \(earlier.high) backwards;"
+                + " \(sentence)"
+            #expect(earlier.low <= earlier.high, "\(backwards)")
+            let gap =
+                "the header runs one range to \(earlier.high) and opens the next at"
+                + " \(later.low), so \(earlier.high + 1) belongs to neither; \(sentence)"
+            #expect(later.low == earlier.high + 1, "\(gap)")
+        }
+        let lastRange =
+            "the header's last range ends at \(ranges[ranges.count - 1].high) and the list"
+            + " ends at \(last); \(sentence)"
+        #expect(ranges[ranges.count - 1].high == last, "\(lastRange)")
     }
 
     /// The same promise on the other side of the reference: Done-when 1 for this issue is

@@ -25,8 +25,17 @@
 # Usage:
 #   scripts/test-census.sh              census the tree
 #   scripts/test-census.sh --list       one line per test: file:line: kind
+#   scripts/test-census.sh --markdown   the per-target table, in the shape
+#                                       docs/testing.md carries it
 #   scripts/test-census.sh --self-test  census the fixture tree instead, and
 #                                       compare it against the expected list
+#
+# --markdown is what stops that table going stale. docs/testing.md carries this
+# mode's output between its test-census markers and a CI step diffs the two, in
+# the shape the calibration table in docs/match-engine.md is kept honest by
+# Targets.swift. It prints the table and nothing else: a test that carries no
+# kind is the plain census's failure and not this one's, and the table has no
+# untagged column because the tree is supposed to have none.
 #
 # Exits 0 on a fully tagged tree, 1 when a test carries no kind or carries two,
 # and 2 when it would otherwise have passed by scanning nothing.
@@ -49,14 +58,15 @@ mode=census
 case "${1-}" in
     "") ;;
     --list) mode=list ;;
+    --markdown) mode=markdown ;;
     --self-test) mode=self-test ;;
     -h | --help)
-        echo "usage: scripts/test-census.sh [--list | --self-test]"
+        echo "usage: scripts/test-census.sh [--list | --markdown | --self-test]"
         exit 0
         ;;
     *)
         echo "test-census: unknown argument: $1" >&2
-        echo "usage: scripts/test-census.sh [--list | --self-test]" >&2
+        echo "usage: scripts/test-census.sh [--list | --markdown | --self-test]" >&2
         exit 2
         ;;
 esac
@@ -242,6 +252,42 @@ if [ "$mode" = self-test ]; then
     { diff <(printf '%s\n' "$want") <(printf '%s\n' "$listing") || true; } |
         sed -n 's/^</  -/p; s/^>/  +/p' >&2
     exit 1
+fi
+
+# --- --markdown --------------------------------------------------------------
+
+# The em dash is written as its bytes: this script is read by mawk on a CI
+# container and by BSD awk on a Mac, and neither is promised a UTF-8 locale.
+if [ "$mode" = markdown ]; then
+    printf '%s\n' "$records" | awk -F'\t' -v order="${order[*]}" -v dash="$(printf '\342\200\224')" '
+        function cell(count, total) {
+            return (total > 0) ? sprintf("%d %s %.1f%%", count, dash, 100 * count / total) \
+                               : sprintf("%d", count)
+        }
+        BEGIN { n = split(order, targetOrder, " ") }
+        {
+            total[$2]++
+            grand++
+            byTarget[$2, $1]++
+            byKind[$1]++
+        }
+        END {
+            print "| target | football | contract | unit | pin | total |"
+            print "| --- | ---: | ---: | ---: | ---: | ---: |"
+            for (i = 1; i <= n; i++) {
+                t = targetOrder[i]
+                printf "| %s | %s | %s | %s | %d | %d |\n", t, \
+                    cell(byTarget[t, "football"], total[t]), \
+                    cell(byTarget[t, "contract"], total[t]), \
+                    cell(byTarget[t, "unit"], total[t]), \
+                    byTarget[t, "pin"], total[t]
+            }
+            printf "| **all** | **%s** | **%s** | **%s** | **%d** | **%d** |\n", \
+                cell(byKind["football"], grand), cell(byKind["contract"], grand), \
+                cell(byKind["unit"], grand), byKind["pin"], grand
+        }
+    '
+    exit 0
 fi
 
 # --- the census --------------------------------------------------------------
