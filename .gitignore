@@ -38,3 +38,6 @@ Package.resolved.backup
 # and "cannot" are different, and the failure mode is committing a copyrighted document.
 rulebook.pdf
 rulebook.txt
+
+# Agent worktrees created by dispatch; each is its own checkout and never belongs in the tree.
+.claude/worktrees/
