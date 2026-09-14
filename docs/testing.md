@@ -233,25 +233,27 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on the merge of wave 2's record and ratings tracks with the whole of wave 3, plus
-the two tests that came with a receiver training ball security, the two that came with the
-clock on a play record reading at the snap and the three that came with the pocket getting
-one verdict a snap: **922 tests, counted with `./scripts/test-census.sh` on the merge of
-`0a154dd` with #36.** The commit is part of the
-number. A census with no commit beside it is a claim about a tree nobody can go back to,
-which is the way a snapshot misleads — it reads as current long after it has stopped being
-true. `./scripts/test-census.sh` reprints it; if this table and that output disagree, the
-output is right and this table is stale.
+Taken on `cf885fb`, the head this page's own numbering and footprint checks were cut
+from, plus the one contract test they added: **1006 tests, counted with
+`./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
+no commit beside it is a claim about a tree nobody can go back to, which is the way a
+snapshot misleads — it reads as current long after it has stopped being true.
 
+The table below is that command's output, and a CI step diffs the two, so it can no longer
+drift: regenerate it with `./scripts/test-census.sh --markdown`, between the markers, in
+the same commit as whatever moved it, and move the sha above with it.
+
+<!-- test-census:begin -->
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 54 — 14.4% | 33 — 8.8% | 286 — 76.1% | 3 | 376 |
+| FMCore | 56 — 14.7% | 34 — 8.9% | 286 — 75.3% | 4 | 380 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 119 — 41.2% | 92 — 31.8% | 70 — 24.2% | 8 | 289 |
-| simharness | 0 — 0.0% | 11 — 78.6% | 3 — 21.4% | 0 | 14 |
-| gamelog | 0 — 0.0% | 4 — 100.0% | 0 — 0.0% | 0 | 4 |
-| **all** | **174 — 18.9%** | **238 — 25.8%** | **499 — 54.1%** | **11** | **922** |
+| FMSimulation | 150 — 43.0% | 111 — 31.8% | 69 — 19.8% | 19 | 349 |
+| simharness | 0 — 0.0% | 15 — 46.9% | 17 — 53.1% | 0 | 32 |
+| gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
+| **all** | **207 — 20.6%** | **264 — 26.2%** | **512 — 50.9%** | **23** | **1006** |
+<!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
 
@@ -261,7 +263,10 @@ The share that matters is not the tree's. It is the share **in the rules layer a
 resolver**, which is what CLAUDE.md asks to watch between milestones.
 
 The areas are sums over named suites of the census above, so the grouping can be checked
-against `./scripts/test-census.sh` rather than taken on trust. The rules layer is *Down
+against `./scripts/test-census.sh` rather than taken on trust. **The counts in this second
+table were taken on the 922-test census and no machine checks them**: the per-target table
+above is regenerated and diffed in CI, this one is still summed by hand, and the sweep that
+gives it a check or retires it is the docs sweep on the throughput proposal. The rules layer is *Down
 and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
 forty seconds*, *The play clock*, *Running the clock*, *Penalty enforcement*, *Tries and
 touchbacks*, *A foul during a score*, *Free kick spots* and *The rulebook the defaults come

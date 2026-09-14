@@ -514,23 +514,43 @@ An earlier draft of this document estimated ~130 bytes per play and concluded th
 records were cheap enough to keep league-wide for a decade. **That estimate was wrong**:
 it omitted the participant list entirely, which turned out to dominate.
 
-Measured against the real types (`swift run --package-path Tools/playsize`):
+Measured against the real types. The block between the markers is the output of
+`swift run --package-path Tools/playsize` and nothing else, and a CI step diffs the two,
+so a figure quoted here cannot outlive the type it was taken from. A realistic play is
+twelve decision points, ten credited participants and the twenty-two men on the field;
+the scaling under it is that figure at a hundred and fifty plays a game and a
+two-hundred-and-seventy-two-game league season.
 
-```
-Situation      23 B     OffensiveCall   17 B     DecisionPoint    8 B
-Calls          49 B     DefensiveCall    6 B     Participation   24 B
-PlayRef        10 B     PlayRecord     152 B  (fixed part)
-```
+<!-- playsize:begin -->
+```text
+Component sizes
+  Situation                   23 bytes
+  Calls                       49 bytes
+    OffensiveCall             17 bytes
+    DefensiveCall             6 bytes
+  PlayRef                     10 bytes
+  PlayRecord (fixed part)     152 bytes
+  DecisionPoint               8 bytes
+  Participation               24 bytes
+  PenaltyRecord               24 bytes
 
-A realistic play — twelve decision points, ten credited participants, and the twenty-two
-men on the field — is **510 bytes** in Swift's in-memory layout:
+A realistic play (12 decisions, 10 credited, 22 on the field)
+  decisions                   96 bytes
+  participants                240 bytes
+  on the field                22 bytes
+  total                       510 bytes
 
+Scaling
+  per game                    74 KB
+  your season (17 games)      1270 KB
+  league season               19 MB
+  ten seasons, league-wide    198 MB
+
+Trajectory, for comparison (10Hz, 22 players, 4 bytes per position)
+  per game                    111 KB
+  ratio to records            1.4x
 ```
-per game (150 plays)          74 KB
-your season (17 games)      1,270 KB
-league season (272 games)      19 MB
-ten seasons, league-wide      198 MB
-```
+<!-- playsize:end -->
 
 **Presence costs thirty-three bytes a play.** Twenty-two of them are the roster indices
 themselves and eleven are the third array's pointer with the padding it brings, which
@@ -577,14 +597,14 @@ the 8-byte `DefensiveCallID` became a 6-byte value stored inline. Storing both c
 value, so a playbook edit cannot rewrite history, was close to free — until the concept
 went on the call by value as well, which is the eight bytes above.
 
-**The claim that trajectories dwarf records does not hold.** A trajectory is ~111 KB per
-game against ~74 KB of records — 1.4×, not the 6× asserted before. Records and
-trajectories are the same order of magnitude.
+**The claim that trajectories dwarf records does not hold.** The ratio the tool prints
+above is well under two, not the 6× asserted before. Records and trajectories are the same
+order of magnitude.
 
 So the retention story reverts to roughly where
 [ADR-0003](adr/0003-deterministic-seeded-simulation.md) had it: **retain your own games
-in full; replay everything else from its seed.** 198 MB of league-wide history for a
-ten-season career is not something to put on a phone casually.
+in full; replay everything else from its seed.** The ten-season, league-wide figure
+above is not something to put on a phone casually.
 
 One caveat in the other direction: these are *in-memory* sizes with Swift's padding, not
 a wire format. A packed encoding — no padding, no eight-byte identifiers where an index
