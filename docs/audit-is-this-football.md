@@ -912,6 +912,17 @@ argument for watching a game.
   drawn from the same feed. The bucket holds about 1,200
   carries and grades. What it grades is a level and belongs to the retune.
   ([#218](https://github.com/knissley/football-manager/issues/218))
+- **C34** — the engine plays one pre-snap exchange and it is one-way: the defence's
+  package is drawn from the grouping, and everything else — the defensive call, the
+  offence's concept and grouping — is drawn from the situation with neither bench reading
+  the other. Measured on the snaps where neither caller takes a situational branch, the two
+  calls carry no information about each other, and the sport's seventeen-point swing in run
+  share against the box is zero here. `coverage` reaches the resolver as one bit; `disguised`,
+  `frontAlignment` and `CallVulnerability` are still unread, `usedMotion` is never set. **An
+  investigation, nothing built**: the sequence, the read/unread inventory, the sport's
+  sequence beside it, the measurement, the price of each gap and the proposals are in
+  [audit-pre-snap-exchange.md](audit-pre-snap-exchange.md).
+  ([#229](https://github.com/knissley/football-manager/issues/229))
 - **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside
   kicks are fourth quarter only, and nothing records which season the defaults describe.
   **Fixed**: the touchback is the 35, an onside kick may be declared at any time while
