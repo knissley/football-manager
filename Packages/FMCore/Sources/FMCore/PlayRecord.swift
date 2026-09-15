@@ -57,13 +57,24 @@ public struct PlayerSlot: Sendable, Hashable, Codable, Comparable {
 public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// The verdict on a dropback's pocket: a rusher reached the quarterback before the
     /// ball was out. `primary` is the blocker he beat, `secondary` is the rusher, and
-    /// `value` is milliseconds from the snap to his arrival. A dropback carries this or
-    /// `pressureHeld`, never both and never two of either — which rep was lost is a
+    /// `value` is milliseconds from the snap to his arrival. `detail` is that rep's
+    /// `BlockResult`, read through `pocketRepResult`, and on this case it can only be
+    /// `.lost`: a rusher who got home is a rusher whose blocker did not hold him. The
+    /// factory writes it rather than taking it, because a producer given the choice
+    /// could write a pressure allowed on a rep the blocker won. A dropback carries this
+    /// or `pressureHeld`, never both and never two of either — which rep was lost is a
     /// different fact, recorded by `blockResult`.
     case pressureAllowed = 0
     /// The other verdict: the ball was out before any rusher arrived. `value` is the
     /// milliseconds the protection had to sustain, and the pair named is the rush that
-    /// came closest.
+    /// came closest. `detail` is that rush's `BlockResult`, the same byte
+    /// `pressureAllowed` carries and read through the same `pocketRepResult`, and here
+    /// it is not a constant: the man who came closest may have been held the whole way
+    /// (`.won`) or may have beaten his blocker and still arrived after the ball was gone
+    /// (`.lost`). Those are two different pockets and the verdict alone cannot tell them
+    /// apart, which is why the byte is on it — the play's `blockResult` points carry
+    /// every rep, but picking the closest out of them means repeating the tie-break the
+    /// resolver used.
     case pressureHeld = 1
     /// The quarterback worked to a read. `primary` is the quarterback, `secondary` the
     /// receiver he read, `detail` is the progression index — the place in the play's own
@@ -109,13 +120,22 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// The ball reached the receiver. `value` is separation in centimetres,
     /// `detail` is a `BallPlacement`.
     case ballArrival = 4
-    /// A catch was attempted. `detail` is a `CatchResult`.
+    /// A catch was attempted. `primary` is the receiver, `secondary` the defender on
+    /// him, `detail` is a `CatchResult` and `value` is the separation in **centimetres**
+    /// the ball arrived with — the same number this catch's `ballArrival` carries, on
+    /// the point that says what became of it, so a reader asking whether a drop was on a
+    /// contested ball has both facts in one place. It is what decides a drop from a ball
+    /// nobody could have caught, and it was on the record and in that use before it was
+    /// on this comment.
     case catchAttempt = 5
-    /// A tackle was attempted. `detail` is a `TackleResult`.
+    /// A tackle was attempted. `primary` is the defender, `secondary` the carrier and
+    /// `detail` is a `TackleResult`. There is no quantity to carry, so `value` is zero.
     case tackleAttempt = 6
     /// A block resolved. `detail` is a `BlockResult`. On a dropback there is one per
     /// pass-rush rep and `value` is milliseconds from the snap: how long the blocker
-    /// sustained, or when the rusher he lost to arrived.
+    /// sustained, or when the rusher he lost to arrived. A run's reps are settled at the
+    /// handoff against no clock, so `value` is zero on them and what they added up to is
+    /// the same carry's `holeQuality`.
     case blockResult = 7
     /// The lane a carry was given, scored at the handoff. `primary` is the back,
     /// `detail` is the concept it was run on — `0` an inside run, `1` an outside run —
@@ -300,17 +320,30 @@ public enum CoverageTechnique: UInt8, CaseIterable, Sendable, Hashable, Codable 
 public struct DecisionPoint: Sendable, Hashable, Codable {
 
     /// Ticks since the snap.
-    public var tick: UInt16
+    public let tick: UInt16
     /// A quantity whose unit depends on `kind` — milliseconds, centimetres, or
     /// a score.
-    public var value: Int16
-    public var kind: DecisionKind
-    public var primary: PlayerSlot
-    public var secondary: PlayerSlot
+    public let value: Int16
+    public let kind: DecisionKind
+    public let primary: PlayerSlot
+    public let secondary: PlayerSlot
     /// A small enumerated discriminant whose meaning depends on `kind`.
-    public var detail: UInt8
+    public let detail: UInt8
 
-    public init(
+    /// **Internal, so that the factories below are the only way to build one.**
+    ///
+    /// It was public, and every producer outside this module used it: sixteen call sites
+    /// naming a kind and then filling in whichever of `detail` and `value` they felt like
+    /// filling in. Four kinds drifted from their own doc comments that way, each of them
+    /// carrying a byte the comment did not mention and no accessor could read, and none
+    /// of the four was anything a compiler or a suite could have objected to — `detail`
+    /// is eight bits of anything at all. Behind this wall a producer gets the parameters
+    /// its kind's contract allows and no others, so the contract is checked where it is
+    /// written instead of being asserted in prose and hoped for.
+    ///
+    /// The fields are `let` for the same reason: a point that could be amended after the
+    /// factory built it would put the hole straight back.
+    init(
         tick: UInt16,
         kind: DecisionKind,
         primary: PlayerSlot,
@@ -329,20 +362,30 @@ public struct DecisionPoint: Sendable, Hashable, Codable {
 
 extension DecisionPoint {
 
+    /// The pocket lost: the pair is the blocker and the rusher who beat him, and
+    /// `afterMilliseconds` is when he got there. The rep's `BlockResult` goes on the
+    /// point as well, and is not a parameter because `.lost` is the only result this
+    /// verdict can be written about.
     public static func pressureAllowed(
         tick: UInt16, blocker: PlayerSlot, rusher: PlayerSlot, afterMilliseconds: Int16
     ) -> DecisionPoint {
         DecisionPoint(
             tick: tick, kind: .pressureAllowed, primary: blocker, secondary: rusher,
-            value: afterMilliseconds)
+            detail: BlockResult.lost.rawValue, value: afterMilliseconds)
     }
 
+    /// The pocket held: the pair is the rush that came closest, `forMilliseconds` is how
+    /// long the protection had to last, and `closestRep` is how that rep itself finished
+    /// — held all the way, or beaten and late. See `DecisionKind.pressureHeld` for why
+    /// the last of those is on the verdict rather than left to be dug out of the play's
+    /// block results.
     public static func pressureHeld(
-        tick: UInt16, blocker: PlayerSlot, rusher: PlayerSlot, forMilliseconds: Int16
+        tick: UInt16, blocker: PlayerSlot, rusher: PlayerSlot, forMilliseconds: Int16,
+        closestRep: BlockResult
     ) -> DecisionPoint {
         DecisionPoint(
             tick: tick, kind: .pressureHeld, primary: blocker, secondary: rusher,
-            value: forMilliseconds)
+            detail: closestRep.rawValue, value: forMilliseconds)
     }
 
     /// A read is the quarterback's act, so he is `primary` and the man he read is
@@ -381,12 +424,16 @@ extension DecisionPoint {
             detail: placement.rawValue, value: separationCentimetres)
     }
 
+    /// What became of the ball, and how contested it was: `separationCentimetres` is the
+    /// separation the throw arrived with, the same number this catch's `ballArrival`
+    /// carries.
     public static func catchAttempt(
-        tick: UInt16, receiver: PlayerSlot, defender: PlayerSlot, result: CatchResult
+        tick: UInt16, receiver: PlayerSlot, defender: PlayerSlot, result: CatchResult,
+        separationCentimetres: Int16
     ) -> DecisionPoint {
         DecisionPoint(
             tick: tick, kind: .catchAttempt, primary: receiver, secondary: defender,
-            detail: result.rawValue)
+            detail: result.rawValue, value: separationCentimetres)
     }
 
     public static func tackleAttempt(
@@ -397,12 +444,18 @@ extension DecisionPoint {
             detail: result.rawValue)
     }
 
+    /// One rep, and how it finished. `atMilliseconds` is the moment `tick` names, in
+    /// milliseconds from the snap — how long the blocker sustained, or when the rusher he
+    /// lost to arrived. It defaults to none because a run's reps are settled at the
+    /// handoff and there is no pocket clock for them to be read against; a dropback's
+    /// carry it, and the pocket verdict is decided from them.
     public static func blockResult(
-        tick: UInt16, blocker: PlayerSlot, defender: PlayerSlot, result: BlockResult
+        tick: UInt16, blocker: PlayerSlot, defender: PlayerSlot, result: BlockResult,
+        atMilliseconds: Int16 = 0
     ) -> DecisionPoint {
         DecisionPoint(
             tick: tick, kind: .blockResult, primary: blocker, secondary: defender,
-            detail: result.rawValue)
+            detail: result.rawValue, value: atMilliseconds)
     }
 
     public static func coverageAssignment(
@@ -470,6 +523,16 @@ extension DecisionPoint {
     }
     public var clockElectionValue: ClockElection? {
         kind == .clockElection ? ClockElection(rawValue: detail) : nil
+    }
+
+    /// The result of the rep the pocket verdict was decided from, for a
+    /// `.pressureAllowed` or a `.pressureHeld` point: the rusher who got home, or the one
+    /// who came closest. `.lost` always on the first — the byte is the contract's
+    /// constant there — and either result on the second, where it is the difference
+    /// between a protection that held and one that was beaten and got away with it.
+    public var pocketRepResult: BlockResult? {
+        kind == .pressureAllowed || kind == .pressureHeld
+            ? BlockResult(rawValue: detail) : nil
     }
 
     /// Whether the lane a `.holeQuality` point scored was run inside, for a point of that
