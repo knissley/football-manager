@@ -193,9 +193,8 @@ four-core Linux container: FMSimulation debug **161–214 s**, release **15 s**;
 
 **This section is the implementer's**; a reviewer's is in Part 1. Run
 **`./scripts/preflight.sh`**, which picks the lane from your diff and stops at the first failure,
-naming the step and log, and **paste `--report`'s block into the PR body**. Iterate with
-**`--iterate <SuiteName>`**, but **run the full debug suite once before pushing**: one
-FMSimulation test is behind `#if DEBUG`.
+and **paste `--report`'s block into the PR body**. Iterate with **`--iterate <SuiteName>`**, but
+**run the full debug suite once before pushing**: one FMSimulation test is behind `#if DEBUG`.
 
 ## How you work
 
@@ -226,11 +225,11 @@ repo, commit messages included.**
 
 ### If you touch `docs/reference/playing-rules.md`
 
-`playing-rules.md` is the project's own paraphrase, read as authoritative by the next
-implementer, and an entry that misstates its article **blocks a merge**. Read the article as
-printed — `./scripts/lint-reference.sh --show` prints every article the branch diff cites —
-and write the entry from it, stating only what it states and flagging any inference as one. Watch
-the terms of art ([examples](../../../docs/lessons.md#terms-of-art-in-the-reference)). **The lint
+`playing-rules.md` is the project's own paraphrase, and an entry that misstates its article
+**blocks a merge**. Read the article as printed — `./scripts/lint-reference.sh --show` prints
+every article the branch diff cites — and write the entry from it, stating only what it states
+and flagging any inference as one. Watch the terms of art
+([examples](../../../docs/lessons.md#terms-of-art-in-the-reference)). **The lint
 checks that a cited article *exists*, not that it says what the citation claims**, so reading it
 is the check. **Reviewers run `--show` before judging an entry**, quote the header, and report the article as
 printed, what the entry claims, whether it is **behaviour-bearing**, and whether an open issue
@@ -238,11 +237,11 @@ cites it — the last two decide whether it blocks.
 
 ## The shingle is the lint's job — do not write your own
 
-`scripts/lint-reference.sh` scans whole files and whole commit messages, never a sub-diff, per
-line **and** joined, with controls cut from the corpus at runtime: unless they come out 1, 1, 0
-it prints no count and exits 2, so **quote that control line beside your count**. `preflight`
-runs the tree scan and `--messages` but not **`--n 8`**, worth a run when the branch added
-football prose. Run `--messages` immediately before pushing.
+`scripts/lint-reference.sh` scans whole files and whole commit messages, never a sub-diff, with
+controls cut from the corpus at runtime: unless they come out 1, 1, 0 it prints no count and
+exits 2, so **quote that control line beside your count**. `preflight` runs the tree scan and
+`--messages` but not **`--n 8`**, worth a run when the branch added football prose. Run
+`--messages` immediately before pushing.
 
 ## The harness
 
@@ -280,8 +279,9 @@ Resolve keeping both sides, regenerate the goldens that moved, re-run the harnes
 ## Finishing
 
 **Open the pull request yourself, as a draft, with your first push** — a bare branch gets no CI
-run, CI firing on `push` only for `main`. Mark it ready when done; **do not merge and do not
-enable auto-merge.** Report each CI conclusion by name and fix a red one first.
+run, CI firing on `push` only for `main`. When done, mark it ready, report, and end your turn.
+**Do not wait on CI**: the orchestrator watches it and merges on green, and a red check comes back
+to you as a message. **Do not merge and do not enable auto-merge.**
 
 ## Your report is the PR body
 
@@ -305,5 +305,5 @@ mechanism**, the rulebook by article and season, **never its text**.
 
 ## Housekeeping
 
-Worktrees each carry a `.build`; enough will fill the disk. On "no space left on device" delete
-them; they regenerate. Never delete another's source.
+Worktrees each carry a `.build`; enough fill the disk. On "no space left on device" delete them;
+they regenerate. Never delete another's source.
