@@ -235,80 +235,76 @@ extension PlayCaller {
         }
     }
 
-    /// The answer, which is mostly a matter of counting receivers and then counting
-    /// backs.
+    /// The answer, drawn from what the sport answers a grouping with rather than computed
+    /// from it.
     ///
-    /// A defence substitutes to match: three receivers get a nickel back, four get a
-    /// dime, and a grouping with two backs gets the four-back front. A second tight end
-    /// is the one grouping it answers two ways. Guessing wrong is the cost of guessing,
-    /// and the offence declaring first is what makes it a decision at all.
+    /// A defence substitutes to match — three receivers get a nickel back, four get a
+    /// dime, two backs get the four-back front — and the sport does all of that *most* of
+    /// the time and none of it every time. That difference is the whole of this rule. The
+    /// engine used to answer a grouping with a function: three receivers drew a fifth
+    /// defensive back on every ordinary down, two backs drew the four-back front on all of
+    /// them. Both marginals sat inside their bands while the joint behind them did not
+    /// exist, so eleven personnel met a four-back front on two first-and-ten carries in a
+    /// thousand where the sport meets one on about a hundred, and the count-advantage
+    /// bucket the record reads off that pairing was too thin to average.
     ///
-    /// Nickel is what a modern defence lines up in, and base is the substitution rather
-    /// than the other way round: `row:packageNickel` (S2, 2023-24) puts five defensive
-    /// backs on 61.6-69.2% of snaps against `row:packageBase`'s 20.2-25.0 for four, and
-    /// nickel's floor is above half of every snap played.
+    /// **The table is the source's own conditional**, P(package | grouping, down), over
+    /// the participation feed's 2023 and 2024 seasons, scrimmage plays, two-point tries
+    /// excluded — the population every one of `calibration-sources.py`'s participation
+    /// rows is folded over. It is renormalised across the three packages a caller draws
+    /// between here, so the feed's three- and seven-defensive-back snaps are out of it:
+    /// this rule's two branches above are where the engine plays those, and they are the
+    /// rules of a situation rather than an answer to a grouping. The derivation, the
+    /// releases it reads and the per-season figures are in
+    /// `docs/reference/calibration-sources.md`.
+    ///
+    /// **Three buckets and not eleven**, because the shape of the conditional is a
+    /// three-step and not a curve: the feed's own by-down split moves a grouping's answer
+    /// a point or two between first and second down and then falls off a cliff once the
+    /// offence has to throw — eleven personnel draws a four-back front on 14.4% of first
+    /// downs, 8.6% of second downs and short third and fourth ones, and 1.2% once it is
+    /// third or fourth and four or more, where a sixth defensive back takes 38.8%.
+    ///
+    /// **The goal line is a row too, and it was the worst of the functions.** Inside the
+    /// three the engine put its goal-line eleven on the field on every snap; the feed says
+    /// the sport plays three defensive backs or fewer on 19.7% (2023) and 23.2% (2024) of
+    /// snaps from there, and answers with its nickel more often than with anything else.
+    /// That row is keyed on the yard line rather than on the grouping, and it is the only
+    /// one that is; its remainder maps every count below four onto `goalLine`, which is
+    /// what `PackageConditional.insideTheThree` sets out.
+    ///
+    /// **What this rule cannot do is anticipate the run**, and the gap shows on the one
+    /// population the harness grades. The feed puts a four-back front against eleven
+    /// personnel on 18.8% (2023) and 18.3% (2024) of first-and-ten *designed carries* but
+    /// 10.8 and 11.0% of first-and-ten *dropbacks*, against 14.5 and 14.2% of the two
+    /// together. A real coordinator substitutes on what he expects — the opponent's
+    /// tendency, the game script, the formation — and this one is asked after the concept
+    /// has been drawn and handed nothing that separates a run from a pass. So it draws the
+    /// rate over both, which is the rate it can hold honestly, and the run subset lands
+    /// near it rather than at the sport's.
     public func package(
         for situation: Situation, classified: SituationClass, random: inout SplittableRandom
     ) -> DefensivePackage {
-        if situation.ballOn <= 3 && !classified.isMustPass { return .goalLine }
+        // The prevent shell is the clock's answer and not a grouping's, so it is settled
+        // before the table: a defence protecting a lead with two minutes left and the
+        // offence sixty yards from the goal line is playing the situation.
         if classified.time == .twoMinuteGame && classified.score.isLeading
             && situation.ballOn > 60
         {
             return .prevent
         }
-
-        switch situation.offensePersonnel.wideReceivers {
-        // Five receivers and four both get a dime. Seven defensive backs against an
-        // empty set leaves four men in the front, which is a prevent look rather than an
-        // answer to a grouping a team snaps from on an ordinary down; `prevent` below is
-        // where that eleven belongs.
-        case 5, 4: return .dime
-        case 3:
-            // Against three receivers the nickel back comes on, and on an ordinary down
-            // he stays on. A defence that answered eleven personnel from its base front
-            // a quarter of the time was one nobody could catch out, but it was also one
-            // playing four defensive backs on a third of every snap, which is not the
-            // shape of the sport: the two bands above leave base with about the share
-            // the heavier groupings take and no more.
-            //
-            // The mismatch survives where it is a bet rather than a habit. In short
-            // yardage a defence commits to the run and wears the extra receiver when it
-            // is wrong, and on a down where the offence has to throw the sixth back is
-            // on offer — which, with four and five receivers already answered above, is
-            // what puts a dime on the field on third and long.
-            if classified.downAndDistance.isShortYardage {
-                return random.nextBool(probability: 0.55) ? .base : .nickel
-            }
-            if classified.isMustPass {
-                return random.nextBool(probability: 0.15) ? .dime : .nickel
-            }
-            return .nickel
-        default:
-            // Two or fewer: heavy personnel, and a base defence unless the down says
-            // otherwise.
-            if classified.isMustPass { return .nickel }
-            // A second tight end is not a second back. One back is one fewer man to
-            // account for in the running game and one more the defence would rather
-            // cover with a defensive back than with a linebacker, so a two-tight-end
-            // grouping draws the fifth back some of the time. Two backs draw the
-            // four-back front every time: that is the grouping the front is for.
-            //
-            // Three in ten, derived from two sourced bands rather than taken from a
-            // figure for the grouping, because the repository sources none.
-            // `row:packageBase` (S2, 2023-24) puts four defensive backs on 20.2-25.0%
-            // of snaps and `row:personnel11` puts eleven personnel on 62.3-71.9% of
-            // them, so a grouping that is not eleven personnel is on 28.1-37.7%. The
-            // four-back front cannot answer all of those and stay inside its own band:
-            // at the midpoints of the two, 32.9 snaps in a hundred are a heavier
-            // grouping against 22.6 in a four-back front, which leaves 31.3% of the
-            // heavier snaps to a fifth defensive back. Applying it to a two-tight-end
-            // grouping alone realises less than that, since the two-back groupings keep
-            // the front, and less is the conservative side of a derivation with no
-            // figure behind it.
-            if situation.offensePersonnel == .twelve {
-                return random.nextBool(probability: 0.30) ? .nickel : .base
-            }
-            return .base
+        let conditional =
+            situation.ballOn <= 3 && !classified.isMustPass
+            ? PackageConditional.insideTheThree
+            : PackageConditional.forGrouping(
+                situation.offensePersonnel, on: situation.down, distance: situation.distance)
+        // Per mille, so a share the feed states to a tenth of a point is drawn to a tenth
+        // of a point, in the order the cumulative thresholds are written.
+        switch random.next(upperBound: 1000) {
+        case ..<conditional.base: return .base
+        case ..<conditional.throughNickel: return .nickel
+        case ..<conditional.throughDime: return .dime
+        default: return .goalLine
         }
     }
 

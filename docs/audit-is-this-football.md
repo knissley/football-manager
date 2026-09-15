@@ -148,6 +148,13 @@ time — it stays in its base front against eleven personnel about a quarter of 
 betting on the run, because a defence that always matches is one nobody can ever catch
 out.
 
+**Those three sentences are S3's tree and not today's**, and the second of them was
+undone twice after this section was written. The share against eleven personnel went to
+zero when the package rule was rewritten to hold `row:packageBase`, which is what C29
+below found, and it is now drawn from the source's conditional rather than set at all. Read
+[play-calling.md](play-calling.md#nickel-is-the-base-defence-and-the-answer-is-a-distribution)
+for the rule and the harness for the shares.
+
 Two smaller things fell out. `RotationProfile` had said all along that the third
 linebacker plays "a little under half the time, about a third base and two thirds nickel"
 — a rotation curve written for a substitution system that did not exist, so that
@@ -894,6 +901,17 @@ argument for watching a game.
   runs two ordinary plays and kicks a field goal. Too early to kneel, and a team that has
   decided the game is over does not go back to playing. Found in the same game.
   ([#57](https://github.com/knissley/football-manager/issues/57))
+- **C29** — personnel and the defensive package are paired almost deterministically, so
+  the two marginal rows sit in band while the joint behind them does not exist: eleven
+  personnel meets a four-back front on 0.2% of first-and-ten designed carries where the
+  sport is at 9.8 to 11.0%, and `row:ypcOutnumberedByOne` has 23 carries to average and
+  prints `n/a`. **Fixed**: the package is drawn from the source's own
+  P(package | grouping, down) rather than computed from the receiver count, and the
+  goal-line eleven — which the engine put on the field on every snap inside the three,
+  against the 19.7 to 23.2% of snaps the sport plays below four defensive backs there — is
+  drawn from the same feed. The bucket holds about 1,200
+  carries and grades. What it grades is a level and belongs to the retune.
+  ([#218](https://github.com/knissley/football-manager/issues/218))
 - **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside
   kicks are fourth quarter only, and nothing records which season the defaults describe.
   **Fixed**: the touchback is the 35, an onside kick may be declared at any time while

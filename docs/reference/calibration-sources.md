@@ -340,22 +340,88 @@ snap however the two bands are paired, and which therefore says that a snap that
 eleven personnel mostly carries a second tight end rather than a fourth receiver. A
 caller's mix is set from those two, because there is no figure for twelve to set it from,
 and a twelve-personnel share stated as football without one is a number from memory.
-Computing one is the derivation the rows above already perform — the source's
-participation feed names the grouping on every play — and it is cheap; it is simply not
-done, and this line says so rather than leaving the gap to be filled by remembering.
+Computing one is the derivation below — the source's participation feed names the grouping
+on every play — and it is cheap; for the offence's mix it is simply not done, and this line
+says so rather than leaving the gap to be filled by remembering.
 
-**No share is sourced for the defensive answer to a two-tight-end grouping either.** The
-package rows band how often each front is on the field over *all* snaps; nothing here bands
-how a defence answers one grouping. What the two bands above do say, on their own, is that
-the four-back front cannot answer every heavier grouping: `row:personnel11`'s 62.3-71.9%
-leaves 28.1-37.7% of snaps in a grouping that is not eleven personnel, and the smallest
-that share can be is larger than `row:packageBase`'s largest. At the midpoints, 32.9 snaps
-in a hundred are a heavier grouping against 22.6 in a four-back front, so 31.3% of the
-heavier snaps are answered with a fifth defensive back. The caller's three-in-ten share
-against a two-tight-end grouping is that figure and nothing else; applied to one grouping
-rather than to all the heavier ones it realises less than 31.3%, which is the conservative
-side of a derivation with no figure behind it. Computing the real share is the same cheap
-derivation as above and is likewise not done.
+#### The defensive answer to a grouping, derived
+
+**This is the conditional, and it used to be the gap.** These pages twice recorded that
+nothing bands how a defence answers one grouping, and twice noted the derivation would be
+cheap. It is done here, and `PackageConditional` in `FMSimulation` is this table. The
+caller draws its package from it rather than computing one, which is what
+[#218](https://github.com/knissley/football-manager/issues/218) asked for: the two marginal
+rows can both sit in band while the joint behind them is a function, and nothing in a
+marginal can say so.
+
+Population: the same one every participation row above is folded over — regular-season
+plays from scrimmage, two-point tries excluded, both sides' personnel readable — over the
+two releases quoted at the top of this file, with the two seasons folded together.
+Renormalised across four, five and six defensive backs, because the three- and
+seven-back snaps are answers to a situation rather than to a grouping and the caller draws
+them elsewhere. `early` is first down; `middle` is second down or third and fourth with
+three or fewer to go; `late` is third and fourth with four or more.
+
+| Grouping | Bucket | Snaps | Base | Nickel | Dime |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 11 | early | 18,276 | 14.4% | 79.2% | 6.5% |
+| 11 | middle | 18,338 | 8.6% | 83.5% | 7.9% |
+| 11 | late | 8,706 | 1.2% | 60.0% | 38.8% |
+| 12 | early | 8,450 | 59.7% | 38.4% | 1.9% |
+| 12 | middle | 6,339 | 49.9% | 47.4% | 2.7% |
+| 12 | late | 781 | 17.9% | 54.5% | 27.5% |
+| 13 | early | 1,391 | 83.2% | 15.0% | 1.8% |
+| 13 | middle | 970 | 80.3% | 18.5% | 1.2% |
+| 13 | late | 76 | 76.3% | 18.4% | 5.3% |
+| 21 | early | 583 | 22.8% | 74.4% | 2.7% |
+| 21 | middle | 520 | 23.3% | 74.0% | 2.7% |
+| 21 | late | 59 | 6.8% | 61.0% | 32.2% |
+| 22 | early | 145 | 57.9% | 40.7% | 1.4% |
+| 22 | middle | 130 | 67.7% | 32.3% | 0.0% |
+| 22 | late | 31 | 48.4% | 38.7% | 12.9% |
+| 10 | early | 366 | 18.0% | 78.4% | 3.6% |
+| 10 | middle | 332 | 15.1% | 81.9% | 3.0% |
+| 10 | late | 154 | 1.3% | 63.0% | 35.7% |
+| 01 | early | 169 | 11.8% | 78.7% | 9.5% |
+| 01 | middle | 233 | 6.0% | 84.5% | 9.4% |
+| 01 | late | 457 | 0.2% | 57.5% | 42.2% |
+
+**Two rows correct a claim this repository made from memory.** Twenty-one personnel draws
+the *fifth* defensive back about three times in four; the caller's comment said two backs
+"draw the four-back front every time: that is the grouping the front is for". And the
+engine's three-in-ten share against a two-tight-end grouping, derived from the two marginal
+bands for want of a figure, reads 38.4% on first down against the figure that now exists.
+
+**The empty set is answered from `01`.** Five-receiver groupings hold twenty-five snaps in
+two seasons, which is not a band; `01` is the sourced grouping with no running back, and
+that is the part of an empty set a defence substitutes against.
+
+**Inside the three, the situation answers rather than the grouping.** On the 793 (2023) and
+857 (2024) snaps from scrimmage with the ball on the three or closer, the feed has four
+defensive backs on 30.1 and 34.8% of them, five on 46.2 and 40.5, and six on 3.9 and 1.5.
+The sport's most common answer on the goal line is its nickel. That row is keyed on the
+yard line because the sample is thin enough that a six-way split by grouping would be noise
+per cell, and because the yard line is plainly what is being answered.
+
+**The rest of that row is a `<= 3` mapping, and it is a fifth of these snaps rather than a
+sliver.** Those three shares are not renormalised, so what they leave — 21.5% pooled — is
+every other count the feed saw down there: **three defensive backs or fewer on 19.7% (2023)
+and 23.2% (2024)**, plus one seven-back snap in two seasons. The three-back share alone is
+11.7 and 12.5; the one- and two-back goal-line fronts beneath it are another 7.6 and 10.7,
+and they are the heaviest elevens the sport puts on a field. `DefensivePackage` has one
+package below four defensive backs, so all of them are drawn as `goalLine` — the heaviest
+this engine has — rather than being lost to a front with more coverage on it than the
+sport had.
+
+**What no conditional here can carry is the run/pass anticipation.** The feed answers the
+same grouping differently by play type: eleven personnel meets four defensive backs on
+18.8% (2023) and 18.3% (2024) of first-and-ten designed carries, 10.8 and 11.0% of
+first-and-ten dropbacks, and 14.5 and 14.2% of the two together. `PlayCaller.package(for:)`
+is asked after the offensive concept has been drawn and is handed a `Situation` and a
+`SituationClass`, neither of which separates a run from a dropback, so it draws the rate
+over both. The engine's realised rate on carries therefore lands near 14% rather than near
+18.5%, and the residual is the anticipation the engine does not model — tendency, script
+and formation — rather than a number to be set from the subset.
 
 ### The count-advantage buckets, and which of them the engine can fill
 
@@ -370,33 +436,41 @@ printed by the script as `ypcShareOutnumberedByOne`, `ypcShareEvenCount` and
 `ypcShareOutnumberingByOne`. None of the three is a row: the harness reads its own shares
 off the counts it prints beside each bucket.
 
-| Bucket | 2023 | 2024 | Engine, 400 games, seeds 7 and 11 |
-| --- | ---: | ---: | ---: |
-| outnumbered by one | 12.7% | 11.1% | **0.2%** — 23 carries of 11,685 and 11,634 |
-| even count | 64.8% | 67.4% | **92.3%** |
-| outnumbering by one | 20.0% | 20.2% | **7.1%** — 827 and 779 carries |
+| Bucket | 2023 | 2024 | Engine, 400 games, seed 7 | seed 11 |
+| --- | ---: | ---: | ---: | ---: |
+| outnumbered by one | 12.7% | 11.1% | 9.9% — 1,175 carries | 10.4% — 1,230 carries |
+| even count | 64.8% | 67.4% | 70.3% | 69.8% |
+| outnumbering by one | 20.0% | 20.2% | 18.6% — 2,206 carries | 18.6% — 2,212 carries |
 
-**`row:ypcOutnumberedByOne` reads `n/a`, and the reason is the engine's, not the row's.**
-It was diagnosed — in this file, in [play-calling.md](../play-calling.md) and in the issue
-that asked for it to be regraded or retired — as grading a box that modern defensive
-football has designed out. The table above is what settles that, and it says otherwise: the
-sport plays this box on one first-and-ten designed carry in eight. The bucket is not empty
-in the harness either; it holds 23 carries at both calibration seeds, which is too thin for
-a mean and is why the row prints no value. Every one of the 23 is eleven personnel against a
-four-back front, and the source runs that same pairing on 18.8% of 2023's first-and-ten
-carries from eleven personnel and 18.3% of 2024's, against the engine's 0.3%.
+**`row:ypcOutnumberedByOne` read `n/a` for as long as the joint was a function, and the
+reason was the engine's, not the row's.** It was diagnosed — in this file, in
+[play-calling.md](../play-calling.md) and in the issue that asked for it to be regraded or
+retired — as grading a box that modern defensive football has designed out. The source
+settles that and says otherwise: the sport plays this box on one first-and-ten designed
+carry in eight. The bucket was never empty in the harness either; it held 23 carries at
+both calibration seeds, too thin for a mean, and every one of the 23 was eleven personnel
+against a four-back front while the source ran that pairing on 18.8 and 18.3% of its
+first-and-ten carries from eleven personnel against the engine's 0.3%.
 
-So the band is sound, the row is sound, and what is wrong is the engine's **joint**
+So the band was sound, the row was sound, and what was wrong was the engine's **joint**
 personnel-and-package answer rather than either marginal: `row:personnel11`,
-`row:packageNickel` and `row:packageBase` all grade `ok` at both seeds while the pairing of
-one to the other is nearly deterministic where the sport's is not. **That is a residual for
-the retune ([#49](https://github.com/knissley/football-manager/issues/49)), and no band or
-denominator here is to be moved to accommodate it.** Retiring the row would record a claim
-about the sport that the source contradicts.
+`row:packageNickel` and `row:packageBase` all graded `ok` at both seeds while the pairing of
+one to the other was nearly deterministic where the sport's is not. With the conditional
+above drawn rather than computed, the bucket holds 1,175 and 1,230 carries and the row
+grades. **No band or denominator here was moved to get there**, and `gradableCarries = 200`
+was not lowered: the bucket was filled rather than the bar dropped.
 
-`row:ypcOutnumberingByOne` is the bucket the engine's first-and-ten running has moved into,
-and it is graded: about 800 carries a seed, banded from the same source at 4.0–4.9 with
-4.33 in 2023 and 4.55 in 2024.
+**What it now grades is a level, and that is the retune's**
+([#49](https://github.com/knissley/football-manager/issues/49)): 3.1 and 3.2 yards a carry
+against 3.9–5.1, where the even-count bucket returns 4.7 and 4.8 inside 4.3–5.0. The sport's
+gap between the two boxes is small — 4.3–4.6 outnumbered against 4.5–4.7 even — and the
+engine's is more than a yard and a half.
+
+`row:ypcOutnumberingByOne` is graded on about 2,200 carries a seed, banded from the same
+source at 4.0–4.9 with 4.33 in 2023 and 4.55 in 2024. It held about 800 while the four-back
+front was the answer to every heavier grouping; drawing the conditional put eleven
+personnel against a dime and twenty-one personnel against a nickel into it, which is where
+the sport's plus-one carries mostly come from too.
 
 ### Who took the snap
 
@@ -893,7 +967,7 @@ was computed for this file.
 | First downs per team-game including penalty first downs: 17.8–18.3 | 2023-24 | `row:firstDownsPerTeamGame` |
 | Yards per carry by defenders actually in the box: 4.5–4.7 | 2023-24 | `row:ypcEvenCount` |
 | Even against outnumbered, the sport's own gap: 4.3–4.6 against 4.5–4.7 | 2023-24 | `row:ypcOutnumberedByOne` |
-| The outnumbered box is 11.1–12.7% of first-and-ten designed carries, and the engine reaches it on 0.2% | 2023-24 | `row:ypcOutnumberedByOne` |
+| The outnumbered box is 11.1–12.7% of first-and-ten designed carries, and the engine reaches it on 9.9–10.4% | 2023-24 | `row:ypcOutnumberedByOne` |
 | The outnumbering box is 20.0–20.2% of them, and by defenders actually in the box the carry gained 4.5–4.7 | 2023-24 | `row:ypcOutnumberingByOne` |
 | Fourth downs gone for, rising: 23.3% | 2025 | `row:fourthDownWentForIt` |
 | Fourth and one, went for it, rising: 76.3% | 2025 | `row:fourthAndOneWentForIt` |

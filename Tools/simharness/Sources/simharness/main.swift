@@ -1040,6 +1040,42 @@ report("snaps.offensiveLine", groupSnaps(.offensiveLine))
 report("snaps.frontSeven", groupSnaps(.edge, .defensiveInterior, .linebacker))
 report("snaps.defensiveBack", groupSnaps(.cornerback, .safety))
 
+// The pairing itself, ungraded and printed for reading. The two marginals above can both
+// sit inside their bands while the *joint* is a function rather than a distribution —
+// grouping g always drawing package p — and nothing in a marginal can say so. It is
+// printed over first-and-ten designed carries because that is the population the three
+// count-advantage rows below are read on, so a thin bucket there can be traced to the cell
+// that starved it.
+// No band and no verdict: `Targets.swift` grades the marginals, and what a cell should read
+// is the source's own conditional, which lives in `docs/reference/calibration-sources.md`
+// rather than in a row.
+print("    grouping against package, first-and-ten designed carries")
+let firstAndTen = carries.filter { $0.situation.down == .first && $0.situation.distance == 10 }
+var joint: [UInt16: Int] = [:]
+for play in firstAndTen {
+    let key =
+        UInt16(play.situation.offensePersonnel.code) << 8
+        | UInt16(play.situation.defensePackage.rawValue)
+    joint[key, default: 0] += 1
+}
+let firstAndTenCount = Double(max(1, firstAndTen.count))
+// Sorted by count and then by the packed key, so two cells that tie print in the same
+// order in every run (CLAUDE.md rule 2).
+for (key, count) in joint.sorted(by: { ($0.value, $1.key) > ($1.value, $0.key) }).prefix(10) {
+    let code = UInt8(key >> 8)
+    let package = DefensivePackage(rawValue: UInt8(key & 0xff)) ?? .base
+    let group = PersonnelGroup(
+        runningBacks: code / 10, tightEnds: code % 10)
+    let blockers = 5 + Int(group.tightEnds) + max(0, Int(group.runningBacks) - 1)
+    let advantage = blockers - (11 - Int(package.defensiveBacks))
+    let label =
+        "\(code < 10 ? "0\(code)" : "\(code)") / \(package)"
+        + " (\(advantage > 0 ? "+" : "")\(advantage))"
+    print(
+        "      \(pad(label, 28))\(pad(oneDecimal(Double(count) / firstAndTenCount * 100) + "%", 8))\(count) carries"
+    )
+}
+
 // The matchup, which is the point of having personnel at all. A run into a light box
 // should go further than one into a stacked one, and if it does not then the substitution
 // is decoration.

@@ -559,6 +559,19 @@ of their own kind were the alternative — a `DeadBallEvent` stream beside the p
 were rejected because everything downstream walks one stream, and a between-downs event is
 exactly the thing the next snap's causal chain begins with.
 
+**The defence's substitution is on the record as a decision, not only as a fact.** Which
+package was on the field is already there twice — `situation.defensePackage` and the
+package the defensive call names, equal by construction — and neither says whether anybody
+chose it: a free kick's eleven and a try's are set by the rules with no coordinator in it.
+So a `.substitution` point, carrying the `DefensivePackage` the caller answered the
+declared grouping with, sits at the front of the snap it was made for, with the rest of
+what happened while the ball was dead. A snap that carries one is a snap where the question
+was put to the defence, which is what lets a reader ask what a defence *does* against a
+grouping without counting the elevens nobody called. `PlayCaller.package(for:)` draws it
+from the source's conditional
+([play-calling.md](play-calling.md#nickel-is-the-base-defence-and-the-answer-is-a-distribution)),
+so the point is also where a replay finds the draw that was made.
+
 The coin toss and its elections go at the front of a half's free kick for the same reason:
 they happened with the ball dead and that kick is the first thing they are before. A flag
 before that kick puts them on the record of the down that never was, which is where they

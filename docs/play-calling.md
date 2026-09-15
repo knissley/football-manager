@@ -377,78 +377,92 @@ DefensiveCall
 A play designer that produces a call the engine already understands beats an engine
 that needs a new case per call.
 
-#### Nickel is the base defence
+#### Nickel is the base defence, and the answer is a distribution
 
-The package is not a flavour of the call, it is who is on the field, and it follows the
-grouping the offence declared. Three receivers get a nickel back, four or five get a dime,
-and a grouping with a second back gets the four-back front the sport still calls base —
-which is the substitution now, not the default. `row:packageNickel` puts five defensive
-backs on 61.6-69.2% of snaps and `row:packageBase` four on 20.2-25.0%
-([calibration-sources.md](reference/calibration-sources.md), S2, 2023-24): the two bands do
-not overlap, and nickel's floor is above half of every snap played.
+The package is not a flavour of the call, it is who is on the field, and it is **drawn**
+from what the sport answers the declared grouping with — not computed from it. Three
+receivers usually get a nickel back, a second back usually does not get the four-back front
+the sport still calls base, and the word doing the work in both is *usually*.
+`row:packageNickel` puts five defensive backs on 61.6-69.2% of snaps and `row:packageBase`
+four on 20.2-25.0% ([calibration-sources.md](reference/calibration-sources.md), S2,
+2023-24): the two bands do not overlap, and nickel's floor is above half of every snap
+played.
 
-A second tight end is the one grouping answered two ways: three snaps in ten of it draw the
-fifth defensive back and the rest draw the front. One back is one fewer man to account for
-in the running game and one more the defence would rather cover with a defensive back than
-with a linebacker, so it is a grouping a defence can answer either way and does.
+The engine used to answer a grouping with a *function*: nickel on every ordinary down
+against three receivers, base on every one against two backs. Both bands held while the
+joint behind them did not exist, and the cost is set out below. The rule now draws from
+P(package | grouping, down), taken from the participation feed over 2023 and 2024 and
+tabled in `PackageConditional`
+([calibration-sources.md](reference/calibration-sources.md#who-is-on-the-field) carries the
+derivation). Three down buckets, because the feed's own split is a three-step rather than a
+curve: first down; second down and short third and fourth ones; and third or fourth with
+four or more to go, where a sixth defensive back takes nearly two snaps in five.
 
-Three in ten is derived, not sourced, and
-[calibration-sources.md](reference/calibration-sources.md#who-is-on-the-field) records the
-gap. Base's own band cannot hold if the four-back front answers every heavier grouping:
-`row:personnel11` puts eleven personnel on 62.3-71.9% of snaps, so a grouping that is not
-eleven personnel is on 28.1-37.7% of them, and the smallest that share can be is larger
-than base's largest. At the midpoints of the two bands, 32.9 snaps in a hundred are a
-heavier grouping against 22.6 in a four-back front, which leaves 31.3% of the heavier snaps
-to a fifth defensive back. Applying it to a two-tight-end grouping alone realises less than
-that, because the two-back groupings keep the front.
+Two of its rows contradict what this section used to assert.
 
-The mismatch is the point of substituting at all, and it survives where it is a bet rather
-than a habit. In short yardage a defence commits to the run against three receivers and
-wears the extra receiver when it is wrong; on a down where the offence has to throw, the
-sixth defensive back is on offer. What it no longer does is answer eleven personnel from a
-four-back front on an ordinary down, which it used to do about a quarter of the time and
-which left four defensive backs on a third of every snap played.
+- **Two backs draw the fifth defensive back, not the front.** Twenty-one personnel is
+  answered with nickel on 70.1% (2023) and 76.0% (2024) of its snaps and with base on 23.0
+  and 21.1. "That is the grouping the front is for" was a claim from memory; the feed says
+  the opposite.
+- **The goal line is not a goal-line package.** Inside the three the engine put its
+  goal-line eleven on the field on every snap. The sport answers with its nickel more often
+  than with anything else there (46.2 and 40.5%), with base on 30.1 and 34.8, and with
+  fewer than four defensive backs on **19.7 and 23.2** — of which the three-back eleven is
+  11.7 and 12.5 and the one- and two-back fronts beneath it are the rest. The engine has
+  one package below four backs, so its row draws `goalLine` across that whole share. It is
+  keyed on the yard line rather than on the grouping, and it is the only one that is:
+  inside the three the situation is what the defence is answering.
 
-One cost of that is worth writing down rather than discovering, and two corrections to what
-this section used to say about it are worth more.
+**What the draw cannot do is anticipate the run**, and that bounds what any of this
+reaches. The feed answers the same grouping differently on a carry and on a dropback:
+eleven personnel meets a four-back front on 18.8 / 18.3% of first-and-ten designed carries
+and on 10.8 / 11.0% of first-and-ten dropbacks, against 14.5 / 14.2% of the two together. A
+real coordinator substitutes on what he expects — the opponent's tendency, the game script,
+the formation — and `package(for:)` is asked after the offensive concept has been drawn and
+is handed nothing that separates a run from a pass. So it draws the rate over both, and the
+carry subset lands there rather than at the sport's. Reading a subset's rate into a draw
+that cannot see the subset is the error that would look like a fix.
 
-Reserving the four-back front to the heavier groupings means a first-and-ten carry from
-eleven personnel almost never meets a seven-man box, so `row:ypcOutnumberedByOne` has too
-few carries to take a mean from and prints `n/a` instead of a number.
+The mismatch is the point of substituting at all, and it survives because it is a
+distribution rather than a habit. In short yardage a defence that commits to the run wears
+the extra receiver when it is wrong; on a down where the offence has to throw, the sixth
+defensive back is on offer.
 
-**The first correction.** This section once said that answering a two-tight-end grouping
-from nickel some of the time would get the row back. **It does not, and the arithmetic says
-so.** The row counts carries where the box has one more man in it than the offence has
-blockers, and the harness counts blockers as the five linemen plus every tight end plus
-every back after the first. A two-tight-end grouping blocks seven against nickel's six-man
-box, so it is not outnumbered by one — it outnumbers by one. The pairings that reach minus
-one are eleven personnel against a four-back front, which is the rule the paragraph above
-removed on ordinary downs, and four or five receivers against a nickel back, which the
-package rule answers with a dime instead.
+##### What this fixed, and what it did not
 
-**The second correction, which is newer and which the first one's wording invited.** This
-section then said the engine produces *neither* pairing on first and ten and that the row is
-structurally ungradable. Measured, at 400 games in release, both calibration seeds: it
-produces the first, **23 times a seed**, eleven personnel against a four-back front — 0.2%
-of first-and-ten designed carries, against the 92.3% that come at an even count. Twenty-three
+Reserving the four-back front to the heavier groupings meant a first-and-ten carry from
+eleven personnel almost never met a seven-man box, so `row:ypcOutnumberedByOne` had too few
+carries to take a mean from and printed `n/a`. Two corrections this section carried on the
+way there are worth keeping, because the wording of each invited the next.
+
+**The first.** This section once said that answering a two-tight-end grouping from nickel
+some of the time would get the row back. **It does not, and the arithmetic says so.** The
+row counts carries where the box has one more man in it than the offence has blockers, and
+the harness counts blockers as the five linemen plus every tight end plus every back after
+the first. A two-tight-end grouping blocks seven against nickel's six-man box, so it is not
+outnumbered by one — it outnumbers by one. The pairings that reach minus one are eleven
+personnel against a four-back front and four or more receivers against a nickel back.
+
+**The second, which the first one's wording invited.** This section then said the engine
+produces *neither* pairing on first and ten and that the row is structurally ungradable.
+Measured, at 400 games in release: it produced the first, **23 times a seed** — 0.2% of
+first-and-ten designed carries against the 92.3% that came at an even count. Twenty-three
 is a real sample and a useless one, and the harness prints the count with no mean beside it
 rather than printing nothing, because printing nothing is what made "thin" read as "never"
 in this paragraph for as long as it did.
 
-**What the source does is the part that settles it.** In the play-by-play release the box
-outnumbers the blockers on **11.1% of first-and-ten designed carries in 2024 and 12.7% in
-2023** — one carry in eight, not a situation the sport has designed out. Eleven personnel
-alone draws a four-back front on **18.3% and 18.8%** of those carries. So the band is right
-and the row is right, and what is not right is the engine's *joint* answer: each package's
-own share lands in band — `row:packageBase` and `row:packageNickel` both grade `ok` — while
-the pairing of package to grouping is nearly deterministic where the sport's is not. That is
-an engine residual and belongs to the retune
-([#49](https://github.com/knissley/football-manager/issues/49)), not to this section and not
-to the row.
+**What the source does is the part that settled it.** In the play-by-play release the box
+outnumbers the blockers on **12.7% of first-and-ten designed carries in 2023 and 11.1% in
+2024** — one carry in eight, not a situation the sport has designed out. So the band was
+right and the row was right, and what was wrong was the engine's *joint* answer.
 
-The bucket where the engine's first-and-ten running actually happens is the other one, and
-it is graded: `row:ypcOutnumberingByOne`, about 800 carries a seed, banded from the same
-source at 4.0–4.9.
+With the draw in, the bucket fills: **1,175 and 1,230 carries** at the two calibration
+seeds, 9.9 and 10.4% of first-and-ten designed carries against the sport's 12.7 and 11.1,
+and the row grades rather than printing `n/a`. **What it grades is a level, and that is a
+separate question**: 3.1 and 3.2 yards a carry against a band of 3.9–5.1, where an even
+count returns 4.7 and 4.8. The engine's run into a seven-man box is too hard, the sport's
+gap between the two boxes is much smaller than the engine's, and that belongs to the retune
+([#49](https://github.com/knissley/football-manager/issues/49)) rather than to this section.
 
 ### Every call gives something up
 

@@ -229,6 +229,21 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// (4-2-2, 16-1-4-e). So the two points sit in the order the captains answered, and
     /// each says whose it is whichever order that was.
     case tossElectionByTheLoser = 18
+    /// The defence substituted, having seen the grouping the offence sent out, and this
+    /// is what it answered with. `detail` is a `DefensivePackage`; there is no player to
+    /// name and no quantity to carry, so the slots are empty and `value` is zero. The
+    /// caller's, and it sits at the front of the snap it was made for, with the rest of
+    /// what happened while the ball was dead.
+    ///
+    /// **It is the answer being a decision that this records, not the answer itself.**
+    /// Which package was on the field is already on the record twice, as
+    /// `situation.defensePackage` and as the package the defensive call names, and those
+    /// two are equal by construction. What neither says is whether anybody chose it: a
+    /// free kick's eleven and a try's are set by the rules with no coordinator involved,
+    /// and a reader asking what a defence *does* against a grouping has to be able to
+    /// leave those out. A snap carrying this point is a snap where the question was put
+    /// to the defence and answered from a distribution.
+    case substitution = 19
 }
 
 /// What one captain did with the coin toss (2025 rulebook, 4-2-2).
@@ -574,6 +589,13 @@ extension DecisionPoint {
             tick: 0, kind: .tossElectionByTheWinner, primary: .none, detail: election.rawValue)
     }
 
+    /// The defence's answer to the grouping the offence declared, on the snap it was
+    /// made for. Written only where a caller chose it — a free kick's package and a try's
+    /// are the rules', and carry no point.
+    public static func substitution(answeredWith package: DefensivePackage) -> DecisionPoint {
+        DecisionPoint(tick: 0, kind: .substitution, primary: .none, detail: package.rawValue)
+    }
+
     /// What the captain who lost it did (4-2-2). Never a deferral — see
     /// `DecisionKind.tossElectionByTheLoser` — which is a fact about the football rather
     /// than about the byte, so it is asserted over the corpus rather than taken out of
@@ -593,6 +615,10 @@ extension DecisionPoint {
     }
     public var tossElectionByTheLoser: TossElection? {
         kind == .tossElectionByTheLoser ? TossElection(rawValue: detail) : nil
+    }
+    /// The package the defence substituted to, for a `.substitution` point.
+    public var substitutionPackage: DefensivePackage? {
+        kind == .substitution ? DefensivePackage(rawValue: detail) : nil
     }
 
     // Typed reads. Each returns `nil` when the point is not of that kind, so a
