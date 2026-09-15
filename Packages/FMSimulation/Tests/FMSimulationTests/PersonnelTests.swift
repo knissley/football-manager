@@ -562,27 +562,84 @@ struct PersonnelTests {
         )
     }
 
-    /// A two-tight-end grouping draws the fifth defensive back sometimes, and the
-    /// four-back front most of the time.
+    /// Eleven personnel on first and ten meets a four-back front at the rate the sport
+    /// meets one, rather than never.
     ///
-    /// **A pin, not football.** What is sourced is `row:packageBase` above, which bounds
-    /// the four-back front over *every* snap and forces the rule to exist; nothing in the
-    /// repository bands how a defence answers a two-tight-end grouping in particular, and
-    /// the two bounds here are that sourced band carried onto a narrower population than
-    /// it covers. Base's ceiling of 25.0 against a non-eleven share of at least 28.1 is
-    /// what makes the share above zero; base's floor of 20.2 against a non-eleven share
-    /// of at most 37.7 leaves the four-back front at least 53.6% of those snaps, which is
-    /// what makes it a minority. Carrying either onto twelve personnel alone assumes the
-    /// heavier groupings are where the non-eleven snaps are, which is the engine's mix
-    /// rather than a figure, so this is tagged for what it is.
+    /// The defect this exists to keep out is a **joint** and not a marginal, which is why
+    /// no row above could see it. The offence called the right mix of groupings and the
+    /// defence answered with the right mix of packages — `row:personnel11`,
+    /// `row:packageNickel` and `row:packageBase` all inside their bands at both harness
+    /// seeds — while grouping *g* drew package *p* nearly every time, so three receivers
+    /// met a four-back front on 0.2% of first-and-ten carries where the sport is at
+    /// 9.8-11.0% of them, and the count-advantage bucket downstream held 23 carries in
+    /// four hundred games.
     ///
-    /// First and ten, which is where the grouping is a choice rather than a situation:
-    /// the short-yardage and goal-line branches never reach it, and a defence that has to
-    /// answer a two-tight-end grouping on an ordinary down is the thing being pinned.
+    /// **The band, and the population it is over.** The source's participation feed puts
+    /// four defensive backs against eleven personnel on **14.5% (2023) and 14.2% (2024)**
+    /// of first-and-ten snaps from scrimmage (S2; the derivation and the releases it reads
+    /// are in `docs/reference/calibration-sources.md`). *First-and-ten snaps*, not carries:
+    /// `PlayCaller.package(for:)` is asked after the offensive concept has been drawn and
+    /// is handed a `Situation` and a `SituationClass`, neither of which separates a run
+    /// from a dropback, so the conditional it can hold is the one over both. The same feed
+    /// reads 18.8 / 18.3% over designed carries alone and 10.8 / 11.0% over dropbacks
+    /// alone, and the distance between those two is a real defence anticipating the run
+    /// from tendency, script and formation — none of which this engine models. Asserting
+    /// the carry figure would be asserting a subset's rate on a draw that cannot see the
+    /// subset.
+    ///
+    /// The margin is sampling rather than taste. 1,440 snaps of this corpus are first and
+    /// ten in eleven personnel, so a binomial standard error at 14% is nine tenths of a
+    /// point, and the three points either side of the two seasons are a little over three
+    /// of them.
+    ///
+    /// It fails if the pairing goes back to a function: a defence that always answers
+    /// three receivers with a fifth back reads 0, and one that always answers with four
+    /// reads 100.
     @Test(
-        "Pins that twelve personnel on first and ten draws nickel sometimes and base mostly",
-        .tags(.pin))
-    func twelvePersonnelDrawsNickelSometimesOnAnOrdinaryDown() {
+        "Eleven personnel on first and ten meets a four-back front on 14.2-14.5% of snaps (S2 2023-24)",
+        .tags(.football))
+    func elevenPersonnelMeetsAFourBackFrontAtTheSourcedRate() {
+        let firstAndTen = Self.scrimmage.filter {
+            $0.situation.offensePersonnel.code == 11 && $0.situation.down == .first
+                && $0.situation.distance == 10
+        }
+        let base = firstAndTen.filter { $0.situation.defensePackage == .base }
+        let share = Double(base.count) / Double(max(1, firstAndTen.count)) * 100
+        // Reported, not asserted: the carries are the population the three
+        // count-advantage rows are read on, and the whole point of the row that reads
+        // n/a is that this subset was starved.
+        let carries = firstAndTen.filter { $0.outcome.kind == .rush }
+        let onCarries =
+            Double(carries.filter { $0.situation.defensePackage == .base }.count)
+            / Double(max(1, carries.count)) * 100
+        #expect(
+            share > 11.2 && share < 17.5,
+            "a four-back front answered \(share)% of \(firstAndTen.count) first-and-ten snaps in eleven personnel, and \(onCarries)% of the \(carries.count) designed carries among them"
+        )
+    }
+
+    /// A two-tight-end grouping draws the fifth defensive back rather more often than the
+    /// engine used to let it.
+    ///
+    /// Sourced, where the claim it replaces was a pin. The old test bounded this cell by
+    /// carrying `row:packageBase`'s all-snap band onto a narrower population than it
+    /// covers, because nothing in the repository banded how a defence answers a
+    /// two-tight-end grouping in particular. Something does now: the same participation
+    /// feed the marginals come from, conditioned on the grouping and the down, puts a
+    /// fifth defensive back against twelve personnel on **39.9% (2023) and 37.2% (2024)**
+    /// of first-down snaps (S2; `docs/reference/calibration-sources.md`).
+    ///
+    /// First and ten, which is where the grouping is a choice rather than a situation: the
+    /// goal-line branch never reaches it, and a defence that has to answer a second tight
+    /// end on an ordinary down is the thing being measured.
+    ///
+    /// The margin is sampling again: 427 snaps of this corpus are first and ten in twelve
+    /// personnel, a standard error of 2.4 points at this rate, and the band is the two
+    /// seasons plus about three of them.
+    @Test(
+        "Twelve personnel on first and ten draws a fifth defensive back on 37.2-39.9% of snaps (S2 2023-24)",
+        .tags(.football))
+    func twelvePersonnelDrawsNickelOnAnOrdinaryDownAtTheSourcedRate() {
         let ordinary = Self.scrimmage.filter {
             $0.situation.offensePersonnel.code == 12 && $0.situation.down == .first
                 && $0.situation.distance == 10
@@ -590,7 +647,7 @@ struct PersonnelTests {
         let nickel = Double(ordinary.filter { $0.situation.defensePackage == .nickel }.count)
         let share = nickel / Double(max(1, ordinary.count)) * 100
         #expect(
-            share > 0 && share < 50,
+            share > 30.5 && share < 46.6,
             "nickel answered \(share)% of \(ordinary.count) first-and-ten snaps in twelve personnel"
         )
     }
