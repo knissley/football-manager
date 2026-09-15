@@ -235,10 +235,11 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `65227ed`, the head the coin toss was cut from, plus the eight tests it added —
-three `football ·` over 4-2-2's deferral and its two privileges, five `contract:` over the
-toss in the record — and the one `pin` it turned into a `football ·` scenario: **1022
-tests, counted with `./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
+Taken on `bf507d1`, which carries the overtime endgame's two football tests, plus the
+eight the coin toss adds — three `football ·` over 4-2-2's deferral and its two
+privileges, five `contract:` over the toss in the record — and the one `pin` it turns into
+a `football ·` scenario: **1024 tests, counted with
+`./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
 no commit beside it is a claim about a tree nobody can go back to, which is the way a
 snapshot misleads — it reads as current long after it has stopped being true.
 
@@ -250,12 +251,12 @@ the same commit as whatever moved it, and move the sha above with it.
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 56 — 14.7% | 34 — 8.9% | 288 — 75.4% | 4 | 382 |
+| FMCore | 57 — 14.9% | 34 — 8.9% | 288 — 75.2% | 4 | 383 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 154 — 42.4% | 122 — 33.6% | 69 — 19.0% | 18 | 363 |
+| FMSimulation | 155 — 42.6% | 122 — 33.5% | 69 — 19.0% | 18 | 364 |
 | simharness | 0 — 0.0% | 15 — 46.9% | 17 — 53.1% | 0 | 32 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **211 — 20.6%** | **275 — 26.9%** | **514 — 50.3%** | **22** | **1022** |
+| **all** | **213 — 20.8%** | **275 — 26.9%** | **514 — 50.2%** | **22** | **1024** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.

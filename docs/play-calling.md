@@ -125,7 +125,8 @@ SituationClass
   field             ownDeep → goalLine
   score             trailing/leading by one, two or three scores, or tied
   time              opening · middle · twoMinuteFirstHalf · thirdQuarter ·
-                    fourthQuarter · clockBurn · twoMinuteGame · overtime
+                    fourthQuarter · clockBurn · twoMinuteGame · overtime ·
+                    twoMinuteOvertime
 ```
 
 Short is one to three, medium four to six, long seven or more — the same three widths on
@@ -159,6 +160,34 @@ and the fourth-down chart deliberately treats the two halves differently rather 
 acting on the description alike. The run shares themselves are modelling conventions; the
 sourced rows in `Tools/simharness` are what grade the balance, and a retune is what moves
 them.
+
+### Overtime is an endgame, and the clock is in it
+
+A regular-season overtime period is timed as the fourth quarter: two charged timeouts a
+side, and that period's closing rules with them, the two-minute warning among them (2025
+rulebook, 16-1-3-e). The engine's clock has always played it that way — `Rules.periodTiming`
+answers `.fourth` for every period past regulation in a regular-season game — and the
+vocabulary did not: every overtime snap classified as `overtime`, and `isTwoMinute` was
+the two windows of regulation. So the reads a caller plays the endgame with —
+`isMustPass`'s level clause, `isDesperation`, the tempo ladder, the spike, the timeout —
+were all switched off in the one period where the clock decides the game. Measured at a
+thousand games a seed, seeds 7 and 11: 1,247 overtime snaps, every one of them called at
+huddle tempo, and not one charged timeout in sixty-seven overtime periods, with the
+offence in a tie game reaching its last snap holding a mean of 1.9 of the two it had.
+
+`twoMinuteOvertime` is that period's last two minutes, and it reads as a two-minute
+situation like the others: the offence hurries, spikes when its timeouts are gone, and
+spends them while the clock is running; trailing there is desperation, because nothing
+extends the period (16-1-3-d) and the possession is the last one. Outside the warning an
+overtime offence huddles like any other — the period is ten minutes long.
+
+What the bucket does not carry is the postseason's pairing. 16-1-4-h ends a half on a
+second and a fourth overtime period and leaves a first and a third timed as first and
+third quarters, with no warning in them, and the classification has no postseason flag to
+read: it reads the regular season's timing. In a first or a third postseason period the
+endgame therefore arrives a period early, where the period carries on from the spot
+(16-1-4-f) and the hurry buys nothing. The engine plays no postseason game today, and the
+error only ever makes a caller faster.
 
 ### Victory formation, and the arithmetic behind it
 
