@@ -390,22 +390,24 @@ struct CalibrationTarget: Sendable {
                 "Throws to a numbered read that went to the first one, over throws to a numbered read. No band: a read order is coaching design and nothing charts it. Printed because row:pressureRate's move under C3 is bounded by it — the ball comes out at the break of the read thrown to, and the first read's is the earliest."
         ),
         CalibrationTarget(
-            id: "targetShare.wideReceiver", label: "targets to wide receivers", low: nil,
-            high: nil, season: .unsourced, source: "", rulesSensitiveTo: [], gate: false,
+            id: "targetShare.wideReceiver", label: "targets to wide receivers", low: 56.7,
+            high: 63.1, season: .seasons(2023...2024), source: participation,
+            rulesSensitiveTo: [], gate: true, unit: "%",
+            note:
+                "Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. The source joins the play-by-play's targeted receiver to the position the participation feed lists him at, by his index in that play's offence; the two shares below and this one leave a residue of about three targets in a thousand, thrown to a lineman or to a man the feed lists at a defensive position, so they do not sum to 100."
+        ),
+        CalibrationTarget(
+            id: "targetShare.tightEnd", label: "targets to tight ends", low: 20.2, high: 23.5,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true,
+            unit: "%",
+            note: "As row:targetShare.wideReceiver, for the tight end."
+        ),
+        CalibrationTarget(
+            id: "targetShare.runningBack", label: "targets to backs", low: 16.4, high: 19.6,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true,
             unit: "%",
             note:
-                "Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. Unsourced until E8 #179 derives the band from the play-by-play and the participation release."
-        ),
-        CalibrationTarget(
-            id: "targetShare.tightEnd", label: "targets to tight ends", low: nil, high: nil,
-            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
-            note: "As row:targetShare.wideReceiver, for the tight end. Unsourced until E8 #179."
-        ),
-        CalibrationTarget(
-            id: "targetShare.runningBack", label: "targets to backs", low: nil, high: nil,
-            season: .unsourced, source: "", rulesSensitiveTo: [], gate: false, unit: "%",
-            note:
-                "As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown. Unsourced until E8 #179."
+                "As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown."
         ),
 
         // The shape of the stream.
