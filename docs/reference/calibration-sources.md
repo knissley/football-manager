@@ -1150,6 +1150,28 @@ from the same project, and finding it is part of the sourcing job rather than se
 this line. A play-action flag is a second question and a harder one, since a pass off a fake
 is not something every feed publishes.
 
+**Who rushes, and who is there to block him.** C5 (#45) takes the rush from the call's own
+count out of the eleven on the field rather than from the four men on the ball, drops a
+lineman and sends a linebacker on a zone blitz, takes the men sent out of the coverage they
+left, and keeps a back in for the rusher the line has nobody for. None of it is sourced and
+none of it can be from what this file reads: where an extra rusher comes from, who picks
+him up, and which of the five eligibles stays in are coaching design of the same kind as the
+read order below — not a rule and not a rate, and no feed publishes a protection call. It
+is stated as such under *Pass play* in [`../match-engine.md`](../match-engine.md) and graded
+by what it produces: `row:pressureRate` and `row:sackRate` above, which are pooled over
+every dropback there is and split by nothing, so neither can say whether a five-man pressure
+should pressure more often than a four-man one. What the suite asserts instead is the
+resolver's own promise — the count a call names is the count that comes
+(`test:aCallResolvesARepForEveryManItSends`) — and the one thing the rulebook does decide,
+which is that the eleven have eleven jobs between them and no man both rushes and covers
+(2025 rulebook, 5-1-1; `test:noDefenderRushesAndCoversTheSameSnap`).
+
+A band becomes wanted the day somebody means to set the pressure a blitz produces against
+the pressure a four-man rush produces. The derivation would be S2's pressure flag split by
+the rusher count the same release carries, if it carries one — **not checked here** — and it
+would want a blitz-rate figure beside it, because a rate conditioned on a call the engine
+calls on 3.7% of dropbacks says as much about the caller as about the rush.
+
 **The read order, and everything the passer does with it.** C3 (#44) has the quarterback
 work a read order per pass family — who first, who second, at what break, how deep — on a
 perceived separation that carries his own error, against a threshold set by the depth of

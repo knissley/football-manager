@@ -64,12 +64,16 @@ public struct Lineup: Sendable {
 
     /// Everyone running a route, outside receivers first so the best coverage matches up
     /// against them.
-    public func routeRunners(excluding carrier: PlayerSlot? = nil) -> [PlayerSlot] {
+    ///
+    /// `stayingIn` is the eligible who is blocking instead — `Protection.keptIn` — because
+    /// a man cannot block the sixth rusher and run the checkdown on the same snap. Nobody
+    /// stays in on most snaps and the parameter is then empty.
+    public func routeRunners(excluding stayingIn: PlayerSlot? = nil) -> [PlayerSlot] {
         let order: [Position] = [.wideReceiver, .tightEnd, .runningBack, .fullback]
         return order.flatMap { position in
             slots(in: 1..<6) { $0 == position }
         }
-        .filter { $0 != carrier }
+        .filter { $0 != stayingIn }
     }
 
     /// The men rushing the passer or holding the point, edges first.
@@ -85,6 +89,127 @@ public struct Lineup: Sendable {
         slots(in: 11..<22) { $0 == .cornerback }
             + slots(in: 11..<22) { $0 == .safety }
             + slots(in: 11..<22) { $0 == .linebacker }
+    }
+
+    // MARK: - The rush, the protection, and who is left to cover
+    //
+    // **The convention the rest of the engine reads: `front` is who lined up on the ball
+    // and `rush(_:)` is who came.** They are the same men on a four-man rush and on no
+    // other call. A fact about the neutral zone belongs to the front — an encroachment is
+    // a man over the ball, whether or not he was sent — and a fact about a rep belongs to
+    // the rush. Nothing here counts a man twice: what `rush(_:)` sends,
+    // `coverageDefenders(after:)` subtracts, and the eleven still hold eleven jobs
+    // (2025 rulebook, 5-1-1).
+    //
+    // **Who rushes and who protects is coaching convention, not rules.** No article says
+    // where an extra rusher comes from or who picks him up, and no season in
+    // docs/reference/calibration-sources.md bands it; the choices below are stated there
+    // under *What a test claims about a game and nothing sources* and in
+    // docs/match-engine.md, in the sense the arrival window and the read order are.
+
+    /// The men a pass-rush call sends, and the lineman it dropped to send them.
+    public struct Rush: Sendable, Hashable {
+
+        /// Everyone coming, in the order the protection picks them up: the front first,
+        /// then the extras, closest to the ball first.
+        public var rushers: [PlayerSlot]
+
+        /// The down lineman who dropped instead of rushing — the zone blitz's exchange,
+        /// and `.none` on every other call.
+        public var dropping: PlayerSlot
+
+        public init(rushers: [PlayerSlot], dropping: PlayerSlot = .none) {
+            self.rushers = rushers
+            self.dropping = dropping
+        }
+    }
+
+    /// Who comes, given the call.
+    ///
+    /// The count is the call's, taken from the eleven actually out there and not from the
+    /// four men on the ball: the front first, then the extras — linebackers, then
+    /// safeties, then the extra defensive back, which is closest-to-the-ball order and is
+    /// stable, so the same eleven and the same call always send the same men.
+    public func rush(_ call: PassRush) -> Rush {
+        let front = self.front
+        let wanted = Int(call.rushers)
+        let linebackers = slots(in: 11..<22) { $0 == .linebacker }
+
+        var coming = Array(front.prefix(wanted))
+        if coming.count < wanted {
+            let extras =
+                linebackers + slots(in: 11..<22) { $0 == .safety }
+                + slots(in: 11..<22) { $0 == .cornerback }
+            coming += extras.prefix(wanted - coming.count)
+        }
+        guard call == .zoneBlitz else { return Rush(rushers: coming) }
+
+        // Still four, and not the four who lined up: an interior lineman drops off and a
+        // linebacker comes through the gap he left. The exchange is the call — it beats a
+        // protection that counted the front and loses to the throw into the area the
+        // linebacker vacated, which is what `CallVulnerability.hotThrow` already names.
+        //
+        // A front with no interior lineman to spare, or a package with no second
+        // linebacker to send, has no exchange to make and rushes the four it had: a
+        // three-man front's fourth rusher is already the linebacker, and swapping him for
+        // himself would rush three.
+        guard let dropping = coming.last(where: { position(at: $0) == .defensiveTackle }),
+            let replacing = linebackers.first(where: { !coming.contains($0) })
+        else { return Rush(rushers: coming) }
+        coming.removeAll { $0 == dropping }
+        coming.append(replacing)
+        return Rush(rushers: coming, dropping: dropping)
+    }
+
+    /// Who stays in to block, and which eligible the offence kept.
+    public struct Protection: Sendable, Hashable {
+
+        /// Everyone protecting, in the order the rush is picked up: the line, and behind
+        /// it the man kept in.
+        public var protectors: [PlayerSlot]
+
+        /// The eligible kept in to take the man the line has nobody for — and therefore
+        /// not running a route. `.none` when the line had it covered, or when the set was
+        /// empty and there was nobody to keep.
+        public var keptIn: PlayerSlot
+
+        public init(protectors: [PlayerSlot], keptIn: PlayerSlot = .none) {
+            self.protectors = protectors
+            self.keptIn = keptIn
+        }
+    }
+
+    /// The five linemen, and behind them whoever stays in for the man they have nobody
+    /// for.
+    ///
+    /// Five rushers are five bodies the five linemen take one each, so nobody has to stay
+    /// and the back is free to run his route; a sixth is a man the line cannot reach, and
+    /// a back stays in to take him. An empty set has nobody to keep and wears the free
+    /// rusher, which is the trade that grouping makes.
+    ///
+    /// The back first because he is already behind the line, then a fullback, then a tight
+    /// end. **Coaching convention, and there is no article behind it** — see the note
+    /// above this section.
+    public func protection(against rushers: Int) -> Protection {
+        let line = blockers(includingEligibles: false)
+        guard rushers > line.count else { return Protection(protectors: line) }
+        let backfield = slots(in: 1..<6) { $0 == .runningBack || $0 == .fullback }
+        guard let keptIn = backfield.first ?? slots(in: 1..<6, matching: { $0 == .tightEnd }).last
+        else { return Protection(protectors: line) }
+        return Protection(protectors: line + [keptIn], keptIn: keptIn)
+    }
+
+    /// Everyone left in coverage once the rush has gone.
+    ///
+    /// The men sent come out — a linebacker blitzing is a linebacker not covering, and
+    /// that is the whole cost of the call — and the lineman who dropped goes in, last,
+    /// because a lineman in space is the worst cover man on the field and the man he ends
+    /// up on is the last read.
+    public func coverageDefenders(after rush: Rush) -> [PlayerSlot] {
+        let sent = Set(rush.rushers)
+        var covering = coverageDefenders.filter { !sent.contains($0) }
+        if !rush.dropping.isNone { covering.append(rush.dropping) }
+        return covering
     }
 
     /// The men in the box, front first: the ones a run has to get through.
