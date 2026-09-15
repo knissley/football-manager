@@ -2,10 +2,13 @@
 
 **Status: built.** Every row below exists in
 `Tools/simharness/Sources/simharness/Targets.swift` today, and
-`InvariantsTraceabilityTests` fails if one named here does not. The exception is the
-section on [bands the harness cannot measure](#bands-the-harness-cannot-measure): those are
-not rows and have no verdict in a harness run, so each names the `test:` that checks it
-instead.
+`InvariantsTraceabilityTests` fails if one named here does not. Two sections are the
+exception. [Bands the harness cannot measure](#bands-the-harness-cannot-measure) are not
+rows and have no verdict in a harness run, so each names the `test:` that checks it
+instead. [Completions that lose yardage](#a-sourced-figure-with-no-row-completions-that-lose-yardage)
+is a figure the harness could grade and does not: it is derived and recorded, nothing
+checks it, and it is written without a `row:` so that nothing reads it as a claim about
+`Targets.swift`.
 
 This is the external truth for the *rates*, the way
 [`playing-rules.md`](playing-rules.md) is the external truth for the rules. CLAUDE.md's
@@ -907,6 +910,86 @@ row reads it ([#22](https://github.com/knissley/football-manager/issues/22)); th
 still on the older inference — `row:yardsPerCompletion`'s denominator and the catch
 leaders — are [#42](https://github.com/knissley/football-manager/issues/42)'s.
 
+## A sourced figure with no row: completions that lose yardage
+
+**Derived, and deliberately not a `Targets.swift` row.** A row in that table is a promise
+`simharness` prints a verdict for on every run, and nothing asked for this to be graded.
+What follows is a sourced figure the engine can be read against by hand, in the shape of
+the rows above so that whoever decides to grade it does not have to derive it again.
+
+`scripts/calibration-sources.py` prints three ids for it on a plain run, from S1 — the same
+release every row above was computed from — under the same band policy:
+
+| Script id | What it is | 2023 | 2024 | se over 400 games | Band the policy gives |
+| --- | --- | --- | --- | --- | --- |
+| `completionsNegative` | completions that lose yardage, share of completions % | 3.21 | 2.90 | 0.139 | 2.6–3.5 |
+| `completionsNegativePerGame` | the same completions per game, both teams | 1.393 | 1.239 | 0.0579 | 1.12–1.51 |
+| `completionNegativeYards` | yards lost per completion that lost yardage | 2.87 | 2.75 | 0.105 | 2.5–3.1 |
+
+Season 2023-24, source S1, both seasons' regular season and nothing else. **The release it
+was read from**, as `scripts/fetch-calibration-data.sh` recorded it — the two files folded,
+by name, bytes, sha256 and the release's last-modified date, because these are rolling tags
+and the season alone does not name what was read:
+
+```text
+play_by_play_2023.csv.gz  19169807  4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8  Thu, 12 Feb 2026 10:24:52 GMT
+play_by_play_2024.csv.gz  19362351  23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06  Thu, 13 Aug 2026 12:26:27 GMT
+```
+
+In counts rather
+than rates, because a band says nothing about how thin the sample under it was: **379 of
+2023's completions lost yardage and 337 of 2024's**, over 272 regular-season games each.
+Those two counts were already in the tree — `scripts/calibration-sources.py` states them in
+the comment that explains why `passYards` is carried signed — and the accumulator added for
+this section reproduces them, which is the cheapest check that it counts what it says it
+counts.
+
+**What the figure is a statement about, and what it is not.** Forward progress puts the
+ball dead at the furthest point a runner or an airborne receiver reached toward his
+opponent's goal, however far an opponent afterwards drives him back, and the airborne catch
+is spotted where that opponent first made contact after control (2025 rulebook, 3-12-1 and
+7-3-3; the entries are in [`playing-rules.md`](playing-rules.md)). So a completion can only
+lose yardage when the catch itself was behind the previous spot. The source agrees, which
+is worth recording because it makes the rate a measurement of one thing rather than two:
+**372 of 2023's 379 and 331 of 2024's 337 were caught behind the line**, by the release's
+own air-yards column. The handful that were not are the case 3-12-1 does not reach — a
+runner who gives ground of his own accord is spotted where he is put down — and they are
+about one in seventy of the rate, not a second mechanism inside it.
+
+**What the engine does.** Measured with `Tools/gamelog` on `18f78be`, thirty games: ten
+seeds (7, 11, 23, 37, 41, 53, 61, 72, 89, 97) against three matchups (`--home 3 --away 11`,
+`--home 12 --away 5`, `--home 1 --away 9`).
+
+| | source, 2023-24 | engine, thirty games |
+| --- | --- | --- |
+| completions that lose yardage, share of completions | 2.6–3.5% | 1.99% (24 of 1,203) |
+| the same per game, both teams | 1.12–1.51 | 0.80 |
+| yards lost per such completion | 2.5–3.1 | 1.58 |
+| largest single loss | 11 in 2023, 24 in 2024 | 3 |
+
+**All twenty-four were screens**, of 148 screens called — no other concept threw the ball
+behind the line and completed it in thirty games. That is the same zero the earlier
+measurement found at `797138a`, where the count was 26 in thirty games rather than 24; the
+difference between the two is the engine having moved under it, and neither is a 400-game
+reading.
+
+**The verdict, and whose it is.** The engine reads below all three bands, and the gap is
+not the same size in each. The two rate rows are about two standard errors low for a
+thirty-game sample — twenty-four events carry a Poisson spread of about ±0.16 a game, and
+the shortfall from the band's floor is 0.32 — so they are a finding rather than a
+settled miss, and a 400-game reading would settle them. The third is not a sample-size
+question at all: the engine's *largest* completion loss over thirty games is three yards,
+against a source whose *mean* is 2.7 to 2.9 and whose worst single play is eleven and
+twenty-four yards in the two seasons. The engine throws behind the line about as deep as a
+screen and never deeper, so it cannot produce the tail the source has, and the mean follows
+from that rather than from the rate.
+
+**All three are residuals for the retune, [#49](https://github.com/knissley/football-manager/issues/49),
+and nothing here should be chased by a fix** (CLAUDE.md rule 9). Whether the concept set is
+the mechanism — whether a swing pass, a checkdown into the flat or a jet look ought to be
+able to be caught behind the line, rather than only a screen — is a separate question, and
+this release labels no concept, so nothing here answers it.
+
 ## Adding or moving a row
 
 1. Compute it with `scripts/calibration-sources.py`, which names the seasons and applies
@@ -929,6 +1012,12 @@ it with the script, put the band and its citation in the test's name and doc com
 add it to [the table above](#bands-the-harness-cannot-measure) naming that test. It is not a
 `row:` and must not be written as one — `InvariantsTraceabilityTests` reads every `row:` in
 this file as a claim that `Targets.swift` carries it.
+
+A figure the harness *could* grade but nobody has decided to skips steps 2 to 5 as well:
+derive it with the script, record it with its seasons, its source and the band the policy
+gives, and say in as many words that it is not a row. The same rule about `row:` applies,
+for the same reason. Grading it later is then steps 2 to 5 and nothing else, because the
+derivation is already on file.
 
 
 ## What a generated world claims and nothing sources
