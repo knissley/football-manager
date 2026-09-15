@@ -163,9 +163,9 @@ them. There is now a row per bucket — `row:runShare.secondShort` through
 `row:runShare.fourthLong`, sourced from 2023-24 and derived in
 [`reference/calibration-sources.md`](reference/calibration-sources.md) — so the convention
 each bucket carries is graded against what the sport calls there rather than only against
-the totals it rolls up into. On arrival eight of the nine read outside their band at seed 7
-— seven at seed 11, where second and 4 to 6 lands inside — which is what a table of
-conventions should be expected to do; bringing them inside is the retune's.
+the totals it rolls up into. On arrival eight of the nine read outside their band at both
+calibration seeds — every bucket but fourth and long — which is what a table of conventions
+should be expected to do; bringing them inside is the retune's.
 
 ### Overtime is an endgame, and the clock is in it
 
