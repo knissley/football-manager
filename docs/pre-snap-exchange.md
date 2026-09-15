@@ -631,20 +631,57 @@ re-deriving any of this.
 
 ---
 
-## 7. Doc corrections this investigation found
+## 7. Doc and process findings
 
-Both are corrected in the commit that adds this file.
+### Corrected here
 
-- [`play-calling.md`](play-calling.md):606–610, *What each side knows pre-snap*, said neither
-  caller reads formation, personnel or motion off the other. Since #218 the defence's package
-  **does** read `situation.offensePersonnel` (`PlayCaller.swift:300`), which is the one half
-  of the exchange that is built. The commitment is unchanged and ADR-0014 is now cited
-  underneath it; the description of the tree was stale.
-- [`match-engine.md`](match-engine.md)'s `yards per carry, outnumbered by one` row said the
-  engine reaches that box on 0.2% of first-and-ten designed carries and the row reads `n/a`.
-  At `79e7a6c` it reaches it on 9.7% — 1,175 carries — and grades 3.1 against 3.9–5.1.
-  [`play-calling.md`](play-calling.md) already carried the corrected figures; this table did
-  not.
+[`play-calling.md`](play-calling.md):606–610, *What each side knows pre-snap*, said neither
+caller reads formation, personnel or motion off the other. Since #218 the defence's package
+**does** read `situation.offensePersonnel` (`PlayCaller.swift:300`), which is the one half of
+the exchange that is built. The commitment is unchanged and ADR-0014 is now cited underneath
+it; only the description of the tree was stale. That file is not generated, so it is edited
+here.
+
+### Not corrected here: `ypcOutnumberedByOne`'s note is stale, and it is not a doc edit
+
+`match-engine.md`'s calibration table says of `yards per carry, outnumbered by one`:
+
+> the engine reaches it on 0.2% and the row reads n/a for want of a sample
+
+**Both halves are false since #218.** At `79e7a6c`, `simharness --games 400 --seed 7` puts
+the engine at **9.7%** of first-and-ten designed carries — **1,175 carries** — and the row
+grades **3.1** against 3.9–5.1. [`play-calling.md`](play-calling.md) already carries the
+corrected figures; this note does not.
+
+**It must not be fixed in the document.** The table lives between
+`<!-- calibration-targets:begin -->` and `<!-- calibration-targets:end -->` and is generated
+from `Targets.swift`; `TargetsTests.documentTableMatchesTargets` — *"contract: the calibration
+table in match-engine.md is the one Targets.swift generates"* — compares the two and fails on
+any hand edit. The text to change is `Targets.swift`'s `note:` on the `ypcOutnumberedByOne`
+target (`Tools/simharness/Sources/simharness/Targets.swift:572–578`), and the document is then
+regenerated.
+
+**It is not a band change.** No `id:`, `low:` or `high:` moves; `gate:`, `season:` and
+`source:` are untouched. It is a sentence in a note. But `Targets.swift` is under
+`Tools/simharness/Sources`, so the branch that does it is on the **`engine`** lane and gets a
+fresh-context reviewer — which is why it is left here as a finding rather than taken.
+
+### Process: the `docs` lane does not cover `docs/match-engine.md`
+
+Found the expensive way on this branch. `preflight.sh` picks its lane from the diff; a
+diff of documents alone picks `docs`, which does not run the `simharness` suite. But a
+`.contract` test **in that suite** reads `docs/match-engine.md`, so the one document whose
+edit is guaranteed to break a test is the one the lane its edit selects will not test.
+
+    ./scripts/preflight.sh          # lane=docs, 14 steps, none of them simharness
+    grep -rn "match-engine.md" Tools/simharness/Tests
+
+The second command is the whole finding: **two** `.contract` tests build a path to
+`docs/match-engine.md` from `#filePath` — `TargetsTests.swift:22`, the calibration table, and
+`BudgetTests.swift:22`, the performance budget. **`preflight` ran 14/14 green on a change CI
+then failed.** The remedy is a lane rule rather than a habit — a diff touching
+`docs/match-engine.md` should run the `simharness` suite whatever else it touches — and it is
+filed here because it will catch the next person, not because it was this investigation's.
 
 ## 8. What was not checked
 
