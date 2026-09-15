@@ -1533,3 +1533,132 @@ struct PocketTests {
             "\(withoutARep) of \(total) dropbacks had no pass-rush rep at all")
     }
 }
+
+/// Who came, and who was there to meet him.
+///
+/// The rush used to be the first `rush.rushers` men of `Lineup.front`, and the front is
+/// four men in nickel — so a five-man pressure sent four, a six-man pressure sent four,
+/// and the two calls were the four-man rush under different names. Protection was the
+/// five linemen whatever the offence had sent out, so the free rusher a blitz is *for*
+/// could not exist. These hold the resolver to the call it was given.
+@Suite("The rush")
+struct PassRushTests {
+
+    private func context(seed: UInt64 = 12) -> PlayContext {
+        let (_, chart, players) = TestWorld.team(seed: seed)
+        let rotation = chart.rotation()
+        return PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: players,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: .standard)
+    }
+
+    /// First and ten near midfield: nothing about the clock or the score pulling on it, so
+    /// the call under test is the only thing that varies.
+    private static func neutral(_ group: PersonnelGroup, _ package: DefensivePackage) -> Situation {
+        Situation(
+            quarter: 2, clockRemaining: 800, down: .first, distance: 10, ballOn: 65,
+            possession: TeamID(1), scoreDifferential: 0, offensePersonnel: group,
+            defensePackage: package)
+    }
+
+    private func dropbacks(
+        rush: PassRush, package: DefensivePackage = .nickel, group: PersonnelGroup = .eleven,
+        concept: PlayConcept = .mediumPass, count: Int = 1_000, seed: UInt64 = 41
+    ) -> [[DecisionPoint]] {
+        let context = context()
+        let situation = Self.neutral(group, package)
+        let calls = Calls(
+            offense: OffensiveCall(concept: concept),
+            defense: DefensiveCall(coverage: .manFree, rush: rush, package: package),
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: seed)
+        return (0..<count).map { _ in
+            let onField = Lineup.onField(
+                context, concept: concept, situation: situation, random: &random)
+            return CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random
+            ).decisions
+        }
+    }
+
+    /// One rep per man sent. A rep needs two players, so a snap an injury has emptied a
+    /// slot on resolves one fewer and is not a failure of the count — hence a share rather
+    /// than a floor.
+    @Test(
+        "A call resolves a rep for every man it sends", .tags(.contract),
+        arguments: [
+            (PassRush.threeMan, 3), (.fourMan, 4), (.zoneBlitz, 4), (.simulated, 4),
+            (.fiveManBlitz, 5), (.sixManBlitz, 6),
+        ])
+    func aCallResolvesARepForEveryManItSends(rush: PassRush, expected: Int) {
+        let snaps = dropbacks(rush: rush)
+        let full = snaps.filter { $0.filter { $0.kind == .blockResult }.count == expected }.count
+        let over = snaps.filter { $0.filter { $0.kind == .blockResult }.count > expected }.count
+        #expect(
+            full * 20 >= snaps.count * 19,
+            "\(rush) resolved \(expected) reps on \(full) of \(snaps.count) dropbacks")
+        #expect(over == 0, "\(rush) resolved more reps than it sent men, on \(over) dropbacks")
+    }
+
+    /// The issue's own bar, on the two calls it names, outside the goal-line package.
+    @Test("A five- and a six-man call resolve at least five matchups", .tags(.contract))
+    func blitzesResolveAtLeastFiveMatchups() {
+        for rush in [PassRush.fiveManBlitz, .sixManBlitz] {
+            for package in [DefensivePackage.base, .nickel, .dime] {
+                let snaps = dropbacks(rush: rush, package: package, count: 400)
+                let atLeastFive = snaps.filter {
+                    $0.filter { $0.kind == .blockResult }.count >= 5
+                }.count
+                #expect(
+                    atLeastFive * 20 >= snaps.count * 19,
+                    "\(rush) in \(package) resolved five or more on \(atLeastFive) of \(snaps.count)"
+                )
+            }
+        }
+    }
+
+    /// A man sent is a man not covering, on the record and not only in the lineup: the
+    /// slots the pass-rush reps name and the slots the coverage points name are disjoint
+    /// on every dropback the corpus holds.
+    @Test("Nobody rushes and covers on the same snap", .tags(.contract))
+    func nobodyRushesAndCoversOnTheSameSnap() {
+        var dropbacks = 0
+        for result in TestWorld.corpus {
+            for play in result.plays where play.outcome.kind.isDropback {
+                let rushing = Set(
+                    play.decisions.filter { $0.kind == .blockResult }.map(\.secondary))
+                let covering = Set(
+                    play.decisions.filter { $0.kind == .coverageAssignment }.map(\.primary))
+                guard !rushing.isEmpty, !covering.isEmpty else { continue }
+                dropbacks += 1
+                #expect(
+                    rushing.isDisjoint(with: covering),
+                    "play \(play.index) of game \(result.game) had a man rushing and covering")
+            }
+        }
+        #expect(dropbacks > 0, "the corpus held no dropback with both a rush and a coverage")
+    }
+
+    /// The back stays in against the rush the line cannot block, and a man who is blocking
+    /// is not also a read: the checkdown is gone on a six-man pressure, which is why the
+    /// ball has to come out.
+    @Test("A six-man pressure takes the back out of the route tree", .tags(.contract))
+    func aSixManPressureTakesTheBackOutOfTheRouteTree() {
+        func routesRun(_ rush: PassRush) -> Double {
+            let snaps = dropbacks(rush: rush, count: 600)
+            let total = snaps.reduce(0) {
+                $0 + $1.filter { $0.kind == .coverageAssignment }.count
+            }
+            return Double(total) / Double(snaps.count)
+        }
+        let four = routesRun(.fourMan)
+        let six = routesRun(.sixManBlitz)
+        #expect(
+            six < four - 0.5,
+            "a six-man pressure ran \(six) routes against \(four) on a four-man rush")
+    }
+}

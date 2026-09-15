@@ -115,6 +115,149 @@ struct PersonnelTests {
         }
     }
 
+    // MARK: - Who rushes, who protects, and who is left to cover
+
+    /// The count a call names is the count that comes, and it is drawn from the eleven on
+    /// the field rather than from the four men on the ball.
+    ///
+    /// `Lineup.front` is who lined up on the ball; `Lineup.rush(_:)` is who came. They are
+    /// the same men on a four-man rush and on nothing else, which is the distinction the
+    /// resolver reads and the one a later query has to keep: a pre-snap foul belongs to
+    /// the front (the men in the neutral zone), and a rep belongs to the rush.
+    @Test(
+        "A call sends the men it names", .tags(.unit),
+        arguments: DefensivePackage.allCases)
+    func aCallSendsTheMenItNames(package: DefensivePackage) {
+        let personnel = onField(.eleven, package)
+        for call in PassRush.allCases {
+            let rush = personnel.rush(call)
+            #expect(
+                rush.rushers.count == Int(call.rushers),
+                "\(call) in \(package) sent \(rush.rushers.count)")
+            #expect(
+                Set(rush.rushers).count == rush.rushers.count,
+                "\(call) in \(package) sent a man twice")
+            for rusher in rush.rushers {
+                #expect(!rusher.isOffense, "\(call) sent an offensive slot")
+                #expect(personnel[rusher] != nil, "\(call) sent an empty slot")
+            }
+        }
+    }
+
+    /// A zone blitz sends four and they are not the four who lined up: an interior lineman
+    /// drops off and a linebacker comes through the gap he left. A simulated pressure is
+    /// the bluff — it shows the extra man and rushes the four on the ball.
+    @Test("A zone blitz exchanges a lineman for a linebacker", .tags(.unit))
+    func aZoneBlitzExchangesALinemanForALinebacker() {
+        let personnel = onField(.eleven, .nickel)
+        let zone = personnel.rush(.zoneBlitz)
+
+        #expect(zone.rushers.count == 4)
+        #expect(!zone.dropping.isNone, "nobody dropped")
+        #expect(
+            personnel.position(at: zone.dropping) == .defensiveTackle,
+            "the man who dropped was a \(personnel.position(at: zone.dropping).map { "\($0)" } ?? "nobody")"
+        )
+        #expect(!zone.rushers.contains(zone.dropping), "the man who dropped also rushed")
+        #expect(
+            zone.rushers.contains { personnel.position(at: $0) == .linebacker },
+            "no linebacker came")
+
+        // The bluff sends the front, and it drops nobody.
+        let bluff = personnel.rush(.simulated)
+        #expect(bluff.rushers == personnel.front)
+        #expect(bluff.dropping.isNone)
+    }
+
+    /// Every man the defence sends is a man it is not covering with. The one who dropped
+    /// instead of rushing goes the other way — into coverage, last, because a lineman in
+    /// space is the worst cover man on the field.
+    @Test("A blitz takes its extra men out of coverage", .tags(.unit))
+    func aBlitzTakesItsExtraMenOutOfCoverage() {
+        let personnel = onField(.eleven, .nickel)
+        let four = personnel.coverageDefenders(after: personnel.rush(.fourMan)).count
+
+        for call in PassRush.allCases {
+            let rush = personnel.rush(call)
+            let covering = personnel.coverageDefenders(after: rush)
+            // The front never covered anybody, so what a call costs the coverage is the
+            // men it took from behind the ball — and a zone blitz costs it nothing,
+            // because the lineman who dropped replaces the linebacker who came.
+            let takenFromCoverage = rush.rushers.filter {
+                personnel.coverageDefenders.contains($0)
+            }.count
+            let returned = rush.dropping.isNone ? 0 : 1
+            #expect(
+                covering.count == four - takenFromCoverage + returned,
+                "\(call) left \(covering.count) covering against \(four) on a four-man rush")
+            for rusher in rush.rushers {
+                #expect(!covering.contains(rusher), "\(call) had a man rushing and covering")
+            }
+        }
+
+        // The counts, stated rather than derived, so a change to who the extras are shows
+        // up here as well as in the arithmetic above.
+        #expect(personnel.coverageDefenders(after: personnel.rush(.fiveManBlitz)).count == four - 1)
+        #expect(personnel.coverageDefenders(after: personnel.rush(.sixManBlitz)).count == four - 2)
+        #expect(personnel.coverageDefenders(after: personnel.rush(.zoneBlitz)).count == four)
+    }
+
+    /// **The defence has eleven players and each of them is in one place** (2025 rulebook,
+    /// 5-1-1). A man cannot rush the passer and cover a receiver on the same snap, and the
+    /// eleven jobs cannot add to more than eleven men.
+    ///
+    /// Vacuously true while the rush was the four men on the ball — the front is in no
+    /// coverage list — and not vacuous once a call can send a linebacker or a safety. It
+    /// fails the moment the coverage stops being told who went.
+    @Test(
+        "football · 2025 rulebook 5-1-1 · no defender rushes and covers the same snap",
+        .tags(.football))
+    func noDefenderRushesAndCoversTheSameSnap() {
+        for package in DefensivePackage.allCases {
+            let personnel = onField(.eleven, package)
+            for call in PassRush.allCases {
+                let rush = personnel.rush(call)
+                let covering = personnel.coverageDefenders(after: rush)
+                let sent = Set(rush.rushers)
+                #expect(
+                    sent.isDisjoint(with: Set(covering)),
+                    "\(call) in \(package): a man rushed and covered")
+                #expect(
+                    sent.count + covering.count <= 11,
+                    "\(call) in \(package) gave \(sent.count + covering.count) jobs to eleven men")
+            }
+        }
+    }
+
+    /// Protection is the five linemen, and behind them whoever stayed in for the man they
+    /// have nobody for.
+    ///
+    /// Five rushers are five bodies the five linemen take one each, so nobody has to stay;
+    /// a sixth is the man the line cannot reach, and a back stays in to take him. An empty
+    /// set has nobody to keep, and wears the free rusher — the trade that grouping makes.
+    @Test("The back stays in for the man the line has nobody for", .tags(.unit))
+    func theBackStaysInForTheManTheLineHasNobodyFor() {
+        let normal = onField(.eleven, .nickel)
+        let spread = onField(.empty, .nickel)
+
+        for rushers in 3...5 {
+            #expect(normal.protection(against: rushers).protectors.count == 5, "\(rushers) rushers")
+            #expect(normal.protection(against: rushers).keptIn.isNone, "\(rushers) rushers")
+        }
+
+        let six = normal.protection(against: 6)
+        #expect(six.protectors.count == 6)
+        #expect(!six.keptIn.isNone)
+        #expect(
+            normal.position(at: six.keptIn) == .runningBack,
+            "a \(normal.position(at: six.keptIn).map { "\($0)" } ?? "nobody") stayed in")
+        #expect(six.protectors.last == six.keptIn, "the man kept in is picked up last")
+
+        // Nobody to keep: five receivers, five linemen, and the sixth rusher unblocked.
+        #expect(spread.protection(against: 6).protectors.count == 5)
+        #expect(spread.protection(against: 6).keptIn.isNone)
+    }
+
     /// The mechanism, held still. Across a whole season this is unreadable — heavy
     /// personnel is called in short yardage where a carry is short by construction — so
     /// it is asserted on one situation with only the package changing.
