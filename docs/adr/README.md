@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-**Status: built** — the practice is in use and thirteen records exist.
+**Status: built** — the practice is in use and fourteen records exist.
 
 An ADR records a **decision**, not a build state. Its `**Status:**` line is the
 decision's status — `Accepted`, or superseded by a later record — and it stays accepted
@@ -75,3 +75,4 @@ immutable like any other's.
 | [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted | Built — `PlayRef` |
 | [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted | Partly — `GameSimulator` and `CrudeResolver` are built; the `SpatialResolver` the seam exists for is M5 |
 | [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted | Not built — [roadmap M3.5](../roadmap.md). [Amended 2026-09-10](0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found): its rating premise is true since #25, its snap-count premise is #21's on-field record, and the arbitrage is gated until M3.5 |
+| [0014](0014-decide-from-what-the-decider-can-see.md) | Decide from what the decider can see | Accepted | Partly — the defensive package draw honours it since #218; no sweep of the engine's other decisions has been done |

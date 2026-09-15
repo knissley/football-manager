@@ -421,7 +421,8 @@ real coordinator substitutes on what he expects — the opponent's tendency, the
 the formation — and `package(for:)` is asked after the offensive concept has been drawn and
 is handed nothing that separates a run from a pass. So it draws the rate over both, and the
 carry subset lands there rather than at the sport's. Reading a subset's rate into a draw
-that cannot see the subset is the error that would look like a fix.
+that cannot see the subset is the error that would look like a fix, and it is the general
+rule as well as this one draw: [ADR-0014](adr/0014-decide-from-what-the-decider-can-see.md).
 
 The mismatch is the point of substituting at all, and it survives because it is a
 distribution rather than a habit. In short yardage a defence that commits to the run wears
@@ -618,7 +619,11 @@ Symmetrically, the offence reads the defensive **shell, personnel and alignment*
 sees the coverage rotation before the snap either.
 
 This is deliberate and non-negotiable: if the AI could see your call, every causal
-explanation the game offered would be a lie, and explanation is the entire product.
+explanation the game offered would be a lie, and explanation is the entire product. The
+rule is wider than the two callers and is recorded as
+[ADR-0014](adr/0014-decide-from-what-the-decider-can-see.md) — no decision the engine
+makes, on either side of the ball, may read what its real-world decider would not know at
+the moment it decides.
 
 It also makes formation and personnel diversity mechanically valuable. Run everything
 from 11 personnel in shotgun and your tendency model is razor sharp — the defense will
