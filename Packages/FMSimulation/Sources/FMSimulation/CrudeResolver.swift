@@ -313,14 +313,18 @@ public struct CrudeResolver: PlayResolver {
 
         // 1. The pocket. Each rusher works a blocker, and the first one home sets the
         //    clock everything else runs against.
-        // Who rushes comes from the package: four in nickel, three in a prevent shell,
-        // five off the goal line. It used to be four defensive linemen whatever the
-        // defence had actually sent out.
-        let front = personnel.front
-        let rushers = Array(front.prefix(max(1, min(front.count, Int(defense.rush.rushers)))))
-        // Protection is the line, plus a back or tight end kept in when there is one to
-        // spare. An empty set has nobody helping, which is the trade the grouping makes.
-        let protection = personnel.blockers(includingEligibles: false)
+        // Who comes is the call's count out of the eleven on the field, not the men on
+        // the ball: a five-man pressure sends a linebacker with the front and a zone
+        // blitz swaps one of them for him (`Lineup.rush(_:)`). It used to be the first
+        // `rushers` men of the front, which is four in nickel — so a five- and a six-man
+        // call were the four-man rush under other names.
+        let rush = personnel.rush(defense.rush)
+        let rushers = rush.rushers
+        // Big on big, and the back takes what the line cannot reach: five linemen block
+        // five rushers one each, a sixth is the man somebody has to stay in for, and an
+        // empty set has nobody to keep and wears him free.
+        let protecting = personnel.protection(against: rushers.count)
+        let protection = protecting.protectors
         // The first man home, if anybody got home at all: when he arrived, who he was,
         // and whose rep he won. Whether that counts as pressure is not known yet — it
         // depends on when the ball comes out, which the read below decides.
@@ -350,8 +354,10 @@ public struct CrudeResolver: PlayResolver {
             if !context.offenseIsHome {
                 block -= Double(context.crowdNoise) * 0.045
             }
-            // A blitz means somebody is unblocked by construction.
-            let edge = defense.rush.isBlitz && index >= protection.count ? 0.35 : 0
+            // More men than the protection has bodies for, so this one comes free. The
+            // record still names a pair — a decision point is two men — and it names the
+            // last protector, who is the man he ran past.
+            let edge = index >= protection.count ? 0.35 : 0
             // Scaled down rather than capped. Four rushers each winning a coin flip
             // means somebody is home on every snap, which is a 24% sack rate and not
             // football — but clipping the top at a fixed ceiling made a 99 rusher no
@@ -425,8 +431,13 @@ public struct CrudeResolver: PlayResolver {
         // that — and it left the back standing on the field on every dropback with no
         // route to run and no ball to catch. He is the checkdown on every family but the
         // screen, where he is the play (`ReadProgression`), so he is matched like the rest.
-        let running = personnel.routeRunners()
-        let covering = personnel.coverageDefenders
+        // The man kept in is blocking, so he is not also a read: a six-man pressure takes
+        // the checkdown off the play, which is why the ball has to come out against one.
+        let running = personnel.routeRunners(excluding: protecting.keptIn)
+        // And the men sent are not covering anybody. A blitzing linebacker leaves a body's
+        // worth of coverage behind him, which is the cost the call pays for the extra
+        // rusher; the lineman a zone blitz dropped goes the other way.
+        let covering = personnel.coverageDefenders(after: rush)
         for (index, receiver) in running.enumerated() {
             guard !covering.isEmpty else { break }
             let defender = covering[min(index, covering.count - 1)]

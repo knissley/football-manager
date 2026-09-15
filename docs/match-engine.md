@@ -215,6 +215,49 @@ pressured when the first man home beat that moment. Everything downstream of pre
 off that one comparison: the sack, the scramble, the checkdown, the throwaway, and the
 accuracy penalty on a throw made under it.
 
+#### Who rushes, and who is there to block him
+
+**Coaching convention, and stated as such**, in the sense the arrival window below and the
+read order are: no article decides where an extra rusher comes from or who picks him up,
+and nothing in [calibration-sources.md](reference/calibration-sources.md) bands it, so the
+gap is registered there beside the arrival window's.
+
+*The rush is the call's count, out of the eleven on the field.* `Lineup.front` is who lined
+up on the ball and `Lineup.rush(_:)` is who came; they are the same men on a four-man rush
+and on no other call. The extras are taken closest to the ball first — linebackers, then
+safeties, then the extra defensive back — so the same eleven and the same call always send
+the same men. A zone blitz sends four again and not the four who lined up: an interior
+lineman drops off, the first linebacker comes through the gap he left, and the lineman goes
+into coverage last, because a lineman in space is the worst cover man on the field. A
+simulated pressure is the bluff and rushes the front.
+
+*A man sent is a man not covering.* The men rushing come out of `coverageDefenders`, so a
+blitz leaves a body's worth of coverage behind it and the reads are matched against what is
+left. That is the cost the call pays for the extra rusher, and it is why the defence's
+eleven never hold more than eleven jobs (2025 rulebook, 5-1-1;
+`test:noDefenderRushesAndCoversTheSameSnap`).
+
+*Protection is big on big, and the back takes what the line cannot reach.* Five rushers are
+five bodies the five linemen take one each, so nobody has to stay in and the back runs his
+route; a sixth is a man the line has nobody for, and the first eligible behind it — the
+back, then a fullback, then a tight end — stays in to take him and is out of the route tree
+for that snap, which is why the checkdown is gone against a six-man pressure. An empty set
+has nobody to keep and wears the free rusher, who gets the unblocked edge the resolver has
+always carried and could never reach.
+
+*What this replaced.* The rush was the first `rush.rushers` men of the front, and the front
+is four men in nickel — so a five- and a six-man pressure both sent four and the two calls
+were the four-man rush under other names, `zoneBlitz` and `simulated` changed nothing at
+all, and protection was the five linemen whatever the offence had sent out, so the
+unblocked rusher a blitz exists for could not occur. Measured over forty games, a five-man
+call resolved 4.16 reps a dropback and now resolves 5.00.
+
+*The one thing this does not model.* A zone blitz's point in the sport is that the
+protection counted the wrong four; this engine has no protection identification for it to
+beat, so all the exchange leaves is a linebacker rushing where an interior lineman was, and
+he is worse at it. Pressure on a zone blitz falls rather than rises. Sending a worse rusher
+is what the call *is* here until a protection call exists to be wrong-footed.
+
 #### The reads
 
 **Authored coaching design, and stated as such.** A read order is not in the rulebook and
