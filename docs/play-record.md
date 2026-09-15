@@ -168,20 +168,38 @@ DecisionPoint
 `DecisionKind` cases, all film-observable:
 
 ```
-.pressureAllowed(blocker, rusher, ms)     .pressureHeld(blocker, rusher, ms)
+.pressureAllowed(blocker, rusher, ms)     .pressureHeld(blocker, rusher, ms,
+                                                        closest rep's result)
                                           the pocket, once: got there, or did not
 .readProgression(passer, receiver, index, separationCm)
   one per read the quarterback worked, in the order he worked them
 .throwDecision(passer, the man it was about, .primary | .checkdown | .throwaway
                                              | .scramble | .sack, msFromSnap)
 .ballArrival(receiver, separationCm, placement)
-.catchAttempt(receiver, defender, result) .tackleAttempt(defender, carrier, result)
-.blockResult(blocker, defender, result)   one per rep, run or pass, with `value`
-                                          the milliseconds it lasted
+.catchAttempt(receiver, defender, result, separationCm)
+.tackleAttempt(defender, carrier, result)
+.blockResult(blocker, defender, result, ms)
+                                          one per rep, run or pass; the
+                                          milliseconds are a dropback's
 .holeQuality(back, inside | outside, quality score)
 .returnLane(returner, yards)              .catchInSpace(receiver, separationCm)
 .coverageAssignment(defender, receiver, technique, separationCm)
 ```
+
+**Those signatures are the contract, and they are the only way to build a point.**
+`DecisionPoint`'s memberwise initialiser is internal to `FMCore` and its fields are
+constants, so a producer gets the parameters its kind allows and no others — where before
+every producer named a kind and then filled in whichever of `detail` and `value` it
+wanted. Four kinds drifted from their own doc comments that way and none of the four could
+have been caught by a build: a pocket verdict carrying a block result nothing documented,
+a catch attempt carrying a separation with no stated unit that a test was already reading,
+a block result carrying milliseconds its factory had no parameter for. What holds them
+there now is `test:everyDecisionPointIsReproducibleThroughItsFactory`, which rebuilds every
+point in the corpus through its kind's factory from the fields the kind documents and
+requires the bytes to come out the same, beside
+`test:everyDecisionPointsSlotsAndUnitsAreItsKinds` for the slots and the units. The
+`switch` over `DecisionKind` in the first has no `default`, so a kind added without a
+factory is a compile error rather than a gap.
 
 **The two slots mean the same thing on every case that names two men.** `primary` is the
 man whose act the point records and `secondary` is the man on the other side of it: the
@@ -262,7 +280,13 @@ off his first.
 quarterback ever felt it is the pocket verdict, decided against the moment the ball came
 out: `.pressureAllowed` names the first man home when he arrived before the throw,
 `.pressureHeld` says the protection lasted as long as it had to and names the rush that
-came closest. That is the split the pressure rate is banded on — the statistic counts
+came closest. Both carry that rep's own `BlockResult` on `detail`, read through
+`pocketRepResult`. On `.pressureAllowed` it can only be `.lost` and the factory writes it
+rather than taking it; on `.pressureHeld` it is the fact the verdict cannot otherwise
+give, since a protection that held against a blocker who was beaten and arrived late is
+not the protection that held against one who was never beaten, and telling those apart off
+the play's block results means repeating the resolver's own tie-break for which rep was
+closest. That is the split the pressure rate is banded on — the statistic counts
 dropbacks on which the passer was got to (`row:pressureRate`, 2023-24, source S2), not
 reps lost — and reading a lost rep as pressure is what put the engine at 74% of dropbacks
 against a real rate near a third.

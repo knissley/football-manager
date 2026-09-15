@@ -235,8 +235,8 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `7555cfa`, the head the overtime endgame's branch was cut from, plus the two
-football tests it added: **1013 tests, counted with
+Taken on `65227ed`, the head this branch forward-merged, plus the two football tests the
+overtime endgame added: **1016 tests, counted with
 `./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
 no commit beside it is a claim about a tree nobody can go back to, which is the way a
 snapshot misleads — it reads as current long after it has stopped being true.
@@ -249,12 +249,12 @@ the same commit as whatever moved it, and move the sha above with it.
 | target | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
-| FMCore | 57 — 14.9% | 34 — 8.9% | 287 — 75.1% | 4 | 382 |
+| FMCore | 57 — 14.9% | 34 — 8.9% | 288 — 75.2% | 4 | 383 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 151 — 42.7% | 115 — 32.5% | 69 — 19.5% | 19 | 354 |
+| FMSimulation | 151 — 42.4% | 117 — 32.9% | 69 — 19.4% | 19 | 356 |
 | simharness | 0 — 0.0% | 15 — 46.9% | 17 — 53.1% | 0 | 32 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **209 — 20.6%** | **268 — 26.5%** | **513 — 50.6%** | **23** | **1013** |
+| **all** | **209 — 20.6%** | **270 — 26.6%** | **514 — 50.6%** | **23** | **1016** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.

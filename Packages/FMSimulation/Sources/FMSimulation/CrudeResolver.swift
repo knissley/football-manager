@@ -398,9 +398,9 @@ public struct CrudeResolver: PlayResolver {
                 millis = 2_600 + Int(random.next(upperBound: 1_200))
             }
             decisions.append(
-                .init(
-                    tick: UInt16(millis / 100), kind: .blockResult, primary: blocker,
-                    secondary: rusher, detail: result.rawValue, value: Int16(millis)))
+                .blockResult(
+                    tick: UInt16(millis / 100), blocker: blocker, defender: rusher,
+                    result: result, atMilliseconds: Int16(millis)))
             if millis < (nearestAt ?? Int.max) {
                 nearestAt = millis
                 nearestBy = rusher
@@ -582,9 +582,9 @@ public struct CrudeResolver: PlayResolver {
         var pressureVerdictWritten = false
         if thrown == nil, let at = pressureAt, at < deadline {
             decisions.append(
-                .init(
-                    tick: UInt16(at / 100), kind: .pressureAllowed, primary: pressureOn,
-                    secondary: pressureBy, detail: BlockResult.lost.rawValue, value: Int16(at)))
+                .pressureAllowed(
+                    tick: UInt16(at / 100), blocker: pressureOn, rusher: pressureBy,
+                    afterMilliseconds: Int16(at)))
             pressureVerdictWritten = true
 
             // A quarterback who feels it and takes off. Escaping was missing entirely — the
@@ -728,10 +728,9 @@ public struct CrudeResolver: PlayResolver {
             // foul's definition starts with the rush (8-2-1).
             if !pressureVerdictWritten, nearestAt != nil {
                 decisions.append(
-                    .init(
-                        tick: UInt16(now / 100), kind: .pressureHeld, primary: nearestOn,
-                        secondary: nearestBy, detail: nearestResult.rawValue,
-                        value: Int16(now)))
+                    .pressureHeld(
+                        tick: UInt16(now / 100), blocker: nearestOn, rusher: nearestBy,
+                        forMilliseconds: Int16(now), closestRep: nearestResult))
             }
             decisions.append(
                 .throwDecision(
@@ -766,10 +765,9 @@ public struct CrudeResolver: PlayResolver {
             // It held until the ball came out, which is how long it had to. The pair named
             // is the rush that came closest — the one a reader asking why it held wants.
             decisions.append(
-                .init(
-                    tick: UInt16(ballOut / 100), kind: .pressureHeld, primary: nearestOn,
-                    secondary: nearestBy, detail: nearestResult.rawValue,
-                    value: Int16(ballOut)))
+                .pressureHeld(
+                    tick: UInt16(ballOut / 100), blocker: nearestOn, rusher: nearestBy,
+                    forMilliseconds: Int16(ballOut), closestRep: nearestResult))
         }
 
         // Where the ball is actually caught: the read's own depth, and the spread the
@@ -820,10 +818,9 @@ public struct CrudeResolver: PlayResolver {
                 tick: throwTick, passer: quarterback, oppositeNumber: target.receiver,
                 decision: thrown.decision, atMilliseconds: Int16(ballOut)))
         decisions.append(
-            .init(
-                tick: arrivalTick, kind: .ballArrival,
-                primary: target.receiver, secondary: target.defender,
-                detail: placement.rawValue, value: Int16(target.separation)))
+            .ballArrival(
+                tick: arrivalTick, receiver: target.receiver, defender: target.defender,
+                placement: placement, separationCentimetres: Int16(target.separation)))
 
         // The ball is in the air, so interference exists now and did not before (8-5-1),
         // and it exists on exactly one matchup: the man the pass was thrown to and the
@@ -857,10 +854,9 @@ public struct CrudeResolver: PlayResolver {
             contested: isTry, conditions: Conditions.handling(context.weather),
             random: &random)
         decisions.append(
-            .init(
-                tick: arrivalTick + 1, kind: .catchAttempt,
-                primary: target.receiver, secondary: target.defender,
-                detail: catchResult.rawValue, value: Int16(target.separation)))
+            .catchAttempt(
+                tick: arrivalTick + 1, receiver: target.receiver, defender: target.defender,
+                result: catchResult, separationCentimetres: Int16(target.separation)))
 
         let runoff = UInt16(4 + Int(random.next(upperBound: 4)))
 
@@ -1032,10 +1028,9 @@ public struct CrudeResolver: PlayResolver {
             // sequence names the tackler, and that credit outranks this one.
             credit(defender, .runDefender)
             decisions.append(
-                .init(
-                    tick: UInt16(4 + index), kind: .blockResult, primary: blocker,
-                    secondary: defender,
-                    detail: (won ? BlockResult.won : .lost).rawValue))
+                .blockResult(
+                    tick: UInt16(4 + index), blocker: blocker, defender: defender,
+                    result: won ? .won : .lost))
             blockScore += won ? 1 : -1
 
             // Same rule as in protection: a hold is what a beaten blocker does.
@@ -1977,9 +1972,9 @@ public struct CrudeResolver: PlayResolver {
                 : min(0.32, max(0.02, 0.09 + (breakTackle - tackling) * 0.0045))
             let broken = random.nextBool(probability: breakChance)
             decisions.append(
-                .init(
-                    tick: tick, kind: .tackleAttempt, primary: defender, secondary: carrier,
-                    detail: (broken ? TackleResult.broken : .madeTackle).rawValue))
+                .tackleAttempt(
+                    tick: tick, defender: defender, carrier: carrier,
+                    result: broken ? .broken : .madeTackle))
             tick += 4
 
             credit(defender, broken ? .other : .tackler, personnel, into: &participants)
