@@ -909,7 +909,17 @@ release every row above was computed from — under the same band policy:
 | `completionsNegativePerGame` | the same completions per game, both teams | 1.393 | 1.239 | 0.0579 | 1.12–1.51 |
 | `completionNegativeYards` | yards lost per completion that lost yardage | 2.87 | 2.75 | 0.105 | 2.5–3.1 |
 
-Season 2023-24, source S1, both seasons' regular season and nothing else. In counts rather
+Season 2023-24, source S1, both seasons' regular season and nothing else. **The release it
+was read from**, as `scripts/fetch-calibration-data.sh` recorded it — the two files folded,
+by name, bytes, sha256 and the release's last-modified date, because these are rolling tags
+and the season alone does not name what was read:
+
+```text
+play_by_play_2023.csv.gz  19169807  4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8  Thu, 12 Feb 2026 10:24:52 GMT
+play_by_play_2024.csv.gz  19362351  23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06  Thu, 13 Aug 2026 12:26:27 GMT
+```
+
+In counts rather
 than rates, because a band says nothing about how thin the sample under it was: **379 of
 2023's completions lost yardage and 337 of 2024's**, over 272 regular-season games each.
 Those two counts were already in the tree — `scripts/calibration-sources.py` states them in
