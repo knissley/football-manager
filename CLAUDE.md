@@ -176,6 +176,8 @@ FM_RULEBOOK_TEXT=<path> scripts/lint-reference.sh --messages
 scripts/test-census.sh
 scripts/test-census.sh --self-test
 python3 scripts/calibration-sources.py --self-test
+scripts/fetch-calibration-data.sh <dir-outside-the-repo>  # the data the bands came from; a
+                                                          # derivation cites its MANIFEST line
 python3 scripts/harness-noise.py --self-test
 
 # Planned — land with the backlog
