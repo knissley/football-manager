@@ -603,11 +603,15 @@ layer can say plainly *they were sitting on your screen game and you called four
 
 ## What each side knows pre-snap
 
-**Designed, not built.** The information rule is the commitment; the machinery is not
-here. No tendency model exists to make a prediction from — see
-[the opponent model](#the-opponent-model) — and neither caller reads formation, personnel
-or motion off the other. What *is* true today is the half that costs nothing: neither
-side is shown the other's call.
+**Half built.** The information rule is the commitment; most of the machinery is not here.
+No tendency model exists to make a prediction from — see
+[the opponent model](#the-opponent-model) — no caller reads motion off the other, and there
+are no formations to read. The half that **is** built is the substitution: the defence's
+package is an answer to the grouping the offence declared
+([above](#nickel-is-the-base-defence-and-the-answer-is-a-distribution)), which is the one
+step of the pre-snap exchange where one side reads the other. What else costs nothing and is
+also true: neither side is shown the other's call. How far the rest is from the sport is
+measured in [pre-snap-exchange.md](pre-snap-exchange.md).
 
 The defense reads **formation, personnel, and motion** — everything physically
 observable — plus **its tendency model's prediction** for this situation from this look.
