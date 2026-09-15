@@ -159,6 +159,43 @@ struct SituationClassTests {
         #expect(TimeState.fourthQuarter.isEndgame == false)
     }
 
+    /// Rule 16 times a regular-season overtime period as a fourth quarter: two charged
+    /// timeouts a side, and the fourth period's closing rules with them — the two-minute
+    /// warning among them (2025 rulebook, 16-1-3-e, and 3-41, which gives the warning to
+    /// the periods Rule 16 times as a fourth). `Rules.periodTiming` reads it that way
+    /// already: every period past regulation in a regular-season game is timed as the
+    /// fourth, which is why the engine takes a two-minute warning in overtime at all.
+    ///
+    /// So the last two minutes of overtime are a two-minute situation here as well.
+    /// A vocabulary that called them `.overtime` and nothing else told every reader of it
+    /// — both callers, the tendency tables, the news — that the clock was not there, in
+    /// the one period a level game ends level (16-1-3-d).
+    ///
+    /// What this bucket does not carry is the postseason's pairing: 16-1-4-h ends a half
+    /// on a second and a fourth overtime period and leaves a first and a third timed as
+    /// first and third quarters, with no warning in them. The classification has no
+    /// postseason flag to read, so it reads the regular season's timing — the answer
+    /// `Rules.periodTiming` gives when `isPostseason` is false.
+    @Test(
+        "football · Rules 16-1-3-e, 3-41 · the last two minutes of a regular-season overtime period are a two-minute situation, because Rule 16 times that period as a fourth quarter",
+        .tags(.football))
+    func overtimeCarriesTheFourthQuartersTwoMinutes() {
+        #expect(classify(quarter: 5, clock: 121).time == .overtime)
+        #expect(classify(quarter: 5, clock: 121).time.isTwoMinute == false)
+        #expect(classify(quarter: 5, clock: 120).time.isTwoMinute)
+        #expect(classify(quarter: 5, clock: 120).time.isEndgame)
+        // Trailing there is the end of the game whatever the clock says (16-1-3-c): the
+        // drive has to end in points, which is the read trailing inside two minutes of
+        // the fourth quarter gets.
+        #expect(classify(quarter: 5, clock: 90, differential: -3).isDesperation)
+        // Level, and out of your own end: playing for the kick that wins it, exactly as
+        // at 2:00 of the fourth quarter.
+        #expect(classify(ballOn: 60, quarter: 5, clock: 90).isMustPass)
+        // Backed up, level: a punt and a tie are a better outcome than a turnover on your
+        // own eight, which is the same carve-out the fourth quarter's read has.
+        #expect(classify(ballOn: 92, quarter: 5, clock: 90).isMustPass == false)
+    }
+
     // MARK: - Reads shared by both sides of the ball
 
     /// Only the distances that really do take the run off the menu. Third and four and

@@ -539,6 +539,57 @@ struct EndgameTests {
             "three scores up, the five yards are not worth a timeout and the clock")
     }
 
+    // MARK: - The overtime endgame
+
+    /// A scoreless walk: one yard a play, nobody ever scores, so regulation ends level
+    /// and the game goes to overtime (2025 rulebook, 4-1-1) — where the period runs out
+    /// with the ball still live and the game ends level (16-1-3-d). Every call in it is
+    /// the baseline caller's own, which is what makes this a scenario about the bench
+    /// rather than about the script.
+    private func scorelessWalkIntoOvertime() -> Trace {
+        ScriptedGame { snap in snap.neutral }.run(with: caller)
+    }
+
+    /// The period a level game ends level in is the one period the caller played as if
+    /// the clock were not there: it huddled through the last two minutes of it and
+    /// finished with its timeouts in hand.
+    ///
+    /// The football is 16-1-3-e. A regular-season overtime period is timed as the fourth
+    /// quarter — two charged timeouts a side, and that period's closing rules with them,
+    /// the two-minute warning of 3-41 among them — and a charged timeout stops the clock
+    /// until the next snap (4-3-2). So the last two minutes of overtime are the last two
+    /// minutes of a game, and an offence that will be left level when they run out
+    /// (16-1-3-d) plays them the way it plays the fourth quarter's.
+    ///
+    /// The boundary is asserted in both directions on purpose. Outside the warning an
+    /// overtime offence huddles like any other — the period is ten minutes long and there
+    /// is a game to play in it — and a caller that sprinted through all of it would be
+    /// answering the clock it does not have yet.
+    @Test(
+        "football · Rules 16-1-3-d, 16-1-3-e, 3-41, 4-3-2 · the last two minutes of an overtime period are played against the clock: the offence leaves the huddle behind and spends the timeouts 16-1-3-e gives it",
+        .tags(.football))
+    func overtimeInsideTwoMinutesIsPlayedAgainstTheClock() {
+        let trace = scorelessWalkIntoOvertime()
+        let overtime = trace.plays.filter {
+            $0.situation.quarter > 4 && $0.outcome.kind.isScrimmagePlay
+        }
+        let late = overtime.filter { $0.situation.clockRemaining <= 120 }
+        let early = overtime.filter { $0.situation.clockRemaining > 120 }
+        #expect(late.count > 1, "the overtime period never reached its last two minutes")
+        #expect(
+            early.allSatisfy { $0.calls.offense.tempo == .normal },
+            "the offence was hurrying with more than two minutes of the period left")
+        #expect(
+            late.allSatisfy { $0.calls.offense.tempo != .normal },
+            "\(late.filter { $0.calls.offense.tempo == .normal }.count) of \(late.count) snaps inside the last two minutes were huddled"
+        )
+        let timeouts = trace.plays.filter { $0.situation.quarter > 4 }
+            .flatMap { $0.decisions(ofKind: .timeout) }
+        #expect(
+            !timeouts.isEmpty,
+            "the period ended level with both benches holding every timeout they had")
+    }
+
     // MARK: - In a real game
 
     private func game(seed: UInt64) -> GameResult {
