@@ -39,5 +39,12 @@ Package.resolved.backup
 rulebook.pdf
 rulebook.txt
 
+# The three release assets scripts/fetch-calibration-data.sh writes, unanchored, for the
+# same reason: that script refuses to write inside a checkout, and these are half a million
+# rows about real players, which the tree carries only as derived aggregates (ADR-0005).
+play_by_play_*.csv.gz
+pbp_participation_*.csv
+roster_weekly_*.csv
+
 # Agent worktrees created by dispatch; each is its own checkout and never belongs in the tree.
 .claude/worktrees/
