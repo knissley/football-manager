@@ -424,6 +424,84 @@ receivers on offence, and 6.1 in the front seven against 4.9 defensive backs —
 personnel rows above said another way, and the check on the record is that the count
 comes out of `onField` rather than out of the substitution the engine made.
 
+### The release the sixteen 2026-09-15 rows were derived from
+
+`row:sacksPerPressure`, `row:redZoneTripsPerTeamGame`, `row:twoPointTriesRun`,
+`row:twoPointTriesPass`, `row:outOfBoundsShare`, `row:outOfBoundsShareTrailingLate`,
+`row:puntTouchbacksFromPlusTerritory` and the nine `row:runShare.*` buckets were derived by
+`scripts/calibration-sources.py` on 2026-09-15, from the releases
+`scripts/fetch-calibration-data.sh` fetched that day. These are rolling release tags served
+from a fixed URL, so the manifest's lines are the citation and the season alone is not:
+
+```
+# file	bytes	sha256	release-last-modified
+play_by_play_2023.csv.gz	19169807	4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8	Thu, 12 Feb 2026 10:24:52 GMT
+play_by_play_2024.csv.gz	19362351	23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06	Thu, 13 Aug 2026 12:26:27 GMT
+pbp_participation_2023.csv	49967956	ad01aeb4045ee19a4f086ff38b52b14c8f427d3401e529c3078a4545921650a9	Thu, 04 Sep 2025 10:25:30 GMT
+pbp_participation_2024.csv	49688308	b1f436a98b2a7759eb4ed1181e072a35c2666f9aeb356a49c943d28d6be6b0b9	Thu, 04 Sep 2025 10:24:49 GMT
+```
+
+`row:sacksPerPressure` is the only one of the sixteen that reads the participation feed; the
+other fifteen read the play-by-play alone. The same run reproduced all 140 rows that were
+already in the derivation, to the digit, which is what says the new components and the new
+metrics did not disturb the bootstrap's draw order.
+
+### What the caller called, by down and distance
+
+Run share in the nine buckets the engine's own `DownAndDistanceClass` splits second, third
+and fourth down into. **"Second and 4 to 6" is a derived split rather than a column in the
+data**, so the derivation writes the split out: a play is bucketed by its down and its
+`ydstogo`, 1 to 3 short, 4 to 6 medium, 7 or more long, and a goal-to-go snap is in none of
+the nine because goal-to-go is its own class and takes precedence over the down. First down
+is one class and is not split by distance, so it has no row either.
+
+The denominator is the calls a coordinator chooses between — a designed run or a dropback —
+so a sack and a scramble count as the pass they were called as, and a kneel and a spike are
+in neither half: both are clock plays rather than a choice about the sport. The harness
+reads the call off `PlayRecord.calls.offense.concept` and the bucket off
+`DownAndDistanceClass(situation)`, which is the same split on both sides of the comparison.
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:runShare.secondShort` — runs called, second and 1 to 3 | 2023-24 | S1 |
+| `row:runShare.secondMedium` — runs called, second and 4 to 6 | 2023-24 | S1 |
+| `row:runShare.secondLong` — runs called, second and 7 or more | 2023-24 | S1 |
+| `row:runShare.thirdShort` — runs called, third and 1 to 3 | 2023-24 | S1 |
+| `row:runShare.thirdMedium` — runs called, third and 4 to 6 | 2023-24 | S1 |
+| `row:runShare.thirdLong` — runs called, third and 7 or more | 2023-24 | S1 |
+| `row:runShare.fourthShort` — runs called, fourth and 1 to 3 | 2023-24 | S1 |
+| `row:runShare.fourthMedium` — runs called, fourth and 4 to 6 | 2023-24 | S1 |
+| `row:runShare.fourthLong` — runs called, fourth and 7 or more | 2023-24 | S1 |
+
+The fourth-down buckets are the thin ones: about 150 run-or-pass calls a season on fourth
+and 4 to 6, against tens of thousands on second down, and the band policy's resampling
+widens them accordingly — `row:runShare.fourthMedium` spans 0.9 to 11.5% and catches only a
+gross miss. They are kept because a caller that never runs on fourth and short, or runs on
+fourth and twelve, is a caller a fan would notice.
+
+### Where a play ends laterally
+
+| Row | Season | Source |
+| --- | --- | --- |
+| `row:outOfBoundsShare` — plays ending out of bounds | 2023-24 | S1 |
+| `row:outOfBoundsShareTrailingLate` — out of bounds, trailing late | 2023-24 | S1 |
+
+The denominator is the plays from scrimmage that ended with the ball dead in the field of
+play or out of bounds. The harness reads that off `PlayEnding.tackled` and `.outOfBounds`;
+the feed carries no "tackled" flag, so the derivation writes the same set as everything else
+being absent — not an incompletion, not a touchdown, not an interception, not a fumble lost,
+not a safety. A score, an incompletion and a takeaway are in neither half on either side:
+none of them is a play the carrier could have taken to the sideline instead.
+
+The trailing-late row is the same share on snaps taken trailing inside two minutes of either
+half, which is the harness's `SituationClass.isDesperation`; the derivation matches it with
+`half_seconds_remaining <= 120` in the second or fourth period and a negative
+`score_differential`. The gap between the two rows is the two-minute drill. A runner going
+out of bounds starts the clock on the Referee's ready signal, except that it starts on the
+snap after the two-minute warning of the first half and inside the last five minutes of the
+second (2025 rulebook, 4-3-2-a); this bucket sits inside both windows, so there the sideline
+buys a down and elsewhere it mostly does not.
+
 ### The shape of a carry
 
 | Row | Season | Source |
@@ -482,6 +560,7 @@ why, and nobody should assert a range for it from memory.
 | `row:dropback20plus` — dropbacks of 20 or more | 2023-24 | S1 |
 | `row:dropback40plus` — dropbacks of 40 or more | 2023-24 | S1 |
 | `row:pressureRate` — pressure rate per dropback | 2023-24 | S2 |
+| `row:sacksPerPressure` — pressures ending in a sack | 2023-24 | S2 |
 | `row:completionsZeroOrFewer` — completions for 0 or fewer yards | 2023-24 | S1 |
 
 ### How drives end
@@ -498,6 +577,7 @@ why, and nobody should assert a range for it from memory.
 | `row:drives4to7` — drives of 4 to 7 | 2023-24 | S1 |
 | `row:drives8plus` — drives of 8 or more | 2023-24 | S1 |
 | `row:threeAndOut` — three and out | 2023-24 | S1 |
+| `row:redZoneTripsPerTeamGame` — red zone trips per team-game | 2023-24 | S1 |
 | `row:redZoneTouchdownRate` — red zone touchdown rate | 2023-24 | S1 |
 
 ### Field position, which follows from the kickoff and so has a variant per rulebook
@@ -514,6 +594,8 @@ why, and nobody should assert a range for it from memory.
 | `row:puntReturnYards` — yards per punt return | 2023-24 | S1 |
 | `row:twoPointTries` — two-point tries per team-game | 2023-24 | S1 |
 | `row:twoPointConversion` — two-point conversion rate | 2023-24 | S1 |
+| `row:twoPointTriesRun` — two-point tries carried in | 2023-24 | S1 |
+| `row:twoPointTriesPass` — two-point tries thrown | 2023-24 | S1 |
 
 ### Kicking
 
@@ -564,6 +646,7 @@ why, and nobody should assert a range for it from memory.
 | `row:kickoffReturnYards.2025` — yards per kickoff return | 2025 | S1 |
 | `row:kickoffReturnYards.2024` — yards per kickoff return | 2024 | S1 |
 | `row:puntsReturned` — punts returned | 2023-24 | S1 |
+| `row:puntTouchbacksFromPlusTerritory` — touchbacks, punts from inside the 45 | 2023-24 | S1 |
 
 ### Backed up
 

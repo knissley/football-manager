@@ -27,6 +27,7 @@ struct StreamQueriesTests {
         passResult: PassResult? = nil,
         participants: [Participation] = [],
         decisions: [DecisionPoint] = [],
+        scoring: Scoring? = nil,
         onField: [UInt8]? = nil
     ) -> PlayRecord {
         PlayRecord(
@@ -40,7 +41,7 @@ struct StreamQueriesTests {
             decisions: decisions,
             outcome: Outcome(
                 kind: kind, yards: yards, endedIn: endedIn, passResult: passResult,
-                participants: participants),
+                participants: participants, scoring: scoring),
             onField: onField ?? Array(repeating: PlayRecord.vacant, count: PlayerSlot.count))
     }
 
@@ -73,6 +74,30 @@ struct StreamQueriesTests {
             endedIn: .intercepted, passResult: .intercepted)
         #expect(picked.outcome.yards >= Int16(picked.situation.distance))
         #expect(StreamQueries.firstDownsEarned(in: [picked]) == 0)
+    }
+
+    /// `PlayRecord.gainedFirstDown` answers "did this play reach the line to gain", and
+    /// says yes to **any** play that ended in a touchdown before it looks at the kind of
+    /// play or at who scored. The row asks a narrower question, so the query guards it: a
+    /// kickoff run back, a two-point try and a play the defence finished are none of them
+    /// a first down for the offence.
+    @Test(
+        "contract: a score by the defence or on a play that is not a scrimmage down is not a first down",
+        .tags(.contract))
+    func onlyTheOffenceEarnsAFirstDown() {
+        let returned = play(
+            concept: .kickoff, kind: .kickoff, yards: 0, endedIn: .touchdown,
+            scoring: .defensiveTouchdown)
+        let tried = play(
+            down: .first, distance: 2, ballOn: 2, concept: .twoPointRun,
+            kind: .twoPointConversion, yards: 2, endedIn: .touchdown, scoring: .twoPointConversion)
+        let pickSix = play(
+            down: .third, distance: 8, concept: .deepPass, kind: .pass, yards: 0,
+            endedIn: .touchdown, passResult: .intercepted, scoring: .defensiveTouchdown)
+        #expect(returned.gainedFirstDown, "the record says yes; the row must not")
+        #expect(tried.gainedFirstDown)
+        #expect(pickSix.gainedFirstDown)
+        #expect(StreamQueries.firstDownsEarned(in: [returned, tried, pickSix]) == 0)
     }
 
     @Test("unit: an ordinary conversion and a touchdown are both first downs", .tags(.unit))
@@ -175,11 +200,14 @@ struct StreamQueriesTests {
     @Test("unit: the touchback share counts the punts that reached the end zone", .tags(.unit))
     func touchbackShare() {
         let punts = [
-            play(down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
+            play(
+                down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
                 endedIn: .touchback),
-            play(down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
+            play(
+                down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
                 endedIn: .downed),
-            play(down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
+            play(
+                down: .fourth, distance: 8, ballOn: 40, concept: .punt, kind: .punt,
                 endedIn: .fairCatch),
         ]
         let share = StreamQueries.touchbacks(in: punts)
@@ -213,9 +241,11 @@ struct StreamQueriesTests {
     func twoPointSplit() {
         let tries = [
             play(concept: .twoPointRun, kind: .twoPointConversion, endedIn: .touchdown),
-            play(concept: .twoPointPass, kind: .twoPointConversion, endedIn: .incomplete,
+            play(
+                concept: .twoPointPass, kind: .twoPointConversion, endedIn: .incomplete,
                 passResult: .incomplete),
-            play(concept: .twoPointPass, kind: .twoPointConversion, endedIn: .touchdown,
+            play(
+                concept: .twoPointPass, kind: .twoPointConversion, endedIn: .touchdown,
                 passResult: .complete),
         ]
         let split = StreamQueries.twoPointTries(in: tries)
@@ -272,7 +302,9 @@ struct StreamQueriesTests {
 @Suite("Ungraded rows")
 struct UngradedRowTests {
 
-    @Test("contract: an ungraded row is named with the reason it could not be graded", .tags(.contract))
+    @Test(
+        "contract: an ungraded row is named with the reason it could not be graded",
+        .tags(.contract))
     func namedWithItsReason() {
         var rows = UngradedRows()
         rows.record("winTotalSigma", reason: "needs a season with a schedule")

@@ -123,15 +123,20 @@ func twoDecimals(_ value: Double) -> String {
 }
 
 var verdicts: [String: [String]] = [:]
+/// The rows this run could not grade, each with the reason it could not. An ungraded row
+/// prints an em dash and cannot be `OFF`, so the run has to name it or it disappears.
+var ungraded = UngradedRows()
 /// Wide enough for the longest label plus the two spaces every column keeps between
 /// fields, which is what the CI summary's parser splits on.
 let labelWidth = (CalibrationTarget.all.map(\.label.count).max() ?? 30) + 2
 
 /// Print every target row for `id` — a rule-sensitive row has a variant per rulebook, and
 /// both print so the reader sees the measured value against each — with the season, source
-/// and rule sensitivity the band came from. `nil` is a row the harness cannot measure yet.
+/// and rule sensitivity the band came from. `nil` is a row this run could not grade, and
+/// `ungraded` is what stopped it: a row that goes ungraded without one says so in the
+/// summary rather than passing for a deliberate deferral.
 @MainActor
-func report(_ id: String, _ value: Double?) {
+func report(_ id: String, _ value: Double?, ungraded reason: String = "") {
     let targets = CalibrationTarget.all.filter { $0.id == id || $0.id.hasPrefix(id + ".") }
     if targets.isEmpty {
         print("  \(pad(id, labelWidth))has no target row — add one to Targets.swift")
@@ -155,6 +160,7 @@ func report(_ id: String, _ value: Double?) {
             verdict = "n/a"
         }
         verdicts[verdict, default: []].append(target.id)
+        if verdict == "n/a" { ungraded.record(target.id, reason: reason) }
         let shown = value.map { target.printed($0, inBand: inBand) }
         print(
             "  " + pad(target.label, labelWidth) + column(shown?.value ?? "—", 9)
@@ -433,7 +439,8 @@ let overtimeSeconds = overtimeGames.map { result -> Int in
 report(
     "overtimeLength",
     overtimeGames.isEmpty
-        ? nil : Double(overtimeSeconds.reduce(0, +)) / Double(overtimeGames.count))
+        ? nil : Double(overtimeSeconds.reduce(0, +)) / Double(overtimeGames.count),
+    ungraded: "no game reached overtime")
 
 // MARK: - Do the best players lead?
 
@@ -441,7 +448,6 @@ report(
 var sacksBy: [PlayerID: Int] = [:]
 var carriesBy: [PlayerID: Int] = [:]
 var rushYardsBy: [PlayerID: Int] = [:]
-var catchesBy: [PlayerID: Int] = [:]
 var snapsBy: [PlayerID: Int] = [:]
 
 for play in allPlays {
@@ -458,14 +464,14 @@ for play in allPlays {
             carriesBy[participant.player, default: 0] += 1
             rushYardsBy[participant.player, default: 0] += Int(play.outcome.yards)
         }
-    case .pass where play.outcome.yards > 0 || play.outcome.endedIn == .touchdown:
-        for participant in play.outcome.participants where participant.role == .receiver {
-            catchesBy[participant.player, default: 0] += 1
-        }
     default:
         break
     }
 }
+// The catcher is the man in the `.target` role, on a play the record calls a completion.
+// Ranking on a gain credited to `.receiver` credited everybody on the play except him,
+// and left a catch for no gain out of the leaderboard entirely.
+let catchesBy = StreamQueries.catches(in: allPlays)
 
 @MainActor
 func leaders(_ counts: [PlayerID: Int], _ label: String, minimum: Int = 1) {
@@ -484,6 +490,7 @@ func leaders(_ counts: [PlayerID: Int], _ label: String, minimum: Int = 1) {
 
 leaders(sacksBy, "Sack leaders")
 leaders(rushYardsBy, "Rushing yard leaders")
+leaders(catchesBy, "Catch leaders")
 
 // The question this answers: does rating predict production? If the leaders are
 // ordinary players, ratings are decoration.
@@ -743,13 +750,13 @@ print(
     "    \(pad("by side: offence / defence", 30))"
         + "\(twoDecimals(Double(timeoutsByOffense) / gamesPlayed)) / "
         + "\(twoDecimals(Double(timeoutsByDefense) / gamesPlayed))"
-        + "   (no target: unsourced, a band belongs to #42)")
+        + "   (no target: unsourced)")
 print(
     "    \(pad("by half: first / second / OT", 30))"
         + "\(twoDecimals(Double(timeoutsByPeriod[0]) / gamesPlayed)) / "
         + "\(twoDecimals(Double(timeoutsByPeriod[1]) / gamesPlayed)) / "
         + "\(twoDecimals(Double(timeoutsByPeriod[2]) / gamesPlayed))"
-        + "   (no target: unsourced, a band belongs to #42)")
+        + "   (no target: unsourced)")
 print(
     "    \(pad("charged by rule, not called", 30))"
         + "\(twoDecimals(Double(timeoutsChargedByRule) / gamesPlayed))"
@@ -767,31 +774,37 @@ print(
 // three: nothing in docs/reference/calibration-sources.md bands where a play ends
 // laterally.
 print("")
-print("  Ending on the sideline   (no target: unsourced, a band belongs to #42)")
-func sidelineShare(_ plays: [PlayRecord]) -> String {
-    let down = plays.filter {
-        $0.outcome.endedIn == .tackled || $0.outcome.endedIn == .outOfBounds
-    }
-    guard !down.isEmpty else { return "—" }
-    let out = down.filter { $0.outcome.endedIn == .outOfBounds }.count
-    return oneDecimal(Double(out) / Double(down.count) * 100) + "%"
+print("  Ending on the sideline")
+/// The share of the plays that ended with the ball dead in the field or out of bounds
+/// that ended out of bounds, or `nil` where no play did either.
+@MainActor
+func sidelineShare(_ plays: [PlayRecord]) -> Double? {
+    let ends = StreamQueries.endedOnTheSideline(in: plays)
+    guard ends.ballDead > 0 else { return nil }
+    return Double(ends.outOfBounds) / Double(ends.ballDead) * 100
 }
 let sidelineClassified = scrimmage.map {
     (play: $0, classified: SituationClass($0.situation, rules: rulesInForce))
 }
 let trailingLate = sidelineClassified.filter { $0.classified.isDesperation }.map(\.play)
 let leadingLate = sidelineClassified.filter { $0.classified.isClockBurn }.map(\.play)
-print("    \(pad("all scrimmage plays", 30))\(sidelineShare(scrimmage))")
+report(
+    "outOfBoundsShare", sidelineShare(scrimmage),
+    ungraded: "no play from scrimmage ended with the ball dead in the field or out of bounds")
+report(
+    "outOfBoundsShareTrailingLate", sidelineShare(trailingLate),
+    ungraded: "no trailing snap inside two minutes ended with the ball dead or out of bounds")
+print("    \(pad("trailing inside two minutes", 30))\(trailingLate.count) plays")
 print(
-    "    \(pad("trailing inside two minutes", 30))\(sidelineShare(trailingLate))"
-        + "   \(trailingLate.count) plays")
-print(
-    "    \(pad("protecting a lead late", 30))\(sidelineShare(leadingLate))"
-        + "   \(leadingLate.count) plays")
+    "    \(pad("protecting a lead late", 30))"
+        + "\(sidelineShare(leadingLate).map { oneDecimal($0) + "%" } ?? "—")"
+        + "   \(leadingLate.count) plays   (no target: the mirror image is unsourced)")
 
 print("")
 print("  Not measured here")
-report("winTotalSigma", nil)
+report(
+    "winTotalSigma", nil,
+    ungraded: "needs a season with a schedule rather than arbitrary matchups; arrives with M3")
 print("    Spread of team win totals — the single most important row in the")
 print("    calibration table, and it needs a season with a schedule rather than")
 print("    arbitrary matchups. It arrives with M3.")
@@ -1010,17 +1023,11 @@ report("packageBase", Double(packages[.base] ?? 0) / snaps * 100)
 // number the credits alone could never produce: a lineman was credited on three to five
 // snaps in five, and a safety on a sixth of run plays.
 print("    player-snaps by position group, per team-game, plays from scrimmage")
-var snapsByGroup: [PositionGroup: Int] = [:]
-for result in results {
-    for play in result.plays where play.outcome.kind.isScrimmagePlay {
-        for index in 0..<PlayerSlot.count {
-            guard let player = play.player(at: PlayerSlot(index), rosters: result.rosters),
-                let group = players[player]?.position.group
-            else { continue }
-            snapsByGroup[group, default: 0] += 1
-        }
-    }
-}
+let snapsByGroup = StreamQueries.snapsByPositionGroup(
+    in: results.map {
+        (plays: $0.plays.filter { $0.outcome.kind.isScrimmagePlay }, rosters: $0.rosters)
+    },
+    group: { players[$0]?.position.group })
 @MainActor
 func groupSnaps(_ groups: PositionGroup...) -> Double {
     Double(groups.reduce(0) { $0 + (snapsByGroup[$1] ?? 0) }) / teamGames
@@ -1072,9 +1079,12 @@ for advantage in [-3, -2, -1, 0, 1, 2, 3] {
     yardsByAdvantage[advantage] = yards
     print("      \(pad(label, 28))\(pad(oneDecimal(yards), 8))\(matching.count) carries")
 }
-report("ypcEvenCount", yardsByAdvantage[0])
-report("ypcOutnumberedByOne", yardsByAdvantage[-1])
-report("ypcOutnumberingByOne", yardsByAdvantage[1])
+let thinBucket =
+    "the first-and-ten carries at that count advantage did not reach \(gradableCarries), "
+    + "so no mean was taken — the printed bucket counts above say how thin"
+report("ypcEvenCount", yardsByAdvantage[0], ungraded: thinBucket)
+report("ypcOutnumberedByOne", yardsByAdvantage[-1], ungraded: thinBucket)
+report("ypcOutnumberingByOne", yardsByAdvantage[1], ungraded: thinBucket)
 
 print("")
 print("  The shape of a carry")
@@ -1153,8 +1163,16 @@ report("dropback40plus", dropbackShare { $0 >= 40 })
 // was out — the stream records that verdict as a decision point, so pressure is a query and
 // not a counter the resolver keeps. A rep lost after the throw is a `.blockResult` and is
 // deliberately not counted here.
-let pressured = dropbacks.filter { $0.decisions.contains { $0.kind == .pressureAllowed } }
-report("pressureRate", Double(pressured.count) / Double(max(1, dropbacks.count)) * 100)
+let underPressure = StreamQueries.pressure(in: dropbacks)
+report("pressureRate", Double(underPressure.pressured) / Double(max(1, dropbacks.count)) * 100)
+// What the pressure was worth. The rate on its own says how often the pocket broke; this
+// says how often a broken pocket finished the play, which is where a pass rush that
+// generates pressure and never converts it looks different from one that does.
+report(
+    "sacksPerPressure",
+    underPressure.pressured == 0
+        ? nil : Double(underPressure.sacks) / Double(underPressure.pressured) * 100,
+    ungraded: "no dropback was pressured, so there is nothing to take a conversion rate over")
 // Every caught ball, including the ones that went backwards, read from the record's own
 // pass result. This is the gap between the completion row and the older gains-only
 // inference, stated as a share of completions.
@@ -1189,7 +1207,8 @@ let toTheFirstRead = throwsToARead.filter { play in
 report(
     "firstReadShare",
     throwsToARead.isEmpty
-        ? nil : Double(toTheFirstRead.count) / Double(throwsToARead.count) * 100)
+        ? nil : Double(toTheFirstRead.count) / Double(throwsToARead.count) * 100,
+    ungraded: "no throw went to a numbered read")
 // Who the ball goes to, by the position he plays: the footprint the read order and the
 // checkdown leave, and the one of these rows a source bands — the play-by-play names the
 // targeted receiver and the participation feed the position he plays.
@@ -1202,9 +1221,38 @@ func targetShare(_ positions: Set<Position>) -> Double? {
         : Double(targets.filter { positions.contains($0.position) }.count)
             / Double(targets.count) * 100
 }
-report("targetShare.wideReceiver", targetShare([.wideReceiver]))
-report("targetShare.tightEnd", targetShare([.tightEnd]))
-report("targetShare.runningBack", targetShare([.runningBack, .fullback]))
+let noTargets = "no dropback named a targeted receiver, so the share has no denominator"
+report("targetShare.wideReceiver", targetShare([.wideReceiver]), ungraded: noTargets)
+report("targetShare.tightEnd", targetShare([.tightEnd]), ungraded: noTargets)
+report("targetShare.runningBack", targetShare([.runningBack, .fullback]), ungraded: noTargets)
+
+print("")
+print("  What was called")
+// Run share by down and distance, in the buckets the caller itself chooses between:
+// 1-3, 4-6 and 7 or more yards to go on second, third and fourth down. A mean run share
+// over a whole game says nothing — an offence that runs on second and two and throws on
+// third and twelve has the same overall share as one that does the opposite, and only one
+// of those is football.
+//
+// The denominator is what was *called*: a sack and a scramble are the pass they were
+// called as, and a kneel and a spike are in neither half. First down is one class and
+// goal-to-go is its own, so neither is split here.
+let calledByBucket = StreamQueries.runShare(in: allPlays)
+for bucket in DownAndDistanceClass.allCases {
+    guard let split = calledByBucket[bucket] else { continue }
+    report(
+        "runShare.\(bucket)",
+        split.calls == 0 ? nil : Double(split.runs) / Double(split.calls) * 100,
+        ungraded: "nothing was called on \(bucket)")
+}
+// A bucket with no calls at all reports nothing above, so it is named here instead: a row
+// that never prints is the silence this run exists to break.
+for bucket in DownAndDistanceClass.allCases
+where calledByBucket[bucket] == nil
+    && CalibrationTarget.all.contains(where: { $0.id == "runShare.\(bucket)" })
+{
+    report("runShare.\(bucket)", nil, ungraded: "no run or pass was called on \(bucket)")
+}
 
 print("")
 print("  How drives end")
@@ -1226,11 +1274,7 @@ report("playsPerDrive", Double(drivePlays.reduce(0, +)) / Double(max(1, drivePla
 // First downs are the currency of a drive: how many a team earns decides how long its
 // drives last, and it is the row that separates "converts third downs at the right rate"
 // from "never reaches third down".
-let firstDownsEarned = allPlays.filter { play in
-    guard play.outcome.kind.isScrimmagePlay else { return false }
-    return play.outcome.yards >= Int16(play.situation.distance)
-        || play.outcome.endedIn == .touchdown
-}.count
+let firstDownsEarned = StreamQueries.firstDownsEarned(in: allPlays)
 report("firstDownsPerTeamGame", Double(firstDownsEarned) / teamGames)
 // A mean hides the shape here too. Real football has a fat spike of quick failures and a
 // long tail of sustained drives; a league whose drives are all six plays long has neither.
@@ -1251,9 +1295,11 @@ for (label, count) in shortDriveEndings.sorted(by: {
     )
 }
 report("threeAndOut", Double(threeAndOuts) / Double(max(1, drivePlays.count)) * 100)
+report("redZoneTripsPerTeamGame", Double(redZoneDrives) / teamGames)
 report(
     "redZoneTouchdownRate",
-    redZoneDrives == 0 ? nil : Double(redZoneTouchdowns) / Double(redZoneDrives) * 100)
+    redZoneDrives == 0 ? nil : Double(redZoneTouchdowns) / Double(redZoneDrives) * 100,
+    ungraded: "no drive reached the twenty, so there is no trip to take a rate over")
 
 print("")
 print("  Field position")
@@ -1266,22 +1312,22 @@ func mean(_ values: [Int]) -> Double? {
     values.isEmpty ? nil : Double(values.reduce(0, +)) / Double(values.count)
 }
 report("puntsPerTeamGame", Double(puntNets.count) / teamGames)
-report("netPunt", mean(puntNets))
-report("grossPunt", mean(puntGrosses))
-report("puntReturnYards", mean(puntReturnYards))
+report("netPunt", mean(puntNets), ungraded: "nobody punted")
+report("grossPunt", mean(puntGrosses), ungraded: "no punt was struck; every one was blocked")
+report("puntReturnYards", mean(puntReturnYards), ungraded: "no punt was returned")
 report("twoPointTries", Double(twoPointTries) / teamGames)
 report(
     "twoPointConversion",
-    twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100)
+    twoPointTries == 0 ? nil : Double(twoPointGood) / Double(max(1, twoPointTries)) * 100,
+    ungraded: "nobody went for two")
 // How the conversions were attempted. A try may be by pass *or run* (2025 rulebook,
-// 11-3-1), and a hundred per cent here means the run branch is unreachable rather than
-// unpopular — which it once was. No target: nothing in
-// docs/reference/calibration-sources.md bands the split.
-print(
-    "    \(pad("two-point tries run", 30))"
-        + "\(twoPointTries == 0 ? "—" : oneDecimal(Double(twoPointRuns) / Double(twoPointTries) * 100) + "%")"
-        + "   \(twoPointRuns) of \(twoPointTries)   (no target: unsourced, a band belongs to #42)"
-)
+// 11-3-1), and a run branch that never gets called is unreachable rather than unpopular —
+// which it once was. Two counts rather than one share, because the two are different
+// plays with different personnel on both sides: a season that stops calling the run shows
+// up as a zero in its own row instead of moving a percentage somebody has to interpret.
+let twoPointSplit = StreamQueries.twoPointTries(in: allPlays)
+report("twoPointTriesRun", Double(twoPointSplit.run) / teamGames)
+report("twoPointTriesPass", Double(twoPointSplit.pass) / teamGames)
 
 // Where punters put the ball, which from plus territory is the whole of a punter's value:
 // a scrimmage kick that reaches the end zone untouched is a touchback (2025 rulebook,
@@ -1292,7 +1338,7 @@ print(
 // `netPunt` row above measures it — that one spots it at the goal line, a harness bug
 // recorded in calibration-sources.md — so the two are not comparable by construction.
 print("")
-print("  Punting   (no target: unsourced, a band belongs to #42)")
+print("  Punting   (the rows below the graded one are unsourced)")
 let puntPlays = allPlays.filter { $0.outcome.kind == .punt }
 let plusTerritoryPunts = puntPlays.filter { $0.situation.ballOn <= 45 }
 
@@ -1317,6 +1363,14 @@ func averageTakeover(_ plays: [PlayRecord]) -> String {
     return "own " + oneDecimal(Double(spots.reduce(0, +)) / Double(spots.count))
 }
 
+let plusTerritoryTouchbacks = StreamQueries.touchbacks(in: plusTerritoryPunts)
+report(
+    "puntTouchbacksFromPlusTerritory",
+    plusTerritoryTouchbacks.kicks == 0
+        ? nil
+        : Double(plusTerritoryTouchbacks.touchbacks) / Double(plusTerritoryTouchbacks.kicks)
+            * 100,
+    ungraded: "no punt was struck from inside the opponent's 45")
 print(
     "    \(pad("touchbacks, from inside their 45", 34))\(shareOfTouchbacks(plusTerritoryPunts))"
         + "   \(plusTerritoryPunts.count) punts")
@@ -1404,10 +1458,11 @@ func madeShare(_ kicks: [(distance: Int, good: Bool)]) -> Double? {
 func attemptShare(_ kicks: [(distance: Int, good: Bool)]) -> Double {
     Double(kicks.count) / Double(max(1, fieldGoalsByDistance.count)) * 100
 }
-report("fieldGoalsUnder30", madeShare(fieldGoals(0, 29)))
-report("fieldGoals30to39", madeShare(fieldGoals(30, 39)))
-report("fieldGoals40to49", madeShare(fieldGoals(40, 49)))
-report("fieldGoals50plus", madeShare(fieldGoals(50, 99)))
+let noKicksInBucket = "no field goal was attempted from that distance"
+report("fieldGoalsUnder30", madeShare(fieldGoals(0, 29)), ungraded: noKicksInBucket)
+report("fieldGoals30to39", madeShare(fieldGoals(30, 39)), ungraded: noKicksInBucket)
+report("fieldGoals40to49", madeShare(fieldGoals(40, 49)), ungraded: noKicksInBucket)
+report("fieldGoals50plus", madeShare(fieldGoals(50, 99)), ungraded: noKicksInBucket)
 report("fieldGoalAttemptsUnder30", attemptShare(fieldGoals(0, 29)))
 report("fieldGoalAttempts30to39", attemptShare(fieldGoals(30, 39)))
 report("fieldGoalAttempts40to49", attemptShare(fieldGoals(40, 49)))
@@ -1580,7 +1635,9 @@ for play in allPlays where play.outcome.kind == .kickoff {
 }
 print("    \(pad("onside kicks (recovered)", 30))\(onside) (\(onsideRecovered))")
 report("onsideKicks", Double(onside) / Double(max(1, results.count)))
-report("onsideRecovery", onside == 0 ? nil : Double(onsideRecovered) / Double(onside) * 100)
+report(
+    "onsideRecovery", onside == 0 ? nil : Double(onsideRecovered) / Double(onside) * 100,
+    ungraded: "no onside kick was attempted")
 print(
     "    \(pad("kickoffs returned", 30))\(kickoffReturns) of \(allPlays.filter { $0.outcome.kind == .kickoff }.count)"
 )
@@ -1697,7 +1754,9 @@ for kind in [Precipitation.none, .rain, .heavyRain, .snow] {
 if let dry = combinedPoints(.none), let wet = combinedPoints(.heavyRain) {
     report("heavyRainPoints", dry - wet)
 } else {
-    report("heavyRainPoints", nil)
+    report(
+        "heavyRainPoints", nil,
+        ungraded: "the run drew no heavy-rain game, or no dry one to compare it with")
 }
 
 print("")
@@ -1761,7 +1820,19 @@ if byTeam.count > 1, byTeam.allSatisfy({ $0.count > 1 }) {
     let variance = betweenTeams - withinTeams / gamesEach
     report("betweenTeamSigma", variance > 0 ? variance.squareRoot() : 0)
 } else {
-    report("betweenTeamSigma", nil)
+    report(
+        "betweenTeamSigma", nil,
+        ungraded: "every club needs more than one game for the within-club spread to exist")
+}
+
+print("")
+print("  Ungraded rows")
+if ungraded.isEmpty {
+    print("    none — every row this run reported was read against its band")
+} else {
+    // Named with the reason, because an ungraded row cannot be OFF: it leaves the summary
+    // greener than the run was, and an em dash in a column is not a thing a reader notices.
+    for line in ungraded.lines { print("    " + line) }
 }
 
 print("")

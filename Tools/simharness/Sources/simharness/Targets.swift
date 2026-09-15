@@ -411,6 +411,62 @@ struct CalibrationTarget: Sendable {
         ),
 
         // The shape of the stream.
+
+        // What the coordinator called, by down and distance. The nine buckets are the
+        // engine's own `DownAndDistanceClass` cases on second, third and fourth down;
+        // first down is one class and goal-to-go is its own, so neither is split here.
+        // The denominator is the run-or-pass calls, so a sack and a scramble are the pass
+        // they were called as and a kneel is in neither half. An overall run share hides
+        // all of this: an offence that runs on second and two and throws on third and
+        // twelve has the same figure as one that does the opposite.
+        CalibrationTarget(
+            id: "runShare.secondShort", label: "runs called, second and 1 to 3", low: 57.9,
+            high: 65.2,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.secondMedium", label: "runs called, second and 4 to 6", low: 45.0,
+            high: 51.6,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.secondLong", label: "runs called, second and 7 or more", low: 25.9,
+            high: 30.7,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.thirdShort", label: "runs called, third and 1 to 3", low: 44.5,
+            high: 51.7,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.thirdMedium", label: "runs called, third and 4 to 6", low: 7.5,
+            high: 10.4,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.thirdLong", label: "runs called, third and 7 or more", low: 6.0,
+            high: 9.1,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.fourthShort", label: "runs called, fourth and 1 to 3", low: 45.0,
+            high: 57.4,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
+        CalibrationTarget(
+            id: "runShare.fourthMedium", label: "runs called, fourth and 4 to 6", low: 0.9,
+            high: 11.5,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%",
+            note:
+                "Wide because the sport's own two seasons are 7.9% and 4.5% on about 150 calls each; a band this wide catches only a gross miss."
+        ),
+        CalibrationTarget(
+            id: "runShare.fourthLong", label: "runs called, fourth and 7 or more", low: 1.0,
+            high: 7.6,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%"),
         CalibrationTarget(
             id: "playsPerGame", label: "plays per game", low: 152, high: 170,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
@@ -457,6 +513,26 @@ struct CalibrationTarget: Sendable {
             note: "Team timeouts, both teams."),
 
         // The season, which the harness cannot play until M3.
+
+        // Where a play ends laterally. After the two-minute warning of either half the
+        // clock stays stopped until the snap on a play that ends out of bounds and
+        // restarts on the ready signal everywhere else (2025 rulebook, 4-3-2-a), so this
+        // is a decision late and an accident early — and a trailing offence that never
+        // gets out of bounds has no two-minute drill.
+        CalibrationTarget(
+            id: "outOfBoundsShare", label: "plays ending out of bounds", low: 12.7, high: 14.4,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
+            unit: "%",
+            note:
+                "Over the plays from scrimmage that ended with the ball dead in the field of play or out of bounds. A score, an incompletion and a takeaway are in neither half: none of them is a play the carrier could have taken to the sideline instead."
+        ),
+        CalibrationTarget(
+            id: "outOfBoundsShareTrailingLate", label: "out of bounds, trailing late",
+            low: 16.9, high: 22.0, season: .seasons(2023...2024), source: playByPlay,
+            rulesSensitiveTo: [], gate: true, unit: "%",
+            note:
+                "The same share, on snaps taken trailing inside two minutes of either half — the harness's `SituationClass.isDesperation`. The gap to the row above is the two-minute drill showing up in the record."
+        ),
         CalibrationTarget(
             id: "winTotalSigma", label: "spread of team win totals (σ)", low: 2.5, high: 3.8,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: false,
@@ -596,6 +672,13 @@ struct CalibrationTarget: Sendable {
                 "Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback whose record says a rusher reached the quarterback before the ball was out; a rep lost after the throw is a lost rep and not a pressure."
         ),
         CalibrationTarget(
+            id: "sacksPerPressure", label: "pressures ending in a sack", low: 20.0, high: 24.2,
+            season: .seasons(2023...2024), source: participation, rulesSensitiveTo: [], gate: true,
+            unit: "%",
+            note:
+                "What a pressure was worth: the share of pressured dropbacks that ended in a sack. Numerator and denominator come off the same plays, so a coverage sack on a clean pocket is in neither."
+        ),
+        CalibrationTarget(
             id: "completionsZeroOrFewer", label: "completions for 0 or fewer yards", low: 4.0,
             high: 5.6, season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [],
             gate: true, unit: "%", note: "Share of all completions."),
@@ -643,6 +726,13 @@ struct CalibrationTarget: Sendable {
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
             unit: "%",
             note: "Drives of three offensive plays or fewer that end in a punt, over all drives."),
+        CalibrationTarget(
+            id: "redZoneTripsPerTeamGame", label: "red zone trips per team-game", low: 3.06,
+            high: 3.55, season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [],
+            gate: true, decimals: 2,
+            note:
+                "Drives with a snap inside the 20. The rate below says how many end in a touchdown; this says how often a team gets there at all, which the rate cannot distinguish from scoring more often on fewer trips."
+        ),
         CalibrationTarget(
             id: "redZoneTouchdownRate", label: "red zone touchdown rate", low: 51.1, high: 59.1,
             season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [], gate: true,
@@ -698,6 +788,17 @@ struct CalibrationTarget: Sendable {
             gate: true, unit: "%",
             note: "Wide because the sport itself swung from 55% to 41% on about 130 tries a season."
         ),
+        CalibrationTarget(
+            id: "twoPointTriesRun", label: "two-point tries carried in", low: 0.045, high: 0.102,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [.tryAttempt],
+            gate: true, decimals: 3,
+            note:
+                "A try may be by pass or by run (2025 rulebook, 11-3-1). Counted per team-game rather than as a share of tries, because the two are different plays and a run branch nobody calls should read as its own zero."
+        ),
+        CalibrationTarget(
+            id: "twoPointTriesPass", label: "two-point tries thrown", low: 0.109, high: 0.215,
+            season: .seasons(2023...2024), source: playByPlay, rulesSensitiveTo: [.tryAttempt],
+            gate: true, decimals: 3, note: "The other half of 11-3-1, per team-game."),
 
         // Kicking.
         CalibrationTarget(
@@ -849,6 +950,13 @@ struct CalibrationTarget: Sendable {
             unit: "%",
             note:
                 "Share of punts fielded and run back; fair catches, downed and touchbacks are not."),
+        CalibrationTarget(
+            id: "puntTouchbacksFromPlusTerritory", label: "touchbacks, punts from inside the 45",
+            low: 10.6, high: 27.7, season: .seasons(2023...2024), source: playByPlay,
+            rulesSensitiveTo: [], gate: true, unit: "%",
+            note:
+                "Punts struck from inside the opponent's 45 that reach the end zone untouched (2025 rulebook, 11-6-2-c). From there placement is the whole play, and a touchback gives back everything the field position was worth. Wide because the sport's own two seasons are seven points apart on about 350 kicks each."
+        ),
 
         // Backed up.
         CalibrationTarget(

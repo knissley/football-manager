@@ -614,6 +614,7 @@ rulebook moves; **Gate** is whether a miss counts as a failure — `no` for rows
 cannot measure yet or whose sample is too thin to fail on.
 
 <!-- calibration-targets:begin -->
+
 | Row | Target | Season | Sensitive to | Source | Gate | Definition and notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | points | 20.6-24.1 | 2023-24 | — | S1 | yes | — |
@@ -639,6 +640,15 @@ cannot measure yet or whose sample is too thin to fail on.
 | targets to wide receivers | 56.7-63.1% | 2023-24 | — | S2 | yes | Targets whose man plays wide receiver, over targets on dropbacks — a throwaway has no target and is not in it, and a two-point try is not a dropback. The footprint of the read order. The source joins the play-by-play's targeted receiver to the position the participation feed lists him at, by his index in that play's offence; the two shares below and this one leave a residue of about three targets in a thousand, thrown to a lineman or to a man the feed lists at a defensive position, so they do not sum to 100. |
 | targets to tight ends | 20.2-23.5% | 2023-24 | — | S2 | yes | As row:targetShare.wideReceiver, for the tight end. |
 | targets to backs | 16.4-19.6% | 2023-24 | — | S2 | yes | As row:targetShare.wideReceiver, for the running back and the fullback: the footprint of the checkdown. |
+| runs called, second and 1 to 3 | 57.9-65.2% | 2023-24 | — | S1 | yes | — |
+| runs called, second and 4 to 6 | 45.0-51.6% | 2023-24 | — | S1 | yes | — |
+| runs called, second and 7 or more | 25.9-30.7% | 2023-24 | — | S1 | yes | — |
+| runs called, third and 1 to 3 | 44.5-51.7% | 2023-24 | — | S1 | yes | — |
+| runs called, third and 4 to 6 | 7.5-10.4% | 2023-24 | — | S1 | yes | — |
+| runs called, third and 7 or more | 6.0-9.1% | 2023-24 | — | S1 | yes | — |
+| runs called, fourth and 1 to 3 | 45.0-57.4% | 2023-24 | — | S1 | yes | — |
+| runs called, fourth and 4 to 6 | 0.9-11.5% | 2023-24 | — | S1 | yes | Wide because the sport's own two seasons are 7.9% and 4.5% on about 150 calls each; a band this wide catches only a gross miss. |
+| runs called, fourth and 7 or more | 1.0-7.6% | 2023-24 | — | S1 | yes | — |
 | plays per game | 152-170 | 2023-24 | — | S1 | yes | Every play including kicks, tries and flag-only snaps; not timeouts. |
 | ties per game | 0.000-0.010 | 2025 | overtime | S1 | yes | One tie in 272 games in 2025; the band is that rate widened by twice the resampled standard error of a 400-game run, per the policy. |
 | games reaching overtime | 3.0-7.3% | 2025 | overtime | S1 | yes | Fourteen of 272 games in 2025. |
@@ -648,6 +658,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | kneels per game | 1.3-1.8 | 2023-24 | — | S1 | yes | — |
 | spikes per game | 0.1-0.4 | 2023-24 | — | S1 | yes | — |
 | timeouts spent per game | 7.1-8.2 | 2023-24 | — | S1 | yes | Team timeouts, both teams. |
+| plays ending out of bounds | 12.7-14.4% | 2023-24 | — | S1 | yes | Over the plays from scrimmage that ended with the ball dead in the field of play or out of bounds. A score, an incompletion and a takeaway are in neither half: none of them is a play the carrier could have taken to the sideline instead. |
+| out of bounds, trailing late | 16.9-22.0% | 2023-24 | — | S1 | yes | The same share, on snaps taken trailing inside two minutes of either half — the harness's `SituationClass.isDesperation`. The gap to the row above is the two-minute drill showing up in the record. |
 | spread of team win totals (σ) | 2.5-3.8 | 2023-24 | — | S1 | no | Standard deviation of regular-season wins across the 32 teams, ties as a half. Not measurable before a schedule exists (M3). |
 | share of points from touchdowns | 62.6-70.1% | 2023-24 | — | S1 | yes | Six per touchdown; tries counted separately. |
 | share of points from field goals | 21.1-24.6% | 2023-24 | — | S1 | yes | — |
@@ -674,6 +686,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | dropbacks of 20 or more | 7.7-8.6% | 2023-24 | — | S1 | yes | — |
 | dropbacks of 40 or more | 1.0-1.5% | 2023-24 | — | S1 | yes | — |
 | pressure rate per dropback | 27.8-32.3% | 2023-24 | — | S2 | yes | Next Gen Stats' pressure flag over attempts, sacks and scrambles. The harness counts a dropback whose record says a rusher reached the quarterback before the ball was out; a rep lost after the throw is a lost rep and not a pressure. |
+| pressures ending in a sack | 20.0-24.2% | 2023-24 | — | S2 | yes | What a pressure was worth: the share of pressured dropbacks that ended in a sack. Numerator and denominator come off the same plays, so a coverage sack on a clean pocket is in neither. |
 | completions for 0 or fewer yards | 4.0-5.6% | 2023-24 | — | S1 | yes | Share of all completions. |
 | drives ending in a punt | 32.8-39.0% | 2023-24 | — | S1 | yes | — |
 | drives ending in a touchdown | 19.2-23.8% | 2023-24 | — | S1 | yes | — |
@@ -685,6 +698,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | drives of 4 to 7 | 33.7-38.4% | 2023-24 | — | S1 | yes | — |
 | drives of 8 or more | 25.9-29.7% | 2023-24 | — | S1 | yes | — |
 | three and out | 19.1-22.5% | 2023-24 | — | S1 | yes | Drives of three offensive plays or fewer that end in a punt, over all drives. |
+| red zone trips per team-game | 3.06-3.55 | 2023-24 | — | S1 | yes | Drives with a snap inside the 20. The rate below says how many end in a touchdown; this says how often a team gets there at all, which the rate cannot distinguish from scoring more often on fewer trips. |
 | red zone touchdown rate | 51.1-59.1% | 2023-24 | — | S1 | yes | Drives with a snap inside the 20 that end in the offence's touchdown. |
 | average start (own yard) | 29.1-32.3 | 2025 | kickoff | S1 | yes | First snap of each drive. The 2025 touchback at the 35 moved this half a yard from 2024. |
 | average start (own yard) | 28.6-31.7 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
@@ -696,6 +710,8 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per punt return | 8.8-10.6 | 2023-24 | — | S1 | yes | Over punts that were fielded and run back; a fair catch is not a return. |
 | two-point tries per team-game | 0.19-0.29 | 2023-24 | tryAttempt | S1 | yes | — |
 | two-point conversion rate | 33.6-62.3% | 2023-24 | tryAttempt | S1 | yes | Wide because the sport itself swung from 55% to 41% on about 130 tries a season. |
+| two-point tries carried in | 0.045-0.102 | 2023-24 | tryAttempt | S1 | yes | A try may be by pass or by run (2025 rulebook, 11-3-1). Counted per team-game rather than as a share of tries, because the two are different plays and a run branch nobody calls should read as its own zero. |
+| two-point tries thrown | 0.109-0.215 | 2023-24 | tryAttempt | S1 | yes | The other half of 11-3-1, per team-game. |
 | kickoff touchbacks | 18.9-22.4% | 2025 | kickoff | S1 | yes | Share of all kickoffs, onside kicks included in the denominator. |
 | kickoff touchbacks | 61.1-67.6% | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | field goals per team-game | 1.8-2.2 | 2023-24 | — | S1 | yes | Attempts. |
@@ -731,6 +747,7 @@ cannot measure yet or whose sample is too thin to fail on.
 | yards per kickoff return | 24.1-26.7 | 2025 | kickoff | S1 | yes | From where the kick was fielded, end-zone depth included, to where the return ended; onside kicks excluded. |
 | yards per kickoff return | 25.6-28.4 | 2024 | kickoff | S1 | yes | Kept for --rulebook 2024. |
 | punts returned | 40.5-45.3% | 2023-24 | — | S1 | yes | Share of punts fielded and run back; fair catches, downed and touchbacks are not. |
+| touchbacks, punts from inside the 45 | 10.6-27.7% | 2023-24 | — | S1 | yes | Punts struck from inside the opponent's 45 that reach the end zone untouched (2025 rulebook, 11-6-2-c). From there placement is the whole play, and a touchback gives back everything the field position was worth. Wide because the sport's own two seasons are seven points apart on about 350 kicks each. |
 | snaps inside own 10 | 1.55-1.84 | 2023-24 | — | S1 | yes | Scrimmage plays per team-game. |
 | safeties per team-game | 0.01-0.05 | 2023-24 | — | S1 | yes | — |
 | pre-snap fouls, road vs home | 0.94-1.19x | 2023-24 | — | S1 | yes | The offence's pre-snap fouls per snap, road over home. The sport's edge is about 6%, not the fifth the band once claimed; the home side won 53–56% of decided games and outscored by 1.9–2.7 points, most of which is not the crowd. |
@@ -755,6 +772,7 @@ cannot measure yet or whose sample is too thin to fail on.
 
 - **S1** — nflverse play-by-play data, regular-season games
 - **S2** — nflverse participation data from Next Gen Stats, regular-season games
+
 <!-- calibration-targets:end -->
 
 ### Reading the table

@@ -37,7 +37,7 @@ so, then what checks it:
 
 A rule is not a rate. Entries 1 to 101 are rules, and a scenario is what checks one — except
 100, which is a promise the record makes about itself and says so on its own line. Entries 102
-to 131 are what a league of games has to *look* like, and a harness band over a sourced season
+to 133 are what a league of games has to *look* like, and a harness band over a sourced season
 is what checks one. A band is evidence about a rate and never about a rule.
 
 ## Game length and overtime
@@ -744,9 +744,11 @@ what every one of them was derived from is in
 104. A team throws for and runs for about what a real team does, at about the same yards a
     carry, a completion, an attempt and a play. — `row:passingYards`, `row:rushingYards`,
     `row:yardsPerCarry`, `row:yardsPerAttempt`, `row:yardsPerCompletion`, `row:yardsPerPlay`
-105. Passes are completed, pressured, sacked and intercepted at about the real rates. —
+105. Passes are completed, pressured, sacked and intercepted at about the real rates, and a
+    pressure is worth about what one is really worth: a rush that breaks the pocket and
+    never finishes the play is a different defence from one that does. —
     `row:completionPercentage`, `row:sackRate`, `row:interceptionRate`, `row:pressureRate`,
-    `row:completionsZeroOrFewer`
+    `row:sacksPerPressure`, `row:completionsZeroOrFewer`
 106. A game holds about as many snaps as a real one, and a team runs about as many plays from
     scrimmage. — `row:playsPerGame`, `row:playsFromScrimmage`
 107. Third down comes up at about the real distance and is converted at about the real rate,
@@ -763,15 +765,20 @@ what every one of them was derived from is in
     `row:driveEndDowns`, `row:drivesPerTeamGame`, `row:playsPerDrive`
 111. The shape of a drive is right: three-and-outs, short drives, middling ones and long
     ones. — `row:drives3orFewer`, `row:drives4to7`, `row:drives8plus`, `row:threeAndOut`
-112. A trip inside the 20 ends in a touchdown about as often as it really does. —
-    `row:redZoneTouchdownRate`
+112. A team gets inside the 20 about as often as a real one does, and a trip there ends in a
+    touchdown about as often as it really does. The two are separate claims: scoring more
+    often on fewer trips reads the same as the sport on the rate alone. —
+    `row:redZoneTripsPerTeamGame`, `row:redZoneTouchdownRate`
 113. Drives start about where they really start, and about as often inside their own half. —
      `row:averageStart.2025`, `row:averageStart.2024`, `row:ownHalfStarts.2025`,
      `row:ownHalfStarts.2024`, `row:snapsInsideOwn10`
 114. Teams punt about as often, for about the real gross and net, about as many punts come
      back, and a returned kick comes back about as far. — `row:puntsPerTeamGame`,
      `row:netPunt`, `row:grossPunt`, `row:puntsReturned`, `row:puntReturnYards`,
-     `row:kickoffReturnYards.2025`, `row:kickoffReturnYards.2024`; all four distances are
+     `row:kickoffReturnYards.2025`, `row:kickoffReturnYards.2024`. From inside the
+     opponent's 45 placement is the whole play, and a kick into the end zone gives back
+     everything the field position was worth, so touchbacks from there are their own row —
+     `row:puntTouchbacksFromPlusTerritory`. All four distances are
      read off the record, which says where every kick was fielded —
      `test:kickDistancesAreDerivable`, `test:onlyKicksAreFielded`
 115. Field goals are attempted about as often, from about the real spread of distances, and
@@ -780,7 +787,10 @@ what every one of them was derived from is in
      `row:fieldGoals50plus`, `row:fieldGoalAttemptsUnder30`, `row:fieldGoalAttempts30to39`,
      `row:fieldGoalAttempts40to49`, `row:fieldGoalAttempts50plus`
 116. Extra points are made, and two-point tries taken and converted, at about the real
-     rates. — `row:extraPointsMade`, `row:twoPointTries`, `row:twoPointConversion`
+     rates — and taken by pass *and* by run at about the real rates, because a try is
+     either and a branch nobody calls is unreachable rather than unpopular.
+     `[2025 · 11-3-1]` — `row:extraPointsMade`, `row:twoPointTries`,
+     `row:twoPointConversion`, `row:twoPointTriesRun`, `row:twoPointTriesPass`
 117. Fourth down is punted, kicked and gone for at about the real rates, and converted at
      about the real one. — `row:fourthDownPunted`, `row:fourthDownKicked`,
      `row:fourthDownWentForIt`, `row:fourthDownAttempts`, `row:fourthDownConversion`,
@@ -818,9 +828,10 @@ what every one of them was derived from is in
      first-and-ten carries from eleven personnel. Each marginal share above is in band while
      the pairing of grouping to package is not, so the band is sound, the sample is thin,
      and the residual is the retune's
-     ([#49](https://github.com/knissley/football-manager/issues/49)). The durable check that
-     no graded row reads `n/a` silently is
-     [#42](https://github.com/knissley/football-manager/issues/42)'s.
+     ([#49](https://github.com/knissley/football-manager/issues/49)). It no longer goes
+     ungraded in silence: every run prints an *Ungraded rows* block naming each row it could
+     not grade and why, so a row that newly loses its sample is a line in the output rather
+     than an em dash in a column.
 122. The endgame is played: teams kneel, spike, scramble and spend timeouts about as often
      as they really do. — `row:kneelsPerGame`, `row:spikesPerGame`, `row:scramblesPerGame`,
      `row:timeoutsPerGame`
@@ -860,19 +871,38 @@ what every one of them was derived from is in
      see. The denominator is targets rather than attempts, so a throwaway is in neither
      half of it. — `row:targetShare.wideReceiver`, `row:targetShare.tightEnd`,
      `row:targetShare.runningBack`
+128. The caller chooses between the run and the pass the way the sport does, and it is a
+     different choice in every down and distance: the ground on second and two, a defence
+     that can stop honouring it on third and twelve, and fourth down short enough that
+     going for it is not a stunt. An overall run share hides all of this — an offence that
+     runs on second and two and throws on third and twelve has the same figure as one that
+     does the opposite, and only one of those is football. The buckets are the engine's own
+     `DownAndDistanceClass` cases, and the denominator is the run-or-pass calls, so a sack
+     and a scramble are the pass they were called as. — `row:runShare.secondShort`,
+     `row:runShare.secondMedium`, `row:runShare.secondLong`, `row:runShare.thirdShort`,
+     `row:runShare.thirdMedium`, `row:runShare.thirdLong`, `row:runShare.fourthShort`,
+     `row:runShare.fourthMedium`, `row:runShare.fourthLong`
+129. Plays end on the sideline about as often as they really do, and markedly more often
+     when a trailing offence needs the clock stopped. A runner going out of bounds starts
+     the clock on the Referee's ready signal, except that it starts on the snap after the
+     two-minute warning of the first half and inside the last five minutes of the second —
+     and the trailing-late row's bucket, inside two minutes of either half, sits within
+     both of those windows. So the gap between the two rows is the two-minute drill showing
+     up in the record rather than an accident of where men get tackled. `[2025 · 4-3-2-a]`
+     — `row:outOfBoundsShare`, `row:outOfBoundsShareTrailingLate`
 
 ## What the harness cannot check yet
 
-128. A completion is a completion whether it gained a yard, none, or lost one. The record
+130. A completion is a completion whether it gained a yard, none, or lost one. The record
      says a pass was caught, and the harness reads that rather than inferring it from
      positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
      `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-129. Players miss games at about the rate they really do, and heavy rain takes points off a
+131. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
-130. Receivers drop about as many as they really do, defenders knock away about as many,
+132. Receivers drop about as many as they really do, defenders knock away about as many,
      and a defensive interference flag is thrown about as often as one is enforced. The
      first two have no band anybody has cited — the play-by-play charts neither a drop nor
      a break-up — and the third is a count of flags rather than of enforced fouls, which
@@ -884,7 +914,7 @@ what every one of them was derived from is in
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail, and the
      rates themselves are
      [#49](https://github.com/knissley/football-manager/issues/49)'s
-131. A defensive interference flag on a pass that was then completed is the engine
+133. A defensive interference flag on a pass that was then completed is the engine
      contradicting itself rather than a rate to be sourced, so `row:interferenceOnCompletions`
      carries a band of zero that no season stands behind and is graded by
      `test:interferenceMeansNoCatch` instead. `[2025 · 8-5-1]` —

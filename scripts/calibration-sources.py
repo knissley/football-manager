@@ -561,9 +561,11 @@ def read_season(directory, season):
                 if flag(row, "out_of_bounds"):
                     c["endedOutOfBounds"] += 1
                 # Trailing inside two minutes of either half, which is the harness's
-                # `SituationClass.isDesperation`: the clock stays stopped until the snap
-                # after an out-of-bounds play there (2025 rulebook, 4-3-2-a), so a
-                # trailing offence is buying downs with the sideline.
+                # `SituationClass.isDesperation`. A runner going out of bounds starts the
+                # clock on the Referee's ready signal, except that it starts on the snap
+                # after the two-minute warning of the first half and inside the last five
+                # minutes of the second (2025 rulebook, 4-3-2-a). Both halves of this
+                # bucket sit inside those windows, so here the sideline buys a down.
                 remaining = num(row, "half_seconds_remaining")
                 differential = num(row, "score_differential")
                 if (
