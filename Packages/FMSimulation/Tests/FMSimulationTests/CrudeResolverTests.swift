@@ -1798,10 +1798,11 @@ struct ResolutionVocabularyTests {
                 assists += assisted.count
                 let at = "play \(play.index) of game \(result.game)"
                 #expect(assisted.count == 1, "\(at): \(assisted.count) men assisted one tackle")
+                // A forced fumble is not a finished tackle and so is not one an assist
+                // can attach to — see `theBallComesOutBeforeTheRunnerIsDown` for the two
+                // articles that say so. This used to accept one and encoded the gap.
                 #expect(
-                    attempts.contains {
-                        $0.tackleResult == .madeTackle || $0.tackleResult == .forcedFumble
-                    },
+                    attempts.contains { $0.tackleResult == .madeTackle },
                     "\(at): an assist on a down nobody finished")
                 for point in assisted {
                     #expect(

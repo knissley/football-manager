@@ -191,6 +191,15 @@ struct BallSecurityTests {
     /// this claim: the attempt that knocked it loose is written as a forced fumble, and
     /// the same play carries no completed tackle of the man who fumbled.
     ///
+    /// **A completed tackle is a completed tackle whoever finished it.** The first version
+    /// of this test read `.madeTackle` alone, and an assist is the other way the record
+    /// says a man was brought down — a second man finishing the tackle with him. So it
+    /// went green over a corpus in which twenty-six downs said the carrier was helped to
+    /// the ground *and then* lost the ball, which is the same impossible down the article
+    /// rules out, written with a different word. Both words are read here, and the
+    /// assisting man's credit with them, because the participation is the half a query
+    /// about tacklers actually reads.
+    ///
     /// **Read over the shared corpus** rather than a forced draw, because a fumble is
     /// common enough for forty games to hold well over a hundred of them and what is
     /// being asserted is a property of *every* one, not the existence of one. The count
@@ -226,6 +235,12 @@ struct BallSecurityTests {
                 #expect(
                     !attempts.contains { $0.tackleResult == .madeTackle },
                     "\(at): the tackle was made and the ball came loose afterwards")
+                #expect(
+                    !attempts.contains { $0.tackleResult == .assisted },
+                    "\(at): a second man finished the tackle and the ball came loose after")
+                #expect(
+                    !play.outcome.participants.contains { $0.role == .assistTackler },
+                    "\(at): somebody is credited with assisting a tackle nobody made")
             }
         }
         #expect(fumbles > 0, "no fumble in the corpus to read")
