@@ -95,9 +95,8 @@ struct CoinTossTests {
     ///    while the second half and a third overtime period open on the first choice of
     ///    the captain who lost the toss before them (4-2-2, 16-1-4-e).
     /// 2. **Both captains are on the record at every one of those halves**, one election
-    ///    each: 4-2-2 has the winner take a privilege and the loser given the other, and
-    ///    for the second half it has the captains of both teams inform the Referee of
-    ///    their respective choices.
+    ///    each: 4-2-2 has the winner take a privilege and the loser the one he left, and
+    ///    before the second half it has each captain tell the Referee what he has chosen.
     /// 3. **Exactly one captain takes privilege (a)**, and what he elected is what
     ///    happened — electing to receive, the other side kicks off to him (4-2-2-a).
     /// 4. **The loser never defers.** The article gives the deferral to the winner alone.

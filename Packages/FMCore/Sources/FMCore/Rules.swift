@@ -432,9 +432,9 @@ extension Rules {
     /// A deferral is a choice postponed to a later half, so it is on offer only where
     /// this toss has a later half to give it to. The pregame toss has the second half,
     /// which 4-2-2 says outright. An overtime toss has the half two periods on, whose
-    /// first choice 16-1-4-e gives to the captain who lost it "unless the team that won
-    /// the coin toss deferred" — and only a postseason game has one, since regular-season
-    /// overtime is a single period at most (16-1-3-d).
+    /// first choice 16-1-4-e gives to the captain who lost it, with its own exception for
+    /// a winner who deferred — and only a postseason game has such a half, since
+    /// regular-season overtime is a single period at most (16-1-3-d).
     public func mayDeferAtTheToss(quarter: UInt8, isPostseason: Bool) -> Bool {
         quarter == 1 || isPostseason
     }

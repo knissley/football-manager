@@ -233,8 +233,8 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
 
 /// What one captain did with the coin toss (2025 rulebook, 4-2-2).
 ///
-/// The two privileges are the opportunity to receive the kickoff or to kick off (a) and
-/// the choice of goal (b). The winner takes one and the loser is given the other, unless
+/// The two privileges are (a), which is whether this side receives the kickoff or kicks
+/// off, and (b), the goal it defends. The winner takes one and the loser the other, unless
 /// the winner defers his choice to the half the article names — the second half (4-2-2),
 /// a third postseason overtime period (16-1-4-e) — where the captains answer again.
 ///

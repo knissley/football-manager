@@ -450,7 +450,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     /// otherwise, so a scenario that is not about the toss plays the same football the
     /// baseline caller does.
     public var tossElection: @Sendable (_ situation: Situation, _ mayDefer: Bool) -> TossElection =
-        { _, mayDefer in mayDefer ? .deferred : .receive }
+        { situation, mayDefer in mayDefer && situation.quarter == 1 ? .deferred : .receive }
 
     public init(
         offensiveConcept: @escaping @Sendable (Situation) -> PlayConcept = { _ in .insideRun },
@@ -466,7 +466,9 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true },
         tossElection:
             @escaping @Sendable (_ situation: Situation, _ mayDefer: Bool) ->
-            TossElection = { _, mayDefer in mayDefer ? .deferred : .receive }
+            TossElection = { situation, mayDefer in
+                mayDefer && situation.quarter == 1 ? .deferred : .receive
+            }
     ) {
         self.offensiveConcept = offensiveConcept
         self.offensiveTempo = offensiveTempo

@@ -197,9 +197,35 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             && caller.kicksOnside(situation: situation, classified: classified)
     }
 
+    /// What the captain who won the toss elects, among the elections the book leaves him
+    /// (2025 rulebook, 4-2-2).
+    ///
+    /// Kept apart for the reason `declaresOnsideKick` is: whether a deferral is on offer
+    /// is `Rules.mayDeferAtTheToss` and whether a captain wants one is his caller's
+    /// judgement, so a caller deferring where the book gives him no half to defer to is
+    /// read as taking the ball rather than as inventing a privilege.
+    static func electsAtTheToss(
+        caller: Caller, situation: Situation, classified: SituationClass, mayDefer: Bool
+    ) -> TossElection {
+        let election = caller.electsAtTheToss(
+            situation: situation, classified: classified, mayDefer: mayDefer)
+        return election == .deferred && !mayDefer ? .receive : election
+    }
+
+    /// The label of the stream every coin toss in a game is drawn from.
+    ///
+    /// A play's stream is labelled by its index, which `playLimit` bounds, so a label
+    /// above that bound belongs to no play. A toss is not a play and must not spend a
+    /// play's draws: a down whose result depended on how the coin fell two periods
+    /// earlier would make every stream after a toss a function of the toss.
+    private static var coinTossStream: UInt64 { UInt64(playLimit) + 1 }
+
     public func simulate(_ setup: GameSetup) -> GameResult {
         var state = State(setup: setup)
         let root = SplittableRandom(seed: setup.seed)
+        // Every coin a game tosses comes from one stream of its own, so the tosses fall
+        // the same way however many plays ran between them.
+        var tosses = root.split(Self.coinTossStream)
 
         // The limit is on snaps *attempted* rather than on downs written, because not
         // every attempt writes one: a period the interval before the snap exhausts ends
@@ -212,7 +238,7 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             // Nothing about play N depends on how many draws play N-1 happened to make,
             // so a change to one resolver's internals cannot shift the rest of the game.
             var random = root.split(UInt64(state.plays.count))
-            step(&state, random: &random)
+            step(&state, random: &random, tosses: &tosses)
             attempts += 1
         }
 
@@ -221,20 +247,39 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
 
     // MARK: - One snap
 
-    private func step(_ state: inout State, random: inout SplittableRandom) {
-        // A half that opens with one side's first choice of 4-2-2's privileges — the
-        // second half, and a third postseason overtime period (16-1-4-e) — puts the
-        // choice to that side's caller before its kickoff, and before anything else in
-        // the step. A period ends on a play, but also between downs — on an injury
-        // timeout's runoff, or on the last-forty-seconds election — and whichever way
-        // the half ended, the kick that follows is the next thing this loop builds.
-        // Settled after `apply` instead, a half ended between downs had its kick played
-        // with the toss loser kicking, and the answer that came a step later handed the
-        // ball back to the kicker. The situation is the chooser's: it has the ball to
-        // kick off with until it answers.
-        if state.firstChoicePending {
+    private func step(
+        _ state: inout State, random: inout SplittableRandom, tosses: inout SplittableRandom
+    ) {
+        // The coin, and what the two captains did with it, before anything else in the
+        // step. A half opens either on a toss — the game (4-2-2), the end of regulation
+        // (16-1-2), the end of a fourth overtime period (16-1-4-i) — or on the first
+        // choice of 4-2-2's privileges by the captain the toss before it left holding
+        // one (4-2-2, 16-1-4-e), and both are settled before the kick they decide is
+        // built. A period ends on a play, but also between downs — on an injury timeout's
+        // runoff, or on the last-forty-seconds election — and whichever way the half
+        // ended, the kick that follows is the next thing this loop builds. Settled after
+        // `apply` instead, a half ended between downs had its kick played by the wrong
+        // side and the answer that came a step later handed the ball back to it.
+        //
+        // Three steps and no loop: a toss leaves the winner's election owed, a winner who
+        // takes the goal or defers leaves the other captain's, and a half that follows no
+        // toss starts at the second of the three.
+        if state.tossIsPending {
+            // The visiting captain calls it (4-2-2, 16-1-2) and the coin is fair either
+            // way, so what is drawn is which captain won it.
+            state.settleToss(wonByTheAwayTeam: tosses.nextBool(probability: 0.5))
+        }
+        if case .tossWinner(let mayDefer) = state.pendingElection {
             let opening = state.situation()
-            state.settleFirstChoice(
+            state.settleTossElection(
+                Self.electsAtTheToss(
+                    caller: caller, situation: opening,
+                    classified: SituationClass(opening, rules: state.setup.rules),
+                    mayDefer: mayDefer))
+        }
+        if case .receiveOrKick = state.pendingElection {
+            let opening = state.situation()
+            state.settleReceiveOrKick(
                 receives: caller.electsToReceive(
                     situation: opening,
                     classified: SituationClass(opening, rules: state.setup.rules)))

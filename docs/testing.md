@@ -235,9 +235,10 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `7555cfa`, the head the decision-point contract sweep was cut from, plus the two
-contract tests and the one unit test it added: **1014 tests, counted with
-`./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
+Taken on `65227ed`, the head the coin toss was cut from, plus the eight tests it added —
+three `football ·` over 4-2-2's deferral and its two privileges, five `contract:` over the
+toss in the record — and the one `pin` it turned into a `football ·` scenario: **1022
+tests, counted with `./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
 no commit beside it is a claim about a tree nobody can go back to, which is the way a
 snapshot misleads — it reads as current long after it has stopped being true.
 
@@ -251,10 +252,10 @@ the same commit as whatever moved it, and move the sha above with it.
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 56 — 14.7% | 34 — 8.9% | 288 — 75.4% | 4 | 382 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 150 — 42.3% | 117 — 33.0% | 69 — 19.4% | 19 | 355 |
+| FMSimulation | 154 — 42.4% | 122 — 33.6% | 69 — 19.0% | 18 | 363 |
 | simharness | 0 — 0.0% | 15 — 46.9% | 17 — 53.1% | 0 | 32 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **207 — 20.4%** | **270 — 26.6%** | **514 — 50.7%** | **23** | **1014** |
+| **all** | **211 — 20.6%** | **275 — 26.9%** | **514 — 50.3%** | **22** | **1022** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.

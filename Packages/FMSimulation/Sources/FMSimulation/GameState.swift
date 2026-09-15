@@ -34,11 +34,30 @@ extension GameSimulator {
         var offenseEndsTheHalf: Bool
     }
 
+    /// Whose answer the rules are waiting on before a half's free kick, and what it may
+    /// be (2025 rulebook, 4-2-2).
+    ///
+    /// The captain with the choice has the ball to kick off with until he gives it, so
+    /// the situation his caller reads is his own — the convention the half's first choice
+    /// has used since it existed, extended to the toss that decides the first half.
+    enum PendingElection: Sendable, Hashable {
+        /// A captain who has just won a toss, taking one of the two privileges or
+        /// deferring his choice where the toss has a later half to give it to.
+        case tossWinner(mayDefer: Bool)
+        /// A captain holding 4-2-2's privilege (a), which is whether his side receives
+        /// the kickoff or kicks off: the one with a half's first choice, or the one left
+        /// it because the
+        /// captain who chose first took the goal or deferred. `byTheTossWinner` says
+        /// which of the two he is, so the election goes on the record as his.
+        case receiveOrKick(byTheTossWinner: Bool)
+    }
+
     /// The game as it stands, and every rule about how it moves.
     ///
     /// Nothing here draws a random number. Every branch is the rules applied to what the
-    /// resolver reported, which is what makes the state machine testable on its own and
-    /// what lets it survive the resolver being replaced.
+    /// resolver reported or to an answer handed in from outside — the coin toss is one,
+    /// drawn by the simulator and settled here — which is what makes the state machine
+    /// testable on its own and what lets it survive the resolver being replaced.
     struct State {
 
         let setup: GameSetup
@@ -135,15 +154,28 @@ extension GameSimulator {
         let rosters: [TeamID: [PlayerID]]
         private let rosterIndex: [TeamID: [PlayerID: UInt8]]
 
-        /// The captain who lost the last coin toss, as the engine stands in for a toss
-        /// it does not draw: the side that kicks off after one. The loser's first choice
-        /// of 4-2-2's privileges comes two periods on — at the second half (4-2-2), and
-        /// at a third postseason overtime period (16-1-4-e).
+        /// The two captains of the last coin toss (2025 rulebook, 4-2-2). The first
+        /// choice of its two privileges is the winner's at the toss itself and the
+        /// loser's two periods on — at the second half (4-2-2), and at a third postseason
+        /// overtime period (16-1-4-e) — unless the winner deferred, when it is his.
+        private var tossWinner: TeamID
         private var tossLoser: TeamID
-        /// A half has opened whose first choice is `tossLoser`'s, and the caller has not
-        /// yet said which privilege it takes. Until it does, the loser has the ball to
-        /// kick off with.
-        private(set) var firstChoicePending = false
+        /// Whether the winner of the last toss deferred his choice (4-2-2), which is what
+        /// moves the next half's first choice from the loser to him. Spent by that half.
+        private var tossDeferred = false
+        /// A coin is owed before this free kick: before the game (4-2-2), at the end of
+        /// regulation (16-1-2), and at the end of a fourth postseason overtime period
+        /// (16-1-4-i). The draw is not this type's — nothing here reads a random stream —
+        /// so the simulator answers it with `settleToss`.
+        private(set) var tossIsPending = false
+        /// Whose election the rules are waiting on before this free kick, if anyone's.
+        private(set) var pendingElection: PendingElection?
+        /// The toss and the elections that settled this free kick, held until the kick is
+        /// recorded: the record names a side by whether it is the side in possession at
+        /// the snap, and on a free kick that is the side kicking off — which is the thing
+        /// the elections are still deciding.
+        private var coinWasTossedForThisKick = false
+        private var tossPoints: [DecisionPoint] = []
         /// How many opportunities to possess the ball have begun in overtime, capped at
         /// two because the rules only ever ask whether *both* sides have had one.
         ///
@@ -176,12 +208,15 @@ extension GameSimulator {
                 return index
             }
 
-            // The away team receives to open. A coin toss is a real event and belongs in
-            // the stream when there is a stream to put it in; hard-coding it here keeps
-            // the opening deterministic and visible rather than buried in a draw. The
-            // side that kicks off stands for the captain who lost the toss.
+            // Who kicks off to open is the coin's to say, and the coin is tossed by the
+            // simulator before the first snap is built rather than here, because nothing
+            // in this type reads a random stream. Until then the home side holds a ball
+            // no caller and no record ever sees: `tossIsPending` is answered before the
+            // first situation is read.
             possession = setup.home.id
-            tossLoser = setup.home.id
+            tossWinner = setup.home.id
+            tossLoser = setup.away.id
+            tossIsPending = true
             ballOn = setup.rules.ballOnFromOwnYard(setup.rules.kickoffFromOwnYard)
             down = .first
             distance = setup.rules.yardsToGain
@@ -322,12 +357,102 @@ extension GameSimulator {
             plays[plays.count - 1].decisions.append(.clockElection(election))
         }
 
-        /// The answer to the first choice a half opened with (4-2-2-a): the toss loser
-        /// receives, and the other side kicks off to it, or the loser kicks off itself.
-        mutating func settleFirstChoice(receives: Bool) {
-            guard firstChoicePending else { return }
-            firstChoicePending = false
-            if receives { possession = defending }
+        // MARK: - The coin toss and its elections
+
+        /// The coin, as the Referee tossed it (2025 rulebook, 4-2-2 before the game,
+        /// 16-1-2 at the end of regulation, 16-1-4-i at the end of a fourth overtime
+        /// period). The draw is the simulator's; what is settled here is what the result
+        /// means.
+        ///
+        /// The visiting captain calls it, and a called coin is still a fair one, so the
+        /// draw is simply which captain won and who called is not a fact the record
+        /// carries. The winner holds the ball until he says what he wants with it, which
+        /// is what makes the situation his caller reads his own.
+        mutating func settleToss(wonByTheAwayTeam: Bool) {
+            guard tossIsPending else { return }
+            tossIsPending = false
+            coinWasTossedForThisKick = true
+            tossWinner = wonByTheAwayTeam ? setup.away.id : setup.home.id
+            tossLoser = wonByTheAwayTeam ? setup.home.id : setup.away.id
+            tossDeferred = false
+            possession = tossWinner
+            pendingElection = .tossWinner(
+                mayDefer: setup.rules.mayDeferAtTheToss(
+                    quarter: clock.quarter, isPostseason: setup.isPostseason))
+        }
+
+        /// What the captain who won the toss did with it (4-2-2).
+        ///
+        /// Taking privilege (a) settles the kick and leaves the loser the goal, which is
+        /// the article's rule that the loser has whichever privilege the winner did not
+        /// take. Taking the goal, or deferring, leaves (a) to the loser and the kick
+        /// still open.
+        ///
+        /// **A deferral records no privilege for the winner at this half.** The article
+        /// says what a deferral does to the *second* half's first choice and says nothing
+        /// about what the deferring captain holds in the first, so the record carries the
+        /// deferral he made and not an inference about what he was left with.
+        mutating func settleTossElection(_ election: TossElection) {
+            guard case .tossWinner = pendingElection else { return }
+            note(election, byTheWinner: true)
+            switch election {
+            case .receive:
+                pendingElection = nil
+                // The loser kicks off to him, so the loser is the side in possession.
+                possession = tossLoser
+                note(.goal, byTheWinner: false)
+                recordTheToss()
+            case .kickOff:
+                pendingElection = nil
+                possession = tossWinner
+                note(.goal, byTheWinner: false)
+                recordTheToss()
+            case .goal, .deferred:
+                tossDeferred = election == .deferred
+                possession = tossLoser
+                pendingElection = .receiveOrKick(byTheTossWinner: false)
+            }
+        }
+
+        /// The captain holding 4-2-2's privilege (a) says which way he takes it
+        /// (4-2-2-a), and the kick follows: receiving, the other side kicks off to him.
+        ///
+        /// The other captain is given the privilege left over, unless he has already
+        /// answered on this kick — which he has when he is the winner who took the goal
+        /// or deferred, and has not when this is the first choice of a half that follows
+        /// no toss, where 4-2-2 has each captain tell the Referee what he has chosen.
+        mutating func settleReceiveOrKick(receives: Bool) {
+            guard case .receiveOrKick(let byTheWinner) = pendingElection else { return }
+            pendingElection = nil
+            let chooser = byTheWinner ? tossWinner : tossLoser
+            let other = byTheWinner ? tossLoser : tossWinner
+            possession = receives ? other : chooser
+            note(receives ? .receive : .kickOff, byTheWinner: byTheWinner)
+            let otherHasAnswered = tossPoints.contains {
+                $0.kind == (byTheWinner ? .tossElectionByTheLoser : .tossElectionByTheWinner)
+            }
+            if !otherHasAnswered { note(.goal, byTheWinner: !byTheWinner) }
+            recordTheToss()
+        }
+
+        /// One captain's election, in the order the captains made them.
+        private mutating func note(_ election: TossElection, byTheWinner: Bool) {
+            tossPoints.append(
+                byTheWinner
+                    ? .tossElection(byTheWinner: election) : .tossElection(byTheLoser: election))
+        }
+
+        /// The toss and its elections, onto the free kick they decided, now that the kick
+        /// has a side kicking it off for the record to name them against. The coin goes
+        /// first because it came first.
+        private mutating func recordTheToss() {
+            if coinWasTossedForThisKick {
+                beforeTheSnap.append(
+                    .coinToss(wonByTheSideKickingOff: possession == tossWinner))
+                coinWasTossedForThisKick = false
+            }
+            beforeTheSnap.append(contentsOf: tossPoints)
+            tossPoints.removeAll(keepingCapacity: true)
         }
 
         /// Choose the try, and put the ball where it is snapped from.
@@ -1249,16 +1374,21 @@ extension GameSimulator {
                 awayTimeouts = timeouts
 
                 if rules.periodFollowsACoinToss(quarter: next.quarter) {
-                    // The toss (16-1-2, 16-1-4-i) is not drawn: the side with the ball
-                    // kicks off, and stands for the captain who lost it.
-                    tossLoser = possession
+                    // A fresh coin at the end of regulation (16-1-2) and at the end of a
+                    // fourth overtime period (16-1-4-i), which starts the pairing over:
+                    // its winner has the first choice here and its loser has the first
+                    // choice two periods on (16-1-4-e).
+                    tossIsPending = true
                 } else {
-                    // The first choice of 4-2-2's privileges is the toss loser's — at
-                    // the second half (4-2-2), and at a third overtime period
-                    // (16-1-4-e) — and is put to that side's caller before the kick.
-                    // Until it answers, the loser has the ball to kick off with.
-                    possession = tossLoser
-                    firstChoicePending = true
+                    // The first choice of 4-2-2's privileges at a half that follows no
+                    // toss: the captain who lost the one before it — at the second half
+                    // (4-2-2), and at a third overtime period (16-1-4-e) — unless its
+                    // winner deferred his choice to this half, in which case it is his.
+                    // Until he answers, he has the ball to kick off with.
+                    let byTheWinner = tossDeferred
+                    tossDeferred = false
+                    possession = byTheWinner ? tossWinner : tossLoser
+                    pendingElection = .receiveOrKick(byTheTossWinner: byTheWinner)
                 }
                 ballOn = rules.ballOnFromOwnYard(rules.kickoffFromOwnYard)
                 down = .first
