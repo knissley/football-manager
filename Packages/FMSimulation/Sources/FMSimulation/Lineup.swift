@@ -212,6 +212,43 @@ public struct Lineup: Sendable {
         return covering
     }
 
+    /// The men with a deep zone, of those left in coverage.
+    ///
+    /// **How many** is the shell's own, and `Coverage` states each one where the case is
+    /// declared: cover three is three deep and four under, cover two is two deep and five
+    /// under, quarters is four deep and three under, and prevent is deep everything. A
+    /// run blitz is nobody's zone at all and a man call has no zones to give out.
+    ///
+    /// **Which men** the crude engine cannot say, because it has no alignment: nothing
+    /// here knows that the corners take the outside thirds of a three-deep and the free
+    /// safety the middle. So they go to the men who align deepest — the safeties, then
+    /// the corners, then whoever is left off the ball — and everyone the count does not
+    /// reach is underneath, which is the flat. That ordering is a convention of this
+    /// engine and no article is behind it; the spatial engine places bodies and decides
+    /// it properly.
+    ///
+    /// Written as a switch with no `default`, so a coverage added to the enum has to
+    /// answer this rather than silently playing no deep zones.
+    public func deepZoneDefenders(
+        under coverage: Coverage, among covering: [PlayerSlot]
+    )
+        -> Set<PlayerSlot>
+    {
+        let zones: Int
+        switch coverage {
+        case .coverZero, .manFree, .twoMan, .runBlitz: zones = 0
+        case .coverTwo: zones = 2
+        case .coverThree: zones = 3
+        case .quarters, .matchQuarters, .prevent: zones = 4
+        }
+        guard zones > 0 else { return [] }
+        let deepest =
+            covering.filter { position(at: $0) == .safety }
+            + covering.filter { position(at: $0) == .cornerback }
+            + covering.filter { position(at: $0) == .linebacker }
+        return Set(deepest.prefix(zones))
+    }
+
     /// The men in the box, front first: the ones a run has to get through.
     public var boxDefenders: [PlayerSlot] {
         front + slots(in: 11..<22) { $0 == .linebacker }

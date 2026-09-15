@@ -410,6 +410,38 @@ The old window put nothing below 1,400 ms and nothing above 3,400; this one puts
 band of 27.8–32.3, so the row reads `OFF` at both. That is a level, it is the multiplier's
 to set and not this window's, and it is recorded as a residual rather than absorbed here.
 
+#### What the record calls a rep, a tackle and a coverage assignment
+
+The crude resolver settles each contest and then has to put a **word** on it, because
+`TackleResult`, `BlockResult` and `CoverageTechnique` are the vocabulary every query
+downstream reads. Most of the words are the contest itself, refined:
+
+- **A tackle lost** is `missed` when the carrier is the better man in that collision and
+  `broken` when the tackler was — the same margin that decided whether it was lost at all,
+  so an attempt is only ever reported one way and no draw is spent on the wording.
+- **A rep** is a `stalemate` when the blocker held a man within six rating points of him, a
+  `whiff` when he lost to a man a whole unit of the contest curve better, and a `pancake`
+  on a low share of the reps he won by that much. The contest's verdict is unchanged in
+  every case: a stalemate is a rep the rusher did not get home on and a whiff is one he
+  did, so none of this moves a yard or an ending.
+- **A coverage assignment** follows the call. Press is a corner's technique under a call
+  that asks for it — the shell the defence lives in, or two-man under; a zone defender is
+  deep if he has one of the deep zones the shell plays and in the flat if he does not. The
+  two that are neither are the defence having a man spare: a spare safety goes over the
+  top of the best receiver and both men's points say `bracket`, and a spare linebacker
+  `spy`s a quarterback whose legs beat his own speed.
+- **A forced fumble replaces the tackle**, rather than following it. A fumble is an act by
+  a player who was in possession when it happened (2025 rulebook, 3-2-5) and the ball is
+  dead once a runner an opponent contacted is down (7-2-1-a), so a down cannot hold both.
+
+**Three of these numbers are modelling and nothing sources them** — the share of made
+tackles credited to a second man, the rate at which a rep won outright is a pancake, and
+the margin inside which a held rep is a stalemate. They are named as such in
+[playing-rules.md](reference/playing-rules.md), which says why an assist share in
+particular has no season to come from. Two of them cost a draw each, which is the whole of
+what this reaches: a bracket and a spy are written on the record and change nothing about
+the play, the crude resolver having no field for either to happen on.
+
 ### Run play
 
 **Designed, not built.** M5. The crude resolver has no gaps and no pursuit angles.

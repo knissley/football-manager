@@ -196,15 +196,26 @@ struct BallSecurityTests {
     /// being asserted is a property of *every* one, not the existence of one. The count
     /// is checked before the claim, so a corpus that stopped producing fumbles fails
     /// here rather than passing on an empty filter.
+    ///
+    /// **Only downs somebody was in possession of**, which is the article's own
+    /// restriction: 3-2-5's last sentence makes the word mean that the ball was in a
+    /// player's possession when the act occurred, and a free kick the kicking team falls
+    /// on was never in anybody's — it is a loose ball (3-2-4). The engine nonetheless
+    /// records that recovery as `PlayEnding.fumbleRecovered`, so the ending alone does
+    /// not say a fumble happened and this reads the play kind as well.
     @Test(
         "football · Rules 3-2-5, 7-2-1 · a down that ended in a fumble carries no completed tackle of the man who fumbled",
         .tags(.football))
     func theBallComesOutBeforeTheRunnerIsDown() {
+        let fromScrimmage: Set<PlayKind> = [
+            .rush, .pass, .sack, .scramble, .twoPointConversion,
+        ]
         var fumbles = 0
         for result in TestWorld.corpus {
             for play in result.plays
-            where play.outcome.endedIn == .fumbleLost
-                || play.outcome.endedIn == .fumbleRecovered
+            where fromScrimmage.contains(play.outcome.kind)
+                && (play.outcome.endedIn == .fumbleLost
+                    || play.outcome.endedIn == .fumbleRecovered)
             {
                 fumbles += 1
                 let attempts = play.decisions.filter { $0.kind == .tackleAttempt }

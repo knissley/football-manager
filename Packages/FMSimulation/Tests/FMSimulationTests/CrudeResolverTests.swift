@@ -778,7 +778,7 @@ struct OutOfBoundsTests {
         let breakaways = resolved(.outsideRun, Self.neutral, count: 8_000).filter { play in
             let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
             guard attempts.count == 3,
-                attempts.allSatisfy({ $0.detail == TackleResult.broken.rawValue })
+                attempts.allSatisfy({ $0.tackleResult?.beaten == true })
             else { return false }
             return play.outcome.endedIn == .tackled || play.outcome.endedIn == .outOfBounds
         }
@@ -885,17 +885,18 @@ struct CarryShapeTests {
     /// A long run is a man beaten, not a hole measured.
     ///
     /// The engine's own promise about its run game: a carry that goes twenty yards or
-    /// more has a broken tackle in front of it in the same record. Nothing about the
-    /// blocking alone may produce one, because a distribution whose tail is drawn rather
-    /// than earned puts the yards on the offensive line and leaves the back's contact
-    /// balance worth nothing.
-    @Test("Every carry of twenty or more has a broken tackle in front of it", .tags(.contract))
+    /// more has a tackler beaten in front of it in the same record — shed, or missed
+    /// altogether, the record saying which but the promise covering both. Nothing about
+    /// the blocking alone may produce one, because a distribution whose tail is drawn
+    /// rather than earned puts the yards on the offensive line and leaves the back's
+    /// contact balance worth nothing.
+    @Test("Every carry of twenty or more has a tackler beaten in front of it", .tags(.contract))
     func aBreakawayIsAlwaysABrokenTackle() {
         let long = Self.carries.filter { $0.outcome.yards >= 20 }
         #expect(long.count > 0, "no carry reached twenty: the case was never exercised")
         let unearned = long.filter { play in
             !play.decisions.contains {
-                $0.kind == .tackleAttempt && $0.detail == TackleResult.broken.rawValue
+                $0.kind == .tackleAttempt && $0.tackleResult?.beaten == true
             }
         }.count
         #expect(
@@ -1306,7 +1307,7 @@ struct PocketTests {
                         concept, context: roster.context, rosterSeed: roster.seed, index: index)
                     pressured.append(decisions.contains { $0.kind == .pressureAllowed })
                     let arrivals = decisions.filter {
-                        $0.kind == .blockResult && $0.blockResultValue == .lost
+                        $0.kind == .blockResult && $0.blockResultValue?.beaten == true
                     }.map { Int($0.value) }
                     firstArrival.append(arrivals.min() ?? -1)
                     // The ball is out at the throw, the checkdown or the throwaway, and
@@ -1648,10 +1649,18 @@ struct PassRushTests {
     /// ball has to come out.
     @Test("A six-man pressure takes the back out of the route tree", .tags(.contract))
     func aSixManPressureTakesTheBackOutOfTheRouteTree() {
+        // Men covered, not points written: a receiver two defenders bracket is one route
+        // and carries two assignments, and the man watching the quarterback is neither.
         func routesRun(_ rush: PassRush) -> Double {
             let snaps = dropbacks(rush: rush, count: 600)
-            let total = snaps.reduce(0) {
-                $0 + $1.filter { $0.kind == .coverageAssignment }.count
+            let total = snaps.reduce(0) { running, decisions in
+                running
+                    + Set(
+                        decisions.filter {
+                            $0.kind == .coverageAssignment
+                                && $0.secondary != SlotLayout.quarterback
+                        }.map(\.secondary)
+                    ).count
             }
             return Double(total) / Double(snaps.count)
         }

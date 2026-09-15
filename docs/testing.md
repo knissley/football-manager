@@ -255,10 +255,10 @@ the same commit as whatever moved it, and move the sha above with it.
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 57 — 14.9% | 34 — 8.9% | 288 — 75.2% | 4 | 383 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 158 — 42.2% | 126 — 33.7% | 73 — 19.5% | 17 | 374 |
+| FMSimulation | 159 — 42.2% | 128 — 34.0% | 73 — 19.4% | 17 | 377 |
 | simharness | 0 — 0.0% | 23 — 47.9% | 25 — 52.1% | 0 | 48 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **216 — 20.6%** | **287 — 27.3%** | **526 — 50.1%** | **21** | **1050** |
+| **all** | **217 — 20.6%** | **289 — 27.4%** | **526 — 50.0%** | **21** | **1053** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
