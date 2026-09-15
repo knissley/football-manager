@@ -553,6 +553,14 @@ struct VocabularyCoverageTests {
         .spy: "C4 (#39) — nobody is ever assigned to the quarterback.",
     ]
     static let unreachableBallPlacements: [BallPlacement: String] = [:]
+    /// The one election the baseline caller never makes. It is reachable — the scenario
+    /// behind `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod` elects it —
+    /// but a caller that always takes the ball when privilege (a) is its never produces
+    /// one in a sampled game, and the sample is where this register reads. A caller with
+    /// a gameplan that kicks off is what takes this entry out.
+    static let unreachableTossElections: [TossElection: String] = [
+        .kickOff: "the baseline caller takes the ball whenever 4-2-2-a is its choice."
+    ]
 
     /// Every value of one detail enum the sweep's decision points carry, read through the
     /// typed accessor so a byte belonging to another kind is never reinterpreted.
@@ -617,5 +625,18 @@ struct VocabularyCoverageTests {
         checkRegister(
             "BallPlacement", seen: Self.details(\.ballPlacement),
             register: Self.unreachableBallPlacements)
+    }
+
+    /// The one detail enum the forced sweep cannot reach, because a coin toss is not a
+    /// resolution: the elections are the rules layer's and they happen at a half, so this
+    /// reads the sampled games. Twenty games open forty halves, which is as many chances
+    /// as any register here gets.
+    @Test("Every toss election is reached, and the register says which are not", .tags(.contract))
+    func everyTossElectionIsReachable() {
+        let elections = Self.sampled.flatMap(\.decisions)
+        let seen = Set(
+            elections.compactMap(\.tossElectionByTheWinner)
+                + elections.compactMap(\.tossElectionByTheLoser))
+        checkRegister("TossElection", seen: seen, register: Self.unreachableTossElections)
     }
 }

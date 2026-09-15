@@ -72,15 +72,34 @@ public protocol PlayCaller: Sendable {
     /// answers. The frame is the kicking team's, as on any free kick.
     func kicksForTouchback(situation: Situation, classified: SituationClass) -> Bool
 
-    /// When the first choice of the two privileges of 4-2-2 is this side's — the second
-    /// half, for the captain who lost the pregame toss; a third postseason overtime
-    /// period, for the captain who lost the toss before overtime (2025 rulebook,
-    /// 16-1-4-e) — whether it elects to receive the kickoff rather than kick off
-    /// (4-2-2-a). The choice of goal (4-2-2-b) is not modelled: a spot is stored
-    /// relative to whoever has the ball, so there is no end of the field to choose.
+    /// What this side's captain does with a coin toss he has just won (2025 rulebook,
+    /// 4-2-2): takes one of the two privileges — (a), receiving the kickoff or kicking
+    /// off, or (b), the goal his side defends — or defers his choice to the half the
+    /// article gives him.
+    ///
+    /// `mayDefer` is whether this toss has such a half, which is `Rules.mayDeferAtTheToss`
+    /// and not a matter of taste; a deferral returned where the book does not offer one
+    /// is not acted on, the same way `kicksOnside` is gated by `mayDeclareOnsideKick`.
+    /// `situation` is this side's: `possession` is it, and on a free kick the side in
+    /// possession is the side kicking off.
+    func electsAtTheToss(
+        situation: Situation, classified: SituationClass, mayDefer: Bool
+    ) -> TossElection
+
+    /// When 4-2-2's privilege (a) — receiving the kickoff, or kicking off — is this
+    /// side's, whether it receives. It is this side's where its captain won the toss and
+    /// took that privilege, where the other captain took the goal or deferred and left it
+    /// to him, and at the half the first choice belongs to — the second half, for the
+    /// captain who lost the pregame toss; a third postseason overtime period, for the
+    /// captain who lost the toss before overtime (16-1-4-e) — unless the winner deferred,
+    /// when it is the winner's.
+    ///
+    /// The captain who does not hold (a) is given the choice of goal (4-2-2-b), which the
+    /// engine records and does not act on: a spot is stored relative to whoever has the
+    /// ball, so there is no end of the field to choose.
     ///
     /// `situation` is this side's: `possession` is it and `scoreDifferential` is from
-    /// its point of view. The toss itself is not drawn, so a deferral is not on offer.
+    /// its point of view.
     func electsToReceive(situation: Situation, classified: SituationClass) -> Bool
 
     /// Whether the offence spends a charged timeout instead of taking the ten-second
@@ -304,6 +323,27 @@ extension PlayCaller {
     ) -> Bool {
         let heavy = situation.offensePersonnel.wideReceivers <= 1
         return random.nextBool(probability: heavy ? 0.62 : 0.30)
+    }
+
+    /// Defer the pregame toss; take the ball at every other one.
+    ///
+    /// **A modelling convention and not a sourced rate.** Nothing in
+    /// `docs/reference/calibration-sources.md` bands how often a winning captain defers,
+    /// and how often real ones do is a tendency this project has no source for, so the
+    /// default is deterministic rather than a rate invented to look like one. What it is
+    /// not is arbitrary: deferring the pregame toss buys the second half's first choice
+    /// as well as this one (4-2-2), and the half is certain to be played.
+    ///
+    /// An overtime toss is the other way round even where 16-1-4-e offers the deferral,
+    /// because what a deferral would buy there is the first choice at a third overtime
+    /// period that may never come — 16-1-4-d ends it as soon as a period settles the game
+    /// — and what it costs is the first of the two opportunities to possess the ball that
+    /// 16-1-3-a and 16-1-4-a owe each side. A coach with a gameplan overrides this, as
+    /// with every other default here.
+    public func electsAtTheToss(
+        situation: Situation, classified: SituationClass, mayDefer: Bool
+    ) -> TossElection {
+        mayDefer && situation.quarter == 1 ? .deferred : .receive
     }
 
     /// Receive, which is what nearly every captain does with the choice.

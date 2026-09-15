@@ -113,15 +113,32 @@ Which rules must be true of a game, and what checks each, is
   16. — `test:quarters`, `test:structure`, `test:regulationTieGoesToOvertime`
 - **4-1-2**, **4-1-3** — Halftime is 13 minutes; the other intermissions are at least two.
   — not modelled: the engine has no intermission clock
-- **4-2-2**, **4-2-2-a** — The coin toss, not more than three minutes before the first-half
-  kickoff; the winner takes one of two privileges — to receive the kickoff or to kick off
-  (a), or the choice of goal (b) — and the loser the other. The second-half first choice
-  belongs to the captain who lost the pregame toss, unless the winner deferred. —
-  `test:halftimePossession`, `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
-  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`, `test:coinTosses`; the
-  choice of (a) is the captain's, `PlayCaller.electsToReceive`, defaulting to receive; the
-  toss itself, a deferral and the choice of goal are not modelled — the side that kicks
-  off after a toss stands for the captain who lost it
+- **4-2-2**, **4-2-2-a**, **4-2-2-b** — The coin toss, not more than three minutes before
+  the first-half kickoff, called by the visiting captain; unless the winner defers his
+  choice to the second half he takes one of two privileges — to receive the kickoff or to
+  kick off (a), or the choice of goal (b) — and the loser the other. The second-half first
+  choice belongs to the captain who lost the pregame toss, unless the winner deferred, in
+  which case it is his; before the second half each captain tells the Referee what he has
+  chosen. — `test:halftimePossession`,
+  `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`, `test:coinTosses`,
+  `test:theTossIsReadableFromTheStream`, `test:theTossIsDrawn`, `test:theTossReplays`,
+  `test:deferringMovesTheFirstChoiceToTheOtherCaptain`,
+  `test:takingTheBallLeavesTheGoalAndTheSecondHalfToTheLoser`,
+  `test:takingTheGoalLeavesTheBallToTheOtherCaptain`. The toss is a seeded draw from
+  `FMRandom`; who called it is not recorded, because a called coin is a fair one either
+  way. Both elections are the captains': `PlayCaller.electsAtTheToss` for the winner's and
+  `PlayCaller.electsToReceive` for whoever holds (a), and both are on the record of the
+  kick they decided. The three-minute window and the penalty for failing to comply are not
+  modelled; **inference**, flagged as one: the article says what a deferral does to the
+  *second* half's first choice and does not say what the deferring captain holds in the
+  first, and the engine reads a deferral as leaving the first half's first choice to the
+  other captain and records no privilege for the deferrer at that half. **Modelling**: the
+  choice of goal (b) is recorded and not acted on — a spot is stored relative to whoever
+  has the ball, so there is no end of the field to choose (4-2-3) — and the baseline
+  caller's deferring the pregame toss and taking the ball at every other one is a
+  convention, not a sourced rate: no calibration row bands how often a winning captain
+  defers
 - **4-2-3** — The sides swap ends once the first quarter is over, and again once the third
   is. Nothing travels with them: whose ball it is, which down comes next, where the ball
   sits relative to the field, and the line to gain all carry over untouched. — the change
@@ -837,6 +854,13 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 
 **Regular season** — a single 10-minute period, after a break of three minutes at most.
 
+- **16-1-2** — At the end of regulation the Referee tosses the coin again, by the pregame
+  article's own rules (4-2-2), and the visiting captain calls it again. — `test:coinTosses`,
+  `test:thirdPostseasonOvertimePeriodOpensWithAKickoff`,
+  `test:fifthPostseasonOvertimePeriodKickerFollowsTheFreshToss`; the toss is drawn and both
+  elections are recorded, as at 4-2-2. A regular-season game has no half after its one
+  overtime period (16-1-3-d), so the deferral 4-2-2 offers has nothing to be deferred to
+  and is not on offer there — `Rules.mayDeferAtTheToss`
 - **16-1-3** — The period itself. — `test:regulationTieGoesToOvertime`, `test:overtime`
 - **16-1-3-a** — Each side is owed a turn with the ball, whatever the first turn produced.
   The article names one exception: a team that kicks off and then scores a safety against
@@ -878,11 +902,14 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod`,
   `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
   `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
-  `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`, `test:coinTosses`; the
-  intermissions are not modelled, nor is the toss itself: the side that kicks off after
-  one stands for the captain who lost it, and after a fourth overtime period that is the
-  side with the ball, pinned by
-  `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`. Past the fourth the
+  `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`, `test:coinTosses`,
+  `test:fifthPostseasonOvertimePeriodKickerFollowsTheFreshToss`; the intermissions are not
+  modelled. The toss is: 16-1-4-e's own exception for a winner who deferred is the
+  deferral of 4-2-2 reaching a postseason overtime half, so a winner there may defer
+  and the baseline caller does not — what a deferral buys is the first choice at a third
+  period 16-1-4-d may never reach, at the price of the first of the two opportunities to
+  possess the ball 16-1-4-a owes each side, which is modelling and named as such. Past the
+  fourth the
   pairing repeats — a seventh period opens as a third does — which is a reading rather
   than a sentence in the book, pinned by
   `test:postseasonOvertimeBeyondTheFourthPeriodRepeatsThePairing`

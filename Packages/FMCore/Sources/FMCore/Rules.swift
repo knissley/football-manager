@@ -420,11 +420,23 @@ extension Rules {
     /// overtime (16-1-2), and again before a fifth overtime period (16-1-4-i) — and, by
     /// the reading `periodTiming` pins past the fourth, before every fourth period after
     /// that. A half that opens without a toss opens with the first choice of the captain
-    /// who lost the one before (4-2-2, 16-1-4-e). The engine does not draw the toss;
-    /// what stands in for it is `GameState.startNextPeriod`'s to say.
+    /// who lost the one before (4-2-2, 16-1-4-e).
     public func periodFollowsACoinToss(quarter: UInt8) -> Bool {
         if quarter <= quarters { return quarter == 1 }
         return (quarter - quarters) % 4 == 1
+    }
+
+    /// Whether the captain who wins the toss before `quarter` may defer his choice
+    /// instead of taking one of the two privileges (2025 rulebook, 4-2-2).
+    ///
+    /// A deferral is a choice postponed to a later half, so it is on offer only where
+    /// this toss has a later half to give it to. The pregame toss has the second half,
+    /// which 4-2-2 says outright. An overtime toss has the half two periods on, whose
+    /// first choice 16-1-4-e gives to the captain who lost it, with its own exception for
+    /// a winner who deferred — and only a postseason game has such a half, since
+    /// regular-season overtime is a single period at most (16-1-3-d).
+    public func mayDeferAtTheToss(quarter: UInt8, isPostseason: Bool) -> Bool {
+        quarter == 1 || isPostseason
     }
 
     /// The period a half ends on, which is the period with a two-minute warning in it.
