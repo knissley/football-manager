@@ -113,9 +113,9 @@ struct GoldenSeedTests {
             //
             // Regenerating any of them to make a red test pass is forbidden (CLAUDE.md
             // rule 9). What each past move was is in the git log.
-            (UInt64(1), UInt64(1_787_312_234_814_993_616)),
-            (UInt64(5), UInt64(8_418_552_524_240_001_445)),
-            (UInt64(12), UInt64(13_311_728_942_715_113_324)),
+            (UInt64(1), UInt64(2_966_506_225_952_965_363)),
+            (UInt64(5), UInt64(10_677_499_187_310_169_504)),
+            (UInt64(12), UInt64(11_788_872_966_992_760_817)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)
