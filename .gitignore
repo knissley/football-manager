@@ -48,3 +48,7 @@ roster_weekly_*.csv
 
 # Agent worktrees created by dispatch; each is its own checkout and never belongs in the tree.
 .claude/worktrees/
+
+# Python bytecode caches, from importing a script in scripts/ as a module.
+__pycache__/
+*.pyc
