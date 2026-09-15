@@ -108,6 +108,9 @@ struct DecisionContractTests {
         case .tossElectionByTheLoser:
             guard let election = point.tossElectionByTheLoser else { return nil }
             return .tossElection(byTheLoser: election)
+        case .substitution:
+            guard let package = point.substitutionPackage else { return nil }
+            return .substitution(answeredWith: package)
         }
     }
 
@@ -184,8 +187,13 @@ struct DecisionContractTests {
                     // its elections are a captain's rather than a player's, and a
                     // captain is not a slot in a formation: the side they name is the
                     // side in possession at the kick, or the other.
+                    //
+                    // The substitution is the coordinator's rather than the rules', and
+                    // names nobody for a different reason: it is an answer about the
+                    // eleven and not about any one of them. Who came on is on the play's
+                    // `onField` slots.
                     case .playClock, .clockElection, .timeout, .twoMinuteWarning, .coinToss,
-                        .tossElectionByTheWinner, .tossElectionByTheLoser:
+                        .tossElectionByTheWinner, .tossElectionByTheLoser, .substitution:
                         #expect(point.primary.isNone, "\(at): the rules named a player")
                         #expect(point.secondary.isNone, "\(at): the rules named a player")
                     }
@@ -237,7 +245,7 @@ struct DecisionContractTests {
                     // Kinds whose whole content is the discriminant: a value on one is a
                     // byte no reader has been told how to read.
                     case .tackleAttempt, .clockElection, .timeout, .twoMinuteWarning, .coinToss,
-                        .tossElectionByTheWinner, .tossElectionByTheLoser:
+                        .tossElectionByTheWinner, .tossElectionByTheLoser, .substitution:
                         #expect(point.value == 0, "\(at): carries a value of \(point.value)")
                     }
 

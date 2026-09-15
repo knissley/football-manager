@@ -344,6 +344,13 @@ public struct GameSimulator<Resolver: PlayResolver, Caller: PlayCaller>: Sendabl
             let showing = state.situation()
             state.defensePackage = caller.package(
                 for: showing, classified: SituationClass(showing), random: &random)
+            // The substitution goes on the record as a decision, at the front of the snap
+            // it was made for, because it is a caller's answer and not a fact about the
+            // formation. `situation.defensePackage` says which package was out there on
+            // every snap including the ones nobody chose — a free kick's eleven and a
+            // try's are set below, by the rules — so a reader asking what a defence does
+            // against a grouping needs the two told apart, and only this point does it.
+            state.beforeTheSnap.append(.substitution(answeredWith: state.defensePackage))
             declared = call
         } else if state.pendingTry, state.tryGoesForTwo == true, state.tryRuns == nil {
             // A conversion is a scrimmage down, so it is substituted for like one: the
