@@ -111,10 +111,27 @@ the first thing that cannot be drawn honestly without it.
 **It is not a prerequisite for the spatial engine.** M5 can be built against positions as
 they are keyed today and rekeyed afterwards; the seam is `Lineup.fill`, not the tick loop.
 
-- **The depth chart is keyed by role, not by position.** Third-down back, nickel corner,
-  dime corner. `DepthChart` and `RotationProfile` are both per position today and both
-  become per role, which is a breaking change to a type `Lineup.fill` and
-  `RosterGenerator` depend on.
+- **The depth chart is keyed by role, not by position.** `DepthChart` and
+  `RotationProfile` are both per position today and both become per role, which is a
+  breaking change to a type `Lineup.fill` and `RosterGenerator` depend on.
+  **The role list is shorter than this section used to claim.** It said "third-down back,
+  nickel corner, dime corner", following [ADR-0013](adr/0013-fluid-positions.md); the
+  [snap-share brief](design/briefs/snap-share-and-role-assignment.md) found that two of
+  those three are `order[position][n]` with a new label — the nickel corner is the third
+  cornerback by construction of `SlotLayout.defense`, and the dime corner the fourth. A
+  role earns its place only where a *different* man than depth order would pick is a real
+  choice. In the crude engine that is the passing-down back and the receiver alignments.
+  The ADR's example list is illustrative and takes its amendment note when this milestone
+  opens and the real list is fixed.
+- **The rekeying keeps the attrition draw** ([decision 224](design-decisions.md#situational-football-and-defense),
+  and the [amendment to 177](design-decisions.md#the-crude-engine)). Attrition positions
+  rotate by a per-snap draw; situational ones are assigned. Drop the draw for edge and the
+  third and fourth edge rusher go to **zero snaps** — every `SlotLayout` package fields
+  exactly two edges, so the shipped curve's realised shares are 68.9 / 61.6 / 47.4 / 22.1
+  (computed, not measured). **No `snaps.*` band can catch it**: all seven are
+  position-group aggregates and two edges are on the field either way, and the only guard
+  today is a `.unit` assertion on the table in the suite this rekeying rewrites. This
+  paragraph belongs in the issue that does the rekeying.
 - **A lineup legality checker, shared with the play designer.** Seven on the line, five
   ineligible, enforced from the rules of the sport rather than from archetypes. One
   checker, used by the lineup editor and by M6's play validator — building it twice would
@@ -130,9 +147,36 @@ asks for; a formation is a set of roles with places to stand. Defining them in t
 milestones produces two vocabularies that drift, so the role list lands here and M6's
 formats name the same roles rather than inventing their own.
 
+**Depth.** [A back you drafted to catch passes plays the downs you drafted him for](design/briefs/snap-share-and-role-assignment.md)
+— accepted in part, 2026-09-15. Three of its four items land here: the caller distinguishes
+the back by concept family, the defence travels its best cover man, and the depth chart
+assigns men to alignments and roles. Its fourth — rewarding different rating keys by
+alignment — is [parked](design/parking-lot.md) on an uncited football claim.
+
+**Stream list.** Nothing new on the record; this is the rare milestone that adds no fact.
+`onField`, `snapCounts(rosters:)`, `Situation.personnel` and `.coverageAssignment` already
+carry everything three of the four items need, and the projection is a query over the
+package and concept mix. **One documentation fact is owed**: which eligible slot is which
+alignment is true of `SlotLayout.offense`, which fills outside-in, and is written down
+nowhere — `docs/play-record.md` documents the slot convention only as offence 0–10 /
+defence 11–21. Harmless today, load-bearing the moment alignment is the thing the player
+assigns. Cheap now, expensive once the contract stops moving.
+
+**Cut line.** In: the passing-down back, the travelling cover man, roles on the chart, the
+legality checker, the AI positional move. Below the line: alignment-dependent rating keys
+(parked); a `when → then` usage tier, which the role name already carries; role-relative
+ratings for a slot corner, unfalsifiable before M5. **Not cuttable:** the attrition draw
+above. It is not a feature of this milestone, it is a thing this milestone can break.
+
+**Fun check.** Take a 78-overall receiving back over an 84-overall early-down back with a
+90 already rostered, say "he'll play third downs", and find it true in week 8 — with the
+90 still the back on first and ten. · Move a receiver inside and watch the other side's
+best corner follow him there. · Read a projection before the season, be wrong about it,
+and know which of your own decisions made it wrong.
+
 *Exit:* a receiver can be made the second tight end from the depth chart, the lineup that
-results is legal by the checker, and an AI team makes a positional move that a human would
-recognise as sensible.
+results is legal by the checker, an AI team makes a positional move that a human would
+recognise as sensible, and the third edge rusher still plays.
 
 ## M4 — First playable
 
