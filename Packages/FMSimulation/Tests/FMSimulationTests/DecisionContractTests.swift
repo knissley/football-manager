@@ -41,9 +41,10 @@ struct DecisionContractTests {
                 tick: point.tick, blocker: point.primary, rusher: point.secondary,
                 afterMilliseconds: point.value)
         case .pressureHeld:
+            guard let rep = point.pocketRepResult else { return nil }
             return .pressureHeld(
                 tick: point.tick, blocker: point.primary, rusher: point.secondary,
-                forMilliseconds: point.value)
+                forMilliseconds: point.value, closestRep: rep)
         case .readProgression:
             return .readProgression(
                 tick: point.tick, passer: point.primary, receiver: point.secondary,
@@ -62,7 +63,7 @@ struct DecisionContractTests {
             guard let result = point.catchResult else { return nil }
             return .catchAttempt(
                 tick: point.tick, receiver: point.primary, defender: point.secondary,
-                result: result)
+                result: result, separationCentimetres: point.value)
         case .tackleAttempt:
             guard let result = point.tackleResult else { return nil }
             return .tackleAttempt(
@@ -72,7 +73,7 @@ struct DecisionContractTests {
             guard let result = point.blockResultValue else { return nil }
             return .blockResult(
                 tick: point.tick, blocker: point.primary, defender: point.secondary,
-                result: result)
+                result: result, atMilliseconds: point.value)
         case .holeQuality:
             guard let insideRun = point.holeWasInsideRun else { return nil }
             return .holeQuality(

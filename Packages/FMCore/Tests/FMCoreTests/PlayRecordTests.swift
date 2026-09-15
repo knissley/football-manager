@@ -223,6 +223,34 @@ struct DecisionPointTests {
         #expect(point.value == 2100)
     }
 
+    /// Both pocket verdicts carry the rep they were decided from, and the factory decides
+    /// which of them may say what. A rusher who got home beat somebody, so the allowed
+    /// verdict takes no result and writes `.lost`; a pocket that held may have held over a
+    /// blocker who was beaten and late, so the held verdict has to be told.
+    @Test("A pocket verdict carries the rep it was decided from", .tags(.unit))
+    func pocketVerdictsCarryTheirRep() {
+        let allowed = DecisionPoint.pressureAllowed(
+            tick: 21, blocker: PlayerSlot(4), rusher: PlayerSlot(15), afterMilliseconds: 2100)
+        #expect(allowed.pocketRepResult == .lost)
+
+        let heldOver = DecisionPoint.pressureHeld(
+            tick: 26, blocker: PlayerSlot(4), rusher: PlayerSlot(15), forMilliseconds: 2600,
+            closestRep: .won)
+        #expect(heldOver.pocketRepResult == .won)
+        #expect(heldOver.value == 2600)
+
+        let beatenButLate = DecisionPoint.pressureHeld(
+            tick: 26, blocker: PlayerSlot(4), rusher: PlayerSlot(15), forMilliseconds: 2600,
+            closestRep: .lost)
+        #expect(beatenButLate.pocketRepResult == .lost)
+
+        // And nothing else answers to it: the byte is two kinds' and no other's.
+        #expect(
+            DecisionPoint.blockResult(
+                tick: 1, blocker: PlayerSlot(4), defender: PlayerSlot(15), result: .won
+            ).pocketRepResult == nil)
+    }
+
     @Test("Typed reads decode the detail byte", .tags(.unit))
     func typedReads() {
         let throwPoint = DecisionPoint.throwDecision(
@@ -231,16 +259,25 @@ struct DecisionPointTests {
         #expect(throwPoint.throwDecisionValue == .checkdown)
 
         let catchPoint = DecisionPoint.catchAttempt(
-            tick: 30, receiver: PlayerSlot(7), defender: PlayerSlot(18), result: .contestedCatch)
+            tick: 30, receiver: PlayerSlot(7), defender: PlayerSlot(18), result: .contestedCatch,
+            separationCentimetres: 40)
         #expect(catchPoint.catchResult == .contestedCatch)
+        #expect(catchPoint.value == 40)
 
         let tacklePoint = DecisionPoint.tackleAttempt(
             tick: 34, defender: PlayerSlot(18), carrier: PlayerSlot(7), result: .broken)
         #expect(tacklePoint.tackleResult == .broken)
 
         let blockPoint = DecisionPoint.blockResult(
-            tick: 8, blocker: PlayerSlot(3), defender: PlayerSlot(14), result: .pancake)
+            tick: 8, blocker: PlayerSlot(3), defender: PlayerSlot(14), result: .pancake,
+            atMilliseconds: 800)
         #expect(blockPoint.blockResultValue == .pancake)
+        #expect(blockPoint.value == 800)
+        // A run's rep is settled at the handoff, against no clock.
+        #expect(
+            DecisionPoint.blockResult(
+                tick: 4, blocker: PlayerSlot(3), defender: PlayerSlot(14), result: .won
+            ).value == 0)
 
         let inside = DecisionPoint.holeQuality(
             tick: 10, back: PlayerSlot(4), insideRun: true, quality: 18)
@@ -288,12 +325,14 @@ struct DecisionPointTests {
     @Test("Typed reads refuse to decode the wrong kind", .tags(.unit))
     func typedReadsAreKindChecked() {
         let point = DecisionPoint.catchAttempt(
-            tick: 30, receiver: PlayerSlot(7), defender: PlayerSlot(18), result: .dropped)
+            tick: 30, receiver: PlayerSlot(7), defender: PlayerSlot(18), result: .dropped,
+            separationCentimetres: 120)
         #expect(point.catchResult == .dropped)
         #expect(point.throwDecisionValue == nil)
         #expect(point.tackleResult == nil)
         #expect(point.blockResultValue == nil)
         #expect(point.coverageTechnique == nil)
+        #expect(point.pocketRepResult == nil)
     }
 
     /// Rewritten. The case this replaces asserted that `primary` was the receiver, which
@@ -326,7 +365,7 @@ struct DecisionPointTests {
             DecisionPoint.pressureAllowed(
                 tick: 1, blocker: actor, rusher: opposite, afterMilliseconds: 1),
             DecisionPoint.pressureHeld(
-                tick: 1, blocker: actor, rusher: opposite, forMilliseconds: 1),
+                tick: 1, blocker: actor, rusher: opposite, forMilliseconds: 1, closestRep: .won),
             DecisionPoint.readProgression(
                 tick: 1, passer: actor, receiver: opposite, index: 1, separationCentimetres: 1),
             DecisionPoint.throwDecision(
@@ -336,7 +375,8 @@ struct DecisionPointTests {
                 tick: 1, receiver: actor, defender: opposite, placement: .onTarget,
                 separationCentimetres: 1),
             DecisionPoint.catchAttempt(
-                tick: 1, receiver: actor, defender: opposite, result: .caught),
+                tick: 1, receiver: actor, defender: opposite, result: .caught,
+                separationCentimetres: 1),
             DecisionPoint.tackleAttempt(
                 tick: 1, defender: actor, carrier: opposite, result: .madeTackle),
             DecisionPoint.blockResult(tick: 1, blocker: actor, defender: opposite, result: .won),
@@ -638,7 +678,8 @@ struct PlayRecordTests {
             .pressureAllowed(
                 tick: 20, blocker: PlayerSlot(4), rusher: PlayerSlot(15), afterMilliseconds: 2100),
             .pressureHeld(
-                tick: 20, blocker: PlayerSlot(3), rusher: PlayerSlot(14), forMilliseconds: 3200),
+                tick: 20, blocker: PlayerSlot(3), rusher: PlayerSlot(14), forMilliseconds: 3200,
+                closestRep: .won),
             .throwDecision(
                 tick: 24, passer: PlayerSlot(0), oppositeNumber: PlayerSlot(7),
                 decision: .checkdown, atMilliseconds: 2400),
