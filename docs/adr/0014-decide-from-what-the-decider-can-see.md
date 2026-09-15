@@ -12,16 +12,27 @@ of a function of the receiver count. Its *Done when* named a target measured on
 its first-and-ten designed carries, against the engine's 0.3%.
 
 The feed answers the same grouping differently depending on what the snap turned out to
-be. Both seasons, first and ten, eleven personnel against a four-back front:
+be. Eleven personnel on first and ten, against a four-back front, by the population the
+rate is taken over:
 
 | population | 2023 | 2024 |
 | --- | ---: | ---: |
-| designed carries | 18.8% | 18.3% |
-| dropbacks | 10.8% | 11.0% |
-| all snaps | 14.5% | 14.2% |
+| designed carries | 18.8% (710 of 3,769) | 18.3% (646 of 3,530) |
+| dropbacks | 10.5% (499 of 4,747) | 10.5% (460 of 4,371) |
+| the two together | 14.2% (1,209 of 8,516) | 14.0% (1,106 of 7,901) |
 
-Those are one defence substituting once, sorted afterwards by an observer who has seen the
-snap. The defence chose before that sort existed.
+Re-derived for this record from the 2023 and 2024 participation and play-by-play releases,
+regular season, plays from scrimmage, two-point tries excluded, with
+`scripts/calibration-sources.py`'s own personnel and package definitions; a dropback is a
+pass attempt, a sack or a scramble, and the counts are printed so a reader can check the
+arithmetic rather than the sentence. The carries row is the one the rejected alternative
+would have chased and it reproduces exactly; #218's thread and
+[play-calling.md](../play-calling.md) carry 10.8 / 11.0 and 14.5 / 14.2 for the lower two
+rows, which did not reproduce here under any population tried, and nothing below turns on
+which of those readings is right.
+
+Those three rows are one defence substituting once, sorted afterwards by an observer who
+has seen the snap. The defence chose before that sort existed.
 
 In the engine the caller is asked for the package **after** the offensive concept has been
 drawn. So the carries figure was *available*: condition the draw on the concept and the
@@ -49,10 +60,11 @@ Two consequences of the rule, both load-bearing:
   inside a snap is an implementation detail and confers nothing.
 - **Where a sourced rate is measured on a population the decider cannot identify at
   decision time, the engine draws over the population he can identify**, and the subset's
-  realised rate is *reported* rather than targeted. For the package that is the snap
-  marginal, 14.5 / 14.2%: the engine lands at 13.8 / 14.6% on carries, and P(package |
-  snap) is by construction the run/pass mixture. The residual is anticipation the engine
-  does not model, named as a gap rather than closed by a number.
+  realised rate is *reported* rather than targeted. For the package that means the third
+  row of the table above rather than the first, and P(package | snap) is by construction
+  the run/pass mixture. #226 measured the engine at 13.8 / 14.6% of eleven personnel's
+  first-and-ten carries — a figure it reports, beside a marginal it draws. The residual is
+  anticipation the engine does not model, named as a gap rather than closed by a number.
 
 This generalises [decision 42](../design-decisions.md#ai-play-calling) — the defence never
 sees the call — from the tendency model, which does not exist yet, to every draw the
@@ -98,7 +110,10 @@ honestly, and this ADR is what says the difference matters.
 
 **Leave the pairing computed from the receiver count, as it was.** No table, no draw, and
 the three marginal rows — `personnel11`, `packageNickel`, `packageBase` — were already
-`ok`. Rejected: that is #218's whole finding. Eleven personnel met a four-back front on
-0.2% of first-and-ten designed carries against the sport's 11.0 / 9.8%, three graded yards
-per carry rows sat behind a joint that did not exist, and correct marginals over a wrong
-joint is the shape of a bug that grades green.
+`ok`. Rejected: that is #218's whole finding, and it is one quantity rather than two.
+**Of eleven personnel's own first-and-ten designed carries**, the engine met a four-back
+front on 0.3% where the feed is at 18.8 / 18.3% — the first row of the table above, which
+is also the rate the first alternative would have chased. Three graded yards per carry
+rows sat behind that joint, one of them with too few carries to take a mean from at all,
+while the three marginals graded green. Correct marginals over a wrong joint is the shape
+of a bug nothing catches.
