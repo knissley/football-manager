@@ -19,9 +19,8 @@ You dispatch subagents; **you never implement an issue yourself.** You read ever
 critically, **verify the hard constraints in the tree rather than trusting it**, merge, and
 correct the record when something turns out wrong. An issue you file carries a `Where it fits`
 line, and its body is Finding, Plan, Done-when and Not-in-scope — **never a Conventions or check
-list**: the checks live in `CLAUDE.md` and Part 2, and a copy inside an issue goes stale the day
-the brief moves. **You are not the designer**: an idea that is not a defect a fan would notice
-goes to the owner and the design tracker.
+list**: the checks live in `CLAUDE.md` and Part 2. **You are not the designer**: an idea that is
+not a defect a fan would notice goes to the owner and the design tracker.
 
 ## The state machine
 
@@ -32,10 +31,10 @@ carried by nothing and is not in the flow.
 
 **`blocked` does not say why**: either an open dependency, named in *Depends on*, or a pending
 decision, which the separate **`needs-owner`** flag marks — so a decision-blocked issue carries
-**both**, keeping one `status:` on every open issue. **Run the query rather than trusting this
-paragraph**: list open `needs-owner` issues and give a `status:` to any that lacks one. **On
-meeting a `blocked` issue, establish which reason it is**; if its dependencies have cleared it is
-a decision, so add `needs-owner` and **write the question down**.
+**both**. **Run the query rather than trusting this paragraph**: list open `needs-owner` issues
+and give a `status:` to any that lacks one. **On meeting a `blocked` issue, establish which
+reason it is**; if its dependencies have cleared it is a decision, so add `needs-owner` and
+**write the question down**.
 
 Issues auto-close via `Closes #N`; **flip the label to `status:done` yourself.** A PR satisfying
 only part of an issue says **`Refs #N`**, and the issue stays open with a comment naming which
@@ -46,8 +45,7 @@ only part of an issue says **`Refs #N`**, and the issue stays open with a commen
 **The body is the state. The comments are history.**
 
 - **Current state is rewritten in place** when `main` moves, an issue lands, something becomes
-  owner-gated, or the queue changes. **Never append state as a comment**, and never post a status
-  comment saying where things stand.
+  owner-gated, or the queue changes. **Never append state as a comment.**
 - **Cap it at 400 words**, five things: the `main` sha; the counts; what is in flight, one entry
   per branch; what waits on the owner, with the question; the queue.
 - **An in-flight entry is the handoff**: branch, head sha, issues closed, what has been verified
@@ -56,14 +54,13 @@ only part of an issue says **`Refs #N`**, and the issue stays open with a commen
 - **Reasoning, findings, residuals, rule changes, wave summaries and corrections are comments.**
   Counts and shas are **measured, not carried forward**.
 
-**#1 has no wave tables**: its body deleted them on 2026-09-12, because they were a filing-time
-record covering 76 of the 115 issues and nobody maintained the Status column. **The live backlog
-is the labels** — query them. The reasoning the tables could not hold is #1's *Why certain issues
-exist* section, which stays. Do not rebuild a table.
+**#1 has no wave tables**: a filing-time record nobody maintained, deleted 2026-09-12. **The
+live backlog is the labels** — query them. #1's *Why certain issues exist* section stays. Do not
+rebuild a table.
 
 ## Scope, and the wave summary
 
-Two standing rules, agreed with the owner at the re-audit of 2026-09-11:
+Two standing rules, agreed with the owner 2026-09-11:
 
 - **No new rules-layer or resolver issue is dispatched unless it moves a graded harness row or a
   fan would notice it in the printed `gamelog` game.** Correct and cited is not sufficient.
@@ -83,12 +80,41 @@ plan changes, what waits on the owner, the re-read.
 5. **Hold a slot free.** Throughput is not the constraint; attention is.
 6. **Keep a check-in scheduled while any agent runs**; delete the triggers when you pause.
 
+### The dispatch prompt
+
+Paste this, filling `<N>` and the slug:
+
+```text
+Implement issue #<N> in knissley/football-manager. Read CLAUDE.md, Part 2 of
+.claude/skills/orchestrator/SKILL.md and .github/pull_request_template.md; read issue #<N>
+and every comment on it — its Plan and Done-when are the spec.
+
+git fetch origin main && git checkout -b fix/<N>-<slug> origin/main
+
+Push with your first commit and open a draft PR. Swift is on PATH or at /opt/swift/usr/bin;
+run every check in the foreground with the Bash tool's timeout, capturing output to files.
+Iterate with ./scripts/preflight.sh --iterate <SuiteName>, run ./scripts/preflight.sh once
+before the final push, and paste ./scripts/preflight.sh --report into the PR body. Never
+merge and never enable auto-merge. Do not wait on CI: mark the PR ready, report, and end
+your turn. Report in under 250 words, in the template's shape. If the plan is wrong or
+something you need is missing, stop and report on the issue.
+```
+
+Add per issue what only you know: the convention to inherit from a sibling PR, the files not to
+touch, and any measurement to record.
+
 ## Review, before you merge
 
-When an implementer reports done and its PR is open, dispatch **one reviewer with a fresh
-context**: it gets the PR body, the diff, every *Done when* line the PR closes, `CLAUDE.md`, and
-Part 2. **It does not re-run the suites** — the implementer's `preflight` is the first pass, CI
-the second and third. What it adds is reading.
+**The lane `preflight` printed in the PR's `--report` block decides who reviews, not judgment.**
+On lane **`engine`** — anything under `Packages/*/Sources`, a `Package.swift`,
+`Tools/simharness/Sources` or the CI workflow — dispatch **one reviewer with a fresh context**:
+it gets the PR body, the diff, every *Done when* line the PR closes, `CLAUDE.md`, and Part 2. On
+**`docs`**, **`tests`** or **`tools`**, **you are the reviewer**: do that same reading and those
+same three runs yourself, and dispatch nobody. A fresh context is worth its cost where the
+football or the engine's behaviour can be wrong in a way you share the implementer's blind spot
+on, and not where a self-test and a read of the diff are the whole check. **The review does not
+re-run the suites** — the implementer's `preflight` is the first pass, CI the second and third.
+What it adds is reading.
 
 **It reads:** the diff against a merge base it resolves itself (a two-dot `origin/main..branch`
 lies once `main` has moved); **every article the branch cites**, as `lint-reference.sh --show`
@@ -127,7 +153,7 @@ owner's, verbatim:**
    permits the third only for prose the second round introduced, and the cheapest way to never
    need it is rule 1.
 
-And one addition, which is how rules 1 and 2 meet a PASS that still found something:
+And one addition:
 
 5. **A PASS with prose findings gets a follow-up commit from the same implementer, with no
    second review** — and only when a document contradicts its own numbers (#93's kind 1). Every
@@ -141,8 +167,8 @@ And one addition, which is how rules 1 and 2 meet a PASS that still found someth
 **Verify the constraint yourself. Do not take the report.** Resolve the merge base before reading
 a diff, never trust a `Packages/*/Sources` pathspec, and read `status --porcelain` for staged
 changes — [the three ways a diff has lied](../../../docs/lessons.md#verifying-before-you-merge).
-**Never stage-all and commit in a dead agent's worktree**: its index holds the pre-death state
-while the ref moves under it.
+**Never stage-all and commit in a dead agent's worktree**: its index holds the pre-death
+state.
 
 **The CI gate rule: attempt the merge and read the refusal.** The 405 names the outstanding
 required check; the check-runs API and `mergeable_state` both lag, and **a green push-event run
@@ -193,9 +219,8 @@ four-core Linux container: FMSimulation debug **161–214 s**, release **15 s**;
 
 **This section is the implementer's**; a reviewer's is in Part 1. Run
 **`./scripts/preflight.sh`**, which picks the lane from your diff and stops at the first failure,
-naming the step and log, and **paste `--report`'s block into the PR body**. Iterate with
-**`--iterate <SuiteName>`**, but **run the full debug suite once before pushing**: one
-FMSimulation test is behind `#if DEBUG`.
+and **paste `--report`'s block into the PR body**. Iterate with **`--iterate <SuiteName>`**, but
+**run the full debug suite once before pushing**: one FMSimulation test is behind `#if DEBUG`.
 
 ## How you work
 
@@ -226,11 +251,11 @@ repo, commit messages included.**
 
 ### If you touch `docs/reference/playing-rules.md`
 
-`playing-rules.md` is the project's own paraphrase, read as authoritative by the next
-implementer, and an entry that misstates its article **blocks a merge**. Read the article as
-printed — `./scripts/lint-reference.sh --show` prints every article the branch diff cites —
-and write the entry from it, stating only what it states and flagging any inference as one. Watch
-the terms of art ([examples](../../../docs/lessons.md#terms-of-art-in-the-reference)). **The lint
+`playing-rules.md` is the project's own paraphrase, and an entry that misstates its article
+**blocks a merge**. Read the article as printed — `./scripts/lint-reference.sh --show` prints
+every article the branch diff cites — and write the entry from it, stating only what it states
+and flagging any inference as one. Watch the terms of art
+([examples](../../../docs/lessons.md#terms-of-art-in-the-reference)). **The lint
 checks that a cited article *exists*, not that it says what the citation claims**, so reading it
 is the check. **Reviewers run `--show` before judging an entry**, quote the header, and report the article as
 printed, what the entry claims, whether it is **behaviour-bearing**, and whether an open issue
@@ -238,11 +263,11 @@ cites it — the last two decide whether it blocks.
 
 ## The shingle is the lint's job — do not write your own
 
-`scripts/lint-reference.sh` scans whole files and whole commit messages, never a sub-diff, per
-line **and** joined, with controls cut from the corpus at runtime: unless they come out 1, 1, 0
-it prints no count and exits 2, so **quote that control line beside your count**. `preflight`
-runs the tree scan and `--messages` but not **`--n 8`**, worth a run when the branch added
-football prose. Run `--messages` immediately before pushing.
+`scripts/lint-reference.sh` scans whole files and whole commit messages, never a sub-diff, with
+controls cut from the corpus at runtime: unless they come out 1, 1, 0 it prints no count and
+exits 2, so **quote that control line beside your count**. `preflight` runs the tree scan and
+`--messages` but not **`--n 8`**, worth a run when the branch added football prose. Run
+`--messages` immediately before pushing.
 
 ## The harness
 
@@ -280,8 +305,9 @@ Resolve keeping both sides, regenerate the goldens that moved, re-run the harnes
 ## Finishing
 
 **Open the pull request yourself, as a draft, with your first push** — a bare branch gets no CI
-run, CI firing on `push` only for `main`. Mark it ready when done; **do not merge and do not
-enable auto-merge.** Report each CI conclusion by name and fix a red one first.
+run, CI firing on `push` only for `main`. When done, mark it ready, report, and end your turn.
+**Do not wait on CI**: the orchestrator watches it and merges on green, and a red check comes back
+to you as a message. **Do not merge and do not enable auto-merge.**
 
 ## Your report is the PR body
 
@@ -305,5 +331,5 @@ mechanism**, the rulebook by article and season, **never its text**.
 
 ## Housekeeping
 
-Worktrees each carry a `.build`; enough will fill the disk. On "no space left on device" delete
-them; they regenerate. Never delete another's source.
+Worktrees each carry a `.build`; enough fill the disk. On "no space left on device" delete them;
+they regenerate. Never delete another's source.
