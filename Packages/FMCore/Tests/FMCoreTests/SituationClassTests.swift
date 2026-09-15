@@ -256,13 +256,20 @@ struct SituationClassTests {
         #expect(classify(quarter: 4, clock: 400, differential: 7).isClockBurn == false)
     }
 
+    /// The overtime row used to read the other way: a trailing offence inside two minutes
+    /// of an overtime period was not desperate. It is, and for a reason the articles
+    /// settle rather than taste — the period is timed as a fourth quarter (16-1-3-e) and
+    /// is never extended (16-1-3-d), so that drive is the last one. The row that is still
+    /// false is the period outside the warning, which is where an overtime offence does
+    /// have a game left to play.
     @Test("Desperation is trailing with a half running out", .tags(.unit))
     func desperation() {
         #expect(classify(quarter: 4, clock: 60, differential: -3).isDesperation)
         #expect(classify(quarter: 2, clock: 60, differential: -3).isDesperation)
         #expect(classify(quarter: 4, clock: 60, differential: 3).isDesperation == false)
         #expect(classify(quarter: 4, clock: 240, differential: -3).isDesperation == false)
-        #expect(classify(quarter: 5, clock: 60, differential: -3).isDesperation == false)
+        #expect(classify(quarter: 5, clock: 60, differential: -3).isDesperation)
+        #expect(classify(quarter: 5, clock: 240, differential: -3).isDesperation == false)
     }
 
     /// A description of where going for it is live, not a recommendation — a

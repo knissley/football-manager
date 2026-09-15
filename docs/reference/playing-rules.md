@@ -855,7 +855,11 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   `test:falseStartInsideTwoMinutesOfOvertimeCostsTenSeconds`,
   `test:warningInRegularSeasonOvertime`, `test:twoMinuteWarningStopsAtTwoMinutesOfOvertime`,
   `test:downUnderWayAtTwoMinutesOfOvertimeFinishes`, `test:outOfBoundsInRegularSeasonOvertime`,
-  `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`
+  `test:offensiveFoulInOvertimeStartsTheClockOnTheSnap`; the shared situational vocabulary
+  carries the same reading, so the period's last two minutes are a two-minute situation to
+  a caller as well as to the clock —
+  `test:overtimeCarriesTheFourthQuartersTwoMinutes`,
+  `test:overtimeInsideTwoMinutesIsPlayedAgainstTheClock`
 
 **Postseason** — 15-minute periods, as many as it takes.
 

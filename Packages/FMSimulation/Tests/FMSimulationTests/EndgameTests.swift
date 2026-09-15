@@ -565,26 +565,41 @@ struct EndgameTests {
     /// overtime offence huddles like any other — the period is ten minutes long and there
     /// is a game to play in it — and a caller that sprinted through all of it would be
     /// answering the clock it does not have yet.
+    ///
+    /// The window is taken from the warning on the record rather than from the clock the
+    /// record prints, because the two answer different questions. A play is recorded with
+    /// the clock it was *snapped* on, after the interval before it has come off, while
+    /// the call was made before that interval — so the snap the warning sits on was
+    /// called from a clock still above 2:00, and it is the snaps after it that were
+    /// called inside the warning.
     @Test(
         "football · Rules 16-1-3-d, 16-1-3-e, 3-41, 4-3-2 · the last two minutes of an overtime period are played against the clock: the offence leaves the huddle behind and spends the timeouts 16-1-3-e gives it",
         .tags(.football))
     func overtimeInsideTwoMinutesIsPlayedAgainstTheClock() {
         let trace = scorelessWalkIntoOvertime()
-        let overtime = trace.plays.filter {
-            $0.situation.quarter > 4 && $0.outcome.kind.isScrimmagePlay
+        let overtime = trace.plays.filter { $0.situation.quarter > 4 }
+        guard
+            let warning = overtime.firstIndex(where: {
+                !$0.decisions(ofKind: .twoMinuteWarning).isEmpty
+            })
+        else {
+            Issue.record("the overtime period never reached its two-minute warning")
+            return
         }
-        let late = overtime.filter { $0.situation.clockRemaining <= 120 }
-        let early = overtime.filter { $0.situation.clockRemaining > 120 }
-        #expect(late.count > 1, "the overtime period never reached its last two minutes")
+        func scrimmage(_ plays: ArraySlice<PlayRecord>) -> [PlayRecord] {
+            plays.filter { $0.outcome.kind.isScrimmagePlay }
+        }
+        let late = scrimmage(overtime[(warning + 1)...])
+        let early = scrimmage(overtime[..<warning])
+        #expect(late.count > 1, "the period ended before it snapped inside the warning twice")
         #expect(
             early.allSatisfy { $0.calls.offense.tempo == .normal },
             "the offence was hurrying with more than two minutes of the period left")
         #expect(
             late.allSatisfy { $0.calls.offense.tempo != .normal },
-            "\(late.filter { $0.calls.offense.tempo == .normal }.count) of \(late.count) snaps inside the last two minutes were huddled"
+            "\(late.filter { $0.calls.offense.tempo == .normal }.count) of \(late.count) snaps called inside the warning were huddled"
         )
-        let timeouts = trace.plays.filter { $0.situation.quarter > 4 }
-            .flatMap { $0.decisions(ofKind: .timeout) }
+        let timeouts = overtime.flatMap { $0.decisions(ofKind: .timeout) }
         #expect(
             !timeouts.isEmpty,
             "the period ended level with both benches holding every timeout they had")

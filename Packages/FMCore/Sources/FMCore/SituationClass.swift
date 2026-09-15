@@ -163,6 +163,9 @@ public enum TimeState: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// Inside two minutes of the game.
     case twoMinuteGame = 6
     case overtime = 7
+    /// Inside two minutes of an overtime period, which Rule 16 times as a fourth
+    /// quarter's (16-1-3-e).
+    case twoMinuteOvertime = 8
 
     /// The buckets are placed by the game's structure rather than by literal period
     /// numbers: the last period of the first half, the last period of regulation, and
@@ -178,7 +181,24 @@ public enum TimeState: UInt8, CaseIterable, Sendable, Hashable, Codable {
         let twoMinutes = situation.clockRemaining <= rules.twoMinuteWarning
 
         if situation.quarter > endOfRegulation {
-            self = .overtime
+            // A regular-season overtime period is timed as the fourth quarter — two
+            // charged timeouts a side and that period's closing rules with them, the
+            // two-minute warning among them (16-1-3-e) — so its last two minutes are a
+            // two-minute situation like any other, and they are the ones a caller most
+            // needs to read: the period is never extended and a level game ends level
+            // (16-1-3-d). A single `.overtime` bucket told every reader of this
+            // vocabulary that there was no clock in the period the clock decides.
+            //
+            // The postseason's pairing is not carried. 16-1-4-h ends a half on a second
+            // and a fourth overtime period and leaves a first and a third timed as first
+            // and third quarters, with no warning in them, and there is no postseason
+            // flag here to read: this is the regular season's timing, which is the answer
+            // `Rules.periodTiming` gives when `isPostseason` is false. In a first or a
+            // third postseason period the read therefore arrives a period early, which
+            // hurries an offence whose period carries on from the spot (16-1-4-f); it
+            // never makes one slower, and it is the half of the error that costs a
+            // scripted period rather than a game.
+            self = twoMinutes ? .twoMinuteOvertime : .overtime
         } else if situation.quarter == endOfRegulation {
             if twoMinutes {
                 self = .twoMinuteGame
@@ -196,15 +216,18 @@ public enum TimeState: UInt8, CaseIterable, Sendable, Hashable, Codable {
         }
     }
 
-    /// Both two-minute situations, where the clock stops on an out-of-bounds
-    /// play and every decision is about time as much as yards.
+    /// Every two-minute situation, where the clock stops on an out-of-bounds play and
+    /// every decision is about time as much as yards: the two of regulation, and
+    /// overtime's, which Rule 16 gives the fourth quarter's timing to (16-1-3-e, and
+    /// 4-3-2-a-3's window with it).
     public var isTwoMinute: Bool {
-        self == .twoMinuteFirstHalf || self == .twoMinuteGame
+        self == .twoMinuteFirstHalf || self == .twoMinuteGame || self == .twoMinuteOvertime
     }
 
     /// Late enough that possessions are visibly finite.
     public var isEndgame: Bool {
         self == .clockBurn || self == .twoMinuteGame || self == .overtime
+            || self == .twoMinuteOvertime
     }
 }
 
@@ -230,7 +253,12 @@ extension SituationClass {
     public var isMustPass: Bool {
         if downAndDistance.isPassingDown { return true }
         if time.isTwoMinute && score.isTrailing { return true }
-        return time == .twoMinuteGame && score == .tied && field != .ownDeep
+        // Level with the period running out: the last two minutes of the fourth quarter,
+        // and the last two minutes of an overtime period, which is the same problem one
+        // outcome worse — what the punt from your own eight buys there is a tie rather
+        // than another period (16-1-3-d), and it is still better than the turnover.
+        return (time == .twoMinuteGame || time == .twoMinuteOvertime) && score == .tied
+            && field != .ownDeep
     }
 
     /// The offence wants the clock to run, and the defence wants it stopped —
@@ -241,8 +269,14 @@ extension SituationClass {
     }
 
     /// A drive that has to end in points now.
+    ///
+    /// Overtime's last two minutes are one: once both sides have possessed, the first
+    /// score that separates them has won and the possession it came on is over
+    /// (16-1-3-b, 16-1-3-c), and nothing extends the period (16-1-3-d) — so a trailing
+    /// offence there is on the last drive it will get, whichever of the two ends it.
     public var isDesperation: Bool {
-        guard time == .twoMinuteGame || time == .twoMinuteFirstHalf else { return false }
+        guard time == .twoMinuteGame || time == .twoMinuteFirstHalf || time == .twoMinuteOvertime
+        else { return false }
         return score.isTrailing
     }
 
