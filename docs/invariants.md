@@ -37,7 +37,7 @@ so, then what checks it:
 
 A rule is not a rate. Entries 1 to 101 are rules, and a scenario is what checks one — except
 100, which is a promise the record makes about itself and says so on its own line. Entries 102
-to 130 are what a league of games has to *look* like, and a harness band over a sourced season
+to 131 are what a league of games has to *look* like, and a harness band over a sourced season
 is what checks one. A band is evidence about a rate and never about a rule.
 
 ## Game length and overtime
@@ -852,19 +852,27 @@ what every one of them was derived from is in
      offensive line and leaves the carrier's contact balance worth nothing where it should
      show most. — `test:aBreakawayIsAlwaysABrokenTackle`, and yards do not fall as the hole
      improves — `test:yardsRiseWithTheHole`
+127. The ball goes to the men it really goes to: about three targets in five to a wide
+     receiver, about one in five to a tight end, and not quite one in five to a back. This
+     is the footprint the read order and the checkdown leave, and the only part of them a
+     season can band — a table that never reads the tight end, or a passer who checks down
+     far more often than the sport does, shows up here and nowhere else the harness can
+     see. The denominator is targets rather than attempts, so a throwaway is in neither
+     half of it. — `row:targetShare.wideReceiver`, `row:targetShare.tightEnd`,
+     `row:targetShare.runningBack`
 
 ## What the harness cannot check yet
 
-127. A completion is a completion whether it gained a yard, none, or lost one. The record
+128. A completion is a completion whether it gained a yard, none, or lost one. The record
      says a pass was caught, and the harness reads that rather than inferring it from
      positive yards. `[2025 · 8-1-3]` — `test:completionsForNothingAreComplete`,
      `test:passResultAgreesWithTheEnding`, `row:completionPercentage`; S14 in the
      [audit](audit-is-this-football.md)
-128. Players miss games at about the rate they really do, and heavy rain takes points off a
+129. Players miss games at about the rate they really do, and heavy rain takes points off a
      game. Nobody has cited either band, so `row:playerGamesLost` and `row:heavyRainPoints`
      print `unsourced` and are never `ok`. — **not yet enforced**: the sourcing is
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail
-129. Receivers drop about as many as they really do, defenders knock away about as many,
+130. Receivers drop about as many as they really do, defenders knock away about as many,
      and a defensive interference flag is thrown about as often as one is enforced. The
      first two have no band anybody has cited — the play-by-play charts neither a drop nor
      a break-up — and the third is a count of flags rather than of enforced fouls, which
@@ -876,7 +884,7 @@ what every one of them was derived from is in
      [#2](https://github.com/knissley/football-manager/issues/2)'s remaining tail, and the
      rates themselves are
      [#49](https://github.com/knissley/football-manager/issues/49)'s
-130. A defensive interference flag on a pass that was then completed is the engine
+131. A defensive interference flag on a pass that was then completed is the engine
      contradicting itself rather than a rate to be sourced, so `row:interferenceOnCompletions`
      carries a band of zero that no season stands behind and is graded by
      `test:interferenceMeansNoCatch` instead. `[2025 · 8-5-1]` —

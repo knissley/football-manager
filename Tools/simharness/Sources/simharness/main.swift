@@ -1191,7 +1191,8 @@ report(
     throwsToARead.isEmpty
         ? nil : Double(toTheFirstRead.count) / Double(throwsToARead.count) * 100)
 // Who the ball goes to, by the position he plays: the footprint the read order and the
-// checkdown leave, and the one of these rows a source can band.
+// checkdown leave, and the one of these rows a source bands — the play-by-play names the
+// targeted receiver and the participation feed the position he plays.
 // Over dropbacks, the denominator every read row shares: a two-point try's target is not
 // in it, as its attempt is in none of the passing rows.
 let targets = dropbacks.flatMap { play in play.outcome.participants.filter { $0.role == .target } }

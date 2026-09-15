@@ -172,6 +172,52 @@ def group_counts(text):
     return counts
 
 
+# --- who the ball was thrown to ---------------------------------------------
+#
+# The play-by-play names the targeted receiver by identifier and carries no position; the
+# participation row for the same play carries positions and names no receiver. The join is
+# by index: `offense_players` and `offense_positions` are two `;`-separated lists written
+# in one order, so the targeted man's position is the entry at his index in the first.
+# Checked over both sourced seasons: every target with an identifier joined, so the weekly
+# roster release is not needed for this row.
+#
+# The denominator is **targets, not attempts** — the convention `row:dropsPerTarget`
+# already states. An attempt the feed names no receiver on (a throwaway, a spike, a ball
+# batted down at the line) has no target and is not in it, which is what makes this the
+# footprint of the read order rather than of how often the passer gave up on it.
+
+
+def target_group(row, part):
+    """The position group the targeted receiver played on this play, or `None`.
+
+    `None` means the play has no target this derivation can resolve: no receiver named, no
+    participation row, or a row whose two lists disagree in length or do not contain him.
+    Such a play is in no share's numerator *and in no denominator either*, so a feed gap
+    cannot masquerade as a group nobody threw to.
+
+    A position code in none of `POSITION_GROUPS` comes back `"other"` rather than `None`:
+    the feed lists a lineman or a defensive back as the targeted man a handful of times a
+    season, and dropping those would quietly shrink the denominator the three shares are
+    read against. They are a target; they are simply not one of the three groups.
+    """
+    receiver = row.get("receiver_player_id")
+    if not receiver or part is None:
+        return None
+    players = part["offense_players"].split(";")
+    positions = part["offense_positions"].split(";")
+    if len(players) != len(positions):
+        return None
+    try:
+        index = players.index(receiver)
+    except ValueError:
+        return None
+    code = positions[index]
+    for group, codes in POSITION_GROUPS:
+        if code in codes:
+            return group
+    return "other"
+
+
 def load_participation(path):
     lookup = {}
     with open(path, newline="") as handle:
@@ -469,6 +515,11 @@ def read_season(directory, season):
                         c["completionsPositive"] += 1
                 if flag(row, "interception"):
                     c["interceptions"] += 1
+                # Target share by position group: see `target_group` above.
+                group = target_group(row, participation.get((game, row["play_id"])))
+                if group is not None:
+                    c["targets"] += 1
+                    c["targets:" + group] += 1
             if attempt or sack or scramble:
                 c["dropbacks"] += 1
                 c["dropbackLoss"] += 1 if yards < 0 else 0
@@ -806,6 +857,18 @@ METRICS = [
     ("completionsNegative", "completions that lose yardage, share of completions %", PLAY, 1, share("completionsNegative", "completions")),
     ("completionsNegativePerGame", "completions that lose yardage per game, both teams", PLAY, 2, per_game("completionsNegative")),
     ("completionNegativeYards", "yards lost per completion that loses yardage (positive magnitude)", PLAY, 1, lambda c: -div(c["completionNegativeYards"], c["completionsNegative"])),
+    # Target share by position group, appended for the reason the two lists above were:
+    # every row's standard error is bootstrapped from one generator in this list's order,
+    # so a row placed beside the passing rows it reads with would reshuffle the draws of
+    # every row below it and move bands nobody meant to move.
+    #
+    # The three do not sum to 100: the residue is `targets:other` and the groups no
+    # offence throws to on purpose — a lineman or a man the feed lists at a defensive
+    # position, about three targets in a thousand. The denominator is every target the
+    # join resolved, so each share is what it says it is rather than a share of the three.
+    ("targetShare.wideReceiver", "targets to wide receivers, share of targets %", PLAY, 1, share("targets:receiver", "targets")),
+    ("targetShare.tightEnd", "targets to tight ends, share of targets %", PLAY, 1, share("targets:tightEnd", "targets")),
+    ("targetShare.runningBack", "targets to backs, share of targets %", PLAY, 1, share("targets:backfield", "targets")),
 ]
 
 
@@ -979,6 +1042,66 @@ def self_test():
     # as really does lose the yardage, so the two cases above are known to be able to fail.
     trap = sum((Counter(part) for part in caught), Counter())
     check("control: a Counter fold really does lose the signed yardage entirely", "completionNegativeYards" in trap, False)
+
+    # --- the target-share join ----------------------------------------------
+    #
+    # `target_group` is the only accumulator here that reads two feeds at once, and its
+    # failure mode is silent in the same way: a join that resolves to the wrong index
+    # still returns a position, and a share built on it is wrong by a plausible-looking
+    # amount rather than raising. So the cases below fix the *alignment* — that the
+    # position comes back from the targeted man's own index — and the two ways the play
+    # can have no target at all, which must stay out of the denominator rather than
+    # landing in a group.
+
+    def part_of(players, positions):
+        return {"offense_players": ";".join(players), "offense_positions": ";".join(positions)}
+
+    # The feed writes both lists sorted by position, so the targeted man is rarely first
+    # and never at a fixed index. Each of the three below is at a different one, and every
+    # one of them is red if the lookup reads index 0, or the last index, or the wrong list.
+    eleven = part_of(
+        ["id-cb", "id-wr1", "id-wr2", "id-wr3", "id-rb", "id-te", "id-qb"],
+        ["CB", "WR", "WR", "WR", "RB", "TE", "QB"],
+    )
+    check("a targeted wide receiver is read from his own index", target_group({"receiver_player_id": "id-wr3"}, eleven), "receiver")
+    check("a targeted tight end is read from his own index", target_group({"receiver_player_id": "id-te"}, eleven), "tightEnd")
+    check("a targeted back is read from his own index", target_group({"receiver_player_id": "id-rb"}, eleven), "backfield")
+    # A fullback is a back: the harness counts `.runningBack` and `.fullback` in one row,
+    # and `POSITION_GROUPS` folds RB, FB and HB into `backfield`, so both sides agree.
+    check("a fullback counts as a back, as the harness's row does", target_group({"receiver_player_id": "id-fb"}, part_of(["id-fb"], ["FB"])), "backfield")
+
+    # Not one of the three groups, and not `None`: it is a target, and dropping it would
+    # shrink the denominator the three shares are read against.
+    check("a target at a position in none of the three groups is still a target", target_group({"receiver_player_id": "id-t"}, part_of(["id-t"], ["T"])), "offensiveLine")
+    check("a target at a code in no group at all reads `other`", target_group({"receiver_player_id": "id-x"}, part_of(["id-x"], ["XX"])), "other")
+
+    # No target: an attempt the feed names no receiver on — a throwaway, a spike, a ball
+    # batted down. Out of the numerator *and* the denominator.
+    check("an attempt with no receiver named has no target", target_group({"receiver_player_id": ""}, eleven), None)
+    check("an attempt with no participation row has no target", target_group({"receiver_player_id": "id-te"}, None), None)
+    # The join failing must read as "no target", never as a group: a wrong answer here is
+    # a share that moves without anything about the sport moving.
+    check("a receiver absent from the participation row has no target", target_group({"receiver_player_id": "id-ghost"}, eleven), None)
+    check("lists of different lengths have no target", target_group({"receiver_player_id": "id-wr1"}, part_of(["id-wr1", "id-te"], ["WR"])), None)
+
+    # The band is a ratio of the component sums, as every band here is, so the fold is
+    # checked on the shape `read_season` builds: a group's targets over all targets,
+    # across games, with the residue in the denominator and in no share.
+    folded = sum_components(
+        [
+            {"targets": 5, "targets:receiver": 3, "targets:tightEnd": 1, "targets:backfield": 1},
+            {"targets": 5, "targets:receiver": 3, "targets:tightEnd": 1, "targets:other": 1},
+        ]
+    )
+    check(
+        "the three shares are ratios of the folded sums, and the residue is in none of them",
+        (
+            share("targets:receiver", "targets")(folded),
+            share("targets:tightEnd", "targets")(folded),
+            share("targets:backfield", "targets")(folded),
+        ),
+        (60.0, 20.0, 10.0),
+    )
 
     if failures:
         print(f"\ncalibration-sources: self-test FAILED — {failures} case(s).")
