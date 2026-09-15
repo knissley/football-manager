@@ -315,7 +315,7 @@ that used to charge both to the receiver. Every failed catch with the receiver o
 drop until then — three quarters of all incompletions, 86% of them on a ball the record
 itself called slightly off or poor.
 
-Four more are the rules layer's rather than the resolver's, and name no player:
+Seven more are the rules layer's rather than the resolver's, and name no player:
 
 ```
 .playClock(seconds, remaining)     which play clock the snap was taken against (4-6) and
@@ -327,14 +327,31 @@ Four more are the rules layer's rather than the resolver's, and name no player:
 .timeout(byOffense)                a charged timeout taken before this snap (4-5-1), by
                                    the side in possession at it or by the other
 .twoMinuteWarning                  the warning was taken before this snap (3-41)
+.coinToss(wonByTheSideKickingOff)  the coin was tossed and this free kick is what it
+                                   decided (4-2-2, 16-1-2, 16-1-4-i), won by the side in
+                                   possession at the kick or by the other
+.tossElection(byTheWinner:)        what that toss's winner did with it (4-2-2): took the
+                                   ball, the kick or the goal, or deferred his choice
+.tossElection(byTheLoser:)         what the other captain did, never a deferral
 ```
 
-All four exist so that the clock explains itself from the stream — which clock a snap
-faced, why ten seconds came off, why a half ended on a flag, who stopped it and when the
-warning came — instead of being inferred from two consecutive situations. The first two
-sit on the play they are about; the last two sit at the front of the *next* snap's chain,
-because the ball was dead when they happened and the next snap is the first thing they
-are before ([below](#kicks-takeaways-and-the-dead-ball)).
+The first four exist so that the clock explains itself from the stream — which clock a
+snap faced, why ten seconds came off, why a half ended on a flag, who stopped it and when
+the warning came — instead of being inferred from two consecutive situations. The first
+two of those sit on the play they are about; the timeout and the warning sit at the front
+of the *next* snap's chain, because the ball was dead when they happened and the next snap
+is the first thing they are before ([below](#kicks-takeaways-and-the-dead-ball)).
+
+**The last three do the same for the toss**, which decided the kick they sit at the front
+of. A half opens either on a toss — the game (4-2-2), the end of regulation (16-1-2), the
+end of a fourth overtime period (16-1-4-i) — or on the first choice of 4-2-2's two
+privileges by a captain the toss before it left holding one (4-2-2, 16-1-4-e); the first
+kind of half carries all three points and the second carries the two elections, one per
+captain, in the order the captains answered. A kickoff a score owes carries none: nothing
+was elected before it. So a reader walking back from any kick to the last `.coinToss`
+before it has the toss that half answers to, and the side each point names resolves
+through the kick's own `situation.possession` — which is why the toss is recorded as won
+by the side kicking off rather than by a `TeamID` the record would have to carry.
 
 A crude engine emits a handful of these per play; the spatial engine emits many. **Same
 cases, same meaning** — which is exactly what lets the engine be replaced without touching
@@ -541,6 +558,12 @@ announces it; a reader counting timeouts counts both, which is what the harness 
 of their own kind were the alternative — a `DeadBallEvent` stream beside the plays — and
 were rejected because everything downstream walks one stream, and a between-downs event is
 exactly the thing the next snap's causal chain begins with.
+
+The coin toss and its elections go at the front of a half's free kick for the same reason:
+they happened with the ball dead and that kick is the first thing they are before. A flag
+before that kick puts them on the record of the down that never was, which is where they
+belong — they preceded it — and the replayed kick carries none, exactly as a timeout taken
+before a false start does.
 
 ## Constraints from the rest of the design
 

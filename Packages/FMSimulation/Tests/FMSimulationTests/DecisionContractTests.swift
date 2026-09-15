@@ -99,6 +99,15 @@ struct DecisionContractTests {
         case .catchInSpace:
             return .catchInSpace(
                 tick: point.tick, receiver: point.primary, separationCentimetres: point.value)
+        case .coinToss:
+            guard let wonByTheKicker = point.coinTossWonByTheSideKickingOff else { return nil }
+            return .coinToss(wonByTheSideKickingOff: wonByTheKicker)
+        case .tossElectionByTheWinner:
+            guard let election = point.tossElectionByTheWinner else { return nil }
+            return .tossElection(byTheWinner: election)
+        case .tossElectionByTheLoser:
+            guard let election = point.tossElectionByTheLoser else { return nil }
+            return .tossElection(byTheLoser: election)
         }
     }
 
@@ -171,8 +180,12 @@ struct DecisionContractTests {
                         #expect(
                             point.secondary.isNone,
                             "\(at): names slot \(point.secondary.rawValue) opposite space")
-                    // The rules layer's, where there is no player to name.
-                    case .playClock, .clockElection, .timeout, .twoMinuteWarning:
+                    // The rules layer's, where there is no player to name. The toss and
+                    // its elections are a captain's rather than a player's, and a
+                    // captain is not a slot in a formation: the side they name is the
+                    // side in possession at the kick, or the other.
+                    case .playClock, .clockElection, .timeout, .twoMinuteWarning, .coinToss,
+                        .tossElectionByTheWinner, .tossElectionByTheLoser:
                         #expect(point.primary.isNone, "\(at): the rules named a player")
                         #expect(point.secondary.isNone, "\(at): the rules named a player")
                     }
@@ -223,8 +236,20 @@ struct DecisionContractTests {
                             "\(at): \(reading.remaining) left of \(reading.seconds)")
                     // Kinds whose whole content is the discriminant: a value on one is a
                     // byte no reader has been told how to read.
-                    case .tackleAttempt, .clockElection, .timeout, .twoMinuteWarning:
+                    case .tackleAttempt, .clockElection, .timeout, .twoMinuteWarning, .coinToss,
+                        .tossElectionByTheWinner, .tossElectionByTheLoser:
                         #expect(point.value == 0, "\(at): carries a value of \(point.value)")
+                    }
+
+                    // The deferral is the winner's alone (2025 rulebook, 4-2-2): the
+                    // loser is given the other privilege, never the choice the winner
+                    // declined to make. Nothing in the byte says so — `detail` decodes
+                    // the same enum on both kinds — so it is asserted where the rest of
+                    // each kind's contract is.
+                    if point.kind == .tossElectionByTheLoser {
+                        #expect(
+                            point.tossElectionByTheLoser != .deferred,
+                            "\(at): the captain who lost the toss deferred")
                     }
                 }
             }

@@ -362,6 +362,11 @@ struct Broadcast {
     /// rulebook, 4-5-4-a), and the election the record carries for it does not say which
     /// team that was — so it is read off the injury stream and the rosters, which do.
     private var injuredSide: [UInt16: TeamID] = [:]
+    /// The captain who won the last coin toss the stream carried, which is the one every
+    /// half until the next toss answers to (2025 rulebook, 4-2-2, 16-1-4-e). The toss
+    /// point names him relative to the kick it sits on; the elections at the half after
+    /// it name only "the winner" and "the loser", so this is what turns those into clubs.
+    private var tossWinner: TeamID?
 
     /// One team's possession, accumulated only so its summary line can be printed when
     /// it ends.
@@ -594,6 +599,16 @@ struct Broadcast {
                 let team = byOffense ? offense : (offense == home.id ? away.id : home.id)
                 let left = byOffense ? situation.offenseTimeouts : situation.defenseTimeouts
                 emit("        timeout: \(abbreviation(team)) (\(left) left)")
+            } else if let wonByTheKicker = decision.coinTossWonByTheSideKickingOff {
+                // The kick this sits on is the one the toss decided, so the side in
+                // possession at it is the side kicking off.
+                let winner = wonByTheKicker ? offense : defending(offense)
+                tossWinner = winner
+                emit("        coin toss: \(abbreviation(winner)) won it (4-2-2)")
+            } else if let election = decision.tossElectionByTheWinner {
+                emit(tossLine(election, by: tossWinner))
+            } else if let election = decision.tossElectionByTheLoser {
+                emit(tossLine(election, by: tossWinner.map { defending($0) }))
             }
         }
 
@@ -655,6 +670,19 @@ struct Broadcast {
         case .runoff, .runoffDeclined, .clockStartsOnTheSnap, .clockStartsOnTheReady, .halfEnded,
             .playedOn, .excessInjuryTimeout, .injuryRunoff, .injuryRunoffDeclined:
             return nil
+        }
+    }
+
+    /// One captain's answer to the toss, in the referee's words. The club is named where
+    /// the stream has said who won — a half's elections carry the captain and not the
+    /// club, and the toss that says which is which is on an earlier kick.
+    private func tossLine(_ election: TossElection, by team: TeamID?) -> String {
+        let who = team.map(abbreviation) ?? "the captain"
+        switch election {
+        case .receive: return "        toss: \(who) elects to receive (4-2-2-a)"
+        case .kickOff: return "        toss: \(who) elects to kick off (4-2-2-a)"
+        case .goal: return "        toss: \(who) takes the choice of goal (4-2-2-b)"
+        case .deferred: return "        toss: \(who) defers its choice (4-2-2)"
         }
     }
 

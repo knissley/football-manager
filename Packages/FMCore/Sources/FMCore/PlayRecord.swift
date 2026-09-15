@@ -206,6 +206,52 @@ public enum DecisionKind: UInt8, CaseIterable, Sendable, Hashable, Codable {
     /// this point the record cannot say which one produced the yards. A completion into
     /// coverage writes none.
     case catchInSpace = 15
+    /// The coin was tossed, and this free kick is what it decided: before the game
+    /// (2025 rulebook, 4-2-2), at the end of regulation (16-1-2), and again at the end of
+    /// a fourth postseason overtime period (16-1-4-i). `detail` is the side that won it —
+    /// 0 the side in possession at this snap, 1 the other — which is the frame `timeout`
+    /// uses, and on a free kick the side in possession is the side kicking off. The rules
+    /// layer's, so no player is named.
+    ///
+    /// A toss decides the half it opens *and* the half after that, so it is on the first
+    /// of the two and on neither of the kickoffs a score owes: a reader walking back from
+    /// a kickoff to the last `coinToss` before it has the toss that half answers to.
+    case coinToss = 16
+    /// What the captain who won that toss did with it (4-2-2): took one of the two
+    /// privileges, or deferred his choice to the half the article gives him. `detail` is
+    /// a `TossElection`. The rules layer's as well.
+    case tossElectionByTheWinner = 17
+    /// What the other captain did (4-2-2). `detail` is a `TossElection`, and never
+    /// `.deferred`: the article gives the deferral to the winner alone.
+    ///
+    /// Which of the two captains chose *first* is the half's and not this kind's: the
+    /// winner at a toss, the loser at the half after it unless the winner deferred
+    /// (4-2-2, 16-1-4-e). So the two points sit in the order the captains answered, and
+    /// each says whose it is whichever order that was.
+    case tossElectionByTheLoser = 18
+}
+
+/// What one captain did with the coin toss (2025 rulebook, 4-2-2).
+///
+/// The two privileges are (a), which is whether this side receives the kickoff or kicks
+/// off, and (b), the goal it defends. The winner takes one and the loser the other, unless
+/// the winner defers his choice to the half the article names — the second half (4-2-2),
+/// a third postseason overtime period (16-1-4-e) — where the captains answer again.
+///
+/// Only (a) reaches the field here: a spot is stored relative to whoever has the ball, so
+/// there is no end of the field to choose (4-2-3). `goal` is on the record all the same,
+/// because a reader asking what a captain did with the toss is owed the answer he gave
+/// and not the answer the engine could act on.
+public enum TossElection: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// Privilege (a), taken as the ball (4-2-2-a).
+    case receive = 0
+    /// Privilege (a), taken the other way (4-2-2-a).
+    case kickOff = 1
+    /// Privilege (b), the choice of goal to defend (4-2-2-b).
+    case goal = 2
+    /// Neither privilege yet: the winner's choice is deferred to the second half
+    /// (4-2-2), or to a third postseason overtime period (16-1-4-e).
+    case deferred = 3
 }
 
 /// A choice the rules put to one side about the clock between downs (2025 rulebook,
@@ -511,6 +557,42 @@ extension DecisionPoint {
     /// A choice one side made about the clock between downs, as the rules put it.
     public static func clockElection(_ election: ClockElection) -> DecisionPoint {
         DecisionPoint(tick: 0, kind: .clockElection, primary: .none, detail: election.rawValue)
+    }
+
+    /// The toss, on the free kick it decided. `wonByTheSideKickingOff` is the record's
+    /// frame for a side — the side in possession at this snap, which on a free kick is
+    /// the side kicking off — so the winner resolves to a `TeamID` through the
+    /// situation the point sits on and needs no eight bytes of its own.
+    public static func coinToss(wonByTheSideKickingOff: Bool) -> DecisionPoint {
+        DecisionPoint(
+            tick: 0, kind: .coinToss, primary: .none, detail: wonByTheSideKickingOff ? 0 : 1)
+    }
+
+    /// What the captain who won the toss did with it (4-2-2).
+    public static func tossElection(byTheWinner election: TossElection) -> DecisionPoint {
+        DecisionPoint(
+            tick: 0, kind: .tossElectionByTheWinner, primary: .none, detail: election.rawValue)
+    }
+
+    /// What the captain who lost it did (4-2-2). Never a deferral — see
+    /// `DecisionKind.tossElectionByTheLoser` — which is a fact about the football rather
+    /// than about the byte, so it is asserted over the corpus rather than taken out of
+    /// the type the winner's election also uses.
+    public static func tossElection(byTheLoser election: TossElection) -> DecisionPoint {
+        DecisionPoint(
+            tick: 0, kind: .tossElectionByTheLoser, primary: .none, detail: election.rawValue)
+    }
+
+    /// Whether the side kicking this free kick off is the side that won the toss, for a
+    /// `.coinToss` point.
+    public var coinTossWonByTheSideKickingOff: Bool? {
+        kind == .coinToss ? detail == 0 : nil
+    }
+    public var tossElectionByTheWinner: TossElection? {
+        kind == .tossElectionByTheWinner ? TossElection(rawValue: detail) : nil
+    }
+    public var tossElectionByTheLoser: TossElection? {
+        kind == .tossElectionByTheLoser ? TossElection(rawValue: detail) : nil
     }
 
     // Typed reads. Each returns `nil` when the point is not of that kind, so a

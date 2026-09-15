@@ -445,6 +445,12 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
     /// The first choice of 4-2-2's privileges, when it is this side's: receive, unless
     /// the scenario says kick.
     public var receiveDecision: @Sendable (Situation) -> Bool = { _ in true }
+    /// What the captain who won the toss does with it (4-2-2), given whether the book
+    /// offers him a deferral. The caller's own default, unless the scenario says
+    /// otherwise, so a scenario that is not about the toss plays the same football the
+    /// baseline caller does.
+    public var tossElection: @Sendable (_ situation: Situation, _ mayDefer: Bool) -> TossElection =
+        { situation, mayDefer in mayDefer && situation.quarter == 1 ? .deferred : .receive }
 
     public init(
         offensiveConcept: @escaping @Sendable (Situation) -> PlayConcept = { _ in .insideRun },
@@ -457,7 +463,12 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
             -> Bool = { _, _ in false },
         twoPointDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
         onsideDecision: @escaping @Sendable (Situation) -> Bool = { _ in false },
-        receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true }
+        receiveDecision: @escaping @Sendable (Situation) -> Bool = { _ in true },
+        tossElection:
+            @escaping @Sendable (_ situation: Situation, _ mayDefer: Bool) ->
+            TossElection = { situation, mayDefer in
+                mayDefer && situation.quarter == 1 ? .deferred : .receive
+            }
     ) {
         self.offensiveConcept = offensiveConcept
         self.offensiveTempo = offensiveTempo
@@ -466,6 +477,7 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
         self.twoPointDecision = twoPointDecision
         self.onsideDecision = onsideDecision
         self.receiveDecision = receiveDecision
+        self.tossElection = tossElection
     }
 
     public func offensiveCall(
@@ -500,6 +512,12 @@ public struct ScriptedCaller: FMSimulation.PlayCaller {
 
     public func electsToReceive(situation: Situation, classified: SituationClass) -> Bool {
         receiveDecision(situation)
+    }
+
+    public func electsAtTheToss(
+        situation: Situation, classified: SituationClass, mayDefer: Bool
+    ) -> TossElection {
+        tossElection(situation, mayDefer)
     }
 
     public func personnel(

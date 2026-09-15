@@ -82,11 +82,14 @@ is what checks one. A band is evidence about a rate and never about a rule.
     `test:postseasonOvertimeTimeoutsAreThreePerHalf`,
     `test:fifthPostseasonOvertimePeriodOpensWithAKickoff`,
     `test:aThirdPostseasonOvertimePeriodIsRestartedWithAKick`,
-    `test:periodResumesWithKickoffAnswers`, `test:coinTosses`; **modelling**: no toss is
-    drawn — the side that kicks off after one stands for the captain who lost it, and after
-    a fourth overtime period that is the side with the ball, pinned by
-    `test:fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall`; the change of ends
-    is not modelled either, for the reason 4-2-3 gives
+    `test:periodResumesWithKickoffAnswers`, `test:coinTosses`,
+    `test:fifthPostseasonOvertimePeriodKickerFollowsTheFreshToss`; each toss is a seeded
+    draw and is on the record of the kick it decided, so which captain lost it is read
+    rather than inferred; the change of ends is not modelled, for the reason 4-2-3 gives.
+    **Modelling**: the deferral 16-1-4-e offers at an overtime toss is on offer to a
+    caller and the baseline caller never takes it — what it buys is the first choice at a
+    third period 16-1-4-d may never reach, at the price of the first of the two
+    opportunities to possess the ball
 12. The second half opens with a kickoff, the captain who lost the pregame toss having the
     first choice of 4-2-2's privileges: to receive, or to kick off. The kick hands the ball
     to the receivers however the first half ended — on a play, or between downs on an
@@ -95,14 +98,20 @@ is what checks one. A band is evidence about a rate and never about a rule.
     6-1-7, 11-6-2, 11-6-3, 7-6-1, 4-5-4 Note 4]` — `test:halftimePossession`,
     `test:secondHalfKickoffAfterAnInjuryRunoffEndsTheFirstHalf`,
     `test:secondHalfKickoffReturnedAfterAnInjuryRunoffEndsTheFirstHalf`,
-    `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`; the choice is the
-    captain's, a `PlayCaller`
-    decision (`electsToReceive`) that defaults to receive and is read off the stream as
-    the kickoff it decides, the same way a two-point or an onside call is; **modelling**:
-    neither the toss nor a deferral is drawn — the side that kicks off to open the game
-    stands for the captain who lost the toss, so with the default the side that received
-    the opening kick kicks off the second half — and the choice of goal is not modelled,
-    for the reason 4-2-3 gives
+    `test:kickoffsChangePossessionAndOpenEveryRestartedPeriod`,
+    `test:deferringMovesTheFirstChoiceToTheOtherCaptain`,
+    `test:takingTheBallLeavesTheGoalAndTheSecondHalfToTheLoser`,
+    `test:takingTheGoalLeavesTheBallToTheOtherCaptain`,
+    `test:theTossIsReadableFromTheStream`, `test:theTossIsDrawn`, `test:theTossReplays`;
+    the coin is a seeded draw from `FMRandom` and both captains' elections are
+    `PlayCaller` decisions (`electsAtTheToss` and `electsToReceive`), each on the record
+    of the kick it decided, the same way a two-point or an onside call is. A winner who
+    defers leaves the first half's first choice to the other captain and takes the second
+    half's himself; a winner who takes a privilege leaves the loser the other, and the
+    second half's first choice is the loser's. **Modelling**: the baseline caller defers
+    the pregame toss and takes the ball at every other one, which is a convention and not
+    a sourced rate — no calibration row bands how often a winning captain defers; and the
+    choice of goal is recorded but not acted on, for the reason 4-2-3 gives
 13. The clock only ever runs down within a period. `[2025 · 4-1-1]` —
     `test:clockIsMonotonic`, `test:clockFloor`
 14. A regular-season overtime period has a two-minute warning, because fourth-period timing

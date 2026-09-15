@@ -665,6 +665,20 @@ struct RulesConformanceTests {
         return found
     }
 
+    /// The captain who lost the coin toss a free kick followed, read off that kick's own
+    /// record (2025 rulebook, 4-2-2): the toss point says whether the side kicking off is
+    /// the one that won it, so the loser is whichever of the two is not the winner.
+    private func tossLoser(on play: PlayRecord, in trace: Trace) -> TeamID? {
+        guard
+            let wonByTheKicker = play.decisions.compactMap(\.coinTossWonByTheSideKickingOff).first
+        else {
+            Issue.record("the free kick at play \(play.index) carries no coin toss")
+            return nil
+        }
+        let kicker = play.situation.possession
+        return wonByTheKicker ? trace.opponent(of: kicker) : kicker
+    }
+
     /// The timeouts each side has at a snap, read off the situation whichever side has
     /// the ball.
     private func timeouts(at situation: Situation, in trace: Trace) -> (home: UInt8, away: UInt8) {
@@ -673,11 +687,11 @@ struct RulesConformanceTests {
             : (situation.defenseTimeouts, situation.offenseTimeouts)
     }
 
-    /// The toss before overtime is not drawn: the side that kicks off to open it stands
-    /// for the captain who lost, and 16-1-4-e gives that captain the first choice of
-    /// 4-2-2's privileges at the third period — receive or kick. Receiving, the other
-    /// side kicks off to it from its own 35, and the touchback puts the ball at its 35
-    /// (6-1-5).
+    /// The coin tossed at the end of regulation (16-1-2) is on the record of the kick
+    /// that opened overtime, so which captain lost it is read rather than inferred, and
+    /// 16-1-4-e gives that captain the first choice of 4-2-2's privileges at the third
+    /// period — receive or kick. Receiving, the other side kicks off to it from its own
+    /// 35, and the touchback puts the ball at its 35 (6-1-5).
     @Test(
         "football · Rule 16-1-4-e, 4-2-2 · a postseason game level after two overtime periods opens the third with a kickoff, the captain who lost the toss before overtime having the first choice and electing to receive",
         .tags(.football)
@@ -689,9 +703,9 @@ struct RulesConformanceTests {
         else { return }
         trace.expectPlay(
             overtimeKick.index, kind: .kickoff, quarter: 5, clock: 900,
-            "overtime opened with a kickoff, and the side that kicked it stands for the captain who lost the toss"
+            "overtime opened with a kickoff, on which the coin tossed at the end of regulation is recorded"
         )
-        let tossLoser = overtimeKick.play.situation.possession
+        guard let tossLoser = tossLoser(on: overtimeKick.play, in: trace) else { return }
         trace.expectPlay(
             third.index, kind: .kickoff, possession: trace.opponent(of: tossLoser), quarter: 7,
             clock: 900, ballOn: 65,
@@ -769,7 +783,7 @@ struct RulesConformanceTests {
         guard reachedPeriod(7, in: trace), let overtimeKick = opening(of: 5, in: trace),
             let third = opening(of: 7, in: trace)
         else { return }
-        let tossLoser = overtimeKick.play.situation.possession
+        guard let tossLoser = tossLoser(on: overtimeKick.play, in: trace) else { return }
         trace.expectPlay(
             third.index, kind: .kickoff, possession: tossLoser, quarter: 7, clock: 900,
             ballOn: 65, "the toss loser elected to kick off, and does")
@@ -798,25 +812,25 @@ struct RulesConformanceTests {
         #expect(renewed.home == 3 && renewed.away == 3, "three each for the new half")
     }
 
-    /// Which side kicks off after that toss is not the book's to say and not drawn
-    /// here: the engine keeps the side with the ball at the end of the fourth period as
-    /// the kicker, as it does at the first overtime period, and that side stands for
-    /// the toss loser two periods on.
+    /// Which side kicks off a fifth period is the fresh toss's to say and nothing else's.
+    /// 16-1-4-i sends the reader to 16-1-2 and so to 4-2-2: a coin, a winner, and a
+    /// privilege. Who had the ball when the fourth period ran out does not enter into it,
+    /// which is what this asserts — the kick follows the captain who won the new toss,
+    /// wherever the ball happened to be.
     @Test(
-        "pin · the toss before a fifth postseason overtime period (16-1-4-i) is not drawn: as at the first, the side with the ball at the end of the period before kicks off and stands for the captain who lost it",
-        .tags(.pin)
+        "football · Rule 16-1-4-i, 16-1-2, 4-2-2 · the coin tossed at the end of a fourth postseason overtime period decides the fifth period's kickoff: its winner takes the ball and the captain who lost it kicks off, whoever had the ball when the fourth ended",
+        .tags(.football)
     )
-    func fifthPostseasonOvertimePeriodKickerIsTheSideThatHadTheBall() {
+    func fifthPostseasonOvertimePeriodKickerFollowsTheFreshToss() {
         let trace = RulesScenario.fifthPostseasonOvertimePeriod.run()
-        guard reachedPeriod(9, in: trace), let closing = closing(of: 8, in: trace),
-            let fifth = opening(of: 9, in: trace)
-        else { return }
-        let hadTheBall =
-            closing.situation.down == .fourth
-            ? trace.opponent(of: closing.situation.possession) : closing.situation.possession
+        guard reachedPeriod(9, in: trace), let fifth = opening(of: 9, in: trace) else { return }
+        guard let tossLoser = tossLoser(on: fifth.play, in: trace) else { return }
+        #expect(
+            fifth.play.decisions.compactMap(\.tossElectionByTheWinner).first == .receive,
+            "the captain who won the fresh toss was meant to take the ball")
         trace.expectPlay(
-            fifth.index, kind: .kickoff, possession: hadTheBall, quarter: 9,
-            "the side with the ball at the end of the fourth overtime period kicks off the fifth")
+            fifth.index, kind: .kickoff, possession: tossLoser, quarter: 9,
+            "so the captain who lost the fresh toss kicks off the fifth period")
     }
 
     // MARK: The clock
