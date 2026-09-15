@@ -174,4 +174,49 @@ struct BallSecurityTests {
             hit power \(punch), four standard errors being \(4 * noise)
             """)
     }
+
+    /// A ball that is already dead cannot come loose, so the hit that put it on the
+    /// ground is not also a tackle the record says was made.
+    ///
+    /// Two articles, read together. 3-2-5 makes a fumble an act by a player who *was in
+    /// possession* when it happened, and ends the fumble the moment the ball is dead.
+    /// 7-2-1-a makes the ball dead as soon as a runner contacted by an opponent touches
+    /// the ground with any part of him other than his hands or his feet. So the two
+    /// events are ordered by the rules and not by taste: the ball comes out on the hit,
+    /// or it does not come out at all. A down that ended in a fumble is a down on which
+    /// nobody finished the tackle, and a record saying the carrier was tackled and then
+    /// lost it is describing a down the book cannot produce.
+    ///
+    /// What the engine has to do about it is therefore narrow, and it is the whole of
+    /// this claim: the attempt that knocked it loose is written as a forced fumble, and
+    /// the same play carries no completed tackle of the man who fumbled.
+    ///
+    /// **Read over the shared corpus** rather than a forced draw, because a fumble is
+    /// common enough for forty games to hold well over a hundred of them and what is
+    /// being asserted is a property of *every* one, not the existence of one. The count
+    /// is checked before the claim, so a corpus that stopped producing fumbles fails
+    /// here rather than passing on an empty filter.
+    @Test(
+        "football · Rules 3-2-5, 7-2-1 · a down that ended in a fumble carries no completed tackle of the man who fumbled",
+        .tags(.football))
+    func theBallComesOutBeforeTheRunnerIsDown() {
+        var fumbles = 0
+        for result in TestWorld.corpus {
+            for play in result.plays
+            where play.outcome.endedIn == .fumbleLost
+                || play.outcome.endedIn == .fumbleRecovered
+            {
+                fumbles += 1
+                let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(
+                    attempts.contains { $0.tackleResult == .forcedFumble },
+                    "\(at): the ball came loose and no attempt says who forced it")
+                #expect(
+                    !attempts.contains { $0.tackleResult == .madeTackle },
+                    "\(at): the tackle was made and the ball came loose afterwards")
+            }
+        }
+        #expect(fumbles > 0, "no fumble in the corpus to read")
+    }
 }
