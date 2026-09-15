@@ -2,7 +2,8 @@
 
 **Status: built.** Every tool and script on this page exists and runs today: `worldgen`,
 `playsize`, `simharness`, `gamelog`, `scripts/lint-sim.sh`, `scripts/lint-reference.sh`,
-`scripts/fetch-rulebook.sh`, `scripts/harness-reach.sh`, `scripts/test-census.sh` and
+`scripts/fetch-rulebook.sh`, `scripts/fetch-calibration-data.sh`,
+`scripts/harness-reach.sh`, `scripts/test-census.sh` and
 `scripts/preflight.sh`. Nothing here is a plan.
 
 Command-line tools for inspecting the engine without an app, an Xcode, or a Mac.
@@ -810,6 +811,55 @@ trap that reads as a widening rather than a mistake, is
 It refuses to write inside any checkout of this repository, linked worktrees included, and if
 it cannot work out where those checkouts are it refuses to run at all rather than run
 unguarded.
+
+## fetch-calibration-data — get the data the bands were derived from
+
+```bash
+scripts/fetch-calibration-data.sh /some/path/outside/the/repo
+python3 scripts/calibration-sources.py /some/path/outside/the/repo            # the derivation
+python3 scripts/calibration-sources.py --rosters /some/path/outside/the/repo  # and the roster half
+```
+
+Every band in `Targets.swift` was derived by
+[`scripts/calibration-sources.py`](../scripts/calibration-sources.py) from three public
+nflverse-data releases — play-by-play, participation and weekly rosters, the `S1`, `S2` and
+`S3` of [`calibration-sources.md`](reference/calibration-sources.md#the-sources). **No data
+set is in this repository and none ever will be** (ADR-0005: the tree carries derived
+aggregates, never rows about real players), and until this script existed nothing fetched
+them, so the derivation could not be re-run without re-discovering the URLs by hand. This
+gets them, outside the tree, in about two minutes; the derivation itself then takes about
+four.
+
+**It fetches the seasons the derivation reads, not the seasons the bands are sourced from**,
+and those are not the same list: the bands come from 2023 and 2024, while the script folds
+every season in its own `SEASONS` and dies on a missing file. So the season lists here are
+read out of `calibration-sources.py`'s `SEASONS`, `PARTICIPATION_SEASONS` and
+`ROSTER_SEASONS` constants at run time rather than typed, and the script stops rather than
+guessing if it cannot read one. `--seasons 2023,2024` overrides all three for a partial
+fetch; `FORCE=1` re-downloads what is already there.
+
+**It writes a `MANIFEST.txt` beside the data, and a derivation cites it.** These are rolling
+release tags served from a fixed URL — the same link serves a corrected data set later — so
+naming the season does not identify what was read. The manifest carries, per asset, the byte
+count, the sha256, the release's `Last-Modified` and its etag, and the line for the file you
+folded is what belongs beside a number you derived. On a reuse the script re-checks the
+release's length and says loudly when the copy on disk is no longer what the URL serves.
+
+It refuses to write inside any checkout of this repository, linked worktrees included, with
+`fetch-rulebook.sh`'s guard and the same fail-closed behaviour when `git` cannot answer; and
+`.gitignore` carries the three filename patterns unanchored as a second line of defence.
+Every file is checked for gzip integrity and for the columns the derivation reads before it
+is accepted, so an error page saved under the right name fails at the fetch rather than deep
+inside a four-minute fold.
+
+**What it does not do is decide anything.** A band the fresh derivation disagrees with is
+reported, never applied: correcting a band whose derivation was corrupt and retuning one the
+engine does not fit are different things
+([which is which](reference/calibration-sources.md#correcting-a-band-and-retuning-to-one-are-different-things)).
+Eleven rows are expected to differ from `Targets.swift` in the last printed digit — the
+bootstrap draws come from one generator consumed in metric order, so any edit to that list
+nudges every row below it
+([#137](https://github.com/knissley/football-manager/issues/137#issuecomment-5637927748)).
 
 ## lint-reference — reproduced rulebook text, and citations that resolve
 

@@ -39,6 +39,15 @@ per row here, band in the generated table.
 | **S2** | nflverse participation data from Next Gen Stats | personnel groupings, box counts and pressure |
 | **S3** | nflverse weekly roster data — one row per man per club per week | who is on a roster and how long he has been in the league; the generated world's own shape, not a game's |
 
+**How to get them:** `scripts/fetch-calibration-data.sh <dir outside the repo>` downloads all
+three, for the seasons the derivation reads, and writes a `MANIFEST.txt` beside them
+([docs/tools.md](../tools.md#fetch-calibration-data--get-the-data-the-bands-were-derived-from)).
+These are rolling release tags served from a fixed URL, so **a derivation cites the release it
+read and not merely the season**: quote the manifest's line for the file you folded — its byte
+count, sha256 and the release's `Last-Modified` — beside the number you derived. Figures
+recorded here before that script existed name the season only, which is why a re-derivation
+can differ from one of them without either being wrong.
+
 Every sourced band was computed by `scripts/calibration-sources.py`, which prints each
 row's value in every season alongside the band the policy produces. **If a number in
 `Targets.swift` cannot be reproduced by the script, the script wins.** Regular-season games
