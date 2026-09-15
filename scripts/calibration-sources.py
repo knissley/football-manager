@@ -180,6 +180,42 @@ def load_participation(path):
     return lookup
 
 
+# --- completions that lose yardage ------------------------------------------------------
+#
+# Its own accumulator, kept apart from the completion counters in `read_season` because it
+# asks a different question of the same play. `completionsZeroOrFewer` counts a catch that
+# did not gain; this one counts a catch that went backwards, and the two are not the same
+# quantity -- a ball caught level with the previous spot is in the first and not in this.
+#
+# Why that distinction is the interesting one: forward progress makes a runner's or an
+# airborne receiver's progress the dead-ball spot, irrespective of his being driven back by
+# an opponent (2025 rulebook, 3-12-1; 7-3-3 for the airborne catch). So a completion can
+# only lose yardage when the catch itself was made behind the previous spot. The share this
+# derives is therefore a statement about how often the sport throws the ball behind the
+# line and completes it -- not about receivers being tackled backwards, which the rules do
+# not let count.
+#
+# The yardage is carried signed so that the mean loss is a ratio of component sums like
+# every other band here. That is exactly the shape a counting accumulator gets silently
+# wrong -- every part is negative, so `Counter` addition never lets the key exist and the
+# mean reads a clean, wrong 0 -- which is why `sum_components` exists, and why the
+# self-test below folds these components through it rather than only checking the
+# classification.
+
+
+def negative_completion_components(yards):
+    """The negative-completion components of one completed pass, as a component dict.
+
+    `yards` is the release's signed `yards_gained` for the play. Exactly zero is not a
+    loss: it is a catch level with the previous spot, and it is already counted by
+    `completionsZeroOrFewer`. A component is emitted either way, the zero included, so the
+    key exists in every game's part rather than only in the games that had one.
+    """
+    if yards < 0:
+        return {"completionsNegative": 1, "completionNegativeYards": float(yards)}
+    return {"completionsNegative": 0, "completionNegativeYards": 0.0}
+
+
 def read_season(directory, season):
     """Fold one season into per-game component sums."""
     participation = {}
@@ -427,6 +463,8 @@ def read_season(directory, season):
                     c["passYardsPositive"] += max(0.0, yards)
                     if yards <= 0:
                         c["completionsZeroOrFewer"] += 1
+                    for key, value in negative_completion_components(yards).items():
+                        c[key] += value
                     if yards > 0 or flag(row, "pass_touchdown"):
                         c["completionsPositive"] += 1
                 if flag(row, "interception"):
@@ -746,6 +784,28 @@ METRICS = [
     ("ypcShareOutnumberedByOne", "share of first-and-ten designed carries outnumbered by one %", PLAY, 1, share("ypcCarries:minusOne", "ypcFirstAndTen")),
     ("ypcShareEvenCount", "share of first-and-ten designed carries at an even count %", PLAY, 1, share("ypcCarries:even", "ypcFirstAndTen")),
     ("ypcShareOutnumberingByOne", "share of first-and-ten designed carries outnumbering by one %", PLAY, 1, share("ypcCarries:plusOne", "ypcFirstAndTen")),
+] + [
+    # Completions that lose yardage, appended at the end of the stream for the reason the
+    # two blocks above it were: every row's standard error is bootstrapped from one
+    # generator in this list's order, so a row inserted anywhere but the end reshuffles the
+    # draws of every row below it and moves bands nobody meant to move. Verified rather
+    # than assumed for this addition -- the derivation was run before and after it and the
+    # 133 rows that were already here printed identically, to the digit.
+    #
+    # None of the three is a row in `Targets.swift`, and none should be made one without
+    # the decision being taken on purpose: a row there is a promise `simharness` prints a
+    # verdict for on every run. What these are for is stated in
+    # docs/reference/calibration-sources.md — a sourced figure the engine can be read
+    # against by hand — and an engine that reads outside them is a finding for the retune,
+    # not a reason to invent a target here.
+    #
+    # The mean loss is negated so the row prints a positive magnitude. The band policy
+    # floors a low bound at zero, which would make nonsense of a band around a negative
+    # mean; the component underneath stays signed, because that is the arithmetic the
+    # accumulator exists to keep honest.
+    ("completionsNegative", "completions that lose yardage, share of completions %", PLAY, 1, share("completionsNegative", "completions")),
+    ("completionsNegativePerGame", "completions that lose yardage per game, both teams", PLAY, 2, per_game("completionsNegative")),
+    ("completionNegativeYards", "yards lost per completion that loses yardage (positive magnitude)", PLAY, 1, lambda c: -div(c["completionNegativeYards"], c["completionsNegative"])),
 ]
 
 
@@ -885,6 +945,40 @@ def self_test():
     check("control: a Counter fold really does drop the dip, and so would fail the first case", trap["edge"], 8.0)
     dropped = sum((Counter(part) for part in always), Counter())
     check("control: a Counter fold really does lose an all-negative component entirely", "sack" in dropped, False)
+
+    # --- completions that lose yardage --------------------------------------------------
+    #
+    # The classification first, then the fold, because the accumulator can be wrong in two
+    # independent ways: it can put the wrong plays in, and it can lose the signed yardage
+    # on the way up.
+
+    check("a completion for a loss is counted", negative_completion_components(-3.0)["completionsNegative"], 1)
+    check("a completion for a loss carries its signed yardage", negative_completion_components(-3.0)["completionNegativeYards"], -3.0)
+    check("a completion level with the spot is not a loss", negative_completion_components(0.0)["completionsNegative"], 0)
+    check("a completion that gained is not a loss", negative_completion_components(11.0)["completionsNegative"], 0)
+    check("a completion that gained contributes no yardage", negative_completion_components(11.0)["completionNegativeYards"], 0.0)
+
+    # A game's worth of completed passes folded the way `read_season` folds them: the count
+    # and the signed yardage both survive, and the mean loss is their ratio. Under a
+    # counting accumulator the yardage key would be gone -- every part that carries one
+    # carries a negative -- and the mean would read 0 with nothing raised.
+    caught = [negative_completion_components(y) for y in (12.0, -3.0, 0.0, -1.0, 7.0, -6.0)]
+    folded = sum_components(caught)
+    check(
+        "a game of completions folds to the count and the signed yardage",
+        (folded["completionsNegative"], folded["completionNegativeYards"]),
+        (3, -10.0),
+    )
+    check(
+        "the mean loss is the ratio of those sums",
+        folded["completionNegativeYards"] / folded["completionsNegative"],
+        -10.0 / 3,
+    )
+
+    # The control, in the shape the controls above use: the fold this must never be written
+    # as really does lose the yardage, so the two cases above are known to be able to fail.
+    trap = sum((Counter(part) for part in caught), Counter())
+    check("control: a Counter fold really does lose the signed yardage entirely", "completionNegativeYards" in trap, False)
 
     if failures:
         print(f"\ncalibration-sources: self-test FAILED — {failures} case(s).")
