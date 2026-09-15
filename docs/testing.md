@@ -235,7 +235,7 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `dc62e48`, the tree C5 (#45) landed, which adds nine to the count: one `football ·` over
+Taken on `296b792`, the tree C5 (#45) landed, which adds nine to the count: one `football ·` over
 5-1-1's eleven jobs for eleven men, four `contract:` over the rush a call sends and what it
 costs the coverage, and four `unit` over the lineup's own arithmetic for it: **1033 tests,
 counted with `./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
