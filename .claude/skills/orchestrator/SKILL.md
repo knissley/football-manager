@@ -105,10 +105,16 @@ touch, and any measurement to record.
 
 ## Review, before you merge
 
-When an implementer reports done and its PR is open, dispatch **one reviewer with a fresh
-context**: it gets the PR body, the diff, every *Done when* line the PR closes, `CLAUDE.md`, and
-Part 2. **It does not re-run the suites** — the implementer's `preflight` is the first pass, CI
-the second and third. What it adds is reading.
+**The lane `preflight` printed in the PR's `--report` block decides who reviews, not judgment.**
+On lane **`engine`** — anything under `Packages/*/Sources`, a `Package.swift`,
+`Tools/simharness/Sources` or the CI workflow — dispatch **one reviewer with a fresh context**:
+it gets the PR body, the diff, every *Done when* line the PR closes, `CLAUDE.md`, and Part 2. On
+**`docs`**, **`tests`** or **`tools`**, **you are the reviewer**: do that same reading and those
+same three runs yourself, and dispatch nobody. A fresh context is worth its cost where the
+football or the engine's behaviour can be wrong in a way you share the implementer's blind spot
+on, and not where a self-test and a read of the diff are the whole check. **The review does not
+re-run the suites** — the implementer's `preflight` is the first pass, CI the second and third.
+What it adds is reading.
 
 **It reads:** the diff against a merge base it resolves itself (a two-dot `origin/main..branch`
 lies once `main` has moved); **every article the branch cites**, as `lint-reference.sh --show`
