@@ -155,6 +155,45 @@ def personnel_count(text, units):
     return total if text else None
 
 
+# The engine's `DownAndDistanceClass`, in the source's terms. Goal-to-go is its own
+# class and takes precedence over the down, so a goal-line snap is in none of the nine
+# by-down buckets on either side of the comparison; first down is one bucket whatever the
+# distance. The three-way split is 1-3 / 4-6 / 7 or more yards to go, which is what
+# `DownAndDistanceClass` splits on -- "second and 4 to 6" is a derived split rather than a
+# column in the data, so it is written out here rather than read off one.
+RUN_SHARE_BUCKETS = [
+    ("secondShort", "second and 1 to 3"),
+    ("secondMedium", "second and 4 to 6"),
+    ("secondLong", "second and 7 or more"),
+    ("thirdShort", "third and 1 to 3"),
+    ("thirdMedium", "third and 4 to 6"),
+    ("thirdLong", "third and 7 or more"),
+    ("fourthShort", "fourth and 1 to 3"),
+    ("fourthMedium", "fourth and 4 to 6"),
+    ("fourthLong", "fourth and 7 or more"),
+]
+
+DOWN_NAMES = {2: "second", 3: "third", 4: "fourth"}
+
+
+def down_distance_bucket(down, togo, goal_to_go):
+    """The `DownAndDistanceClass` case this play was in, or `None` for one with no bucket.
+
+    `None` covers goal-to-go, first down, and a row whose down or distance the feed did
+    not record -- none of which is in any of the nine rows, numerator or denominator.
+    """
+    if goal_to_go or down is None or togo is None:
+        return None
+    name = DOWN_NAMES.get(int(down))
+    if name is None:
+        return None
+    if togo <= 3:
+        return name + "Short"
+    if togo <= 6:
+        return name + "Medium"
+    return name + "Long"
+
+
 def group_counts(text):
     """'1 RB, 1 TE, 3 WR' -> {'backfield': 1, 'tightEnd': 1, 'receiver': 3}."""
     counts = Counter()
@@ -352,6 +391,13 @@ def read_season(directory, season):
                 c["extraPointAttempts"] += 1
             if two_point:
                 c["twoPointTries"] += 1
+                # The try is a pass *or* a run and the two are different plays, so the
+                # split is two counts rather than one share: a season where the run
+                # branch is never called reads as a zero here and not as a missing key.
+                if play_type == "run":
+                    c["twoPointRuns"] += 1
+                elif play_type == "pass":
+                    c["twoPointPasses"] += 1
                 if row["two_point_conv_result"] == "success":
                     c["twoPointGood"] += 1
             if flag(row, "safety"):
@@ -378,6 +424,14 @@ def read_season(directory, season):
                     c["kickReturnTouchdowns"] += 1
             if flag(row, "punt_attempt") and play_type == "punt":
                 c["punts"] += 1
+                # Punts struck from inside the opponent's 45, where placement rather than
+                # distance is the whole play: `yardline_100` is the distance to the
+                # opponent's goal, which is the harness's `Situation.ballOn`.
+                punt_from = num(row, "yardline_100")
+                if punt_from is not None and punt_from <= 45:
+                    c["plusTerritoryPunts"] += 1
+                    if flag(row, "touchback"):
+                        c["plusTerritoryTouchbacks"] += 1
                 distance = num(row, "kick_distance", 0.0)
                 returned = num(row, "return_yards", 0.0)
                 c["puntNetYards"] += distance - returned - (20 if flag(row, "touchback") else 0)
@@ -480,6 +534,49 @@ def read_season(directory, season):
             attempt = flag(row, "pass_attempt") and not sack
             designed_run = play_type == "run" and not scramble
 
+            # Run share by down-and-distance bucket. The denominator is the calls a
+            # coordinator chooses between -- a designed run or a dropback -- so a sack or
+            # a scramble counts as the pass it was called as, and a kneel or a spike is
+            # in neither: both are clock plays rather than a choice about the sport.
+            bucket = down_distance_bucket(down, num(row, "ydstogo"), flag(row, "goal_to_go"))
+            if bucket is not None and (designed_run or attempt or sack or scramble):
+                c["calls:" + bucket] += 1
+                if designed_run:
+                    c["runs:" + bucket] += 1
+
+            # Where a play ended laterally. The denominator is the plays that ended with
+            # the ball dead in the field of play or out of bounds -- what the harness
+            # reads off `PlayEnding.tackled` and `.outOfBounds` -- so an incompletion, a
+            # score and a turnover are in neither half. The feed carries no "tackled"
+            # flag, so this side of it is written as everything else being absent.
+            ended_live = not (
+                flag(row, "incomplete_pass")
+                or flag(row, "touchdown")
+                or flag(row, "interception")
+                or flag(row, "fumble_lost")
+                or flag(row, "safety")
+            )
+            if ended_live:
+                c["endedDownOrOut"] += 1
+                if flag(row, "out_of_bounds"):
+                    c["endedOutOfBounds"] += 1
+                # Trailing inside two minutes of either half, which is the harness's
+                # `SituationClass.isDesperation`: the clock stays stopped until the snap
+                # after an out-of-bounds play there (2025 rulebook, 4-3-2-a), so a
+                # trailing offence is buying downs with the sideline.
+                remaining = num(row, "half_seconds_remaining")
+                differential = num(row, "score_differential")
+                if (
+                    remaining is not None
+                    and remaining <= 120
+                    and row["qtr"] in ("2", "4")
+                    and differential is not None
+                    and differential < 0
+                ):
+                    c["lateEndedDownOrOut"] += 1
+                    if flag(row, "out_of_bounds"):
+                        c["lateEndedOutOfBounds"] += 1
+
             if scramble:
                 c["scrambles"] += 1
                 c["scrambleYards"] += yards
@@ -532,6 +629,12 @@ def read_season(directory, season):
                     c["pressureDropbacks"] += 1
                     if part["was_pressure"] in ("TRUE", "1"):
                         c["pressured"] += 1
+                        # The sack is counted only where the pressure flag was readable,
+                        # so numerator and denominator come off the same set of plays.
+                        # Dividing every sack by the pressures the feed happened to mark
+                        # would read the rate high by whatever share of plays it missed.
+                        if sack:
+                            c["pressuredSacks"] += 1
 
             part = participation.get((game, row["play_id"]))
             if part is not None and part["offense_personnel"] and part["defense_personnel"]:
@@ -869,6 +972,30 @@ METRICS = [
     ("targetShare.wideReceiver", "targets to wide receivers, share of targets %", PLAY, 1, share("targets:receiver", "targets")),
     ("targetShare.tightEnd", "targets to tight ends, share of targets %", PLAY, 1, share("targets:tightEnd", "targets")),
     ("targetShare.runningBack", "targets to backs, share of targets %", PLAY, 1, share("targets:backfield", "targets")),
+] + [
+    # The rows the harness had printed without a band. Appended at the end of the stream
+    # for the reason every block above was: each row's standard error is bootstrapped from
+    # one generator in this list's order, so a row placed beside the rows it reads with
+    # would reshuffle the draws of every row below it and move bands nobody meant to move.
+    ("sacksPerPressure", "pressured dropbacks ending in a sack %", PLAY, 1, share("pressuredSacks", "pressured")),
+    ("redZoneTripsPerTeamGame", "red zone trips per team-game", PLAY, 2, per_team_game("redZoneDrives")),
+    ("twoPointTriesRun", "two-point tries carried in, per team-game", PLAY, 3, per_team_game("twoPointRuns")),
+    ("twoPointTriesPass", "two-point tries thrown, per team-game", PLAY, 3, per_team_game("twoPointPasses")),
+    ("outOfBoundsShare", "plays ending out of bounds, share of plays ending down or out of bounds %", PLAY, 1, share("endedOutOfBounds", "endedDownOrOut")),
+    ("outOfBoundsShareTrailingLate", "plays ending out of bounds, trailing inside two minutes, share of plays ending down or out of bounds %", PLAY, 1, share("lateEndedOutOfBounds", "lateEndedDownOrOut")),
+    ("puntTouchbacksFromPlusTerritory", "punts from inside the opponent's 45 ending in a touchback, share of those punts %", PLAY, 1, share("plusTerritoryTouchbacks", "plusTerritoryPunts")),
+] + [
+    # Run share by down-and-distance bucket, the nine buckets `DownAndDistanceClass`
+    # splits second, third and fourth down into. Appended last, and in the fixed order of
+    # `RUN_SHARE_BUCKETS`, for the same reason.
+    (
+        "runShare." + bucket,
+        f"designed runs on {label}, share of run-or-pass calls %",
+        PLAY,
+        1,
+        share("runs:" + bucket, "calls:" + bucket),
+    )
+    for bucket, label in RUN_SHARE_BUCKETS
 ]
 
 
