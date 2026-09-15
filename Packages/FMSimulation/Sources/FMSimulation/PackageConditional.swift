@@ -33,10 +33,11 @@ struct PackageConditional {
     /// Per mille answered with four or five, so the nickel arm is everything below this
     /// and at or above `base`.
     let throughNickel: UInt64
-    /// And with six or fewer. Everything above it is the three-back goal-line eleven,
-    /// which is the remainder rather than a fourth stored share: a rounded quadruple that
-    /// did not sum to a thousand would otherwise leave a sliver nobody chose. On every row
-    /// but the goal line's it is a thousand, so that arm never fires.
+    /// And with six or fewer. Everything above it is `DefensivePackage.goalLine`, which is
+    /// the remainder rather than a fourth stored share, and **the remainder is not a
+    /// sliver**: on the one row that uses it, it is every defensive back count the row does
+    /// not name, which the engine has one package heavy enough to play. On every other row
+    /// it is a thousand, so that arm never fires.
     let throughDime: UInt64
 
     private init(base: UInt64, nickel: UInt64, dime: UInt64 = 0, goalLineIsTheRest: Bool = false) {
@@ -54,11 +55,22 @@ struct PackageConditional {
     /// 857 in 2024 — is thin enough that splitting it six ways would be noise per cell.
     ///
     /// **Four defensive backs on 30.1% (2023) and 34.8% (2024), five on 46.2 and 40.5, six
-    /// on 3.9 and 1.5, and the three-back goal-line eleven on 11.7 and 12.5.** The engine
-    /// put the goal-line eleven on *every* snap inside the three, which is the same defect
-    /// this file exists for one branch along: a function where the sport has a
-    /// distribution, and out by a factor of eight. The sport's most common answer on the
-    /// goal line is its nickel.
+    /// on 3.9 and 1.5.** Those three are the shares as the feed records them, not
+    /// renormalised, so what is left of the thousand — 216 — is everything else the feed
+    /// saw inside the three, and that is **three defensive backs or fewer: 19.7% and
+    /// 23.2%**, plus the single seven-back snap the two seasons hold between them.
+    ///
+    /// **So the remainder is a `<= 3` mapping and not the three-back share**, which is
+    /// 11.7 and 12.5 on its own and would be wrong here. The engine has one package below
+    /// four defensive backs, so a two-back or a one-back goal-line front — 7.6% of these
+    /// snaps in 2023 and 10.7% in 2024, the heaviest fronts the sport plays anywhere — has
+    /// `goalLine` to land on and nothing else. Folding them onto it plays them as the
+    /// heaviest eleven this engine has rather than losing them to a nickel.
+    ///
+    /// What the engine did before was put the goal-line eleven on *every* snap inside the
+    /// three: the same defect this file exists for, one branch along, a function where the
+    /// sport has a distribution. The sport's most common answer on the goal line is its
+    /// nickel.
     static let insideTheThree = PackageConditional(
         base: 325, nickel: 432, dime: 27, goalLineIsTheRest: true)
 

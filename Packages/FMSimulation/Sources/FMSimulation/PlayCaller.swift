@@ -266,11 +266,12 @@ extension PlayCaller {
     /// third or fourth and four or more, where a sixth defensive back takes 38.8%.
     ///
     /// **The goal line is a row too, and it was the worst of the functions.** Inside the
-    /// three the engine put its three-back goal-line eleven on the field on every snap;
-    /// the feed says the sport does that on 11.7% (2023) and 12.5% (2024) of snaps from
-    /// there, and answers with its nickel more often than with anything else. That row is
-    /// keyed on the yard line rather than on the grouping — see
-    /// `PackageConditional.insideTheThree` for why — and it is the only one that is.
+    /// three the engine put its goal-line eleven on the field on every snap; the feed says
+    /// the sport plays three defensive backs or fewer on 19.7% (2023) and 23.2% (2024) of
+    /// snaps from there, and answers with its nickel more often than with anything else.
+    /// That row is keyed on the yard line rather than on the grouping, and it is the only
+    /// one that is; its remainder maps every count below four onto `goalLine`, which is
+    /// what `PackageConditional.insideTheThree` sets out.
     ///
     /// **What this rule cannot do is anticipate the run**, and the gap shows on the one
     /// population the harness grades. The feed puts a four-back front against eleven

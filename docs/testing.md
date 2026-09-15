@@ -235,7 +235,7 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `6f15a3e`, the tree C29 (#218) landed. It is one test more than the 1,049 on
+Taken on `9a823e0`, the tree C29 (#218) landed. It is one test more than the 1,049 on
 `296b792`, and the two `football ·` it adds to `FMSimulation` are worth reading rather than
 counting: one is new — eleven personnel meets a four-back front at the source's own rate —
 and the other is a `.pin` promoted, because the derivation the pin existed for want of now

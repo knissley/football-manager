@@ -908,7 +908,8 @@ argument for watching a game.
   prints `n/a`. **Fixed**: the package is drawn from the source's own
   P(package | grouping, down) rather than computed from the receiver count, and the
   goal-line eleven — which the engine put on the field on every snap inside the three,
-  against the sport's 12% — is drawn from the same feed. The bucket holds about 1,200
+  against the 19.7 to 23.2% of snaps the sport plays below four defensive backs there — is
+  drawn from the same feed. The bucket holds about 1,200
   carries and grades. What it grades is a level and belongs to the retune.
   ([#218](https://github.com/knissley/football-manager/issues/218))
 - **D1** — `Rules` still carries 2024 values. `kickoffTouchbackOwnYard` is 30 and onside

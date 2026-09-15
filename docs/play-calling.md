@@ -405,11 +405,13 @@ Two of its rows contradict what this section used to assert.
   and 21.1. "That is the grouping the front is for" was a claim from memory; the feed says
   the opposite.
 - **The goal line is not a goal-line package.** Inside the three the engine put its
-  three-back eleven on the field on every snap. The sport does that on 11.7% and 12.5% of
-  snaps from there, answers with its nickel more often than with anything else (46.2 and
-  40.5%) and with base on 30.1 and 34.8. That row is keyed on the yard line rather than on
-  the grouping, and it is the only one that is: inside the three the situation is what the
-  defence is answering.
+  goal-line eleven on the field on every snap. The sport answers with its nickel more often
+  than with anything else there (46.2 and 40.5%), with base on 30.1 and 34.8, and with
+  fewer than four defensive backs on **19.7 and 23.2** — of which the three-back eleven is
+  11.7 and 12.5 and the one- and two-back fronts beneath it are the rest. The engine has
+  one package below four backs, so its row draws `goalLine` across that whole share. It is
+  keyed on the yard line rather than on the grouping, and it is the only one that is:
+  inside the three the situation is what the defence is answering.
 
 **What the draw cannot do is anticipate the run**, and that bounds what any of this
 reaches. The feed answers the same grouping differently on a carry and on a dropback:

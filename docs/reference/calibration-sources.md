@@ -398,11 +398,20 @@ that is the part of an empty set a defence substitutes against.
 
 **Inside the three, the situation answers rather than the grouping.** On the 793 (2023) and
 857 (2024) snaps from scrimmage with the ball on the three or closer, the feed has four
-defensive backs on 30.1 and 34.8% of them, five on 46.2 and 40.5, six on 3.9 and 1.5, and
-the three-back goal-line eleven on **11.7 and 12.5**. The sport's most common answer on the
-goal line is its nickel. That row is keyed on the yard line because the sample is thin
-enough that a six-way split by grouping would be noise per cell, and because the yard line
-is plainly what is being answered.
+defensive backs on 30.1 and 34.8% of them, five on 46.2 and 40.5, and six on 3.9 and 1.5.
+The sport's most common answer on the goal line is its nickel. That row is keyed on the
+yard line because the sample is thin enough that a six-way split by grouping would be noise
+per cell, and because the yard line is plainly what is being answered.
+
+**The rest of that row is a `<= 3` mapping, and it is a fifth of these snaps rather than a
+sliver.** Those three shares are not renormalised, so what they leave — 21.5% pooled — is
+every other count the feed saw down there: **three defensive backs or fewer on 19.7% (2023)
+and 23.2% (2024)**, plus one seven-back snap in two seasons. The three-back share alone is
+11.7 and 12.5; the one- and two-back goal-line fronts beneath it are another 7.6 and 10.7,
+and they are the heaviest elevens the sport puts on a field. `DefensivePackage` has one
+package below four defensive backs, so all of them are drawn as `goalLine` — the heaviest
+this engine has — rather than being lost to a front with more coverage on it than the
+sport had.
 
 **What no conditional here can carry is the run/pass anticipation.** The feed answers the
 same grouping differently by play type: eleven personnel meets four defensive backs on
