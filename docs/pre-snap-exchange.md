@@ -401,12 +401,15 @@ over the whole set.
 
 ### P1 — ADR: give each pre-snap question a narrowed view
 
-**Finding.** ADR-0014's boundary is a sentence. Nothing in the types enforces it:
+**Finding.** The one thing ADR-0014 names explicitly — the play call — is already out of the
+defence's reach, and by signature rather than by discipline (§2). **Nothing else is.**
 `defensiveCall` is handed the whole `Situation` and the whole `PlayContext`
 (`PlayCaller.swift:24–27`), and `offensiveCall` is handed a `Situation` whose
-`defensePackage` holds the *previous* snap's answer (§1). The first agent to write a real
-coordinator can cross the line without noticing, and the first agent to write an audible will
-read stale data that looks live.
+`defensePackage` holds the *previous* snap's answer (§1). So the boundary holds today by
+accident of what `PlayCaller`'s signatures happen to carry, and the next member added to
+`Situation` or `PlayContext` extends every caller's reach without anyone deciding to. The
+agent who writes an audible will reach for `situation.defensePackage` and read stale data
+that looks live.
 
 **Plan.** An ADR proposing that each pre-snap question take a view built at the moment it is
 asked — `PreSnapView.forOffense` and `PreSnapView.forDefense` — carrying only what that
@@ -415,8 +418,10 @@ yard line, clock, score and its own package; it has no member for the offensive 
 offence's view has no member for the defensive package until a step exists that legitimately
 gives it one. Plus one `.contract` test that the views are total and disjoint from the call.
 
-**Against ADR-0014.** This *is* ADR-0014, made structural. It removes the play call from the
-defence's reach by construction rather than by discipline.
+**Against ADR-0014.** This *is* ADR-0014, made structural — it turns "no member to read" from
+a property of today's signatures into a decision the types record. The ADR says explicitly
+that it is not an audit and asserts nothing about what current decisions read; this is the
+seam that would make a future sweep unnecessary.
 
 **Cost.** No new draw, so **no stream shift and no golden moves** — a signature change and
 two value types in `FMCore`/`FMSimulation`, plus updating `ScriptedGame` and the caller
