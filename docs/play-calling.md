@@ -159,7 +159,13 @@ applies to the other reads: `isDesperation` is true inside two minutes of *eithe
 and the fourth-down chart deliberately treats the two halves differently rather than
 acting on the description alike. The run shares themselves are modelling conventions; the
 sourced rows in `Tools/simharness` are what grade the balance, and a retune is what moves
-them.
+them. There is now a row per bucket — `row:runShare.secondShort` through
+`row:runShare.fourthLong`, sourced from 2023-24 and derived in
+[`reference/calibration-sources.md`](reference/calibration-sources.md) — so the convention
+each bucket carries is graded against what the sport calls there rather than only against
+the totals it rolls up into. On arrival eight of the nine read outside their band at seed 7
+— seven at seed 11, where second and 4 to 6 lands inside — which is what a table of
+conventions should be expected to do; bringing them inside is the retune's.
 
 ### Overtime is an endgame, and the clock is in it
 

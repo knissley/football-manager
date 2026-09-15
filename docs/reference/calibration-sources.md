@@ -1305,14 +1305,14 @@ not use the estimator at all.** Sampling error falls as `1/√games`; world-to-w
 does not fall with games at all, because a longer run plays more games in the *same* league.
 So take the plain cross-seed spread at each of the three game counts and read the ratio
 `σ(100 games) / σ(400 games)`: **2.00 is a purely-sampling row, 1.00 is a purely-league row.**
-Over the 147 rows that have all three counts the median is **1.54**, quartiles 1.22 and 1.87,
-range 0.88 to 3.33 — 41 rows at or above 1.80 and 34 at or below 1.20. Almost every row is a
+Over the 147 rows that have all three counts the median is **1.54**, quartiles 1.21 and 1.84,
+range 0.88 to 3.33 — 39 rows at or above 1.80 and 33 at or below 1.20. Almost every row is a
 mixture, which is what the two columns say, and a handful sit at each pure extreme.
-`row:targetShare.wideReceiver` at 0.88, `row:checkdownsPerDropback` and
-`row:throwawaysPerDropback` at 0.93 and `row:targetShare.runningBack` at 0.94 do not narrow
+`row:targetShare.wideReceiver` at 0.88, `row:checkdownsPerDropback` at 0.93,
+`row:throwawaysPerDropback` at 0.94 and `row:targetShare.runningBack` at 0.95 do not narrow
 with a longer run — who a league's passers throw to is a fact about its rosters;
-`row:packageNickel` at 2.55, `row:runShare.thirdMedium` at 2.64 and `row:sacksPerPressure`
-at 2.54 narrow with it as a coin would, and `row:spikesPerGame` at 3.33 faster than one,
+`row:packageNickel` at 2.57, `row:runShare.thirdMedium` at 2.65 and `row:sacksPerPressure`
+at 2.58 narrow with it as a coin would, and `row:spikesPerGame` at 3.33 faster than one,
 which is the printed column's rounding and not the engine. `scripts/harness-noise.py
 --summary` prints this block first.
 
@@ -1330,7 +1330,8 @@ provenance and cannot change with the seed. So the share is **76 of 132, 58%** �
 denominator: `76/150` counts eighteen rows that are constant by construction and understates
 the finding.
 
-On the sweep before, taken in C3 (#44)'s commit, it was 69 of 113, and the whole of the
+On the sweep before, taken in C3 ([#44](https://github.com/knissley/football-manager/issues/44))'s
+commit, it was 69 of 113, and the whole of the
 difference is measured rather than argued. The denominator gained nineteen rows: the sixteen
 E2 added, and `row:targetShare.wideReceiver`, `row:targetShare.tightEnd` and
 `row:targetShare.runningBack`, which carried no band when that sweep was taken. The flip list
@@ -1351,86 +1352,91 @@ not to cross it in thirty draws. Both are reported, separately:
 
 | set | how it is defined | rows |
 | --- | --- | --- |
-| **flipped** | more than one `ok`/`OFF` mark across the thirty seeds — an *observed* crossing | 69 |
-| **edge margin under one floor** | the mean is within one `σ seed-to-seed` of the nearer band edge — a *predicted* crossing | 47 |
-| both | | 42 |
-| flipped with a margin of a floor or more | | 27 |
+| **flipped** | more than one `ok`/`OFF` mark across the thirty seeds — an *observed* crossing | 76 |
+| **edge margin under one floor** | the mean is within one `σ seed-to-seed` of the nearer band edge — a *predicted* crossing | 45 |
+| both | | 40 |
+| flipped with a margin of a floor or more | | 36 |
 | margin under a floor, never seen to flip | | 5 |
 
-Seventy-four distinct rows are in one set or the other. Neither number is the other's proxy, and
+Eighty-one distinct rows are in one set or the other. Neither number is the other's proxy, and
 a review that wants "will this row's verdict be stable" wants the union.
 
-**The 69 that flipped**, in full — this is the list
+**The 76 that flipped**, in full — this is the list
 [#108](https://github.com/knissley/football-manager/issues/108) is cross-referenced to. That
 issue made the printed column carry enough digits to agree with its own verdict; this one
 says which rows will disagree with *yesterday's* verdict anyway, on an unchanged tree:
 
-`row:averageStart.2025`, `row:betweenTeamSigma`, `row:carries10plus`, `row:carries20plus`,
-`row:carries2orFewer`, `row:carriesStuffed`, `row:completionPercentage`,
-`row:completionsZeroOrFewer`, `row:defensiveReturnTouchdowns`, `row:driveEndDowns`,
-`row:driveEndPunt`, `row:driveEndTouchdown`, `row:drives3orFewer`, `row:drives4to7`,
-`row:drives8plus`, `row:dropback40plus`, `row:fieldGoalAttempts40to49`,
-`row:fieldGoalAttemptsUnder30`, `row:fieldGoals40to49`, `row:fieldGoals50plus`,
-`row:fieldGoalsPerTeamGame`, `row:firstDownGain`, `row:firstDownsPerTeamGame`,
-`row:fourthAndOneWentForIt`, `row:fourthDownAttempts`, `row:fourthDownConversion`,
-`row:fourthDownKicked`, `row:fourthDownPunted`, `row:fourthDownWentForIt`,
-`row:fumblesKept`, `row:fumblesLost`, `row:gamesBy14plus`, `row:gamesWithin3`,
-`row:gamesWithin7`, `row:interceptionRate`, `row:kickReturnTouchdowns.2025`,
-`row:kickoffTouchbacks.2025`, `row:marginSigma`, `row:nonOffensiveTouchdowns.2025`,
-`row:onsideKicks.2025`, `row:onsideRecovery.2025`, `row:overtimeLength`,
-`row:overtimeRate`, `row:packageNickel`, `row:penalty.defensivePassInterference`,
-`row:penalty.falseStart`, `row:penalty.illegalFormation`, `row:playsPerDrive`,
-`row:playsPerGame`, `row:points`, `row:pointsFromFieldGoals`, `row:pointsFromTouchdowns`,
-`row:preSnapRoadVsHome`, `row:pressureRate`, `row:puntsPerTeamGame`,
-`row:redZoneTouchdownRate`, `row:snaps.backfield`, `row:snaps.defensiveBack`,
-`row:snaps.offensiveLine`, `row:snaps.quarterback`, `row:snapsInsideOwn10`,
-`row:threeAndOut`, `row:thirdDownDistance`, `row:tiesPerGame`, `row:turnovers`,
-`row:twoPointTries`, `row:yardsPerCarry`, `row:ypcEvenCount`, `row:ypcOutnumberingByOne`.
+`row:averageStart.2025`, `row:betweenTeamSigma`, `row:carries10plus`,
+`row:carries20plus`, `row:carries2orFewer`, `row:carriesStuffed`,
+`row:completionPercentage`, `row:completionsZeroOrFewer`,
+`row:defensiveReturnTouchdowns`, `row:driveEndDowns`, `row:driveEndPunt`,
+`row:driveEndTouchdown`, `row:drives3orFewer`, `row:drives4to7`, `row:drives8plus`,
+`row:dropback40plus`, `row:fieldGoalAttemptsUnder30`, `row:fieldGoals40to49`,
+`row:fieldGoals50plus`, `row:fieldGoalsPerTeamGame`, `row:firstDownGain`,
+`row:firstDownsPerTeamGame`, `row:fourthAndOneWentForIt`, `row:fourthDownAttempts`,
+`row:fourthDownConversion`, `row:fourthDownKicked`, `row:fourthDownPunted`,
+`row:fourthDownWentForIt`, `row:fumblesKept`, `row:fumblesLost`, `row:gamesBy14plus`,
+`row:gamesWithin3`, `row:gamesWithin7`, `row:interceptionRate`,
+`row:kickReturnTouchdowns.2025`, `row:kickoffTouchbacks.2025`, `row:marginSigma`,
+`row:nonOffensiveTouchdowns.2025`, `row:onsideKicks.2025`, `row:onsideRecovery.2025`,
+`row:overtimeLength`, `row:overtimeRate`, `row:packageNickel`,
+`row:penalty.defensivePassInterference`, `row:penalty.falseStart`,
+`row:penalty.illegalFormation`, `row:playsPerDrive`, `row:playsPerGame`, `row:points`,
+`row:pointsFromFieldGoals`, `row:pointsFromTouchdowns`, `row:preSnapRoadVsHome`,
+`row:pressureRate`, `row:puntsPerTeamGame`, `row:redZoneTouchdownRate`,
+`row:redZoneTripsPerTeamGame`, `row:runShare.fourthLong`, `row:runShare.fourthMedium`,
+`row:runShare.secondMedium`, `row:runShare.secondShort`, `row:runShare.thirdLong`,
+`row:snaps.backfield`, `row:snaps.defensiveBack`, `row:snaps.offensiveLine`,
+`row:snaps.quarterback`, `row:snapsInsideOwn10`, `row:targetShare.runningBack`,
+`row:thirdDownDistance`, `row:threeAndOut`, `row:tiesPerGame`, `row:turnovers`,
+`row:twoPointTries`, `row:twoPointTriesPass`, `row:yardsPerCarry`, `row:ypcEvenCount`,
+`row:ypcOutnumberingByOne`.
 
 **The five with a margin under one floor that were not seen to flip** — the ones to expect
-next, since thirty seeds is not many: `row:heavyRainPoints` (0.09 floors),
-`row:playerGamesLost` (0.10), `row:kickReturnTouchdowns.2024` (0.32),
-`row:onsideRecovery.2024` (0.44) and `row:onsideKicks.2024` (0.64). All five are `stale` or
+next, since thirty seeds is not many: `row:heavyRainPoints` (0.1 floors),
+`row:playerGamesLost` (0.1), `row:kickReturnTouchdowns.2024` (0.3),
+`row:onsideRecovery.2024` (0.4) and `row:onsideKicks.2024` (0.6). All five are `stale` or
 `unsourced` rows, which is why no `ok`/`OFF` mark moved: the margin is real, the verdict
 column simply does not report it.
 
-`scripts/harness-noise.py --summary` prints the 69 with each row's range and band, and the
-five with their margins. The 47 are not a list of their own there — read them off the *edge
+`scripts/harness-noise.py --summary` prints the 76 with each row's range and band, and the
+five with their margins. The 45 are not a list of their own there — read them off the *edge
 margin* column of the table below, which is where the number comes from.
 
 **The binomial/Poisson model is a good description of the same-league floor and a poor one
-of the seed-to-seed floor.** Against the same-league floor the ratio is a median 1.03, and
+of the seed-to-seed floor.** Against the same-league floor the ratio is a median 1.02, and
 **one** row of 85 is outside a factor of two: `row:points` at 2.16, because points arrive in
 threes and sevens and a Poisson count of them under-states the spread by exactly that much.
-Against the seed-to-seed floor the median is 1.33 and **twenty-one of 85 rows are outside a
+Against the seed-to-seed floor the median is 1.35 and **twenty-one of 85 rows are outside a
 factor of two**. The model has no term for the league, so the further a comparison crosses
 worlds the more optimistic it gets. All twenty-one, since a row not named here is a row
 whose model a reviewer may still reach for — every one of them is *under*-stated by the
 model, and the carry family is the worst of it:
 
-`row:carries2orFewer` 6.78×, `row:carriesStuffed` 5.39×, `row:completionPercentage` 4.83×,
-`row:dropbackNoGain` 4.57×, `row:points` 4.47×, `row:carries10plus` 4.40×,
-`row:dropback10plus` 3.68×, `row:driveEndTouchdown` 3.30×, `row:firstDownsPerTeamGame` 3.16×,
-`row:snaps.defensiveBack` 2.87×, `row:snaps.frontSeven` 2.81×, `row:carries20plus` 2.78×,
-`row:puntsPerTeamGame` 2.76×, `row:snaps.offensiveLine` 2.72×, `row:pressureRate` 2.71×,
-`row:driveEndPunt` 2.38×, `row:snaps.receiver` 2.27×, `row:threeAndOut` 2.22×,
-`row:drives3orFewer` 2.21×, `row:drives8plus` 2.18× and `row:interceptionRate` 2.15×.
+`row:carries2orFewer` 6.73×, `row:carriesStuffed` 5.36×, `row:completionPercentage` 4.84×,
+`row:dropbackNoGain` 4.59×, `row:points` 4.51×, `row:carries10plus` 4.49×,
+`row:dropback10plus` 3.65×, `row:driveEndTouchdown` 3.29×, `row:firstDownsPerTeamGame` 3.23×,
+`row:snaps.defensiveBack` 2.92×, `row:snaps.frontSeven` 2.89×, `row:snaps.offensiveLine` 2.79×,
+`row:carries20plus` 2.79×, `row:pressureRate` 2.72×, `row:puntsPerTeamGame` 2.61×,
+`row:driveEndPunt` 2.38×, `row:snaps.receiver` 2.32×, `row:threeAndOut` 2.22×,
+`row:drives3orFewer` 2.21×, `row:interceptionRate` 2.19× and `row:drives8plus` 2.16×.
 
 The near-misses in the same-league column are worth naming because they are the rows where
-games are not independent within a league: `row:snaps.defensiveBack` 1.69,
-`row:snaps.frontSeven` 1.51, `row:snaps.offensiveLine` 1.47, `row:kneelsPerGame` and
-`row:penaltiesPerGame` 1.44 and `row:snaps.receiver` 1.42 all sit about half again above the
-model. Eight rows sit *below* it — `row:snaps.backfield` 0.58, `row:drivesPerTeamGame` 0.61,
-`row:playsFromScrimmage` and `row:snaps.quarterback` 0.63, `row:snaps.tightEnd`,
-`row:kickoffsReturned.2025` and `row:kickoffsReturned.2024` 0.65, `row:fieldGoalsUnder30` 0.69
+games are not independent within a league: `row:snaps.defensiveBack` 1.67,
+`row:kneelsPerGame` and `row:snaps.frontSeven` 1.53, `row:snaps.offensiveLine` 1.48 and
+`row:snaps.receiver` 1.45 all sit about half again above the
+model. Seven rows sit *below* it — `row:snaps.backfield` 0.55, `row:drivesPerTeamGame` 0.61,
+`row:playsFromScrimmage` and `row:snaps.quarterback` 0.63, `row:snaps.tightEnd` 0.64, and
+`row:kickoffsReturned.2025` and `row:kickoffsReturned.2024` 0.66
 — most of them because they
 count something a play produces once by construction, and a Poisson count of a
 near-deterministic quantity over-states.
 
-**Twenty-seven rows move mostly because the league moved**, not because the games did:
-`row:yardsPerCarry` 7.8 to one, `row:targetShare.runningBack` 7.2,
-`row:checkdownsPerDropback` 5.8, `row:carries2orFewer` and `row:targetShare.wideReceiver`
-5.2, `row:carriesStuffed` 4.8, `row:firstReadShare` 4.6. The read rows are the league's from
+**Twenty-nine rows move mostly because the league moved**, not because the games did —
+counting the rows whose `σ league` is at least twice their `σ same league`:
+`row:yardsPerCarry` 8.0 to one, `row:targetShare.runningBack` 6.5,
+`row:checkdownsPerDropback` 6.1, `row:targetShare.wideReceiver` 5.3, `row:carries2orFewer`
+5.0, `row:firstReadShare` 4.5, `row:carriesStuffed` 4.4. The read rows are the league's from
 the first sweep they appear in: who gets thrown to is who the rosters are, and a longer run
 in one league cannot move it. This is the one that changes what to do about a wide row. The
 league component **does not shrink with `--games` at all** — a longer run plays more games in
@@ -1526,9 +1532,9 @@ Three checks, each measured rather than argued:
    decomposition to recover both to within 1%. It runs in CI.
 2. **The estimator against itself.** A 100-game prefix is a longer lever arm on the same
    quantity than a 200-game prefix, and the two must give the same σ once the lever is
-   divided out. Over 144 rows the ratio is a median 1.01 and **nothing** is outside a factor
+   divided out. Over 144 rows the ratio is a median 1.00 and **nothing** is outside a factor
    of two; six rows disagree by more than 1.4, the worst being `row:packageNickel` at
-   1.61.
+   1.59.
 3. **The floor against a disjoint set of seeds.** The same sweep at seeds 31–60 is committed
    beside the published one as
    [`harness-noise-replication.tsv`](harness-noise-replication.tsv) — taken in the same
@@ -1539,8 +1545,8 @@ Three checks, each measured rather than argued:
    python3 scripts/harness-noise.py --replicate docs/reference/harness-noise-replication.tsv
    ```
 
-   It gives a median ratio of **1.00** for the seed-to-seed floor over 148 rows (range
-   0.64–1.57) and **0.96** for the same-league floor over 143 (range 0.59–1.63), with
+   It gives a median ratio of **0.99** for the seed-to-seed floor over 148 rows (range
+   0.64–1.58) and **0.97** for the same-league floor over 143 (range 0.59–1.68), with
    **nothing** outside a factor of two either way. A σ from 30 seeds carries about 13% of
    its own error, so agreement to a few per cent in the median is what this should
    reproduce to, and the tails are the size a 30-seed σ's own error predicts.
@@ -1556,10 +1562,12 @@ property of the row rather than of the thirty seeds it was read from.
 Generated by `scripts/harness-noise.py --report` from the committed sweep. Regenerate it
 in the same commit as any change that moves engine behaviour.
 
-**Re-taken in the same commit as the sixteen rows E2 added**, on a tree that moved no
-engine behaviour: the harness's own derivations changed, not the games, and both calibration
-seeds printed byte-identical output across the merge of #177 that landed beneath it. Every
-row added there is measured here, and no row is owed.
+**Re-taken in the same commit as the sixteen rows E2 added**, on the merge of
+[#89](https://github.com/knissley/football-manager/issues/89) — which moved the tie rate and
+the two overtime rows, so the sweep before it was stale for those three whatever E2 did. E2
+itself moved no engine behaviour: it changed what the harness derives, not what the games do,
+and every pre-existing graded row printed the same value at both calibration seeds on either
+side of it. Every row added here is measured here, and no row is owed.
 
 **150 of the 152 rows in `Targets.swift` are here. The two that are not have no spread
 because they have no value**: `row:winTotalSigma` and `row:ypcOutnumberedByOne` print `—`
@@ -1576,120 +1584,120 @@ seed-to-seed σ and no same-league split, which is why its two component columns
 <!-- harness-noise:start -->
 | row | mean | min–max | σ seed-to-seed | σ same league | σ league | σ from printing | model σ | same league / model | seed-to-seed / model | edge margin | verdicts seen |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `row:points` | 23.76 | 22.70–25.40 | 0.78 | 0.37 | 0.68 | 0.03 | 0.17 | 2.16x | 4.52x | 0.4 | OFF ok |
-| `row:passingYards` | 204.12 | 190.20–213.30 | 6.01 | 2.52 | 5.46 | 0.03 | — | — | — | 2.9 | OFF |
-| `row:rushingYards` | 143.31 | 127.30–157.30 | 8.35 | 1.87 | 8.14 | 0.03 | — | — | — | 3.9 | OFF |
+| `row:points` | 23.77 | 22.70–25.40 | 0.78 | 0.37 | 0.68 | 0.03 | 0.17 | 2.16x | 4.51x | 0.4 | OFF ok |
+| `row:passingYards` | 204.23 | 190.20–213.40 | 6.03 | 2.49 | 5.50 | 0.03 | — | — | — | 2.9 | OFF |
+| `row:rushingYards` | 143.29 | 127.30–157.30 | 8.35 | 1.86 | 8.14 | 0.03 | — | — | — | 3.9 | OFF |
 | `row:yardsPerCarry` | 4.59 | 4.10–5.00 | 0.24 | 0.03 † | 0.24 | 0.03 | — | — | — | 0.0 | OFF ok |
-| `row:completionPercentage` | 62.06 | 58.60–65.10 | 1.44 | 0.34 | 1.40 | 0.03 | 0.30 | 1.15x | 4.84x | 0.6 | OFF ok |
-| `row:sackRate` | 3.76 | 3.50–4.10 | 0.13 | 0.09 | 0.09 | 0.03 | 0.11 | 0.79x | 1.13x | 18.0 | OFF |
-| `row:interceptionRate` | 2.66 | 2.30–3.20 | 0.22 | 0.12 | 0.18 | 0.03 | 0.10 | 1.25x | 2.19x | 0.3 | OFF ok |
-| `row:thirdDownConversion` | 34.83 | 33.10–36.60 | 0.95 | 0.41 | 0.86 | 0.03 | — | — | — | 2.0 | OFF |
-| `row:playsFromScrimmage` | 67.45 | 66.60–68.20 | 0.36 | 0.19 | 0.30 | 0.03 | 0.29 | 0.65x | 1.23x | 3.2 | OFF |
-| `row:penaltiesPerGame` | 15.13 | 14.30–15.60 | 0.34 | 0.28 | 0.19 | 0.03 | 0.19 | 1.42x | 1.72x | 4.8 | OFF |
+| `row:completionPercentage` | 62.04 | 58.60–65.10 | 1.44 | 0.35 | 1.40 | 0.03 | 0.30 | 1.17x | 4.84x | 0.6 | OFF ok |
+| `row:sackRate` | 3.75 | 3.50–4.10 | 0.13 | 0.10 | 0.08 | 0.03 | 0.11 | 0.92x | 1.15x | 17.6 | OFF |
+| `row:interceptionRate` | 2.66 | 2.30–3.20 | 0.22 | 0.13 | 0.17 | 0.03 | 0.10 | 1.29x | 2.19x | 0.3 | OFF ok |
+| `row:thirdDownConversion` | 34.82 | 33.10–36.60 | 0.96 | 0.42 | 0.86 | 0.03 | — | — | — | 2.0 | OFF |
+| `row:playsFromScrimmage` | 67.46 | 66.70–68.20 | 0.35 | 0.18 | 0.30 | 0.03 | 0.29 | 0.63x | 1.21x | 3.3 | OFF |
+| `row:penaltiesPerGame` | 15.13 | 14.30–15.60 | 0.34 | 0.27 | 0.21 | 0.03 | 0.19 | 1.39x | 1.75x | 4.8 | OFF |
 | `row:thirdDownDistance` | 7.33 | 7.20–7.50 | 0.10 | 0.06 | 0.07 | 0.03 | — | — | — | 0.8 | OFF ok |
-| `row:firstDownGain` | 5.09 | 4.80–5.30 | 0.14 | 0.05 | 0.13 | 0.03 | — | — | — | 0.1 | OFF ok |
+| `row:firstDownGain` | 5.09 | 4.80–5.30 | 0.14 | 0.05 | 0.14 | 0.03 | — | — | — | 0.1 | OFF ok |
 | `row:yardsPerAttempt` | 6.18 | 5.80–6.50 | 0.20 | 0.07 | 0.19 | 0.03 | — | — | — | 2.1 | OFF |
 | `row:yardsPerPlay` | 5.05 | 4.90–5.20 | 0.11 | 0.04 | 0.10 | 0.03 | — | — | — | 2.2 | ok |
 | `row:yardsPerCompletion` | 9.97 | 9.70–10.20 | 0.13 | 0.09 | 0.10 | 0.03 | — | — | — | 2.4 | OFF |
-| `row:dropsPerTarget` | 10.22 | 9.40–11.00 | 0.42 | 0.17 | 0.39 | 0.03 | — | — | — | — | unsourced |
-| `row:passesDefensedPerGame` | 5.143 | 4.670–5.540 | 0.213 | 0.131 | 0.169 | 0.003 | 0.113 | 1.15x | 1.88x | — | unsourced |
+| `row:dropsPerTarget` | 10.21 | 9.40–10.90 | 0.41 | 0.17 | 0.38 | 0.03 | — | — | — | — | unsourced |
+| `row:passesDefensedPerGame` | 5.146 | 4.670–5.550 | 0.214 | 0.132 | 0.167 | 0.003 | 0.113 | 1.17x | 1.88x | — | unsourced |
 | `row:throwawaysPerDropback` | 6.07 | 4.90–7.00 | 0.53 | 0.16 | 0.51 | 0.03 | — | — | — | — | unsourced |
-| `row:checkdownsPerDropback` | 14.37 | 11.30–17.20 | 1.31 | 0.22 | 1.29 | 0.03 | — | — | — | — | unsourced |
+| `row:checkdownsPerDropback` | 14.37 | 11.30–17.20 | 1.31 | 0.21 | 1.29 | 0.03 | — | — | — | — | unsourced |
 | `row:firstReadShare` | 83.66 | 81.10–86.20 | 1.15 | 0.25 | 1.12 | 0.03 | — | — | — | — | unsourced |
-| `row:targetShare.wideReceiver` | 68.60 | 64.40–72.70 | 1.93 | 0.38 | 1.89 | 0.03 | — | — | — | 2.9 | OFF |
-| `row:targetShare.tightEnd` | 8.86 | 7.70–9.80 | 0.51 | 0.22 | 0.45 | 0.03 | — | — | — | 22.4 | OFF |
-| `row:targetShare.runningBack` | 22.54 | 18.80–26.00 | 1.64 | 0.24 | 1.63 | 0.03 | — | — | — | 1.8 | OFF ok |
-| `row:runShare.secondShort` | 67.04 | 64.60–69.80 | 1.31 | 1.18 | 0.57 | 0.03 | — | — | — | 1.4 | OFF ok |
-| `row:runShare.secondMedium` | 51.64 | 50.30–53.40 | 0.73 | 0.73 | 0.00 | 0.03 | — | — | — | 0.1 | OFF ok |
-| `row:runShare.secondLong` | 22.55 | 21.70–23.20 | 0.41 | 0.38 | 0.15 | 0.03 | — | — | — | 8.2 | OFF |
-| `row:runShare.thirdShort` | 94.13 | 93.30–95.00 | 0.41 | 0.45 | 0.00 | 0.03 | — | — | — | 103.8 | OFF |
-| `row:runShare.thirdMedium` | 21.87 | 20.80–23.00 | 0.64 | 0.86 | 0.00 | 0.03 | — | — | — | 18.0 | OFF |
-| `row:runShare.thirdLong` | 9.50 | 8.50–10.50 | 0.47 | 0.38 | 0.27 | 0.03 | — | — | — | 0.9 | OFF ok |
-| `row:runShare.fourthShort` | 90.47 | 88.80–92.70 | 0.83 | 0.82 | 0.14 | 0.03 | — | — | — | 39.9 | OFF |
-| `row:runShare.fourthMedium` | 15.41 | 10.80–21.10 | 2.35 | 2.74 | 0.00 | 0.03 | — | — | — | 1.7 | OFF ok |
-| `row:runShare.fourthLong` | 4.88 | 1.80–9.60 | 1.93 | 1.92 | 0.18 | 0.03 | — | — | — | 1.4 | OFF ok |
-| `row:playsPerGame` | 169.42 | 167.00–171.00 | 1.04 | 0.68 | 0.79 | 0.25 | 0.65 | 1.05x | 1.61x | 0.5 | OFF ok |
-| `row:tiesPerGame` | 0.0070 | 0.0000–0.0130 | 0.0037 | 0.0037 | 0.0000 | 0.0003 | 0.0042 | 0.89x | 0.87x | 0.8 | OFF ok |
+| `row:targetShare.wideReceiver` | 68.61 | 64.40–72.80 | 1.93 | 0.36 | 1.90 | 0.03 | — | — | — | 2.9 | OFF |
+| `row:targetShare.tightEnd` | 8.86 | 7.70–9.80 | 0.50 | 0.22 | 0.45 | 0.03 | — | — | — | 22.5 | OFF |
+| `row:targetShare.runningBack` | 22.54 | 18.80–26.00 | 1.64 | 0.25 | 1.62 | 0.03 | — | — | — | 1.8 | OFF ok |
+| `row:runShare.secondShort` | 67.01 | 64.50–69.80 | 1.32 | 1.19 | 0.55 | 0.03 | — | — | — | 1.4 | OFF ok |
+| `row:runShare.secondMedium` | 51.62 | 50.30–53.30 | 0.72 | 0.74 | 0.00 | 0.03 | — | — | — | 0.0 | OFF ok |
+| `row:runShare.secondLong` | 22.54 | 21.70–23.20 | 0.40 | 0.38 | 0.13 | 0.03 | — | — | — | 8.4 | OFF |
+| `row:runShare.thirdShort` | 94.10 | 93.10–94.90 | 0.42 | 0.44 | 0.00 | 0.03 | — | — | — | 101.4 | OFF |
+| `row:runShare.thirdMedium` | 21.86 | 20.80–23.00 | 0.63 | 0.86 | 0.00 | 0.03 | — | — | — | 18.1 | OFF |
+| `row:runShare.thirdLong` | 9.50 | 8.50–10.50 | 0.47 | 0.39 | 0.26 | 0.03 | — | — | — | 0.9 | OFF ok |
+| `row:runShare.fourthShort` | 90.42 | 88.70–92.60 | 0.83 | 0.83 | 0.00 | 0.03 | — | — | — | 39.6 | OFF |
+| `row:runShare.fourthMedium` | 15.40 | 10.80–21.10 | 2.35 | 2.73 | 0.00 | 0.03 | — | — | — | 1.7 | OFF ok |
+| `row:runShare.fourthLong` | 4.87 | 1.80–9.60 | 1.94 | 1.93 | 0.26 | 0.03 | — | — | — | 1.4 | OFF ok |
+| `row:playsPerGame` | 169.50 | 167.00–171.00 | 1.06 | 0.70 | 0.80 | 0.25 | 0.65 | 1.07x | 1.62x | 0.5 | OFF ok |
+| `row:tiesPerGame` | 0.0036 | 0.0000–0.0130 | 0.0034 | 0.0027 | 0.0021 | 0.0003 | 0.0030 | 0.91x | 1.13x | 1.1 | OFF ok |
 | `row:overtimeRate` | 3.06 | 1.00–5.00 | 0.97 | 0.82 | 0.53 | 0.03 | 0.86 | 0.95x | 1.13x | 0.1 | OFF ok |
-| `row:overtimeLength` | 428.07 | 353.00–488.00 | 40.67 | 44.05 | 0.00 | 0.29 | — | — | — | 0.9 | OFF ok |
-| `row:playerGamesLost` | 90.62 | 81.60–102.30 | 6.23 | 4.38 | 4.43 | 0.03 | — | — | — | 0.1 | unsourced |
-| `row:scramblesPerGame` | 2.08 | 1.70–2.30 | 0.12 | 0.06 | 0.10 | 0.03 | 0.07 | 0.89x | 1.64x | 11.7 | OFF |
+| `row:overtimeLength` | 420.40 | 340.00–486.00 | 39.86 | 41.22 | 0.00 | 0.29 | — | — | — | 1.1 | OFF ok |
+| `row:playerGamesLost` | 90.66 | 81.60–102.30 | 6.24 | 4.34 | 4.48 | 0.03 | — | — | — | 0.1 | unsourced |
+| `row:scramblesPerGame` | 2.08 | 1.70–2.30 | 0.12 | 0.07 | 0.09 | 0.03 | 0.07 | 1.00x | 1.62x | 11.7 | OFF |
 | `row:kneelsPerGame` | 1.59 | 1.50–1.70 | 0.07 | 0.10 | 0.00 | 0.03 | 0.06 | 1.53x | 1.16x | 2.6 | ok |
 | `row:spikesPerGame` | 0.20 | 0.20–0.30 | 0.00 † | 0.00 † | 0.00 | 0.03 | 0.02 | — | — | 5.7 | ok |
-| `row:timeoutsPerGame` | 5.10 | 4.70–5.50 | 0.17 | 0.11 | 0.13 | 0.03 | 0.11 | 1.01x | 1.53x | 11.4 | OFF |
+| `row:timeoutsPerGame` | 5.11 | 4.70–5.50 | 0.18 | 0.11 | 0.14 | 0.03 | 0.11 | 0.95x | 1.57x | 11.1 | OFF |
 | `row:outOfBoundsShare` | 13.50 | 13.00–13.80 | 0.17 | 0.14 | 0.10 | 0.03 | — | — | — | 4.5 | ok |
-| `row:outOfBoundsShareTrailingLate` | 32.05 | 30.80–33.60 | 0.78 | 1.00 | 0.00 | 0.03 | — | — | — | 12.9 | OFF |
-| `row:pointsFromTouchdowns` | 68.63 | 66.90–71.30 | 1.03 | 0.51 | 0.90 | 0.03 | — | — | — | 1.4 | OFF ok |
-| `row:pointsFromFieldGoals` | 20.02 | 17.10–22.00 | 1.17 | 0.57 | 1.02 | 0.03 | — | — | — | 0.9 | OFF ok |
-| `row:personnel11` | 66.99 | 66.60–67.40 | 0.22 | 0.18 | 0.11 | 0.03 | 0.20 | 0.91x | 1.07x | 21.5 | ok |
-| `row:packageNickel` | 69.12 | 68.70–69.60 | 0.21 | 0.18 | 0.12 | 0.03 | 0.20 | 0.88x | 1.08x | 0.4 | OFF ok |
-| `row:packageBase` | 23.33 | 22.80–23.70 | 0.22 | 0.18 | 0.13 | 0.03 | 0.18 | 0.98x | 1.21x | 7.5 | ok |
+| `row:outOfBoundsShareTrailingLate` | 32.04 | 30.80–33.60 | 0.79 | 1.01 | 0.00 | 0.03 | — | — | — | 12.7 | OFF |
+| `row:pointsFromTouchdowns` | 68.65 | 66.90–71.40 | 1.03 | 0.53 | 0.89 | 0.03 | — | — | — | 1.4 | OFF ok |
+| `row:pointsFromFieldGoals` | 20.01 | 17.10–22.00 | 1.15 | 0.59 | 0.99 | 0.03 | — | — | — | 1.0 | OFF ok |
+| `row:personnel11` | 66.98 | 66.60–67.40 | 0.21 | 0.18 | 0.11 | 0.03 | 0.20 | 0.89x | 1.04x | 21.9 | ok |
+| `row:packageNickel` | 69.11 | 68.70–69.60 | 0.21 | 0.18 | 0.11 | 0.03 | 0.20 | 0.90x | 1.07x | 0.4 | OFF ok |
+| `row:packageBase` | 23.32 | 22.80–23.70 | 0.22 | 0.18 | 0.14 | 0.03 | 0.18 | 0.96x | 1.23x | 7.4 | ok |
 | `row:ypcEvenCount` | 4.89 | 4.40–5.30 | 0.27 | 0.07 | 0.26 | 0.03 | — | — | — | 0.4 | OFF ok |
-| `row:ypcOutnumberingByOne` | 5.44 | 4.90–6.10 | 0.30 | 0.23 | 0.19 | 0.03 | — | — | — | 1.8 | OFF ok |
-| `row:snaps.quarterback` | 67.45 | 66.60–68.20 | 0.36 | 0.19 | 0.30 | 0.03 | 0.29 | 0.65x | 1.23x | 1.8 | OFF ok |
-| `row:snaps.backfield` | 73.04 | 72.20–73.80 | 0.38 | 0.16 | 0.34 | 0.03 | 0.30 | 0.53x | 1.24x | 1.7 | OFF ok |
-| `row:snaps.receiver` | 182.82 | 180.20–185.20 | 1.10 | 0.68 | 0.86 | 0.03 | 0.48 | 1.42x | 2.30x | 10.7 | OFF |
-| `row:snaps.tightEnd` | 81.31 | 80.50–82.00 | 0.37 | 0.21 | 0.31 | 0.03 | 0.32 | 0.65x | 1.17x | 11.3 | ok |
-| `row:snaps.offensiveLine` | 335.98 | 332.00–340.10 | 1.80 | 0.96 | 1.52 | 0.03 | 0.65 | 1.48x | 2.77x | 1.7 | OFF ok |
-| `row:snaps.frontSeven` | 418.57 | 414.00–423.10 | 2.09 | 1.09 | 1.78 | 0.03 | 0.72 | 1.51x | 2.89x | 6.4 | OFF |
-| `row:snaps.defensiveBack` | 323.36 | 319.00–327.40 | 1.85 | 1.06 | 1.53 | 0.03 | 0.64 | 1.66x | 2.92x | 0.3 | OFF ok |
-| `row:carriesStuffed` | 18.80 | 17.00–21.40 | 1.33 | 0.29 | 1.30 | 0.03 | 0.25 | 1.17x | 5.37x | 0.8 | OFF ok |
-| `row:carries2orFewer` | 42.47 | 39.20–46.90 | 2.11 | 0.41 | 2.07 | 0.03 | 0.31 | 1.32x | 6.75x | 0.9 | OFF ok |
+| `row:ypcOutnumberingByOne` | 5.44 | 4.90–6.10 | 0.29 | 0.23 | 0.18 | 0.03 | — | — | — | 1.8 | OFF ok |
+| `row:snaps.quarterback` | 67.46 | 66.70–68.20 | 0.35 | 0.18 | 0.30 | 0.03 | 0.29 | 0.63x | 1.21x | 1.9 | OFF ok |
+| `row:snaps.backfield` | 73.05 | 72.20–73.80 | 0.39 | 0.17 | 0.35 | 0.03 | 0.30 | 0.55x | 1.28x | 1.7 | OFF ok |
+| `row:snaps.receiver` | 182.88 | 180.20–185.20 | 1.11 | 0.69 | 0.86 | 0.03 | 0.48 | 1.45x | 2.32x | 10.7 | OFF |
+| `row:snaps.tightEnd` | 81.32 | 80.50–82.00 | 0.37 | 0.20 | 0.31 | 0.03 | 0.32 | 0.64x | 1.16x | 11.3 | ok |
+| `row:snaps.offensiveLine` | 336.06 | 332.00–340.10 | 1.81 | 0.96 | 1.54 | 0.03 | 0.65 | 1.48x | 2.79x | 1.7 | OFF ok |
+| `row:snaps.frontSeven` | 418.65 | 414.10–423.10 | 2.09 | 1.11 | 1.78 | 0.03 | 0.72 | 1.53x | 2.89x | 6.5 | OFF |
+| `row:snaps.defensiveBack` | 323.47 | 319.10–327.40 | 1.86 | 1.06 | 1.53 | 0.03 | 0.64 | 1.67x | 2.92x | 0.2 | OFF ok |
+| `row:carriesStuffed` | 18.81 | 17.00–21.40 | 1.33 | 0.29 | 1.29 | 0.03 | 0.25 | 1.17x | 5.36x | 0.8 | OFF ok |
+| `row:carries2orFewer` | 42.46 | 39.20–46.80 | 2.11 | 0.41 | 2.07 | 0.03 | 0.31 | 1.31x | 6.73x | 0.9 | OFF ok |
 | `row:carries10plus` | 11.52 | 9.50–13.20 | 0.91 | 0.22 | 0.88 | 0.03 | 0.20 | 1.11x | 4.49x | 0.4 | OFF ok |
 | `row:carries20plus` | 2.82 | 2.20–3.40 | 0.29 | 0.10 | 0.28 | 0.03 | 0.10 | 0.92x | 2.79x | 1.1 | OFF ok |
-| `row:dropbackLoss` | 4.94 | 4.60–5.30 | 0.14 | 0.09 | 0.11 | 0.03 | 0.13 | 0.72x | 1.10x | 15.6 | OFF |
-| `row:dropbackNoGain` | 37.52 | 34.70–40.50 | 1.32 | 0.29 | 1.28 | 0.03 | 0.29 | 1.00x | 4.58x | 2.2 | OFF |
-| `row:dropback10plus` | 21.69 | 19.80–23.50 | 0.89 | 0.27 | 0.85 | 0.03 | 0.24 | 1.08x | 3.64x | 2.4 | OFF |
-| `row:dropback20plus` | 6.56 | 6.00–7.00 | 0.25 | 0.15 | 0.21 | 0.03 | 0.15 | 1.00x | 1.73x | 4.5 | OFF |
-| `row:dropback40plus` | 1.41 | 1.20–1.60 | 0.10 | 0.08 | 0.06 | 0.03 | 0.07 | 1.08x | 1.38x | 0.9 | OFF ok |
-| `row:pressureRate` | 26.89 | 25.40–27.90 | 0.72 | 0.29 | 0.65 | 0.03 | 0.26 | 1.12x | 2.72x | 1.3 | OFF ok |
-| `row:sacksPerPressure` | 13.95 | 13.10–14.70 | 0.33 | 0.35 | 0.00 | 0.03 | — | — | — | 18.2 | OFF |
-| `row:completionsZeroOrFewer` | 5.65 | 5.30–6.00 | 0.18 | 0.17 | 0.04 | 0.03 | 0.18 | 0.95x | 0.98x | 0.3 | OFF ok |
-| `row:driveEndPunt` | 39.34 | 36.80–41.40 | 1.22 | 0.72 | 0.99 | 0.03 | 0.51 | 1.39x | 2.37x | 0.3 | OFF ok |
-| `row:driveEndTouchdown` | 22.58 | 20.40–25.90 | 1.45 | 0.36 | 1.41 | 0.03 | 0.44 | 0.82x | 3.30x | 0.8 | OFF ok |
-| `row:driveEndDowns` | 4.85 | 4.10–5.60 | 0.35 | 0.24 | 0.25 | 0.03 | 0.23 | 1.06x | 1.53x | 0.4 | OFF ok |
+| `row:dropbackLoss` | 4.94 | 4.60–5.30 | 0.14 | 0.09 | 0.11 | 0.03 | 0.13 | 0.71x | 1.10x | 15.6 | OFF |
+| `row:dropbackNoGain` | 37.52 | 34.70–40.50 | 1.32 | 0.31 | 1.28 | 0.03 | 0.29 | 1.06x | 4.59x | 2.2 | OFF |
+| `row:dropback10plus` | 21.69 | 19.80–23.50 | 0.89 | 0.27 | 0.85 | 0.03 | 0.24 | 1.09x | 3.65x | 2.4 | OFF |
+| `row:dropback20plus` | 6.56 | 6.00–7.00 | 0.25 | 0.15 | 0.20 | 0.03 | 0.15 | 1.00x | 1.71x | 4.5 | OFF |
+| `row:dropback40plus` | 1.41 | 1.20–1.60 | 0.10 | 0.08 | 0.06 | 0.03 | 0.07 | 1.08x | 1.37x | 0.9 | OFF ok |
+| `row:pressureRate` | 26.89 | 25.40–27.90 | 0.72 | 0.29 | 0.66 | 0.03 | 0.26 | 1.10x | 2.72x | 1.3 | OFF ok |
+| `row:sacksPerPressure` | 13.96 | 13.20–14.70 | 0.32 | 0.36 | 0.00 | 0.03 | — | — | — | 18.7 | OFF |
+| `row:completionsZeroOrFewer` | 5.65 | 5.30–6.00 | 0.17 | 0.17 | 0.03 | 0.03 | 0.18 | 0.95x | 0.96x | 0.3 | OFF ok |
+| `row:driveEndPunt` | 39.34 | 36.80–41.40 | 1.23 | 0.70 | 1.01 | 0.03 | 0.51 | 1.36x | 2.38x | 0.3 | OFF ok |
+| `row:driveEndTouchdown` | 22.58 | 20.40–25.90 | 1.45 | 0.35 | 1.41 | 0.03 | 0.44 | 0.79x | 3.29x | 0.8 | OFF ok |
+| `row:driveEndDowns` | 4.85 | 4.10–5.60 | 0.35 | 0.24 | 0.25 | 0.03 | 0.23 | 1.07x | 1.53x | 0.4 | OFF ok |
 | `row:drivesPerTeamGame` | 11.26 | 10.90–11.60 | 0.21 | 0.07 | 0.19 | 0.03 | 0.12 | 0.61x | 1.73x | 2.1 | ok |
-| `row:playsPerDrive` | 5.99 | 5.80–6.20 | 0.10 | 0.02 † | 0.10 | 0.03 | — | — | — | 1.1 | OFF ok |
-| `row:firstDownsPerTeamGame` | 18.26 | 17.40–19.10 | 0.49 | 0.13 | 0.47 | 0.03 | 0.15 | 0.89x | 3.22x | 1.3 | OFF ok |
-| `row:drives3orFewer` | 31.79 | 29.80–33.90 | 1.07 | 0.41 | 0.99 | 0.03 | 0.49 | 0.84x | 2.19x | 1.4 | OFF ok |
-| `row:drives4to7` | 39.38 | 38.20–40.60 | 0.48 | 0.44 | 0.20 | 0.03 | 0.51 | 0.85x | 0.94x | 2.0 | OFF ok |
-| `row:drives8plus` | 28.83 | 26.80–30.90 | 1.03 | 0.50 | 0.90 | 0.03 | 0.48 | 1.05x | 2.16x | 0.8 | OFF ok |
-| `row:threeAndOut` | 18.98 | 17.30–21.20 | 0.93 | 0.41 | 0.83 | 0.03 | 0.41 | 1.00x | 2.24x | 0.1 | OFF ok |
-| `row:redZoneTripsPerTeamGame` | 3.355 | 3.180–3.580 | 0.092 | 0.064 | 0.067 | 0.003 | — | — | — | 2.1 | OFF ok |
-| `row:redZoneTouchdownRate` | 59.93 | 57.20–64.00 | 2.05 | 1.05 | 1.76 | 0.03 | — | — | — | 0.4 | OFF ok |
-| `row:averageStart.2025` | 32.05 | 31.80–32.80 | 0.19 | 0.16 | 0.10 | 0.03 | — | — | — | 1.3 | OFF ok |
-| `row:averageStart.2024` | 32.05 | 31.80–32.80 | 0.19 | 0.16 | 0.10 | 0.03 | — | — | — | 1.8 | stale |
-| `row:ownHalfStarts.2025` | 89.14 | 87.80–90.10 | 0.47 | 0.32 | 0.35 | 0.03 | 0.33 | 0.97x | 1.43x | 8.4 | ok |
-| `row:ownHalfStarts.2024` | 89.14 | 87.80–90.10 | 0.47 | 0.32 | 0.35 | 0.03 | 0.33 | 0.97x | 1.43x | 7.5 | stale |
-| `row:puntsPerTeamGame` | 4.51 | 4.10–4.90 | 0.20 | 0.10 | 0.17 | 0.03 | 0.08 | 1.34x | 2.61x | 0.5 | OFF ok |
-| `row:netPunt` | 37.34 | 36.60–38.00 | 0.36 | 0.20 | 0.30 | 0.03 | — | — | — | 5.6 | OFF |
-| `row:grossPunt` | 43.07 | 42.30–43.60 | 0.31 | 0.09 | 0.30 | 0.03 | — | — | — | 6.2 | OFF |
-| `row:puntReturnYards` | 11.84 | 11.20–12.30 | 0.28 | 0.24 | 0.14 | 0.03 | — | — | — | 4.4 | OFF |
-| `row:twoPointTries` | 0.209 | 0.170–0.260 | 0.019 | 0.020 | 0.000 | 0.003 | 0.016 | 1.25x | 1.16x | 1.0 | OFF ok |
-| `row:twoPointConversion` | 42.56 | 34.60–50.70 | 4.03 | 3.90 | 1.03 | 0.03 | 3.82 | 1.02x | 1.05x | 2.2 | ok |
-| `row:twoPointTriesRun` | 0.0833 | 0.0680–0.1010 | 0.0091 | 0.0120 | 0.0000 | 0.0003 | — | — | — | 2.0 | ok |
-| `row:twoPointTriesPass` | 0.1248 | 0.0990–0.1690 | 0.0155 | 0.0118 | 0.0100 | 0.0003 | — | — | — | 1.0 | OFF ok |
-| `row:kickoffTouchbacks.2025` | 18.92 | 17.20–20.20 | 0.72 | 0.49 | 0.53 | 0.03 | 0.60 | 0.81x | 1.20x | 0.0 | OFF ok |
-| `row:kickoffTouchbacks.2024` | 18.93 | 17.20–20.20 | 0.72 | 0.49 | 0.53 | 0.03 | 0.60 | 0.81x | 1.20x | 58.3 | stale |
-| `row:fieldGoalsPerTeamGame` | 1.77 | 1.60–1.90 | 0.05 | 0.04 | 0.03 | 0.02 | 0.05 | 0.89x | 1.09x | 0.6 | OFF ok |
-| `row:fieldGoalsUnder30` | 96.77 | 94.90–98.70 | 0.90 | 0.66 | 0.61 | 0.03 | 0.93 | 0.71x | 0.97x | 3.6 | ok |
-| `row:fieldGoals30to39` | 92.62 | 90.80–95.70 | 1.29 | 1.44 | 0.00 | 0.03 | 1.28 | 1.12x | 1.01x | 2.4 | ok |
-| `row:fieldGoals40to49` | 82.67 | 79.80–86.00 | 1.48 | 1.99 | 0.00 | 0.03 | 1.76 | 1.13x | 0.84x | 0.9 | OFF ok |
-| `row:fieldGoals50plus` | 71.18 | 65.50–75.90 | 2.80 | 4.02 | 0.00 | 0.03 | 3.37 | 1.19x | 0.83x | 1.3 | OFF ok |
-| `row:fieldGoalAttemptsUnder30` | 25.38 | 22.90–28.40 | 1.32 | 1.34 | 0.00 | 0.03 | 1.15 | 1.16x | 1.14x | 0.1 | OFF ok |
-| `row:fieldGoalAttempts30to39` | 29.28 | 27.00–31.20 | 1.02 | 1.29 | 0.00 | 0.03 | 1.21 | 1.07x | 0.85x | 2.6 | ok |
-| `row:fieldGoalAttempts40to49` | 32.63 | 29.20–34.30 | 1.30 | 1.31 | 0.00 | 0.03 | 1.24 | 1.06x | 1.05x | 2.7 | OFF |
-| `row:fieldGoalAttempts50plus` | 12.70 | 9.50–15.70 | 1.53 | 1.06 | 1.10 | 0.03 | 0.88 | 1.20x | 1.73x | 4.3 | OFF |
+| `row:playsPerDrive` | 5.99 | 5.80–6.20 | 0.10 | 0.00 † | 0.10 | 0.03 | — | — | — | 1.1 | OFF ok |
+| `row:firstDownsPerTeamGame` | 18.27 | 17.50–19.10 | 0.49 | 0.15 | 0.46 | 0.03 | 0.15 | 0.99x | 3.23x | 1.3 | OFF ok |
+| `row:drives3orFewer` | 31.79 | 29.80–33.90 | 1.08 | 0.41 | 1.00 | 0.03 | 0.49 | 0.84x | 2.21x | 1.4 | OFF ok |
+| `row:drives4to7` | 39.38 | 38.20–40.60 | 0.48 | 0.43 | 0.21 | 0.03 | 0.51 | 0.83x | 0.93x | 2.1 | OFF ok |
+| `row:drives8plus` | 28.83 | 26.80–30.90 | 1.03 | 0.51 | 0.90 | 0.03 | 0.48 | 1.07x | 2.16x | 0.8 | OFF ok |
+| `row:threeAndOut` | 18.98 | 17.30–21.10 | 0.92 | 0.42 | 0.82 | 0.03 | 0.41 | 1.01x | 2.22x | 0.1 | OFF ok |
+| `row:redZoneTripsPerTeamGame` | 3.356 | 3.180–3.580 | 0.091 | 0.063 | 0.065 | 0.003 | — | — | — | 2.1 | OFF ok |
+| `row:redZoneTouchdownRate` | 59.94 | 57.20–64.00 | 2.04 | 1.06 | 1.74 | 0.03 | — | — | — | 0.4 | OFF ok |
+| `row:averageStart.2025` | 32.05 | 31.80–32.80 | 0.19 | 0.17 | 0.08 | 0.03 | — | — | — | 1.3 | OFF ok |
+| `row:averageStart.2024` | 32.05 | 31.80–32.80 | 0.19 | 0.17 | 0.09 | 0.03 | — | — | — | 1.8 | stale |
+| `row:ownHalfStarts.2025` | 89.14 | 87.80–90.10 | 0.47 | 0.32 | 0.35 | 0.03 | 0.33 | 0.97x | 1.44x | 8.4 | ok |
+| `row:ownHalfStarts.2024` | 89.14 | 87.80–90.10 | 0.47 | 0.32 | 0.35 | 0.03 | 0.33 | 0.97x | 1.44x | 7.5 | stale |
+| `row:puntsPerTeamGame` | 4.51 | 4.10–4.90 | 0.20 | 0.10 | 0.17 | 0.03 | 0.08 | 1.39x | 2.61x | 0.5 | OFF ok |
+| `row:netPunt` | 37.34 | 36.60–38.00 | 0.37 | 0.20 | 0.31 | 0.03 | — | — | — | 5.6 | OFF |
+| `row:grossPunt` | 43.07 | 42.30–43.60 | 0.31 | 0.08 | 0.30 | 0.03 | — | — | — | 6.2 | OFF |
+| `row:puntReturnYards` | 11.84 | 11.20–12.40 | 0.28 | 0.24 | 0.15 | 0.03 | — | — | — | 4.4 | OFF |
+| `row:twoPointTries` | 0.210 | 0.170–0.260 | 0.019 | 0.021 | 0.000 | 0.003 | 0.016 | 1.27x | 1.16x | 1.0 | OFF ok |
+| `row:twoPointConversion` | 42.57 | 34.60–50.70 | 4.02 | 3.95 | 0.77 | 0.03 | 3.82 | 1.03x | 1.05x | 2.2 | ok |
+| `row:twoPointTriesRun` | 0.0835 | 0.0680–0.1010 | 0.0092 | 0.0122 | 0.0000 | 0.0003 | — | — | — | 2.0 | ok |
+| `row:twoPointTriesPass` | 0.1248 | 0.0990–0.1690 | 0.0155 | 0.0116 | 0.0103 | 0.0003 | — | — | — | 1.0 | OFF ok |
+| `row:kickoffTouchbacks.2025` | 18.92 | 17.20–20.20 | 0.73 | 0.49 | 0.54 | 0.03 | 0.60 | 0.81x | 1.21x | 0.0 | OFF ok |
+| `row:kickoffTouchbacks.2024` | 18.92 | 17.20–20.20 | 0.73 | 0.49 | 0.54 | 0.03 | 0.60 | 0.81x | 1.21x | 58.0 | stale |
+| `row:fieldGoalsPerTeamGame` | 1.77 | 1.60–1.90 | 0.05 | 0.04 | 0.03 | 0.02 | 0.05 | 0.91x | 1.09x | 0.6 | OFF ok |
+| `row:fieldGoalsUnder30` | 96.77 | 94.90–98.70 | 0.91 | 0.67 | 0.62 | 0.03 | 0.93 | 0.71x | 0.97x | 3.6 | ok |
+| `row:fieldGoals30to39` | 92.60 | 90.80–95.70 | 1.31 | 1.43 | 0.00 | 0.03 | 1.28 | 1.11x | 1.02x | 2.4 | ok |
+| `row:fieldGoals40to49` | 82.67 | 79.90–86.00 | 1.49 | 1.98 | 0.00 | 0.03 | 1.76 | 1.13x | 0.85x | 0.9 | OFF ok |
+| `row:fieldGoals50plus` | 71.19 | 65.50–75.90 | 2.81 | 4.03 | 0.00 | 0.03 | 3.37 | 1.20x | 0.83x | 1.3 | OFF ok |
+| `row:fieldGoalAttemptsUnder30` | 25.38 | 22.90–28.40 | 1.31 | 1.35 | 0.00 | 0.03 | 1.15 | 1.17x | 1.14x | 0.1 | OFF ok |
+| `row:fieldGoalAttempts30to39` | 29.29 | 27.00–31.20 | 1.03 | 1.29 | 0.00 | 0.03 | 1.21 | 1.07x | 0.86x | 2.5 | ok |
+| `row:fieldGoalAttempts40to49` | 32.62 | 29.30–34.30 | 1.29 | 1.30 | 0.00 | 0.03 | 1.24 | 1.04x | 1.04x | 2.7 | OFF |
+| `row:fieldGoalAttempts50plus` | 12.72 | 9.50–15.70 | 1.53 | 1.07 | 1.09 | 0.03 | 0.88 | 1.22x | 1.73x | 4.2 | OFF |
 | `row:extraPointsMade` | 96.83 | 95.70–97.50 | 0.43 | 0.41 | 0.12 | 0.03 | — | — | — | 7.4 | ok |
-| `row:fourthDownPunted` | 58.95 | 56.90–60.20 | 0.82 | 0.75 | 0.33 | 0.03 | 0.63 | 1.18x | 1.30x | 0.4 | OFF ok |
-| `row:fourthDownKicked` | 23.30 | 22.20–25.40 | 0.61 | 0.70 | 0.00 | 0.03 | 0.54 | 1.30x | 1.13x | 0.3 | OFF ok |
-| `row:fourthDownWentForIt` | 17.74 | 16.50–19.00 | 0.54 | 0.47 | 0.28 | 0.03 | 0.49 | 0.95x | 1.11x | 1.2 | OFF ok |
-| `row:fourthDownAttempts` | 1.35 | 1.27–1.50 | 0.06 | 0.03 † | 0.05 | 0.03 | 0.04 | 0.77x | 1.34x | 0.9 | OFF ok |
-| `row:fourthDownConversion` | 56.18 | 50.10–60.80 | 2.41 | 1.32 | 2.01 | 0.03 | 1.51 | 0.87x | 1.59x | 1.6 | OFF ok |
-| `row:fourthAndOneWentForIt` | 69.30 | 64.00–75.20 | 2.18 | 1.56 | 1.52 | 0.03 | — | — | — | 2.2 | OFF ok |
-| `row:fumblesLost` | 0.568 | 0.510–0.630 | 0.030 | 0.026 | 0.015 | 0.003 | 0.027 | 0.96x | 1.12x | 0.6 | OFF ok |
-| `row:fumblesKept` | 0.576 | 0.520–0.640 | 0.023 | 0.031 | 0.000 | 0.003 | 0.027 | 1.17x | 0.87x | 2.3 | OFF ok |
-| `row:turnovers` | 1.447 | 1.310–1.610 | 0.075 | 0.046 | 0.059 | 0.003 | 0.043 | 1.08x | 1.76x | 1.0 | OFF ok |
+| `row:fourthDownPunted` | 58.94 | 56.90–60.30 | 0.83 | 0.75 | 0.36 | 0.03 | 0.63 | 1.19x | 1.32x | 0.4 | OFF ok |
+| `row:fourthDownKicked` | 23.32 | 22.20–25.40 | 0.62 | 0.71 | 0.00 | 0.03 | 0.54 | 1.30x | 1.14x | 0.3 | OFF ok |
+| `row:fourthDownWentForIt` | 17.74 | 16.50–19.00 | 0.54 | 0.49 | 0.24 | 0.03 | 0.49 | 1.00x | 1.11x | 1.2 | OFF ok |
+| `row:fourthDownAttempts` | 1.35 | 1.27–1.50 | 0.06 | 0.03 † | 0.05 | 0.03 | 0.04 | 0.78x | 1.35x | 0.9 | OFF ok |
+| `row:fourthDownConversion` | 56.17 | 50.20–60.90 | 2.39 | 1.32 | 1.99 | 0.03 | 1.51 | 0.88x | 1.59x | 1.6 | OFF ok |
+| `row:fourthAndOneWentForIt` | 69.29 | 64.00–75.20 | 2.18 | 1.55 | 1.53 | 0.03 | — | — | — | 2.3 | OFF ok |
+| `row:fumblesLost` | 0.569 | 0.510–0.630 | 0.030 | 0.025 | 0.016 | 0.003 | 0.027 | 0.93x | 1.11x | 0.6 | OFF ok |
+| `row:fumblesKept` | 0.576 | 0.520–0.640 | 0.023 | 0.032 | 0.000 | 0.003 | 0.027 | 1.19x | 0.87x | 2.3 | OFF ok |
+| `row:turnovers` | 1.447 | 1.310–1.610 | 0.075 | 0.046 | 0.059 | 0.003 | 0.043 | 1.07x | 1.76x | 1.0 | OFF ok |
 | `row:nonOffensiveTouchdowns.2025` | 0.174 | 0.140–0.210 | 0.018 | 0.017 | 0.007 | 0.003 | 0.015 | 1.13x | 1.22x | 1.3 | OFF ok |
 | `row:nonOffensiveTouchdowns.2024` | 0.174 | 0.140–0.210 | 0.018 | 0.017 | 0.007 | 0.003 | 0.015 | 1.14x | 1.24x | 1.8 | stale |
 | `row:defensiveReturnTouchdowns` | 0.138 | 0.100–0.170 | 0.017 | 0.016 | 0.006 | 0.003 | 0.013 | 1.19x | 1.28x | 0.1 | OFF ok |
@@ -1699,31 +1707,31 @@ seed-to-seed σ and no same-league split, which is why its two component columns
 | `row:onsideKicks.2024` | 0.208 | 0.140–0.270 | 0.036 | 0.021 | 0.029 | 0.003 | 0.023 | 0.90x | 1.58x | 0.6 | stale |
 | `row:onsideRecovery.2025` | 9.97 | 1.60–16.10 | 3.73 | 3.37 | 1.61 | 0.03 | 3.29 | 1.02x | 1.13x | 1.7 | (OFF) (ok) |
 | `row:onsideRecovery.2024` | 9.97 | 1.60–16.10 | 3.73 | 3.37 | 1.61 | 0.03 | 3.29 | 1.02x | 1.13x | 0.4 | stale |
-| `row:kickoffsReturned.2025` | 77.18 | 75.80–78.90 | 0.85 | 0.42 | 0.73 | 0.03 | 0.64 | 0.66x | 1.31x | 3.3 | ok |
-| `row:kickoffsReturned.2024` | 77.18 | 75.80–78.90 | 0.85 | 0.42 | 0.73 | 0.03 | 0.64 | 0.66x | 1.31x | 48.7 | stale |
+| `row:kickoffsReturned.2025` | 77.18 | 75.80–79.00 | 0.85 | 0.43 | 0.74 | 0.03 | 0.64 | 0.66x | 1.32x | 3.3 | ok |
+| `row:kickoffsReturned.2024` | 77.18 | 75.80–79.00 | 0.85 | 0.43 | 0.74 | 0.03 | 0.64 | 0.66x | 1.32x | 48.3 | stale |
 | `row:kickoffReturnYards.2025` | 20.67 | 20.20–21.30 | 0.24 | 0.12 | 0.20 | 0.03 | — | — | — | 14.4 | OFF |
 | `row:kickoffReturnYards.2024` | 20.67 | 20.20–21.30 | 0.24 | 0.12 | 0.20 | 0.03 | — | — | — | 20.7 | stale |
-| `row:puntsReturned` | 42.76 | 40.60–45.00 | 1.11 | 0.86 | 0.70 | 0.03 | 0.82 | 1.05x | 1.35x | 2.0 | ok |
+| `row:puntsReturned` | 42.76 | 40.60–45.00 | 1.11 | 0.87 | 0.70 | 0.03 | 0.82 | 1.05x | 1.35x | 2.0 | ok |
 | `row:puntTouchbacksFromPlusTerritory` | 2.57 | 1.30–4.10 | 0.72 | 0.80 | 0.00 | 0.03 | — | — | — | 11.1 | OFF |
-| `row:snapsInsideOwn10` | 1.670 | 1.500–1.820 | 0.078 | 0.061 | 0.049 | 0.003 | 0.046 | 1.34x | 1.72x | 1.5 | OFF ok |
+| `row:snapsInsideOwn10` | 1.671 | 1.510–1.820 | 0.077 | 0.062 | 0.046 | 0.003 | 0.046 | 1.36x | 1.69x | 1.6 | OFF ok |
 | `row:safeties` | 0.020 | 0.010–0.040 | 0.006 | 0.005 | 0.003 | 0.003 | 0.005 | 1.03x | 1.15x | 1.6 | ok |
-| `row:preSnapRoadVsHome` | 1.247 | 1.170–1.390 | 0.061 | 0.059 | 0.018 | 0.003 | — | — | — | 0.9 | OFF ok |
-| `row:heavyRainPoints` | 1.72 | -4.70–5.50 | 3.10 | — | — | 0.03 | — | — | — | 0.1 | unsourced |
-| `row:gamesWithin3` | 20.52 | 17.50–26.80 | 2.24 | 1.67 | 1.50 | 0.03 | 2.02 | 0.83x | 1.11x | 0.4 | OFF ok |
+| `row:preSnapRoadVsHome` | 1.246 | 1.170–1.390 | 0.061 | 0.059 | 0.014 | 0.003 | — | — | — | 0.9 | OFF ok |
+| `row:heavyRainPoints` | 1.72 | -4.80–5.50 | 3.16 | — | — | 0.03 | — | — | — | 0.1 | unsourced |
+| `row:gamesWithin3` | 20.32 | 17.00–26.30 | 2.26 | 1.66 | 1.54 | 0.03 | 2.01 | 0.82x | 1.12x | 0.3 | OFF ok |
 | `row:gamesWithin7` | 45.92 | 37.50–52.30 | 3.38 | 2.29 | 2.49 | 0.03 | 2.49 | 0.92x | 1.36x | 0.4 | OFF ok |
 | `row:gamesBy14plus` | 35.01 | 28.50–43.50 | 3.50 | 2.04 | 2.85 | 0.03 | 2.39 | 0.85x | 1.47x | 1.9 | OFF ok |
-| `row:marginSigma` | 15.11 | 13.50–17.10 | 0.84 | 0.59 | 0.60 | 0.03 | — | — | — | 0.6 | OFF ok |
-| `row:betweenTeamSigma` | 6.094 | 4.540–7.170 | 0.692 | 0.566 | 0.398 | 0.003 | — | — | — | 0.1 | (OFF) (ok) |
-| `row:penalty.offensiveHolding` | 2.196 | 1.960–2.420 | 0.122 | 0.083 | 0.089 | 0.003 | — | — | — | 2.5 | ok |
-| `row:penalty.falseStart` | 2.796 | 2.540–3.150 | 0.143 | 0.082 | 0.117 | 0.003 | — | — | — | 1.0 | OFF ok |
-| `row:penalty.defensivePassInterference` | 1.408 | 1.170–1.570 | 0.103 | 0.071 | 0.075 | 0.003 | — | — | — | 1.6 | OFF ok |
-| `row:penalty.defensiveHolding` | 1.436 | 1.170–1.680 | 0.117 | 0.074 | 0.091 | 0.003 | — | — | — | 5.9 | OFF |
+| `row:marginSigma` | 15.12 | 13.50–17.10 | 0.84 | 0.58 | 0.60 | 0.03 | — | — | — | 0.6 | OFF ok |
+| `row:betweenTeamSigma` | 6.097 | 4.550–7.150 | 0.691 | 0.569 | 0.393 | 0.003 | — | — | — | 0.1 | (OFF) (ok) |
+| `row:penalty.offensiveHolding` | 2.195 | 1.960–2.420 | 0.122 | 0.084 | 0.089 | 0.003 | — | — | — | 2.5 | ok |
+| `row:penalty.falseStart` | 2.798 | 2.540–3.160 | 0.143 | 0.081 | 0.118 | 0.003 | — | — | — | 1.0 | OFF ok |
+| `row:penalty.defensivePassInterference` | 1.410 | 1.170–1.570 | 0.104 | 0.071 | 0.076 | 0.003 | — | — | — | 1.6 | OFF ok |
+| `row:penalty.defensiveHolding` | 1.437 | 1.170–1.680 | 0.117 | 0.076 | 0.090 | 0.003 | — | — | — | 5.9 | OFF |
 | `row:penalty.unnecessaryRoughness` | 0.366 | 0.310–0.430 | 0.031 | 0.030 | 0.006 | 0.003 | — | — | — | 4.6 | OFF |
 | `row:penalty.delayOfGame` | 0.783 | 0.713–0.860 | 0.036 | 0.042 | 0.000 | 0.003 | — | — | — | 2.0 | OFF |
 | `row:penalty.offside` | 0.947 | 0.810–1.090 | 0.067 | 0.043 | 0.052 | 0.003 | — | — | — | 4.3 | OFF |
 | `row:penalty.illegalFormation` | 0.181 | 0.128–0.250 | 0.025 | 0.024 | 0.003 | 0.003 | — | — | — | 2.1 | OFF ok |
-| `row:penalty.roughingThePasser` | 0.109 | 0.080–0.150 | 0.017 | 0.015 | 0.009 | 0.003 | — | — | — | 9.1 | OFF |
-| `row:penalty.neutralZoneInfraction` | 0.620 | 0.450–0.730 | 0.061 | 0.049 | 0.036 | 0.003 | — | — | — | 3.4 | OFF |
-| `row:interferenceDrawnPerGame` | 1.408 | 1.170–1.570 | 0.103 | 0.071 | 0.075 | 0.003 | 0.059 | 1.20x | 1.74x | — | unsourced |
+| `row:penalty.roughingThePasser` | 0.109 | 0.080–0.150 | 0.018 | 0.015 | 0.010 | 0.003 | — | — | — | 8.8 | OFF |
+| `row:penalty.neutralZoneInfraction` | 0.619 | 0.450–0.730 | 0.061 | 0.049 | 0.035 | 0.003 | — | — | — | 3.4 | OFF |
+| `row:interferenceDrawnPerGame` | 1.410 | 1.170–1.570 | 0.104 | 0.071 | 0.076 | 0.003 | 0.059 | 1.20x | 1.75x | — | unsourced |
 | `row:interferenceOnCompletions` | 0.00 | 0.00–0.00 | 0.00 † | 0.00 † | 0.00 | 0.03 | — | — | — | — | unsourced |
 <!-- harness-noise:end -->
