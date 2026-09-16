@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-**Status: built** — the practice is in use and thirteen records exist.
+**Status: built** — the practice is in use and fourteen records exist, with a fifteenth proposed.
 
 An ADR records a **decision**, not a build state. Its `**Status:**` line is the
 decision's status — `Accepted`, or superseded by a later record — and it stays accepted
@@ -75,3 +75,4 @@ immutable like any other's.
 | [0011](0011-derived-identity-for-regenerable-streams.md) | Derive identity for regenerable event streams | Accepted | Built — `PlayRef` |
 | [0012](0012-play-resolver-seam.md) | Separate the play resolver from the game-state machine | Accepted | Partly — `GameSimulator` and `CrudeResolver` are built; the `SpatialResolver` the seam exists for is M5 |
 | [0013](0013-fluid-positions.md) | Separate a player's personnel position from where he lines up | Accepted | Not built — [roadmap M3.5](../roadmap.md). [Amended 2026-09-10](0013-fluid-positions.md#amendment-2026-09-10--what-measurement-found): its rating premise is true since #25, its snap-count premise is #21's on-field record, and the arbitrage is gated until M3.5 |
+| [0015](0015-order-the-pre-snap-exchange.md) | Order the pre-snap exchange, and say what each step may read | Proposed | Partly — step 2's package draw and its `.substitution` point exist since #218; steps 1, 3 and 4 are the proposals in [audit-pre-snap-exchange.md](../audit-pre-snap-exchange.md). ADR-0014's row is on PR #228 and belongs above this one |

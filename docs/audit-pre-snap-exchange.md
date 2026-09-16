@@ -477,8 +477,9 @@ or `coverZero` call has no deep help and the deep read's contest says so; the co
 contest reads the shell. **A `.football` test first**, from the feed's pressure-coverage
 rows if it has them, else named as modelling. **ADR-0014:** n/a. **Cost:** a behaviour
 commit that moves the pass rows; **after #39 lands**, which is rewriting the technique
-vocabulary on the same points. **M1 if the owner wants a shell before M5; otherwise M5**,
-where geometry gives it for free. Recommended as filed-and-waiting.
+vocabulary on the same points. **M1, on #49's gate, after #39 and before #224** — the
+owner's decision of 2026-09-16 (§9, Q4). The resolver code is deleted at M5; the test, the
+rows and the shell's definition are not, and M2 reads the stream this makes true.
 
 ### E-track: the harness carries the exchange
 
@@ -525,9 +526,14 @@ already large. **Recommendation: fold, as a plan constraint on #225's item 4, si
 defensive caller rewritten without it would be rewritten twice.**
 
 **Q4 — Does the one-bit coverage defect gate anything?** It is not pre-snap and it is not
-on #49's gate. *Gate it on #49:* the pressure and sack rows are downstream of coverage.
-*Leave it off:* #49 is already eight items. **Recommendation: off the gate, filed, after
-#39.**
+on #49's gate. *Gate it on #49:* every pass row the retune will set a level against comes
+out of a coverage contest that cannot tell prevent from cover 3, so the retune would be
+done twice — #224's argument, and it is the same argument. *Leave it off:* #49 is already
+eight items, and the crude resolver dies at M5. **Decided by the owner on 2026-09-16:
+gated.** It runs after #39 and before #224 in the resolver region. What survives M5 either
+way is the football test, the rows, the shell's definition on `Coverage`, and the promise
+that the coverage the record names is the coverage the field played — which M2 is built
+against.
 
 **Q5 — Who owns ADR-0015?** It is a resolver-semantics decision and a design decision at
 once — decision 42's successor. **Recommendation: the owner writes it or has it written
