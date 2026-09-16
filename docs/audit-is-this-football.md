@@ -653,6 +653,27 @@ follows the same walk-off (2025 rulebook, 11-3-3), and a defensive foul that lea
 ball inside the two puts the two-point question to the caller again. A false start on an
 extra point is now a 37-yard kick from the 20, and `TryTests` asserts it.
 
+## The pre-snap exchange — measured, in [its own file](pre-snap-exchange.md)
+
+A separate investigation, asked for on 2026-09-15 out of
+[ADR-0014](adr/0014-decide-from-what-the-decider-can-see.md), measured how much of the
+sport's pre-snap conversation the engine plays. It is long enough to be a document rather
+than an entry here, so it lives in [`pre-snap-exchange.md`](pre-snap-exchange.md); this is
+the pointer and the three things worth carrying.
+
+S3, above, built the substitution. The exchange it built is **one reactive step and no
+more**: the offence draws a concept, sends out a grouping, and the defence answers the
+grouping with a package — and then the defence's *call* is drawn from the situation class
+alone, blind to the package the same defence has just put on the field, with the package
+written over whatever the call named. The offence is never asked a second question, so there
+is no audible, no motion and no pre-snap read.
+
+**The measured symptom is not the missing audible.** Across 522 printed scrimmage snaps the
+prevent shell was called nineteen times and never once played by the prevent eleven, and the
+goal-line stop sixty-two times and played by its own eleven twice — seven of those from a
+dime package. **No graded harness row is demonstrably a symptom of any of it**, and the file
+says so plainly and says why. Its proposals are for the owner; nothing in it was built.
+
 ## Where this leaves the engine
 
 **Fifteen findings: fifteen fixed.** S1 through S8 are the original pass and are fixed.
