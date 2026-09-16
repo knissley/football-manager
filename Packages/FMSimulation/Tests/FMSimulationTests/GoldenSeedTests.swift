@@ -115,7 +115,7 @@ struct GoldenSeedTests {
             // rule 9). What each past move was is in the git log.
             (UInt64(1), UInt64(11_273_494_617_443_602_653)),
             (UInt64(5), UInt64(12_341_280_689_017_207_428)),
-            (UInt64(12), UInt64(12_065_066_722_582_501_922)),
+            (UInt64(12), UInt64(17_706_445_328_331_749_663)),
         ])
     func goldenChecksums(seed: UInt64, expected: UInt64) {
         #expect(checksum(seed: seed) == expected)

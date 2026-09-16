@@ -430,9 +430,13 @@ downstream reads. Most of the words are the contest itself, refined:
   two that are neither are the defence having a man spare: a spare safety goes over the
   top of the best receiver and both men's points say `bracket`, and a spare linebacker
   `spy`s a quarterback whose legs beat his own speed.
-- **A forced fumble replaces the tackle**, rather than following it. A fumble is an act by
-  a player who was in possession when it happened (2025 rulebook, 3-2-5) and the ball is
-  dead once a runner an opponent contacted is down (7-2-1-a), so a down cannot hold both.
+- **A forced fumble replaces the tackle**, rather than following it, and the down carries
+  no assist either: an assist is a second man finishing the same tackle, so leaving one
+  standing says the carrier was helped to the ground and *then* lost the ball. A fumble is
+  an act by a player who was in possession when it happened (2025 rulebook, 3-2-5) and the
+  ball is dead once a runner an opponent contacted is down (7-2-1-a), so a down cannot hold
+  both. The assist is chosen where the tackle is and written only once the ball is known to
+  have stayed in, so the choice costs its draws either way.
 
 **Three of these numbers are modelling and nothing sources them** — the share of made
 tackles credited to a second man, the rate at which a rep won outright is a pancake, and

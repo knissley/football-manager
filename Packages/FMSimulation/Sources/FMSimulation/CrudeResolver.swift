@@ -148,6 +148,13 @@ public struct CrudeResolver: PlayResolver {
         // So the attempt is *rewritten* rather than followed by a second point — nobody
         // finished this tackle. A sack has no attempt to rewrite, the pocket writing its
         // own verdict instead, so the strip is appended as one.
+        //
+        // **And an assist is a second man finishing it, so there is none of those either.**
+        // Rewriting the made tackle and leaving the assist standing says the carrier was
+        // helped to the ground and then lost the ball, which is the same down the two
+        // articles rule out with a different word on it. The assist is therefore not
+        // written at all here: `tackleSequence` chooses the man, `creditTheAssist` writes
+        // him, and the caller only calls it once this has returned nothing.
         if let made = decisions.lastIndex(where: {
             $0.kind == .tackleAttempt && $0.primary == loose.forcedBy
                 && $0.tackleResult == .madeTackle
@@ -791,6 +798,12 @@ public struct CrudeResolver: PlayResolver {
                             atTick: scramble.tick,
                             personnel: personnel, context: context, decisions: &decisions,
                             participants: &participants, random: &random)
+                    if dropped == nil {
+                        creditTheAssist(
+                            scramble.assisted, on: quarterback, at: scramble.tick,
+                            personnel: personnel, decisions: &decisions,
+                            participants: &participants)
+                    }
                     if dropped?.ending == .fumbleLost { gained = 0 }
                     return (
                         Outcome(
@@ -1079,6 +1092,11 @@ public struct CrudeResolver: PlayResolver {
                     spot: Int(situation.ballOn) - total, atTick: afterCatch.tick,
                     personnel: personnel, context: context, decisions: &decisions,
                     participants: &participants, random: &random)
+            if fumble == nil {
+                creditTheAssist(
+                    afterCatch.assisted, on: target.receiver, at: afterCatch.tick,
+                    personnel: personnel, decisions: &decisions, participants: &participants)
+            }
             if fumble?.ending == .fumbleLost { gained = 0 }
             let ending: PlayEnding =
                 fumble?.ending ?? (reachesEndZone ? .touchdown : afterCatch.ending)
@@ -1314,6 +1332,11 @@ public struct CrudeResolver: PlayResolver {
                 gained = 0
                 reachesEndZone = false
             }
+        }
+        if fumble == nil {
+            creditTheAssist(
+                tackle.assisted, on: SlotLayout.back, at: tackle.tick, personnel: personnel,
+                decisions: &decisions, participants: &participants)
         }
 
         if penalty == nil {
@@ -2024,7 +2047,7 @@ public struct CrudeResolver: PlayResolver {
         separation: Int, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
-    ) -> (yards: Int, ending: PlayEnding, tick: UInt16) {
+    ) -> (yards: Int, ending: PlayEnding, tick: UInt16, assisted: PlayerSlot) {
         // Wide open with grass in front of him. This is how a long completion actually
         // happens — a blown coverage, or a receiver simply faster than the man on him —
         // and it has to be drawn on its own. The engine's only route to a long gain was
@@ -2044,7 +2067,7 @@ public struct CrudeResolver: PlayResolver {
             // function: a receiver slow enough draws a burst below zero, and 3-12-1 leaves
             // him at the catch rather than behind it. Not an arbitrary clamp — read the
             // floor below for the article.
-            return (max(0, burst), .tackled, startTick)
+            return (max(0, burst), .tackled, startTick, .none)
         }
 
         // The man who was covering him has the first shot, and the help arrives behind.
@@ -2080,7 +2103,10 @@ public struct CrudeResolver: PlayResolver {
         //
         // Checked by `aReceiverIsSpottedWhereHisAdvanceEnded`, which sweeps both of this
         // function's branches with the after-catch term driven below zero.
-        return (max(0, loose + inStride + tackle.extraYards), tackle.ending, tackle.tick)
+        return (
+            max(0, loose + inStride + tackle.extraYards), tackle.ending, tackle.tick,
+            tackle.assisted
+        )
     }
 
     /// How often a tackle is missed by a man who has grass behind him.
@@ -2110,7 +2136,7 @@ public struct CrudeResolver: PlayResolver {
         context: PlayContext, sideline: Double, inSpace: Bool = false,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
-    ) -> (extraYards: Int, ending: PlayEnding, tick: UInt16) {
+    ) -> (extraYards: Int, ending: PlayEnding, tick: UInt16, assisted: PlayerSlot) {
         let breakTackle = context.effective(
             .breakTackle, for: personnel[carrier], onOffense: carrier.isOffense)
 
@@ -2152,21 +2178,25 @@ public struct CrudeResolver: PlayResolver {
             credit(defender, broken ? .other : .tackler, personnel, into: &participants)
 
             if !broken {
-                // The man who arrived with him. Who that is is drawn the way the tackler
-                // was, so the help comes from the pursuit rather than from the order of a
-                // list; how often it is credited at all is `Charting.assistedShare`, which
-                // is modelling and cites nothing.
+                // The man who arrived with him is *chosen* here and *written* by the
+                // caller, once the ball is known to have stayed in. A fumble takes the
+                // tackle off the down — nobody finished it (3-2-5 with 7-2-1-a) — and
+                // there is then nothing to assist; writing the credit here and retracting
+                // it afterwards cannot work, because a credit overwrites the role the man
+                // already held and the old one is gone. Both draws are spent here either
+                // way, so what the ball does next never moves the stream. Who he is is
+                // drawn the way the tackler was, so the help comes from the pursuit and
+                // not from the order of a list; how often there is any is
+                // `Charting.assistedShare`, which is modelling and cites nothing.
+                var assisting = PlayerSlot.none
                 if random.nextBool(probability: Charting.assistedShare),
                     let next = random.weightedIndex(remaining.map(\.1))
                 {
-                    let assisting = remaining[next].0
-                    decisions.append(
-                        .tackleAttempt(
-                            tick: hit, defender: assisting, carrier: carrier, result: .assisted))
-                    credit(assisting, .assistTackler, personnel, into: &participants)
+                    assisting = remaining[next].0
                 }
                 return (
-                    extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled, hit
+                    extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled,
+                    hit, assisting
                 )
             }
             extra += 2 + Int(random.next(upperBound: 5))
@@ -2193,6 +2223,24 @@ public struct CrudeResolver: PlayResolver {
         // He beat everybody and is eventually run down. Where that happens is drawn like
         // any other tackle: writing `.outOfBounds` here made every breakaway a sideline
         // play by construction, which is a fact about the code rather than about the run.
-        return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled, tick)
+        return (
+            extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled, tick, .none
+        )
+    }
+
+    /// The second man on a tackle, written once that tackle is known to have stood.
+    ///
+    /// Called on every path that ran a tackle sequence and did not put the ball on the
+    /// ground. `assisting` is `.none` on the downs the draw inside `tackleSequence` did
+    /// not credit one, which is most of them, and the point sits at the tick of the
+    /// tackle it is an assist on rather than at the end of the play.
+    private func creditTheAssist(
+        _ assisting: PlayerSlot, on carrier: PlayerSlot, at tick: UInt16, personnel: Lineup,
+        decisions: inout [DecisionPoint], participants: inout [Participation]
+    ) {
+        guard !assisting.isNone, personnel[assisting] != nil else { return }
+        decisions.append(
+            .tackleAttempt(tick: tick, defender: assisting, carrier: carrier, result: .assisted))
+        credit(assisting, .assistTackler, personnel, into: &participants)
     }
 }

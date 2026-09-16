@@ -364,9 +364,13 @@ public enum TackleResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case broken = 2
     /// He never had hold of him at all.
     case missed = 3
-    /// The hit put the ball on the ground. It is not also a tackle made: a fumble is an
-    /// act by a player who was in possession when it happened (2025 rulebook, 3-2-5), and
-    /// the ball is dead once a runner an opponent has contacted is down (7-2-1-a).
+    /// The hit put the ball on the ground. It is not also a tackle made — nor one made
+    /// with help, the down carrying no `assisted` either, because an assist is a second
+    /// man finishing the same tackle. A fumble is an act by a player who was in
+    /// possession when it happened (2025 rulebook, 3-2-5), and the ball is dead once a
+    /// runner an opponent has contacted is down (7-2-1-a); a down on which he was brought
+    /// down and then lost it is one the book cannot produce, whichever of the two words
+    /// the record uses for the tackle.
     case forcedFumble = 4
 
     /// The man with the ball beat him, whether he got hold of him first or never did.

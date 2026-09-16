@@ -38,9 +38,12 @@ Which rules must be true of a game, and what checks each, is
 
 - **3-2-4** — A loose ball is a live ball nobody is in possession of — kicked, passed or
   fumbled — and it belongs to the side whose player put it there until somebody secures it
-  or it dies. It is the article that says a free kick the kicking team falls on was never
-  anybody's fumble, because nobody had possessed it. **The engine disagrees with itself
-  here and the disagreement is recorded rather than fixed**: `CrudeResolver` writes an
+  or it dies. **On its own the article says only what a loose ball is.** That a free kick
+  the kicking team falls on is not anybody's fumble does not come from here: it comes from
+  3-2-5's last sentence, which makes the word mean the ball *was in a player's possession*
+  when the act occurred, applied to a kick nobody had possessed. This article supplies the
+  first half and is cited for that half only. **The engine disagrees with itself on the
+  conclusion and the disagreement is recorded rather than fixed**: `CrudeResolver` writes an
   onside kick the kickers recover as `PlayEnding.fumbleRecovered`, so the ending alone
   does not mean a fumble happened and a query about fumbles has to read the play kind too —
   `test:theBallComesOutBeforeTheRunnerIsDown`, which does.
@@ -49,7 +52,9 @@ Which rules must be true of a game, and what checks each, is
   or the ball has died. The sentence this engine leans on is the one that says the term always
   means the ball *was in a player's possession* when the act occurred: with 7-2-1-a it
   orders the hit and the tackle, so a down that ended in a fumble carries no completed
-  tackle of the man who fumbled — `test:theBallComesOutBeforeTheRunnerIsDown`. It is also
+  tackle of the man who fumbled — solo or assisted, an assist being a second man finishing
+  the same tackle — `test:theBallComesOutBeforeTheRunnerIsDown`. It is also the sentence
+  3-2-4 borrows to reach the conclusion recorded there. It is also
   why ball security is one model and not one per position —
   `test:aReceiverIsNotALooserBallCarrierThanABack`.
 - **3-8-2** — A series is four scrimmage downs to reach the line to gain. —
