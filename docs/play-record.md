@@ -494,8 +494,11 @@ downed punt or one run out of bounds the fielding spot and the resting spot are 
 number; on a touchback it is `nil`, because nobody fielded it. Gross, return and net are
 queries: `kickDistance` is the line to the fielding spot, or to the goal line on a
 touchback, which is how the league measures one; `returnYards` is the fielding spot to
-the resting spot, zero on a kick fielded and not run; `netPuntDistance(rules:)` is the
-gross less the return, or the line to the touchback spot on a touchback. With only the
+the resting spot, zero on a kick fielded and not run and **negative where the ball came to
+rest behind the catch**, which is what a returner caught short of the spot he fielded it at
+produces; `netPuntDistance(rules:)` is the gross less the return, or the line to the
+touchback spot on a touchback, so a return that lost ground lengthens the punt's net by
+exactly what it lost. With only the
 resting spot, the gross of a returned punt and its return could not be told apart and the
 harness's net punt row spotted a touchback at the goal line — `KickRecordTests` holds the
 identities over forty games, and `grossPunt`, `puntReturnYards`, `kickoffReturnYards` and

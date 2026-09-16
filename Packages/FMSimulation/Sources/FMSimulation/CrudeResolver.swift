@@ -1381,6 +1381,32 @@ public struct CrudeResolver: PlayResolver {
 
     // MARK: - Kicks and the return game
 
+    /// How far behind the point he fielded it a returner can be put down.
+    ///
+    /// **A modelling choice, and no rule governs it.** Forward progress is about a runner
+    /// an opponent pushes or carries backward. A returner met near where he fielded the
+    /// ball was never driven anywhere — his advance ended where it started — so there is
+    /// no progress to award him and nothing in the book to cite for where he is spotted.
+    ///
+    /// What there is instead is the sport's own left tail, and this is taken from it.
+    /// Across the 2022-25 regular seasons of the nflverse play-by-play release, 92 of
+    /// 3,626 punt returns lost yardage — two or three in every hundred, which is ordinary
+    /// rather than a tail — and 91 of those 92 lost eight yards or fewer, the single
+    /// deeper one ten. Kickoff returns hardly ever lose any: three in 4,652, none deeper
+    /// than three, because the man back there has twenty yards of runway. Derived by
+    /// `scripts/calibration-sources.py` as `puntReturnsNegative`,
+    /// `puntReturnNegativeYards` and `puntReturnsPastTheBound`, and recorded with the
+    /// release it was read from in `docs/reference/calibration-sources.md`.
+    ///
+    /// **What it replaces is a floor at zero**, which spotted every returner at his catch
+    /// or beyond it: a man caught two yards behind the ball was reported as having gained
+    /// nothing, on every return in every game. A bound rather than no bound at all
+    /// because the arithmetic in `returnRun` reaches fifteen yards the wrong way on a poor
+    /// returner against fast coverage, and a fifteen-yard loss on a return is not a thing
+    /// that happens. The carry from scrimmage is bounded at the same depth, for the same
+    /// kind of reason.
+    static let returnLossBound = 8
+
     /// A kickoff, and what the man back there does with it.
     ///
     /// **The kick is aimed, and the spot decides what the aim is worth.** Under the
@@ -1623,7 +1649,10 @@ public struct CrudeResolver: PlayResolver {
             gained -= Int((pursuit - 68) * 0.10)
         }
 
-        return (max(1, min(99, start + max(0, gained))), false)
+        // Behind the catch is a real place for a return to end, and `returnLossBound` is
+        // how far behind it the model will go; the outer bound is the field, which is a
+        // different thing and keeps the spot between the goal lines.
+        return (max(1, min(99, start + max(-Self.returnLossBound, gained))), false)
     }
 
     private func punt(

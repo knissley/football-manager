@@ -1147,6 +1147,89 @@ the mechanism — whether a swing pass, a checkdown into the flat or a jet look 
 able to be caught behind the line, rather than only a screen — is a separate question, and
 this release labels no concept, so nothing here answers it.
 
+## A sourced figure with no row: returns that lose yardage
+
+**Derived, and deliberately not a `Targets.swift` row**, for the reason the section above
+gives: a row there is a promise `simharness` prints a verdict for on every run, and nothing
+asked for this to be graded. It is here because a model of the return needs a left tail to
+be read against, and until this was derived there was none — the resolver floored every
+return at the spot the ball was fielded at, so a returner caught behind his catch was
+reported as having gained nothing.
+
+**No article governs it, and one should not be looked for.** Forward progress puts the ball
+dead at the furthest point a runner reached toward his opponent's goal however far an
+opponent afterwards drives him back (2025 rulebook, 3-12-1; the entry is in
+[`playing-rules.md`](playing-rules.md)) — and that is not this. The returner here was never
+driven anywhere: he was met near where he fielded it, having never advanced past it, so his
+advance ended where it started and there is no progress to award. Citing 3-12-1 beside this
+would be citing an article for something it does not govern. What there is instead is a
+measurement, and this is it.
+
+`scripts/calibration-sources.py` prints five ids for it on a plain run, from S1 — the same
+release every row above was computed from — under the same band policy:
+
+| Script id | What it is | 2022 | 2023 | 2024 | 2025 | se over 400 games | Band the policy gives |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `puntReturnsNegative` | punt returns that lose yardage, share of punt returns % | 1.79 | 2.56 | 2.86 | 3.02 | 0.4326 | 1.69–3.73 |
+| `puntReturnNegativeYards` | yards lost per punt return that lost yardage | 2.53 | 2.64 | 2.04 | 2.12 | 0.2167 | 1.60–3.08 |
+| `puntReturnsPastTheBound` | punt returns losing more than 8 yards, share of punt returns % | 0.000 | 0.000 | 0.000 | 0.121 | 0.00000 | 0.000–0.006 |
+| `kickoffReturnsNegative` | kickoff returns that lose yardage, share of kickoff returns % | 0.00 | 0.17 | 0.00 | 0.09 | 0.1368 | 0.00–0.45 |
+| `kickoffReturnsPastTheBound` | kickoff returns losing more than 8 yards, share of kickoff returns % | 0.000 | 0.000 | 0.000 | 0.000 | 0.00000 | 0.000–0.006 |
+
+The bands span 2023 and 2024 under the band policy; the four seasons are all printed
+because the depth of a tail is not a rate and a maximum needs every season there is.
+**The release they were read from**, as `scripts/fetch-calibration-data.sh` recorded it —
+by name, bytes, sha256 and the release's last-modified date, because these are rolling tags
+and the season alone does not name what was read:
+
+```text
+play_by_play_2022.csv.gz  19093961  0c69a71eb39498956c7b1d5c1ca52ce7fe679934a95d1af249facb5ea9829ea4  Thu, 12 Feb 2026 10:25:24 GMT
+play_by_play_2023.csv.gz  19169807  4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8  Thu, 12 Feb 2026 10:24:52 GMT
+play_by_play_2024.csv.gz  19362351  23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06  Thu, 13 Aug 2026 12:26:27 GMT
+play_by_play_2025.csv.gz  19105296  2f135887790a013fd004e609e37096bb4816d5cc80b9f19122e1bad478961978  Thu, 13 Aug 2026 12:26:09 GMT
+```
+
+In counts rather than rates, because a band says nothing about how thin the sample under it
+was. Over the four seasons: **92 of 3,626 punt returns lost yardage, and 3 of 4,652 kickoff
+returns did.** The punt returner fields it with the coverage on top of him and the kickoff
+returner has twenty yards of runway, which is why the two are banded apart rather than
+folded into one return row.
+
+**The depth, which is what a bound is chosen from.** The 92 losing punt returns, by how far
+back the ball was spotted:
+
+| yards lost | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| returns | 31 | 31 | 17 | 4 | 6 | 1 | 1 | 0 | 0 | 1 |
+
+So **91 of the 92 lost eight yards or fewer**, and the single deeper one lost ten — once in
+3,626. The kickoff's three are shallower still: one of three yards and two of one. Eight is
+where the sport's left tail effectively ends, and `CrudeResolver.returnLossBound` is set
+from this table.
+
+**What the engine does.** Measured over two hundred games of the shared test corpus, seeds
+1 to 200, on the branch that set the bound.
+
+| | source, four seasons | engine, two hundred games |
+| --- | --- | --- |
+| punt returns that lose yardage | 1.69–3.73% (band, 2023-24) | 0.27% (2 of 749) |
+| yards lost per such return | 1.60–3.08 (band, 2023-24) | 1.0 |
+| deepest single punt return loss | 10 (once in 3,626) | 1 |
+| kickoff returns that lose yardage | 0.00–0.45% (band, 2023-24) | 0.00% (0 of 1,664) |
+
+**The verdict, and whose it is.** The kickoff reads in band, and it reads in band the easy
+way — at zero, which is where the source nearly is. The punt does not: the engine loses
+yardage on about a tenth as many punt returns as the sport does, and loses a yard where the
+sport loses two or three. The bound is therefore **not what is holding the engine back** —
+it does not bind on a single return in two hundred games, and a sweep of it from four to
+twelve yards moves no graded harness row at all. What holds it back is the return's own
+arithmetic, which reaches a loss only when a slow returner meets fast pursuit and so almost
+never does with the personnel the generator makes.
+
+**That gap is a residual for the retune, [#49](https://github.com/knissley/football-manager/issues/49),
+and nothing here should be chased by a fix** (CLAUDE.md rule 9). None of the five ids above
+is a graded row, so nothing in `Targets.swift` moved to record it.
+
 ## Adding or moving a row
 
 1. Compute it with `scripts/calibration-sources.py`, which names the seasons and applies

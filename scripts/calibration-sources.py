@@ -301,6 +301,40 @@ def negative_completion_components(yards):
     return {"completionsNegative": 0, "completionNegativeYards": 0.0}
 
 
+# Returns that lose yardage, the same shape and for the same reason.
+#
+# A return can end behind the spot the ball was fielded at, and how often it does and how
+# far back it goes is the only sourced thing there is to say about it: no article governs
+# the spot. Forward progress is about a runner an opponent drives backward, and a returner
+# met near where he fielded it was never driven anywhere -- his advance ended where it
+# started. So this is a measurement rather than a rule, and it is derived here so that a
+# model of the return has a left tail to be read against.
+#
+# `LOSS_BOUND` is where the sport's own tail effectively ends, and the component below
+# counts what falls past it, so the figure that justifies a bound and the bound itself
+# cannot drift apart. The yardage is carried signed for the reason the completions above
+# are.
+
+
+LOSS_BOUND = 8
+
+
+def negative_return_components(kind, yards):
+    """The negative-return components of one kick actually run back, as a component dict.
+
+    `kind` is "punt" or "kickoff" and `yards` is the release's `return_yards` for the
+    play. Exactly zero is not a loss: the returner was put down on the spot he fielded it
+    at. A component is emitted either way so the key exists in every game's part rather
+    than only in the games that had one.
+    """
+    lost = yards < 0
+    return {
+        f"{kind}ReturnsNegative": 1 if lost else 0,
+        f"{kind}ReturnNegativeYards": float(yards) if lost else 0.0,
+        f"{kind}ReturnsPastTheBound": 1 if yards < -LOSS_BOUND else 0,
+    }
+
+
 def read_season(directory, season):
     """Fold one season into per-game component sums."""
     participation = {}
@@ -420,6 +454,10 @@ def read_season(directory, season):
                 ):
                     c["kickoffReturns"] += 1
                     c["kickoffReturnYards"] += num(row, "return_yards", 0.0)
+                    for key, value in negative_return_components(
+                        "kickoff", num(row, "return_yards", 0.0)
+                    ).items():
+                        c[key] += value
                 if flag(row, "return_touchdown"):
                     c["kickReturnTouchdowns"] += 1
             if flag(row, "punt_attempt") and play_type == "punt":
@@ -447,6 +485,8 @@ def read_season(directory, season):
                 ):
                     c["puntReturns"] += 1
                     c["puntReturnYards"] += returned
+                    for key, value in negative_return_components("punt", returned).items():
+                        c[key] += value
                 if flag(row, "return_touchdown"):
                     c["kickReturnTouchdowns"] += 1
             if flag(row, "field_goal_attempt") and play_type == "field_goal":
@@ -998,6 +1038,28 @@ METRICS = [
         share("runs:" + bucket, "calls:" + bucket),
     )
     for bucket, label in RUN_SHARE_BUCKETS
+] + [
+    # Returns that lose yardage. Appended after every block above, and last of all, for
+    # the reason each of them gives: one generator bootstraps every row's standard error
+    # in this list's order, so a row inserted beside the kicking rows it reads with would
+    # reshuffle the draws of every row below it and move bands nobody meant to move.
+    #
+    # None of these is a `Targets.swift` row and none is meant to become one without
+    # somebody asking: the harness prints no verdict for them. They are the sourced left
+    # tail of the return, recorded in the shape of the rows above so that whoever grades
+    # one does not have to derive it again. The mean loss is negated so the row prints a
+    # positive magnitude, exactly as the completion row above it does, and the component
+    # underneath stays signed.
+    #
+    # Punt and kickoff are kept apart because they are not the same event: a punt returner
+    # fields it with the coverage on top of him and a kickoff returner has twenty yards of
+    # runway, and the release says so -- the kickoff share is near zero in every season
+    # here while the punt share is two to three in a hundred.
+    ("puntReturnsNegative", "punt returns that lose yardage, share of punt returns %", PLAY, 2, share("puntReturnsNegative", "puntReturns")),
+    ("puntReturnNegativeYards", "yards lost per punt return that loses yardage (positive magnitude)", PLAY, 2, lambda c: -div(c["puntReturnNegativeYards"], c["puntReturnsNegative"])),
+    ("puntReturnsPastTheBound", f"punt returns losing more than {LOSS_BOUND} yards, share of punt returns %", PLAY, 3, share("puntReturnsPastTheBound", "puntReturns")),
+    ("kickoffReturnsNegative", "kickoff returns that lose yardage, share of kickoff returns %", PLAY, 2, share("kickoffReturnsNegative", "kickoffReturns")),
+    ("kickoffReturnsPastTheBound", f"kickoff returns losing more than {LOSS_BOUND} yards, share of kickoff returns %", PLAY, 3, share("kickoffReturnsPastTheBound", "kickoffReturns")),
 ]
 
 
@@ -1171,6 +1233,46 @@ def self_test():
     # as really does lose the yardage, so the two cases above are known to be able to fail.
     trap = sum((Counter(part) for part in caught), Counter())
     check("control: a Counter fold really does lose the signed yardage entirely", "completionNegativeYards" in trap, False)
+
+    # --- returns that lose yardage ------------------------------------------------------
+    #
+    # The same two failure modes, plus a third this accumulator has and the completions one
+    # does not: it keys on `kind`, so punt and kickoff can be crossed and the result still
+    # folds to a plausible number.
+
+    check("a return for a loss is counted", negative_return_components("punt", -3.0)["puntReturnsNegative"], 1)
+    check("a return for a loss carries its signed yardage", negative_return_components("punt", -3.0)["puntReturnNegativeYards"], -3.0)
+    check("a return put down on the catch is not a loss", negative_return_components("punt", 0.0)["puntReturnsNegative"], 0)
+    check("a return that gained is not a loss", negative_return_components("punt", 24.0)["puntReturnsNegative"], 0)
+    check("a return that gained contributes no yardage", negative_return_components("punt", 24.0)["puntReturnNegativeYards"], 0.0)
+
+    # The bound's own component. `LOSS_BOUND` is the depth the model clamps at, so exactly
+    # that depth is inside it and a yard further is not: an off-by-one here would report a
+    # tail the source does not have, which is the number the bound is chosen from.
+    check("a loss exactly at the bound is not past it", negative_return_components("punt", -float(LOSS_BOUND))["puntReturnsPastTheBound"], 0)
+    check("a loss a yard past the bound is past it", negative_return_components("punt", -float(LOSS_BOUND) - 1)["puntReturnsPastTheBound"], 1)
+    check("a return that gained is not past the bound", negative_return_components("punt", 24.0)["puntReturnsPastTheBound"], 0)
+
+    # The kind really does key the components, so a punt cannot be folded into the kickoff
+    # share. The two are separate rows because the events are different -- the release puts
+    # the kickoff share near zero and the punt share at two or three in a hundred -- and
+    # crossing them would read as one plausible middle number.
+    kicked = negative_return_components("kickoff", -2.0)
+    check("a kickoff return's components are the kickoff's", kicked["kickoffReturnsNegative"], 1)
+    check("a kickoff return contributes nothing to the punt count", kicked.get("puntReturnsNegative", 0), 0)
+
+    # A game's worth of punt returns folded the way `read_season` folds them.
+    run_back = [negative_return_components("punt", y) for y in (14.0, -2.0, 0.0, -1.0, 6.0, -12.0)]
+    folded = sum_components(run_back)
+    check(
+        "a game of punt returns folds to the count, the signed yardage and the tail",
+        (folded["puntReturnsNegative"], folded["puntReturnNegativeYards"], folded["puntReturnsPastTheBound"]),
+        (3, -15.0, 1),
+    )
+
+    # The control, as above: the fold this must never be written as loses the yardage.
+    trap = sum((Counter(part) for part in run_back), Counter())
+    check("control: a Counter fold really does lose the return yardage entirely", "puntReturnNegativeYards" in trap, False)
 
     # --- the target-share join ----------------------------------------------
     #

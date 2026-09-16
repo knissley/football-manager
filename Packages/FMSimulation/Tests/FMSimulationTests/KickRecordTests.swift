@@ -26,10 +26,15 @@ struct KickRecordTests {
     /// The Done-when: gross, return and net for every punt in forty games, off the
     /// record alone. The identities are what make the derivations checkable without
     /// the resolver's own numbers: a kick is fielded short of where it was kicked from,
-    /// a return ends no nearer the receivers' goal than where it began, a kick that was
-    /// fair caught, downed or run out of bounds is dead where it was fielded, and the net
-    /// is the line to where the ball came to rest — or to the twenty on a touchback,
-    /// which is how the league scores one.
+    /// a return ends no further behind where it began than the bound on a return, a kick
+    /// that was fair caught, downed or run out of bounds is dead where it was fielded,
+    /// and the net is the line to where the ball came to rest — or to the twenty on a
+    /// touchback, which is how the league scores one.
+    ///
+    /// The return used to be asserted as never losing ground, which is what the record
+    /// could say rather than what the sport does: a returner caught behind his catch is
+    /// spotted behind it, and the net of the punt that put him there is longer by exactly
+    /// that.
     @Test(
         "Every kick says where it was fielded, and gross, return and net follow from it",
         .tags(.contract))
@@ -75,7 +80,15 @@ struct KickRecordTests {
                     #expect(play.kickDistance == ballOn - Int(fielded), "\(at): the gross")
                     if outcome.endedIn == .tackled || outcome.endedIn == .touchdown {
                         returned += 1
-                        #expect(Int(resting) >= Int(fielded), "\(at): a return that lost ground")
+                        // A return that lost ground is a return, not a broken record:
+                        // the returner was caught behind the spot he fielded it at. What
+                        // it may not do is lose more than the resolver's bound, and the
+                        // field bound is the other answer where the ball would otherwise
+                        // be dead behind the goal line.
+                        #expect(
+                            Int(resting) >= Int(fielded) - CrudeResolver.returnLossBound
+                                || resting == 1,
+                            "\(at): a return that lost \(Int(fielded) - Int(resting)) yards")
                         #expect(
                             play.returnYards == Int(resting) - Int(fielded), "\(at): the return")
                     } else {

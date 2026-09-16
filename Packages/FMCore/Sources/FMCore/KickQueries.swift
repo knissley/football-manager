@@ -24,12 +24,21 @@ extension PlayRecord {
     /// rest, and zero on a kick that was fielded and not returned — a fair catch, a downed
     /// punt, a kick run out of bounds, a kick the kickers fell on. `nil` when nobody
     /// fielded it, and on anything that is not a kick.
+    ///
+    /// **Negative where the ball came to rest behind the catch.** A returner put down
+    /// short of the spot he fielded it at is an ordinary thing rather than an impossible
+    /// one, and a muffed punt can be recovered behind it. This used to be floored at
+    /// zero, which made the record unable to describe the only kind of return that is
+    /// not a gain — and took the loss out of the punt's net with it, because the net is
+    /// the gross less this and the floor swallowed exactly the yardage the punting team
+    /// had been handed back. Three spots decide a kick and this is arithmetic over them:
+    /// what a return is allowed to do is the resolver's question, not the query's.
     public var returnYards: Int? {
         guard isKick, let fielded = outcome.fieldedAt else { return nil }
         switch outcome.endedIn {
         case .tackled, .touchdown, .outOfBounds, .fumbleLost:
             guard let resting = outcome.finalSpot else { return 0 }
-            return max(0, Int(resting) - Int(fielded))
+            return Int(resting) - Int(fielded)
         default:
             return 0
         }
