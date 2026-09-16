@@ -36,6 +36,27 @@ Which rules must be true of a game, and what checks each, is
 
 ## Rule 3 — Definitions
 
+- **3-2-4** — A loose ball is a live ball nobody is in possession of — kicked, passed or
+  fumbled — and it belongs to the side whose player put it there until somebody secures it
+  or it dies. **On its own the article says only what a loose ball is.** That a free kick
+  the kicking team falls on is not anybody's fumble does not come from here: it comes from
+  3-2-5's last sentence, which makes the word mean the ball *was in a player's possession*
+  when the act occurred, applied to a kick nobody had possessed. This article supplies the
+  first half and is cited for that half only. **The engine disagrees with itself on the
+  conclusion and the disagreement is recorded rather than fixed**: `CrudeResolver` writes an
+  onside kick the kickers recover as `PlayEnding.fumbleRecovered`, so the ending alone
+  does not mean a fumble happened and a query about fumbles has to read the play kind too —
+  `test:theBallComesOutBeforeTheRunnerIsDown`, which does.
+- **3-2-5** — Losing player possession is a fumble, unless the ball left him as a pass, a
+  successful hand-off or a legal kick; and the fumble is over once either side has the ball
+  or the ball has died. The sentence this engine leans on is the one that says the term always
+  means the ball *was in a player's possession* when the act occurred: with 7-2-1-a it
+  orders the hit and the tackle, so a down that ended in a fumble carries no completed
+  tackle of the man who fumbled — solo or assisted, an assist being a second man finishing
+  the same tackle — `test:theBallComesOutBeforeTheRunnerIsDown`. It is also the sentence
+  3-2-4 borrows to reach the conclusion recorded there. It is also
+  why ball security is one model and not one per position —
+  `test:aReceiverIsNotALooserBallCarrierThanABack`.
 - **3-8-2** — A series is four scrimmage downs to reach the line to gain. —
   `test:firstDown`, `test:turnoverOnDowns`; a fourth down lost to a foul's loss of down is
   the series too —
@@ -466,6 +487,14 @@ spot, which needs a kick to come down in the landing zone and then reach the end
 
 ## Rule 7 — Ball in play, dead ball, scrimmage
 
+- **7-2-1** — When an official declares the ball dead and the down over. The clause this
+  engine turns on is (a): a runner an opponent has contacted is down the moment any part of
+  him other than his hands or his feet touches the ground. Read with 3-2-5 it fixes the
+  order of two events the record used to get backwards — the ball comes out on the hit or
+  it does not come out at all, so the attempt that knocked it loose is a forced fumble and
+  not a tackle made — `test:theBallComesOutBeforeTheRunnerIsDown`. The article's other
+  clauses are the dead-ball conditions the rest of the engine already keeps: out of bounds
+  (e), the incomplete pass (g), the kneel (c), and the scores (m).
 - **7-3-1** — Four downs to advance to the line to gain. — `test:firstDown`,
   `test:fourthDownConversion`
 - **7-3-3** — Where the ball lies dead in the field of play, its forward part is what any
@@ -944,6 +973,41 @@ spot, which needs a kick to come down in the landing zone and then reach the end
   recovers ends the game. — `test:overtimeKickoffRecoveredByTheKickersEndsIt`
 - **A.R. 16.4** — After a field goal on the opening possession, a kickoff returned for a
   touchdown ends the game, with no try. — `test:overtimeKickoffReturnedForTouchdownEndsIt`
+
+## Words in the record that no rule and no season sources
+
+Three of the words the play record uses are **modelling, and nothing sources any of them.**
+They are here because a reader who meets one in the stream will come looking for the rule
+behind it, and there is none to find.
+
+None of the three is a rule. No article defines an assisted tackle, a pancake or a
+stalemate — the book has nothing to say about how a play is *charted* once it is over —
+and for the first of them there is no season to take a number from either: a
+solo-versus-assist split is the scorer's judgement on the day, and two providers charting
+the same game disagree about it, so a figure lifted from a season would be that provider's
+convention rather than a fact about the sport. Dressing any of them as sourced football
+would be exactly the failure rule 10 exists to catch.
+
+- An assist, `TackleResult.assisted`, is credited on about **30%** of made tackles, to the
+  next man in the pursuit, drawn the way the tackler himself is drawn.
+- A pancake, `BlockResult.pancake`, is drawn on **6%** of the reps a blocker won by a wide
+  margin.
+- A stalemate, `BlockResult.stalemate`, is every rep a blocker held inside a margin of
+  **six rating points**, which is this engine's statement of two men being the same player.
+- The wide margin the pancake and `BlockResult.whiffed` share is **one unit of the contest
+  curve**, 22 rating points — the scale `CrudeResolver.contest` divides by, so a whole unit
+  is a mismatch rather than a matchup. The issue that asked for these named three; this is
+  the fourth, and it is the same kind of thing.
+
+Only the first two reach anything: they cost a draw each, so they move the stream and
+every golden with it. The margins choose a word and nothing else — the contest's verdict,
+the yards and the ending are the same whichever word comes out. What each is measured
+against is nothing, and that is the point of this section.
+
+Which defender takes a deep zone under a given shell is the same kind of choice and is not
+here, because it is not a number: `Lineup.deepZoneDefenders` gives the deep zones to the
+men who align deepest and says so where it is written, the crude engine having no
+alignment to decide it properly.
 
 ## Not playing rules
 

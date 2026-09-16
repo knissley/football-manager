@@ -106,7 +106,7 @@ struct PenaltyTests {
             checked += 1
             #expect(
                 play.decisions.contains {
-                    $0.kind == .blockResult && $0.blockResultValue == .lost
+                    $0.kind == .blockResult && $0.blockResultValue?.beaten == true
                         && $0.primary == flag.offender
                 },
                 "a hold by somebody who never lost his rep")

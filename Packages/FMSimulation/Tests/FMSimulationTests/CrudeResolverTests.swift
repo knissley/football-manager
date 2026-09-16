@@ -778,7 +778,7 @@ struct OutOfBoundsTests {
         let breakaways = resolved(.outsideRun, Self.neutral, count: 8_000).filter { play in
             let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
             guard attempts.count == 3,
-                attempts.allSatisfy({ $0.detail == TackleResult.broken.rawValue })
+                attempts.allSatisfy({ $0.tackleResult?.beaten == true })
             else { return false }
             return play.outcome.endedIn == .tackled || play.outcome.endedIn == .outOfBounds
         }
@@ -885,17 +885,18 @@ struct CarryShapeTests {
     /// A long run is a man beaten, not a hole measured.
     ///
     /// The engine's own promise about its run game: a carry that goes twenty yards or
-    /// more has a broken tackle in front of it in the same record. Nothing about the
-    /// blocking alone may produce one, because a distribution whose tail is drawn rather
-    /// than earned puts the yards on the offensive line and leaves the back's contact
-    /// balance worth nothing.
-    @Test("Every carry of twenty or more has a broken tackle in front of it", .tags(.contract))
+    /// more has a tackler beaten in front of it in the same record — shed, or missed
+    /// altogether, the record saying which but the promise covering both. Nothing about
+    /// the blocking alone may produce one, because a distribution whose tail is drawn
+    /// rather than earned puts the yards on the offensive line and leaves the back's
+    /// contact balance worth nothing.
+    @Test("Every carry of twenty or more has a tackler beaten in front of it", .tags(.contract))
     func aBreakawayIsAlwaysABrokenTackle() {
         let long = Self.carries.filter { $0.outcome.yards >= 20 }
         #expect(long.count > 0, "no carry reached twenty: the case was never exercised")
         let unearned = long.filter { play in
             !play.decisions.contains {
-                $0.kind == .tackleAttempt && $0.detail == TackleResult.broken.rawValue
+                $0.kind == .tackleAttempt && $0.tackleResult?.beaten == true
             }
         }.count
         #expect(
@@ -1306,7 +1307,7 @@ struct PocketTests {
                         concept, context: roster.context, rosterSeed: roster.seed, index: index)
                     pressured.append(decisions.contains { $0.kind == .pressureAllowed })
                     let arrivals = decisions.filter {
-                        $0.kind == .blockResult && $0.blockResultValue == .lost
+                        $0.kind == .blockResult && $0.blockResultValue?.beaten == true
                     }.map { Int($0.value) }
                     firstArrival.append(arrivals.min() ?? -1)
                     // The ball is out at the throw, the checkdown or the throwaway, and
@@ -1648,10 +1649,18 @@ struct PassRushTests {
     /// ball has to come out.
     @Test("A six-man pressure takes the back out of the route tree", .tags(.contract))
     func aSixManPressureTakesTheBackOutOfTheRouteTree() {
+        // Men covered, not points written: a receiver two defenders bracket is one route
+        // and carries two assignments, and the man watching the quarterback is neither.
         func routesRun(_ rush: PassRush) -> Double {
             let snaps = dropbacks(rush: rush, count: 600)
-            let total = snaps.reduce(0) {
-                $0 + $1.filter { $0.kind == .coverageAssignment }.count
+            let total = snaps.reduce(0) { running, decisions in
+                running
+                    + Set(
+                        decisions.filter {
+                            $0.kind == .coverageAssignment
+                                && $0.secondary != SlotLayout.quarterback
+                        }.map(\.secondary)
+                    ).count
             }
             return Double(total) / Double(snaps.count)
         }
@@ -1660,5 +1669,155 @@ struct PassRushTests {
         #expect(
             six < four - 0.5,
             "a six-man pressure ran \(six) routes against \(four) on a four-man rush")
+    }
+}
+
+/// What the record says a tackle, a block and a coverage rep *were*.
+///
+/// The four vocabularies behind `DecisionPoint.detail` on those kinds are the words
+/// every query downstream will read, so a word that means nothing, or that contradicts
+/// the call it was written under, is a hole in the analysis layer rather than a cosmetic
+/// one. `VocabularyCoverageTests` asks whether each word can be reached at all; this
+/// suite asks whether the ones that are reached are true of the play they sit on.
+///
+/// Three of the choices behind these words are **modelling and cite nothing** — the
+/// share of made tackles that are assisted, the rate at which a rep won outright is a
+/// pancake, and the margin inside which a rep the blocker held is a stalemate. Nothing
+/// here asserts any of those rates: an assisted-tackle share is the scorer's judgement
+/// on the day and differs between data providers, so there is no season to grade it
+/// against. `docs/reference/playing-rules.md` names all three as modelling for the same
+/// reason.
+@Suite("Tackle, block and coverage vocabulary")
+struct ResolutionVocabularyTests {
+
+    /// Six defensive backs on a passing down, so the call has a cover man left over once
+    /// every route is matched. The spare man is the only way a bracket or a spy exists.
+    private static let passingDown = Situation(
+        quarter: 2, clockRemaining: 600, down: .third, distance: 12, ballOn: 50,
+        possession: TeamID(1), offensePersonnel: .eleven, defensePackage: .dime)
+
+    /// Nickel against eleven personnel, under a call that presses.
+    private static let pressDown = Situation(
+        quarter: 2, clockRemaining: 600, down: .second, distance: 8, ballOn: 50,
+        possession: TeamID(1), offensePersonnel: .eleven, defensePackage: .nickel)
+
+    private static func coverage(
+        _ situation: Situation, _ call: DefensiveCall
+    ) -> [DecisionPoint] {
+        [PlayConcept.quickPass, .mediumPass, .deepPass]
+            .flatMap { TestWorld.resolved($0, count: 400, defense: call, from: situation) }
+            .flatMap(\.decisions)
+            .filter { $0.kind == .coverageAssignment }
+    }
+
+    /// What a coverage point says a defender was doing, against the call he was doing it
+    /// under.
+    ///
+    /// The technique is the defender's assignment, so it has to agree with the call: a
+    /// man call cannot put a defender in a zone and a zone call cannot put him in trail.
+    /// The two assignments that are neither — the second man over the top of a receiver,
+    /// and the man left watching the quarterback — are the defence having somebody
+    /// spare, and can occur under either.
+    ///
+    /// **Forced rather than sampled**, because which of these exist at all depends on
+    /// what a caller happened to call. Every count below is checked before its claim is
+    /// made: a draw that reached none of a branch says nothing about it.
+    @Test(
+        "contract: a coverage assignment agrees with the call it was made under",
+        .tags(.contract))
+    func coverageAssignmentsAgreeWithTheCall() {
+        let manned = Self.coverage(Self.pressDown, .nickelTwoMan)
+        let zoned = Self.coverage(Self.passingDown, .dimeRush)
+
+        let manTechniques: Set<CoverageTechnique> = [.press, .offMan, .bracket, .spy]
+        let zoneTechniques: Set<CoverageTechnique> = [.zoneDeep, .zoneFlat, .bracket, .spy]
+        for point in manned {
+            #expect(
+                point.coverageTechnique.map(manTechniques.contains) == true,
+                "a man call put a defender in a zone")
+        }
+        for point in zoned {
+            #expect(
+                point.coverageTechnique.map(zoneTechniques.contains) == true,
+                "a zone call put a defender in man")
+        }
+
+        // The instrument, before the claims. A press call presses its corners and plays
+        // its other cover men off; a four-deep zone has men deep and men underneath; and
+        // a package with a spare defensive back puts him over the top of somebody.
+        func count(_ points: [DecisionPoint], _ technique: CoverageTechnique) -> Int {
+            points.count { $0.coverageTechnique == technique }
+        }
+        #expect(count(manned, .press) > 0, "a press call pressed nobody")
+        #expect(count(manned, .offMan) > 0, "a man call put nobody in off coverage")
+        #expect(count(zoned, .zoneDeep) > 0, "a four-deep call sent nobody deep")
+        #expect(count(zoned, .zoneFlat) > 0, "a zone call left nobody underneath")
+        #expect(count(zoned, .bracket) > 0, "a spare cover man bracketed nobody")
+
+        // A bracket is two men on one receiver, which is the whole of the word: a point
+        // carrying it that is the only one on its man is a label and not a double team.
+        for points in [manned, zoned] {
+            let bracketed = Set(
+                points.filter { $0.coverageTechnique == .bracket }.map(\.secondary))
+            for receiver in bracketed {
+                let on = points.filter { $0.secondary == receiver }
+                #expect(
+                    on.count(where: { $0.coverageTechnique == .bracket }) >= 2
+                        || on.count >= 2,
+                    "one man bracketed slot \(receiver.rawValue) by himself")
+            }
+        }
+
+        // A spy is assigned to the quarterback and to nobody else, whichever call he was
+        // left over from.
+        var spies = 0
+        for point in manned + zoned where point.coverageTechnique == .spy {
+            spies += 1
+            #expect(
+                point.secondary == SlotLayout.quarterback,
+                "a spy on slot \(point.secondary.rawValue) rather than the quarterback")
+        }
+        #expect(spies > 0, "nobody was ever left to watch the quarterback")
+    }
+
+    /// An assist is a second man on a tackle somebody else finished.
+    ///
+    /// The record and the credit have to agree: the point names him, the play credits
+    /// him as the assisting tackler, and neither happens on a down where the tackle was
+    /// never made. Nothing about the *rate* is asserted — see the suite's comment.
+    @Test(
+        "contract: an assisted tackle names a second man on a tackle somebody made",
+        .tags(.contract))
+    func anAssistNamesASecondManOnAMadeTackle() {
+        var assists = 0
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
+                let assisted = attempts.filter { $0.tackleResult == .assisted }
+                guard !assisted.isEmpty else { continue }
+                assists += assisted.count
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(assisted.count == 1, "\(at): \(assisted.count) men assisted one tackle")
+                // A forced fumble is not a finished tackle and so is not one an assist
+                // can attach to — see `theBallComesOutBeforeTheRunnerIsDown` for the two
+                // articles that say so. This used to accept one and encoded the gap.
+                #expect(
+                    attempts.contains { $0.tackleResult == .madeTackle },
+                    "\(at): an assist on a down nobody finished")
+                for point in assisted {
+                    #expect(
+                        !attempts.contains {
+                            $0.primary == point.primary && $0.tackleResult != .assisted
+                        },
+                        "\(at): the assisting man made an attempt of his own as well")
+                    #expect(
+                        play.outcome.participants.contains {
+                            $0.slot == point.primary && $0.role == .assistTackler
+                        },
+                        "\(at): the assisting man is not credited with the assist")
+                }
+            }
+        }
+        #expect(assists > 0, "no assisted tackle in forty games")
     }
 }

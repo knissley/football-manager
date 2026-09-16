@@ -503,9 +503,7 @@ struct VocabularyCoverageTests {
     /// query built on top of it. `.tackler` went missing on sacks exactly this way.
     @Test("Every play role gets credited to somebody", .tags(.contract))
     func everyRoleIsCredited() {
-        let unreachable: [PlayRole: String] = [
-            .assistTackler: "M5 — the crude resolver credits a single tackler."
-        ]
+        let unreachable: [PlayRole: String] = [:]
         let seen = Set(Self.forced.flatMap(\.outcome.participants).map(\.role))
             .union(Self.sampled.flatMap(\.outcome.participants).map(\.role))
         for role in PlayRole.allCases where unreachable[role] == nil {
@@ -534,24 +532,9 @@ struct VocabularyCoverageTests {
     /// true. An empty register is the end state, not an unfilled one.
     static let unreachableThrowDecisions: [ThrowDecision: String] = [:]
     static let unreachableCatchResults: [CatchResult: String] = [:]
-    static let unreachableTackleResults: [TackleResult: String] = [
-        .assisted: "C4 (#39) — the crude resolver credits a single tackler, so nobody assists.",
-        .missed:
-            "C4 (#39) — a tackle is made or broken; a defender never misses a man who was not carrying the ball past him.",
-        .forcedFumble:
-            "C4 (#39) — a fumble is drawn in Fumbles after the tackle decision is written, so the decision never says it was forced.",
-    ]
-    static let unreachableBlockResults: [BlockResult: String] = [
-        .stalemate: "C4 (#39) — a block is won or lost; there is no stalemate.",
-        .pancake: "C4 (#39) — a block is won or lost; nobody is put on the ground.",
-        .whiffed: "C4 (#39) — a block is won or lost; nobody misses his man entirely.",
-    ]
-    static let unreachableCoverageTechniques: [CoverageTechnique: String] = [
-        .press: "C4 (#39) — man coverage is recorded as off-man whatever the call's alignment.",
-        .zoneFlat: "C4 (#39) — zone coverage is recorded as deep zone whatever the drop.",
-        .bracket: "C4 (#39) — every receiver is covered by one defender.",
-        .spy: "C4 (#39) — nobody is ever assigned to the quarterback.",
-    ]
+    static let unreachableTackleResults: [TackleResult: String] = [:]
+    static let unreachableBlockResults: [BlockResult: String] = [:]
+    static let unreachableCoverageTechniques: [CoverageTechnique: String] = [:]
     static let unreachableBallPlacements: [BallPlacement: String] = [:]
     /// The one election the baseline caller never makes. It is reachable — the scenario
     /// behind `test:tossLoserMayElectToKickOffAThirdPostseasonOvertimePeriod` elects it —

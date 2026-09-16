@@ -259,6 +259,27 @@ enum TestWorld {
             swept += resolved(concept, count: 250, defense: .manFreeBlitz)
         }
 
+        // A press call, and a package with a cover man to spare. Three assignments are
+        // out of reach of every cell above and each for its own reason: press is a
+        // corner's technique under a call that asks for it, and no cell above makes a
+        // man call that does; the second man over the top of a receiver and the man left
+        // watching the quarterback exist only where the defence has more cover men than
+        // the offence has routes, and base personnel against eleven leaves its spare men
+        // at linebacker. A passing down answered with six defensive backs is where a
+        // defence has both, and it is an ordinary down rather than a contrivance.
+        let passingDown = Situation(
+            quarter: 2, clockRemaining: 600, down: .third, distance: 12, ballOn: 50,
+            possession: TeamID(1), offensePersonnel: .eleven, defensePackage: .dime)
+        for concept in [PlayConcept.quickPass, .mediumPass, .deepPass] {
+            swept += resolved(concept, count: 250, defense: .dimeRush, from: passingDown)
+        }
+        let pressDown = Situation(
+            quarter: 2, clockRemaining: 600, down: .second, distance: 8, ballOn: 50,
+            possession: TeamID(1), offensePersonnel: .eleven, defensePackage: .nickel)
+        for concept in [PlayConcept.quickPass, .mediumPass, .deepPass] {
+            swept += resolved(concept, count: 250, defense: .nickelTwoMan, from: pressDown)
+        }
+
         // Punts, at volume, for the one foul the resolver draws itself rather than
         // through `Penalties`: a cover man touching a punt before the returner does.
         // It needs a kick the receivers let go — about a third of punts from this spot —

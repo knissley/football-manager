@@ -888,7 +888,15 @@ argument for watching a game.
   ([#44](https://github.com/knissley/football-manager/issues/44))
 - **C4** — `tackleAttempt` emits only `madeTackle` and `broken`, `blockResult` only `won`
   and `lost`, `coverageAssignment` only `offMan` and `zoneDeep`. `forcedFumble` is never
-  emitted even on a play where a fumble was forced.
+  emitted even on a play where a fumble was forced — **fixed.** All sixteen cases of the
+  four vocabularies are emitted and the registers that named them are empty. A lost tackle
+  says whether the man was shed or missed altogether, off the margin that decided it; a
+  rep says whether it was a stalemate, a whiff or a pancake; a coverage point says press,
+  off-man, flat, deep, bracket or spy, from the call and from who the defence had left
+  over. The hit that puts the ball on the ground *replaces* the tackle rather than
+  following it, which is the one piece of it the book decides (3-2-5 with 7-2-1-a). Three
+  of the numbers behind the words are modelling and are named as such in
+  `docs/reference/playing-rules.md`; none of them moves a yard or an ending.
   ([#39](https://github.com/knissley/football-manager/issues/39))
 - **C7** — every two-point try is a pass, and the defensive call's package disagrees with
   the situation's on 49% of scrimmage snaps, an invariant ADR-0010 says is testable —

@@ -130,8 +130,8 @@ public struct CrudeResolver: PlayResolver {
     /// offence's own goal, so his return **increases** `ballOn`, and reaching a hundred
     /// is a defensive touchdown.
     private func looseBall(
-        carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int,
-        personnel: Lineup, context: PlayContext,
+        carrier: PlayerSlot, tackler: PlayerSlot?, isSack: Bool, spot: Int, atTick tick: UInt16,
+        personnel: Lineup, context: PlayContext, decisions: inout [DecisionPoint],
         participants: inout [Participation], random: inout SplittableRandom
     ) -> LooseBall? {
         guard let tackler,
@@ -141,6 +141,33 @@ public struct CrudeResolver: PlayResolver {
         else { return nil }
 
         credit(loose.forcedBy, .tackler, personnel, into: &participants)
+        // The hit that put the ball on the ground is the hit that would have ended the
+        // down, and the record cannot have it both ways: a fumble is an act by a player
+        // who was in possession when it happened (2025 rulebook, 3-2-5), and the ball is
+        // dead the moment a runner an opponent has contacted is on the ground (7-2-1-a).
+        // So the attempt is *rewritten* rather than followed by a second point — nobody
+        // finished this tackle. A sack has no attempt to rewrite, the pocket writing its
+        // own verdict instead, so the strip is appended as one.
+        //
+        // **And an assist is a second man finishing it, so there is none of those either.**
+        // Rewriting the made tackle and leaving the assist standing says the carrier was
+        // helped to the ground and then lost the ball, which is the same down the two
+        // articles rule out with a different word on it. The assist is therefore not
+        // written at all here: `tackleSequence` chooses the man, `creditTheAssist` writes
+        // him, and the caller only calls it once this has returned nothing.
+        if let made = decisions.lastIndex(where: {
+            $0.kind == .tackleAttempt && $0.primary == loose.forcedBy
+                && $0.tackleResult == .madeTackle
+        }) {
+            decisions[made] = .tackleAttempt(
+                tick: decisions[made].tick, defender: loose.forcedBy, carrier: carrier,
+                result: .forcedFumble)
+        } else {
+            decisions.append(
+                .tackleAttempt(
+                    tick: tick, defender: loose.forcedBy, carrier: carrier,
+                    result: .forcedFumble))
+        }
         let lostAt = UInt8(max(1, min(99, spot)))
         guard loose.lost else {
             return LooseBall(ending: .fumbleRecovered, finalSpot: lostAt, lostAt: nil)
@@ -194,9 +221,91 @@ public struct CrudeResolver: PlayResolver {
     /// Internal rather than private so the curve itself can be tested. Its shape is a
     /// design property, not an implementation detail.
     func contest(_ attacker: Double, _ defender: Double, edge: Double = 0) -> Double {
-        let margin = (attacker - defender) / 22.0 + edge
+        let margin = (attacker - defender) / Self.contestScale + edge
         let scaled = margin / (1.0 + abs(margin))
         return min(0.93, max(0.07, 0.5 + scaled * 0.45))
+    }
+
+    /// Rating points to one unit of the contest curve above. Two men a whole unit apart
+    /// are a mismatch rather than a matchup, which is the only thing the wording below
+    /// uses it for.
+    static let contestScale = 22.0
+
+    // MARK: - The words the record uses for a contest already settled
+
+    /// How a rep, a tackle and an assist are *worded* once the contest above has decided
+    /// them.
+    ///
+    /// **Modelling. None of this cites an article or a season, and none of it is a rule.**
+    /// No article defines an assisted tackle, a pancake or a stalemate, and there is no
+    /// season to take the first of them from either: a solo-versus-assist split is the
+    /// scorer's judgement on the day and two providers charting one game disagree about
+    /// it, so a number would be a charting convention rather than a fact about the sport.
+    /// `docs/reference/playing-rules.md` says the same where a reader of the record will
+    /// look for it.
+    ///
+    /// **Two of these choose a word and nothing else.** A stalemate is still a rep the
+    /// rusher did not get home on and a whiff is still one he did; the margins below move
+    /// no outcome, no yard and no ending. The two shares do cost a draw each, which is
+    /// the only way any of this reaches the stream.
+    enum Charting {
+
+        /// How often a made tackle is credited to a second man.
+        static let assistedShare = 0.30
+
+        /// How often a rep won outright put the man on the ground.
+        static let pancakeShare = 0.06
+
+        /// Rating points inside which two men are the same player, so a rep the blocker
+        /// held is a rep neither of them won.
+        static let evenRep = 6.0
+
+        /// Rating points at which one of them was never in the other's way: one whole
+        /// unit of the contest curve.
+        static let lopsidedRep = CrudeResolver.contestScale
+    }
+
+    /// The word for one rep, from the rating margin between the two men.
+    ///
+    /// `margin` is the blocker's: what he is rated at against what the man over him is
+    /// rated at, before the call's own commitment, because the word is about the two of
+    /// them and the commitment is about the defence. `won` is the contest's verdict and
+    /// this never disagrees with it — a stalemate and a pancake are reps the blocker won,
+    /// a whiff is one he lost.
+    private func wording(
+        ofRep margin: Double, won: Bool, _ random: inout SplittableRandom
+    ) -> BlockResult {
+        guard won else { return margin <= -Charting.lopsidedRep ? .whiffed : .lost }
+        if abs(margin) < Charting.evenRep { return .stalemate }
+        if margin >= Charting.lopsidedRep,
+            random.nextBool(probability: Charting.pancakeShare)
+        {
+            return .pancake
+        }
+        return .won
+    }
+
+    /// What one defender was asked to do, from the call, the shell his defence lives in
+    /// and where he lines up.
+    ///
+    /// **Man.** Press is contact taken at the line, which is the corner's technique and
+    /// nobody else's here: a safety or a linebacker matched on an inside man is playing
+    /// off him whatever the call. Whether the corners press at all is two facts the
+    /// engine already carries — the shell the defence lives in (`CoverageShell.manPress`
+    /// is corners on receivers everywhere) and the call, where two-man under puts them in
+    /// trail with the two safeties over the top.
+    ///
+    /// **Zone.** A defender is deep if he has one of the deep zones the shell plays and
+    /// underneath — the flat — if he does not; `Lineup.deepZoneDefenders` decides which
+    /// men those are and says why.
+    private func technique(
+        on defender: PlayerSlot, under call: DefensiveCall, deep: Set<PlayerSlot>,
+        personnel: Lineup, context: PlayContext
+    ) -> CoverageTechnique {
+        guard call.coverage.isMan else { return deep.contains(defender) ? .zoneDeep : .zoneFlat }
+        let presses =
+            context.defenseScheme.defense.coverage == .manPress || call.coverage == .twoMan
+        return presses && personnel.position(at: defender) == .cornerback ? .press : .offMan
     }
 
     // MARK: - Pass
@@ -291,6 +400,13 @@ public struct CrudeResolver: PlayResolver {
         var participants: [Participation] = []
         var penalty: PenaltyRecord?
         let defense = calls.defense
+        let quarterback = SlotLayout.quarterback
+        // What his legs are worth, read once. The coverage below asks whether anybody
+        // needs to watch him and the scramble exit asks whether he takes off, and both
+        // are the same question about the same man.
+        let mobility =
+            (rating(.speed, quarterback, personnel, context)
+                + rating(.elusiveness, quarterback, personnel, context)) / 2
 
         func credit(_ slot: PlayerSlot, _ role: PlayRole) {
             self.credit(slot, role, personnel, into: &participants)
@@ -383,10 +499,10 @@ public struct CrudeResolver: PlayResolver {
 
             // The rep, which is a fact about two men and nothing else. Whether the
             // quarterback ever felt it is a separate question with a separate answer.
-            let result: BlockResult
+            let lost = random.nextBool(probability: winChance)
+            let result = wording(ofRep: block - rush, won: !lost, &random)
             let millis: Int
-            if random.nextBool(probability: winChance) {
-                result = .lost
+            if lost {
                 millis = PassRushArrival.draw(&random)
                 // Drawn here, conditional on having lost, so the flag and the reason for
                 // it are the same event: he held because he was beaten.
@@ -400,7 +516,6 @@ public struct CrudeResolver: PlayResolver {
                     pressureOn = blocker
                 }
             } else {
-                result = .won
                 millis = 2_600 + Int(random.next(upperBound: 1_200))
             }
             decisions.append(
@@ -438,6 +553,18 @@ public struct CrudeResolver: PlayResolver {
         // worth of coverage behind him, which is the cost the call pays for the extra
         // rusher; the lineman a zone blitz dropped goes the other way.
         let covering = personnel.coverageDefenders(after: rush)
+        // The men the call left over once every route has somebody on it. A defence with
+        // more cover men than the offence has routes has bodies with nobody to take, and
+        // what it does with them is the two assignments that are neither man nor zone:
+        // the second man over the top of the best receiver, and the man left watching a
+        // quarterback who can outrun him.
+        let spare = covering.count > running.count ? Array(covering[running.count...]) : []
+        // Help over the top is a safety's job, so a spare linebacker does not bracket
+        // anybody: he is the one left for the quarterback below.
+        let helping = spare.first { personnel.position(at: $0) == .safety }
+        let bracketed = helping == nil ? nil : running.first
+        // Which men have a deep zone, of those left covering. Man calls have none.
+        let deep = personnel.deepZoneDefenders(under: defense.coverage, among: covering)
         for (index, receiver) in running.enumerated() {
             guard !covering.isEmpty else { break }
             let defender = covering[min(index, covering.count - 1)]
@@ -459,11 +586,27 @@ public struct CrudeResolver: PlayResolver {
             // The matchup and what it was worth, on one point, through the factory the
             // convention is stated on. Whether the quarterback looked at this man is the
             // read point's business, below, and it is written only for the men he did.
+            let tick = UInt16(12 + index * 3)
             decisions.append(
                 .coverageAssignment(
-                    tick: UInt16(12 + index * 3), defender: defender, receiver: receiver,
-                    technique: defense.coverage.isMan ? .offMan : .zoneDeep,
+                    tick: tick, defender: defender, receiver: receiver,
+                    technique: receiver == bracketed
+                        ? .bracket
+                        : technique(
+                            on: defender, under: defense, deep: deep, personnel: personnel,
+                            context: context),
                     separationCentimetres: Int16(separation)))
+            // The second man on him, and the same separation: the crude engine draws one
+            // number per receiver and the man over the top does not change it. What the
+            // bracket is on the record for is the *count* — a reader asking why the best
+            // receiver saw nothing all day is owed the fact that two men were on him.
+            if receiver == bracketed, let helping, personnel[helping] != nil {
+                credit(helping, .coverage)
+                decisions.append(
+                    .coverageAssignment(
+                        tick: tick, defender: helping, receiver: receiver,
+                        technique: .bracket, separationCentimetres: Int16(separation)))
+            }
             matchups.append((receiver, defender, separation))
 
             // Only the fouls whose restrictions start at the snap. Interference needs a
@@ -472,6 +615,25 @@ public struct CrudeResolver: PlayResolver {
                 penalty = Penalties.whenBeatenInCoverage(
                     defender: defender, receiver: receiver, separationCentimetres: separation,
                     personnel: personnel, context: context, random: &random)
+            }
+        }
+
+        // A linebacker with nobody to cover, watching a quarterback who can outrun him.
+        // That is what a spy is for: a defence that trusts its pursuit to run him down
+        // afterwards does not keep a man on him, and one that cannot has to. Both sides
+        // of the comparison are ratings of real players, so the assignment is a contest
+        // like any other and costs no draw — the record gains a point and the play gains
+        // nothing, the crude resolver having no lane for him to run in yet.
+        if let spy = spare.last(where: { personnel.position(at: $0) == .linebacker }),
+            personnel[spy] != nil, personnel[quarterback] != nil
+        {
+            let containment = rating(.speed, spy, personnel, context)
+            if mobility > containment {
+                credit(spy, .coverage)
+                decisions.append(
+                    .coverageAssignment(
+                        tick: 12, defender: spy, receiver: quarterback, technique: .spy,
+                        separationCentimetres: Int16(30 + contest(mobility, containment) * 190)))
             }
         }
 
@@ -502,7 +664,6 @@ public struct CrudeResolver: PlayResolver {
         // `passResultsAreWherePassesAre` reads the throw decision rather than the kind
         // and the register in docs/play-record.md carries both rows.
         let progression = ReadProgression.of(concept)
-        let quarterback = SlotLayout.quarterback
         let awareness = rating(.awareness, quarterback, personnel, context)
         let composure = rating(.underPressure, quarterback, personnel, context)
         let perceptionNoise = max(Reads.leastPerceptionNoise, Reads.perceptionNoise - awareness / 2)
@@ -603,9 +764,6 @@ public struct CrudeResolver: PlayResolver {
             // carried a `.scramble` case nothing could ever produce, and a quarterback could
             // not get hurt running.
             if random.nextBool(probability: 0.26) {
-                let mobility =
-                    (rating(.speed, quarterback, personnel, context)
-                        + rating(.elusiveness, quarterback, personnel, context)) / 2
                 if random.nextBool(probability: min(0.8, max(0.16, (mobility - 42) * 0.013))) {
                     decisions.append(
                         .throwDecision(
@@ -637,8 +795,15 @@ public struct CrudeResolver: PlayResolver {
                             carrier: quarterback,
                             tackler: participants.first { $0.role == .tackler }?.slot,
                             isSack: false, spot: Int(situation.ballOn) - Int(gained),
-                            personnel: personnel, context: context, participants: &participants,
-                            random: &random)
+                            atTick: scramble.tick,
+                            personnel: personnel, context: context, decisions: &decisions,
+                            participants: &participants, random: &random)
+                    if dropped == nil {
+                        creditTheAssist(
+                            scramble.assisted, on: quarterback, at: scramble.tick,
+                            personnel: personnel, decisions: &decisions,
+                            participants: &participants)
+                    }
                     if dropped?.ending == .fumbleLost { gained = 0 }
                     return (
                         Outcome(
@@ -680,8 +845,9 @@ public struct CrudeResolver: PlayResolver {
                     ? nil
                     : looseBall(
                         carrier: quarterback, tackler: pressureBy, isSack: true,
-                        spot: Int(situation.ballOn) - Int(loss), personnel: personnel,
-                        context: context, participants: &participants, random: &random)
+                        spot: Int(situation.ballOn) - Int(loss), atTick: UInt16(at / 100),
+                        personnel: personnel, context: context, decisions: &decisions,
+                        participants: &participants, random: &random)
 
                 // A sack is a play worth reacting to by anybody's reckoning, and it could
                 // not draw a word after the whistle either.
@@ -923,8 +1089,14 @@ public struct CrudeResolver: PlayResolver {
                 : looseBall(
                     carrier: target.receiver,
                     tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
-                    spot: Int(situation.ballOn) - total, personnel: personnel, context: context,
+                    spot: Int(situation.ballOn) - total, atTick: afterCatch.tick,
+                    personnel: personnel, context: context, decisions: &decisions,
                     participants: &participants, random: &random)
+            if fumble == nil {
+                creditTheAssist(
+                    afterCatch.assisted, on: target.receiver, at: afterCatch.tick,
+                    personnel: personnel, decisions: &decisions, participants: &participants)
+            }
             if fumble?.ending == .fumbleLost { gained = 0 }
             let ending: PlayEnding =
                 fumble?.ending ?? (reachesEndZone ? .touchdown : afterCatch.ending)
@@ -1041,7 +1213,7 @@ public struct CrudeResolver: PlayResolver {
             decisions.append(
                 .blockResult(
                     tick: UInt16(4 + index), blocker: blocker, defender: defender,
-                    result: won ? .won : .lost))
+                    result: wording(ofRep: block - shed, won: won, &random)))
             blockScore += won ? 1 : -1
 
             // Same rule as in protection: a hold is what a beaten blocker does.
@@ -1153,12 +1325,18 @@ public struct CrudeResolver: PlayResolver {
             fumble = looseBall(
                 carrier: SlotLayout.back,
                 tackler: participants.first { $0.role == .tackler }?.slot, isSack: false,
-                spot: Int(situation.ballOn) - Int(gained), personnel: personnel, context: context,
+                spot: Int(situation.ballOn) - Int(gained), atTick: tackle.tick,
+                personnel: personnel, context: context, decisions: &decisions,
                 participants: &participants, random: &random)
             if fumble?.ending == .fumbleLost {
                 gained = 0
                 reachesEndZone = false
             }
+        }
+        if fumble == nil {
+            creditTheAssist(
+                tackle.assisted, on: SlotLayout.back, at: tackle.tick, personnel: personnel,
+                decisions: &decisions, participants: &participants)
         }
 
         if penalty == nil {
@@ -1869,7 +2047,7 @@ public struct CrudeResolver: PlayResolver {
         separation: Int, sideline: Double,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
-    ) -> (yards: Int, ending: PlayEnding) {
+    ) -> (yards: Int, ending: PlayEnding, tick: UInt16, assisted: PlayerSlot) {
         // Wide open with grass in front of him. This is how a long completion actually
         // happens — a blown coverage, or a receiver simply faster than the man on him —
         // and it has to be drawn on its own. The engine's only route to a long gain was
@@ -1889,7 +2067,7 @@ public struct CrudeResolver: PlayResolver {
             // function: a receiver slow enough draws a burst below zero, and 3-12-1 leaves
             // him at the catch rather than behind it. Not an arbitrary clamp — read the
             // floor below for the article.
-            return (max(0, burst), .tackled)
+            return (max(0, burst), .tackled, startTick, .none)
         }
 
         // The man who was covering him has the first shot, and the help arrives behind.
@@ -1925,7 +2103,10 @@ public struct CrudeResolver: PlayResolver {
         //
         // Checked by `aReceiverIsSpottedWhereHisAdvanceEnded`, which sweeps both of this
         // function's branches with the after-catch term driven below zero.
-        return (max(0, loose + inStride + tackle.extraYards), tackle.ending)
+        return (
+            max(0, loose + inStride + tackle.extraYards), tackle.ending, tackle.tick,
+            tackle.assisted
+        )
     }
 
     /// How often a tackle is missed by a man who has grass behind him.
@@ -1955,7 +2136,7 @@ public struct CrudeResolver: PlayResolver {
         context: PlayContext, sideline: Double, inSpace: Bool = false,
         decisions: inout [DecisionPoint], participants: inout [Participation],
         startTick: UInt16, random: inout SplittableRandom
-    ) -> (extraYards: Int, ending: PlayEnding) {
+    ) -> (extraYards: Int, ending: PlayEnding, tick: UInt16, assisted: PlayerSlot) {
         let breakTackle = context.effective(
             .breakTackle, for: personnel[carrier], onOffense: carrier.isOffense)
 
@@ -1982,16 +2163,41 @@ public struct CrudeResolver: PlayResolver {
                 ? min(0.55, max(0.08, Self.breakInSpace + (breakTackle - tackling) * 0.0045))
                 : min(0.32, max(0.02, 0.09 + (breakTackle - tackling) * 0.0045))
             let broken = random.nextBool(probability: breakChance)
+            // Which way a lost attempt was lost, off the same margin that decided whether
+            // it was lost at all: a carrier who is the better man in that collision is
+            // past him before there is anything to shed, and a defender with the better of
+            // it had hold of him and lost his grip. It costs no draw of its own, so an
+            // attempt is only ever reported one way.
+            let hit = tick
             decisions.append(
                 .tackleAttempt(
-                    tick: tick, defender: defender, carrier: carrier,
-                    result: broken ? .broken : .madeTackle))
+                    tick: hit, defender: defender, carrier: carrier,
+                    result: broken ? (breakTackle > tackling ? .missed : .broken) : .madeTackle))
             tick += 4
 
             credit(defender, broken ? .other : .tackler, personnel, into: &participants)
 
             if !broken {
-                return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
+                // The man who arrived with him is *chosen* here and *written* by the
+                // caller, once the ball is known to have stayed in. A fumble takes the
+                // tackle off the down — nobody finished it (3-2-5 with 7-2-1-a) — and
+                // there is then nothing to assist; writing the credit here and retracting
+                // it afterwards cannot work, because a credit overwrites the role the man
+                // already held and the old one is gone. Both draws are spent here either
+                // way, so what the ball does next never moves the stream. Who he is is
+                // drawn the way the tackler was, so the help comes from the pursuit and
+                // not from the order of a list; how often there is any is
+                // `Charting.assistedShare`, which is modelling and cites nothing.
+                var assisting = PlayerSlot.none
+                if random.nextBool(probability: Charting.assistedShare),
+                    let next = random.weightedIndex(remaining.map(\.1))
+                {
+                    assisting = remaining[next].0
+                }
+                return (
+                    extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled,
+                    hit, assisting
+                )
             }
             extra += 2 + Int(random.next(upperBound: 5))
             broke += 1
@@ -2017,6 +2223,24 @@ public struct CrudeResolver: PlayResolver {
         // He beat everybody and is eventually run down. Where that happens is drawn like
         // any other tackle: writing `.outOfBounds` here made every breakaway a sideline
         // play by construction, which is a fact about the code rather than about the run.
-        return (extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled)
+        return (
+            extra, random.nextBool(probability: sideline) ? .outOfBounds : .tackled, tick, .none
+        )
+    }
+
+    /// The second man on a tackle, written once that tackle is known to have stood.
+    ///
+    /// Called on every path that ran a tackle sequence and did not put the ball on the
+    /// ground. `assisting` is `.none` on the downs the draw inside `tackleSequence` did
+    /// not credit one, which is most of them, and the point sits at the tick of the
+    /// tackle it is an assist on rather than at the end of the play.
+    private func creditTheAssist(
+        _ assisting: PlayerSlot, on carrier: PlayerSlot, at tick: UInt16, personnel: Lineup,
+        decisions: inout [DecisionPoint], participants: inout [Participation]
+    ) {
+        guard !assisting.isNone, personnel[assisting] != nil else { return }
+        decisions.append(
+            .tackleAttempt(tick: tick, defender: assisting, carrier: carrier, result: .assisted))
+        credit(assisting, .assistTackler, personnel, into: &participants)
     }
 }

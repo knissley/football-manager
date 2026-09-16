@@ -174,4 +174,75 @@ struct BallSecurityTests {
             hit power \(punch), four standard errors being \(4 * noise)
             """)
     }
+
+    /// A ball that is already dead cannot come loose, so the hit that put it on the
+    /// ground is not also a tackle the record says was made.
+    ///
+    /// Two articles, read together. 3-2-5 makes a fumble an act by a player who *was in
+    /// possession* when it happened, and ends the fumble the moment the ball is dead.
+    /// 7-2-1-a makes the ball dead as soon as a runner contacted by an opponent touches
+    /// the ground with any part of him other than his hands or his feet. So the two
+    /// events are ordered by the rules and not by taste: the ball comes out on the hit,
+    /// or it does not come out at all. A down that ended in a fumble is a down on which
+    /// nobody finished the tackle, and a record saying the carrier was tackled and then
+    /// lost it is describing a down the book cannot produce.
+    ///
+    /// What the engine has to do about it is therefore narrow, and it is the whole of
+    /// this claim: the attempt that knocked it loose is written as a forced fumble, and
+    /// the same play carries no completed tackle of the man who fumbled.
+    ///
+    /// **A completed tackle is a completed tackle whoever finished it.** The first version
+    /// of this test read `.madeTackle` alone, and an assist is the other way the record
+    /// says a man was brought down — a second man finishing the tackle with him. So it
+    /// went green over a corpus in which twenty-six downs said the carrier was helped to
+    /// the ground *and then* lost the ball, which is the same impossible down the article
+    /// rules out, written with a different word. Both words are read here, and the
+    /// assisting man's credit with them, because the participation is the half a query
+    /// about tacklers actually reads.
+    ///
+    /// **Read over the shared corpus** rather than a forced draw, because a fumble is
+    /// common enough for forty games to hold well over a hundred of them and what is
+    /// being asserted is a property of *every* one, not the existence of one. The count
+    /// is checked before the claim, so a corpus that stopped producing fumbles fails
+    /// here rather than passing on an empty filter.
+    ///
+    /// **Only downs somebody was in possession of**, which is the article's own
+    /// restriction: 3-2-5's last sentence makes the word mean that the ball was in a
+    /// player's possession when the act occurred, and a free kick the kicking team falls
+    /// on was never in anybody's — it is a loose ball (3-2-4). The engine nonetheless
+    /// records that recovery as `PlayEnding.fumbleRecovered`, so the ending alone does
+    /// not say a fumble happened and this reads the play kind as well.
+    @Test(
+        "football · Rules 3-2-5, 7-2-1 · a down that ended in a fumble carries no completed tackle of the man who fumbled",
+        .tags(.football))
+    func theBallComesOutBeforeTheRunnerIsDown() {
+        let fromScrimmage: Set<PlayKind> = [
+            .rush, .pass, .sack, .scramble, .twoPointConversion,
+        ]
+        var fumbles = 0
+        for result in TestWorld.corpus {
+            for play in result.plays
+            where fromScrimmage.contains(play.outcome.kind)
+                && (play.outcome.endedIn == .fumbleLost
+                    || play.outcome.endedIn == .fumbleRecovered)
+            {
+                fumbles += 1
+                let attempts = play.decisions.filter { $0.kind == .tackleAttempt }
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(
+                    attempts.contains { $0.tackleResult == .forcedFumble },
+                    "\(at): the ball came loose and no attempt says who forced it")
+                #expect(
+                    !attempts.contains { $0.tackleResult == .madeTackle },
+                    "\(at): the tackle was made and the ball came loose afterwards")
+                #expect(
+                    !attempts.contains { $0.tackleResult == .assisted },
+                    "\(at): a second man finished the tackle and the ball came loose after")
+                #expect(
+                    !play.outcome.participants.contains { $0.role == .assistTackler },
+                    "\(at): somebody is credited with assisting a tackle nobody made")
+            }
+        }
+        #expect(fumbles > 0, "no fumble in the corpus to read")
+    }
 }

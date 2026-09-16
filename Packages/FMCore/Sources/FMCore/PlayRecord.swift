@@ -347,28 +347,72 @@ public enum CatchResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
     case offTarget = 6
 }
 
+/// What became of one attempt at the man with the ball.
+///
+/// Five words for three outcomes, and the refinements are where the analysis lives: a
+/// defender who never got hold of his man and one who had him and lost him are the same
+/// yards and a different player, and a query that cannot tell them apart cannot say
+/// which of the two a defence has a problem with.
 public enum TackleResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// He brought him down, and the down ended there.
     case madeTackle = 0
+    /// He arrived with the man who made it. Who is credited with an assist is a scorer's
+    /// judgement in the real sport rather than anything a rule defines, and this engine's
+    /// share of them is modelling — see `docs/reference/playing-rules.md`.
     case assisted = 1
+    /// He had hold of him and was shed.
     case broken = 2
+    /// He never had hold of him at all.
     case missed = 3
+    /// The hit put the ball on the ground. It is not also a tackle made — nor one made
+    /// with help, the down carrying no `assisted` either, because an assist is a second
+    /// man finishing the same tackle. A fumble is an act by a player who was in
+    /// possession when it happened (2025 rulebook, 3-2-5), and the ball is dead once a
+    /// runner an opponent has contacted is down (7-2-1-a); a down on which he was brought
+    /// down and then lost it is one the book cannot produce, whichever of the two words
+    /// the record uses for the tackle.
     case forcedFumble = 4
+
+    /// The man with the ball beat him, whether he got hold of him first or never did.
+    public var beaten: Bool { self == .broken || self == .missed }
 }
 
+/// What became of one block.
 public enum BlockResult: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// He won the rep.
     case won = 0
+    /// Neither man won it: he did not move the man over him and was not moved. Modelling,
+    /// like the two below, and named as such in `docs/reference/playing-rules.md`.
     case stalemate = 1
+    /// The man over him got past him.
     case lost = 2
+    /// He put him on the ground.
     case pancake = 3
+    /// He was never in his way at all.
     case whiffed = 4
+
+    /// The man he was on got past him, whether he had hold of him or never touched him.
+    public var beaten: Bool { self == .lost || self == .whiffed }
 }
 
+/// What a defender was asked to do with the man he was on.
+///
+/// The first four are techniques and follow from the call — a man call cannot put a
+/// defender in a zone, and a zone call cannot put him in trail. The last two are the
+/// defence having somebody spare, and can happen under either.
 public enum CoverageTechnique: UInt8, CaseIterable, Sendable, Hashable, Codable {
+    /// Up on him at the line.
     case press = 0
+    /// Man, off the ball.
     case offMan = 1
+    /// A zone underneath.
     case zoneFlat = 2
+    /// One of the shell's deep zones.
     case zoneDeep = 3
+    /// One of two men on the same receiver. Both of them carry it.
     case bracket = 4
+    /// Assigned to the quarterback. `secondary` is the quarterback and not a receiver,
+    /// which is the one case on this kind where it is not the man who ran a route.
     case spy = 5
 }
 
