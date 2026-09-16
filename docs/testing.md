@@ -235,15 +235,18 @@ the tags do not exist on the pre-wave-1 tree, so the census cannot be taken ther
 
 ## The census as it stands
 
-Taken on `9a823e0`, the tree C29 (#218) landed. It is one test more than the 1,049 on
-`296b792`, and the two `football ·` it adds to `FMSimulation` are worth reading rather than
-counting: one is new — eleven personnel meets a four-back front at the source's own rate —
-and the other is a `.pin` promoted, because the derivation the pin existed for want of now
-exists. So the pins fall from eighteen to seventeen and the football share of the engine's
-suite goes from 41.8 to 42.2%: **1050 tests, counted with
-`./scripts/test-census.sh --markdown`.** The commit is part of the number. A census with
-no commit beside it is a claim about a tree nobody can go back to, which is the way a
-snapshot misleads — it reads as current long after it has stopped being true.
+Taken on `b6116af`, the tree C28 (#186) landed. It is two tests more than the 1,053 before
+it, and both are in `FMSimulation`: a `football ·` and a `.pin` on the return that can now
+lose yardage. They are worth reading rather than counting, because the football one is the
+kind the return had none of — no article governs where a returner caught behind his catch
+is spotted, so what it cites is a real-league season and the release the figure came from
+(see [the entry](reference/calibration-sources.md#a-sourced-figure-with-no-row-returns-that-lose-yardage)),
+which is the second half of the `.football` rule and the half that is easy to forget
+exists. The engine's football share holds at 42.2% and its pins go from seventeen to
+eighteen: **1055 tests, counted with `./scripts/test-census.sh --markdown`.** The commit is
+part of the number. A census with no commit beside it is a claim about a tree nobody can go
+back to, which is the way a snapshot misleads — it reads as current long after it has
+stopped being true.
 
 The table below is that command's output, and a CI step diffs the two, so it can no longer
 drift: regenerate it with `./scripts/test-census.sh --markdown`, between the markers, in
@@ -255,10 +258,10 @@ the same commit as whatever moved it, and move the sha above with it.
 | FMRandom | 0 — 0.0% | 3 — 9.1% | 30 — 90.9% | 0 | 33 |
 | FMCore | 57 — 14.9% | 34 — 8.9% | 288 — 75.2% | 4 | 383 |
 | FMGeneration | 1 — 0.5% | 95 — 46.1% | 110 — 53.4% | 0 | 206 |
-| FMSimulation | 159 — 42.2% | 128 — 34.0% | 73 — 19.4% | 17 | 377 |
+| FMSimulation | 160 — 42.2% | 128 — 33.8% | 73 — 19.3% | 18 | 379 |
 | simharness | 0 — 0.0% | 23 — 47.9% | 25 — 52.1% | 0 | 48 |
 | gamelog | 0 — 0.0% | 6 — 100.0% | 0 — 0.0% | 0 | 6 |
-| **all** | **217 — 20.6%** | **289 — 27.4%** | **526 — 50.0%** | **21** | **1053** |
+| **all** | **218 — 20.7%** | **289 — 27.4%** | **526 — 49.9%** | **22** | **1055** |
 <!-- test-census:end -->
 
 Nothing is untagged, in any target, which is the census's hard-failing condition.
@@ -271,7 +274,7 @@ resolver**, which is what CLAUDE.md asks to watch between milestones.
 The areas are sums over named suites of the census above, so the grouping can be checked
 against `./scripts/test-census.sh --list` rather than taken on trust: attribute each line
 it prints to the `@Suite` above it and add up the suites named here. **The counts in this
-second table were taken at `76e423d` and no machine checks them** — the per-target table
+second table were taken at `b6116af` and no machine checks them** — the per-target table
 above is regenerated and diffed in CI, this one is still summed by hand, so re-take it and
 move the sha with it whenever it is quoted. The rules layer is *Down
 and possession advancement*, *Rules*, *Clock stoppage*, *The ten-second runoff*, *The last
@@ -288,14 +291,14 @@ that a new suite is counted into an area rather than lost to one nobody listed.
 | Area | football | contract | unit | pin | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | The rules layer — `Rules.advance`, `enforce`, the clock, the try (FMCore) | 53 — 45.3% | 6 | 54 | 4 | 117 |
-| Rules conformance — the scripted games (FMSimulation) | 114 — 96.6% | 1 | 0 | 3 | 118 |
-| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff, the pocket and forward progress (FMSimulation) | 9 — 23.7% | 17 | 10 | 2 | 38 |
+| Rules conformance — the scripted games (FMSimulation) | 115 — 97.5% | 1 | 0 | 2 | 118 |
+| The resolver — `CrudeResolver`, the contest curve, out of bounds, punting, the kickoff, the pocket and forward progress (FMSimulation) | 10 — 22.7% | 21 | 10 | 3 | 44 |
 | Generation (FMGeneration) | 1 — 0.5% | 95 | 110 | 0 | 206 |
 
 Three findings come straight off that table, and a fourth off what it cannot show.
 
 **The resolver asserts little football, and what it does assert is shape rather than
-rate.** Nine of its thirty-eight tests do, every one of them added by wave 3. Two came with
+rate.** Ten of its forty-four tests do, every one of them added by wave 3. Two came with
 the sideline and the aimed punt: where a play ends laterally is a clock decision (4-3-2-a)
 and a punt from plus territory beats the touchback (11-6-2-c, 9-5-1 Note a). Each of those
 two asserts only what its articles actually say — the *direction* of the sideline lever,
@@ -304,7 +307,10 @@ The magnitudes that shipped inside them (a trailing offence reaching the sidelin
 often as a leading one, above a fifth of its tackles; fewer than 15% of plus-territory
 punts reaching the end zone) came from the issues that built those levers rather than from
 an article or a sourced season, so they are pinned beside the football tests instead of
-inside them, and are the two `.pin` in that row. One more came with the pocket and is the
+inside them, and are two of the three `.pin` in that row. The third is the return that
+loses yardage, pinned for the opposite reason: the *rate* there is sourced and the
+*spot* is not, so the sourced half is a `.football` test and where exactly the returner is
+put down is the pin. One more came with the pocket and is the
 same shape: a rusher who arrived after the ball was gone pressured nobody, which asserts
 the *direction* the definition of the statistic implies (`row:pressureRate`, 2023-24,
 source S2) and leaves the rate itself to the band.
