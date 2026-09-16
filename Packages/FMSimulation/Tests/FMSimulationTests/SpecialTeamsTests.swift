@@ -338,4 +338,100 @@ struct PuntingTests {
             net(strong, from: 88) > net(weak, from: 88) + 5,
             "strong \(net(strong, from: 88)) against weak \(net(weak, from: 88))")
     }
+
+    // MARK: - The return
+
+    /// The world's context with every man's burst and every man's pursuit set, so the
+    /// return can be watched at the ends of the rating scale rather than at the middle
+    /// of it. Both sides are set together because only one of each pair is read on a
+    /// punt: the returner's speed and elusiveness, and the pursuit of whoever runs him
+    /// down.
+    private func returnContext(burst: UInt8, pursuit: UInt8) -> PlayContext {
+        let (_, chart, players) = TestWorld.team(seed: 12)
+        var adjusted = players
+        for (id, man) in players {
+            var changed = man
+            changed.ratings[.speed] = burst
+            changed.ratings[.elusiveness] = burst
+            changed.ratings[.pursuit] = pursuit
+            adjusted[id] = changed
+        }
+        let rotation = chart.rotation()
+        return PlayContext(
+            offense: TeamID(1), defense: TeamID(2), offenseRotation: rotation,
+            defenseRotation: rotation, players: adjusted,
+            offenseScheme: TeamScheme(offense: .westCoast, defense: .fourThreeUnder),
+            defenseScheme: TeamScheme(offense: .airRaid, defense: .nickelMatch),
+            rules: .standard)
+    }
+
+    /// Every punt actually run back, as the yards the returner made: the spot he was put
+    /// down on less the spot he fielded it at, so a loss is negative.
+    ///
+    /// Struck from the punting team's own 30, which puts the catch around the receiving
+    /// team's own 25 — far enough from either goal line that the field bound never
+    /// decides the answer.
+    private func returnsRunBack(
+        burst: UInt8, pursuit: UInt8, count: Int = 4_000, seed: UInt64 = 29
+    ) -> [Int] {
+        let context = returnContext(burst: burst, pursuit: pursuit)
+        let situation = Situation(
+            quarter: 2, clockRemaining: 700, down: .fourth, distance: 8, ballOn: 70,
+            possession: TeamID(1), scoreDifferential: 0)
+        let calls = Calls(
+            offense: OffensiveCall(concept: .punt), defense: .preventShell,
+            offensiveCaller: .automatic, defensiveCaller: .automatic)
+        var random = SplittableRandom(seed: seed)
+        return (0..<count).compactMap { _ -> Int? in
+            let onField = Lineup.onField(
+                context, concept: .punt, situation: situation, random: &random)
+            let resolved = CrudeResolver().resolve(
+                situation: situation, calls: calls, onField: onField, context: context,
+                random: &random)
+            let outcome = resolved.outcome
+            guard
+                outcome.kind == .punt, outcome.endedIn == .tackled,
+                let spot = outcome.finalSpot, let fielded = outcome.fieldedAt
+            else { return nil }
+            return Int(spot) - Int(fielded)
+        }
+    }
+
+    /// A return can lose yardage, and the source says how much.
+    ///
+    /// **This is sourced, and it is not a rule.** No article governs where a returner
+    /// caught behind his catch is spotted: forward progress is about a runner an opponent
+    /// drives backward, and a returner met near where he fielded it was never driven
+    /// anywhere — his advance ended where it started, so there is nothing to award him.
+    /// What there is instead is the sport's own left tail, and this asserts against that.
+    ///
+    /// Season 2022-25 regular seasons, source S1 (nflverse play-by-play), derived by
+    /// `scripts/calibration-sources.py`; the figures and the release they were read from
+    /// are in [`calibration-sources.md`](../../../../docs/reference/calibration-sources.md),
+    /// "A sourced figure with no row: returns that lose yardage". Two things come out of
+    /// it. Punt returns that lose yardage are **ordinary** — 92 of 3,626 across the four
+    /// seasons, two to three in every hundred — so a model that can never lose one is
+    /// wrong about a routine event and not about a tail. And the losses are **shallow**:
+    /// 91 of those 92 lost eight yards or fewer, and the single deeper one lost ten.
+    ///
+    /// So the engine is read twice. An ordinary returner meeting coverage that runs is
+    /// where the first claim lives; the worst returner the rating scale allows is where
+    /// the second does, because that is the only way to reach the arithmetic's own floor
+    /// of fifteen yards the wrong way, which is a tail the sport does not have.
+    @Test(
+        "football · nflverse play-by-play 2022-25 (S1) · a punt return can be spotted behind the catch, and never more than eight yards behind it",
+        .tags(.football))
+    func returnsLoseYardageAndTheLossIsBounded() {
+        let ordinary = returnsRunBack(burst: 68, pursuit: 99)
+        #expect(ordinary.count > 300, "only \(ordinary.count) punts were run back")
+        #expect(
+            ordinary.contains { $0 < 0 },
+            "not one of \(ordinary.count) returns by a league-average returner lost a yard")
+
+        let poor = returnsRunBack(burst: 0, pursuit: 99)
+        #expect(poor.count > 300, "only \(poor.count) punts were run back")
+        let deepest = poor.min() ?? 0
+        #expect(deepest < 0, "not one of \(poor.count) returns lost a yard")
+        #expect(deepest >= -8, "a return was spotted \(-deepest) yards behind the catch")
+    }
 }

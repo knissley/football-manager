@@ -270,6 +270,50 @@ struct CrudeResolverTests {
         #expect(compared > 100, "only \(compared) returns could be read against their yardage")
     }
 
+    /// A returner caught behind the spot he fielded the ball at is not spotted at it.
+    ///
+    /// **Why this is pinned and not football.** Nothing in the rulebook governs it.
+    /// Forward progress protects a runner an *opponent* pushes or carries backward, and
+    /// that is not this: the returner here was never driven anywhere, he was caught near
+    /// where he fielded it having never advanced past it, so there is no progress to
+    /// award and no article to cite. Where he is spotted is a modelling choice, and this
+    /// pins the choice against the one the resolver used to make — every return at or
+    /// beyond the catch, whatever happened on it.
+    ///
+    /// Read from `returnLane`, which the resolver writes from the return before the
+    /// tackler's pursuit is taken off it, so a negative lane is a returner who was
+    /// already behind his catch when the coverage arrived and the pursuit only puts him
+    /// further back.
+    ///
+    /// **The field bound is the other answer, and it is the right one at the goal line.**
+    /// The corpus's one such return is a punt fielded at the 2 and run three yards the
+    /// wrong way, which is off the back of the field: the spot is the 1 because the ball
+    /// cannot be dead at the −1, not because the catch floored it. So either is accepted,
+    /// and what is rejected is the third answer — the catch spot itself.
+    @Test(
+        "pin: a return whose lane is negative is spotted behind the catch, or on the 1 where the field runs out",
+        .tags(.pin))
+    func negativeReturnLanesAreNotSpottedAtTheCatch() {
+        var seen = 0
+        for result in TestWorld.corpus {
+            for play in result.plays {
+                guard
+                    let lane = play.decisions.first(where: { $0.kind == .returnLane }),
+                    lane.value < 0,
+                    play.outcome.endedIn == .tackled,
+                    let spot = play.outcome.finalSpot, let fielded = play.outcome.fieldedAt
+                else { continue }
+                seen += 1
+                let at = "play \(play.index) of game \(result.game)"
+                #expect(
+                    spot < fielded || spot == 1,
+                    "\(at): a lane of \(lane.value) from the \(fielded) was spotted at the \(spot)"
+                )
+            }
+        }
+        #expect(seen > 0, "no return in the corpus was caught behind the point it was fielded at")
+    }
+
     /// The contract `DecisionKind.catchInSpace` states: the receiver is `primary` and
     /// `value` is the separation in **centimetres** he caught it with — the same number
     /// the same play's `ballArrival` carries.
